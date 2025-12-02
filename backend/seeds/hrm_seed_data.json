@@ -1,0 +1,633 @@
+{
+  "departments": [
+    {
+      "_id": "674000000000000000000001",
+      "name": "Engineering",
+      "code": "ENG",
+      "description": "Software Development and Engineering",
+      "headOfDepartment": "674000000000000000000101",
+      "isActive": true,
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-01-15T00:00:00.000Z"
+    },
+    {
+      "_id": "674000000000000000000002",
+      "name": "Human Resources",
+      "code": "HR",
+      "description": "Human Resources and Administration",
+      "headOfDepartment": "674000000000000000000102",
+      "isActive": true,
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-01-15T00:00:00.000Z"
+    },
+    {
+      "_id": "674000000000000000000003",
+      "name": "Finance",
+      "code": "FIN",
+      "description": "Finance and Accounting",
+      "headOfDepartment": "674000000000000000000103",
+      "isActive": true,
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-01-15T00:00:00.000Z"
+    },
+    {
+      "_id": "674000000000000000000004",
+      "name": "Marketing",
+      "code": "MKT",
+      "description": "Marketing and Communications",
+      "headOfDepartment": "674000000000000000000104",
+      "isActive": true,
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-01-15T00:00:00.000Z"
+    },
+    {
+      "_id": "674000000000000000000005",
+      "name": "Sales",
+      "code": "SAL",
+      "description": "Sales and Business Development",
+      "headOfDepartment": "674000000000000000000105",
+      "isActive": true,
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-01-15T00:00:00.000Z"
+    }
+  ],
+  "users": [
+    {
+      "_id": "673000000000000000000001",
+      "email": "admin@hrmsystem.com",
+      "password": "$2a$10$YourHashedPasswordHere",
+      "role": "SuperAdmin",
+      "assignedDepartments": [],
+      "employeeId": null,
+      "isActive": true,
+      "lastLogin": "2024-11-25T10:00:00.000Z",
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-11-25T10:00:00.000Z"
+    },
+    {
+      "_id": "673000000000000000000002",
+      "email": "hr.admin@hrmsystem.com",
+      "password": "$2a$10$YourHashedPasswordHere",
+      "role": "HR Administrator",
+      "assignedDepartments": [],
+      "employeeId": "674000000000000000000201",
+      "isActive": true,
+      "lastLogin": "2024-11-25T09:30:00.000Z",
+      "createdAt": "2024-01-10T00:00:00.000Z",
+      "updatedAt": "2024-11-25T09:30:00.000Z"
+    },
+    {
+      "_id": "673000000000000000000003",
+      "email": "hr.admin2@hrmsystem.com",
+      "password": "$2a$10$YourHashedPasswordHere",
+      "role": "HR Administrator",
+      "assignedDepartments": [],
+      "employeeId": "674000000000000000000202",
+      "isActive": true,
+      "lastLogin": "2024-11-24T14:20:00.000Z",
+      "createdAt": "2024-01-10T00:00:00.000Z",
+      "updatedAt": "2024-11-24T14:20:00.000Z"
+    },
+    {
+      "_id": "673000000000000000000004",
+      "email": "hr.manager.eng@hrmsystem.com",
+      "password": "$2a$10$YourHashedPasswordHere",
+      "role": "HR Manager",
+      "assignedDepartments": ["674000000000000000000001"],
+      "employeeId": "674000000000000000000203",
+      "isActive": true,
+      "lastLogin": "2024-11-25T08:45:00.000Z",
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-11-25T08:45:00.000Z"
+    },
+    {
+      "_id": "673000000000000000000005",
+      "email": "hr.manager.sales@hrmsystem.com",
+      "password": "$2a$10$YourHashedPasswordHere",
+      "role": "HR Manager",
+      "assignedDepartments": ["674000000000000000000004", "674000000000000000000005"],
+      "employeeId": "674000000000000000000204",
+      "isActive": true,
+      "lastLogin": "2024-11-25T07:15:00.000Z",
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-11-25T07:15:00.000Z"
+    },
+    {
+      "_id": "673000000000000000000006",
+      "email": "hr.manager.fin@hrmsystem.com",
+      "password": "$2a$10$YourHashedPasswordHere",
+      "role": "HR Manager",
+      "assignedDepartments": ["674000000000000000000002", "674000000000000000000003"],
+      "employeeId": "674000000000000000000205",
+      "isActive": true,
+      "lastLogin": "2024-11-24T16:30:00.000Z",
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-11-24T16:30:00.000Z"
+    }
+  ],
+  "employees": [
+    {
+      "_id": "674000000000000000000101",
+      "employeeId": "EMP-20240115-0001",
+      "personalInfo": {
+        "firstName": "John",
+        "lastName": "Smith",
+        "dateOfBirth": "1985-03-15T00:00:00.000Z",
+        "gender": "Male",
+        "maritalStatus": "Married",
+        "nationality": "American"
+      },
+      "contactInfo": {
+        "email": "john.smith@hrmsystem.com",
+        "personalEmail": "john.smith.personal@gmail.com",
+        "phoneNumber": "+1-555-0101",
+        "alternatePhone": "+1-555-0102",
+        "currentAddress": {
+          "street": "123 Tech Street",
+          "city": "San Francisco",
+          "state": "California",
+          "zipCode": "94105",
+          "country": "USA"
+        },
+        "emergencyContacts": [
+          {
+            "name": "Jane Smith",
+            "relationship": "Spouse",
+            "phoneNumber": "+1-555-0103",
+            "email": "jane.smith@gmail.com"
+          }
+        ]
+      },
+      "jobInfo": {
+        "jobTitle": "VP of Engineering",
+        "department": "674000000000000000000001",
+        "manager": null,
+        "hireDate": "2020-01-15T00:00:00.000Z",
+        "employmentType": "Full-time",
+        "workLocation": "San Francisco HQ",
+        "workSchedule": "Monday-Friday, 9:00 AM - 6:00 PM"
+      },
+      "userId": "673000000000000000000101",
+      "status": "Active",
+      "isPrivate": false,
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-11-25T00:00:00.000Z"
+    },
+    {
+      "_id": "674000000000000000000201",
+      "employeeId": "EMP-20240115-0002",
+      "personalInfo": {
+        "firstName": "Sarah",
+        "lastName": "Johnson",
+        "dateOfBirth": "1988-07-22T00:00:00.000Z",
+        "gender": "Female",
+        "maritalStatus": "Single",
+        "nationality": "American"
+      },
+      "contactInfo": {
+        "email": "hr.admin@hrmsystem.com",
+        "personalEmail": "sarah.j@gmail.com",
+        "phoneNumber": "+1-555-0201",
+        "currentAddress": {
+          "street": "456 HR Avenue",
+          "city": "San Francisco",
+          "state": "California",
+          "zipCode": "94105",
+          "country": "USA"
+        },
+        "emergencyContacts": [
+          {
+            "name": "Robert Johnson",
+            "relationship": "Father",
+            "phoneNumber": "+1-555-0202"
+          }
+        ]
+      },
+      "jobInfo": {
+        "jobTitle": "HR Administrator",
+        "department": "674000000000000000000002",
+        "manager": "674000000000000000000102",
+        "hireDate": "2021-03-01T00:00:00.000Z",
+        "employmentType": "Full-time",
+        "workLocation": "San Francisco HQ",
+        "workSchedule": "Monday-Friday, 9:00 AM - 6:00 PM"
+      },
+      "userId": "673000000000000000000002",
+      "status": "Active",
+      "isPrivate": false,
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-11-25T00:00:00.000Z"
+    }
+  ],
+  "leaveBalances": [
+    {
+      "_id": "675000000000000000000001",
+      "employeeId": "674000000000000000000101",
+      "year": 2024,
+      "leaveTypes": [
+        {
+          "type": "annual",
+          "allocated": 20,
+          "used": 8,
+          "pending": 2,
+          "available": 10
+        },
+        {
+          "type": "sick",
+          "allocated": 12,
+          "used": 3,
+          "pending": 0,
+          "available": 9
+        },
+        {
+          "type": "personal",
+          "allocated": 10,
+          "used": 4,
+          "pending": 1,
+          "available": 5
+        },
+        {
+          "type": "paternity",
+          "allocated": 10,
+          "used": 0,
+          "pending": 0,
+          "available": 10
+        }
+      ],
+      "history": [],
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-11-25T00:00:00.000Z"
+    },
+    {
+      "_id": "675000000000000000000002",
+      "employeeId": "674000000000000000000201",
+      "year": 2024,
+      "leaveTypes": [
+        {
+          "type": "annual",
+          "allocated": 20,
+          "used": 5,
+          "pending": 0,
+          "available": 15
+        },
+        {
+          "type": "sick",
+          "allocated": 12,
+          "used": 2,
+          "pending": 0,
+          "available": 10
+        },
+        {
+          "type": "personal",
+          "allocated": 10,
+          "used": 1,
+          "pending": 0,
+          "available": 9
+        }
+      ],
+      "history": [],
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-11-25T00:00:00.000Z"
+    }
+  ],
+  "payslips": [
+    {
+      "_id": "676000000000000000000001",
+      "employeeId": "674000000000000000000101",
+      "month": 10,
+      "year": 2024,
+      "earnings": {
+        "basic": 12000,
+        "hra": 4800,
+        "allowances": [
+          {
+            "name": "Transport Allowance",
+            "amount": 1200
+          },
+          {
+            "name": "Special Allowance",
+            "amount": 2000
+          }
+        ],
+        "bonus": 0,
+        "overtime": 0,
+        "total": 20000
+      },
+      "deductions": {
+        "tax": 3600,
+        "providentFund": 1440,
+        "insurance": 500,
+        "loan": 0,
+        "other": [
+          {
+            "name": "Professional Tax",
+            "amount": 200
+          }
+        ],
+        "total": 5740
+      },
+      "netPay": 14260,
+      "pdfUrl": "/uploads/payslips/payslip_oct_2024_emp001.pdf",
+      "generatedAt": "2024-10-31T00:00:00.000Z",
+      "status": "published",
+      "generatedBy": "673000000000000000000002",
+      "createdAt": "2024-10-31T00:00:00.000Z",
+      "updatedAt": "2024-11-01T00:00:00.000Z"
+    },
+    {
+      "_id": "676000000000000000000002",
+      "employeeId": "674000000000000000000201",
+      "month": 10,
+      "year": 2024,
+      "earnings": {
+        "basic": 8000,
+        "hra": 3200,
+        "allowances": [
+          {
+            "name": "Transport Allowance",
+            "amount": 800
+          },
+          {
+            "name": "Special Allowance",
+            "amount": 1000
+          }
+        ],
+        "bonus": 0,
+        "overtime": 0,
+        "total": 13000
+      },
+      "deductions": {
+        "tax": 2400,
+        "providentFund": 960,
+        "insurance": 300,
+        "loan": 0,
+        "other": [
+          {
+            "name": "Professional Tax",
+            "amount": 200
+          }
+        ],
+        "total": 3860
+      },
+      "netPay": 9140,
+      "pdfUrl": "/uploads/payslips/payslip_oct_2024_emp002.pdf",
+      "generatedAt": "2024-10-31T00:00:00.000Z",
+      "status": "published",
+      "generatedBy": "673000000000000000000002",
+      "createdAt": "2024-10-31T00:00:00.000Z",
+      "updatedAt": "2024-11-01T00:00:00.000Z"
+    }
+  ],
+  "attendanceRecords": [
+    {
+      "_id": "677000000000000000000001",
+      "employeeId": "674000000000000000000101",
+      "date": "2024-11-25T00:00:00.000Z",
+      "checkIn": "2024-11-25T09:05:00.000Z",
+      "checkOut": "2024-11-25T18:15:00.000Z",
+      "status": "present",
+      "workHours": 9.17,
+      "overtimeHours": 1.17,
+      "isLate": true,
+      "isEarlyDeparture": false,
+      "shiftStart": "09:00",
+      "shiftEnd": "18:00",
+      "breakTime": 0,
+      "approvalStatus": "auto",
+      "remarks": "",
+      "createdAt": "2024-11-25T09:05:00.000Z",
+      "updatedAt": "2024-11-25T18:15:00.000Z"
+    },
+    {
+      "_id": "677000000000000000000002",
+      "employeeId": "674000000000000000000101",
+      "date": "2024-11-24T00:00:00.000Z",
+      "checkIn": "2024-11-24T08:58:00.000Z",
+      "checkOut": "2024-11-24T17:45:00.000Z",
+      "status": "present",
+      "workHours": 8.78,
+      "overtimeHours": 0.78,
+      "isLate": false,
+      "isEarlyDeparture": false,
+      "shiftStart": "09:00",
+      "shiftEnd": "18:00",
+      "breakTime": 0,
+      "approvalStatus": "auto",
+      "remarks": "",
+      "createdAt": "2024-11-24T08:58:00.000Z",
+      "updatedAt": "2024-11-24T17:45:00.000Z"
+    },
+    {
+      "_id": "677000000000000000000003",
+      "employeeId": "674000000000000000000201",
+      "date": "2024-11-25T00:00:00.000Z",
+      "checkIn": "2024-11-25T09:00:00.000Z",
+      "checkOut": "2024-11-25T18:00:00.000Z",
+      "status": "present",
+      "workHours": 9.00,
+      "overtimeHours": 1.00,
+      "isLate": false,
+      "isEarlyDeparture": false,
+      "shiftStart": "09:00",
+      "shiftEnd": "18:00",
+      "breakTime": 0,
+      "approvalStatus": "auto",
+      "remarks": "",
+      "createdAt": "2024-11-25T09:00:00.000Z",
+      "updatedAt": "2024-11-25T18:00:00.000Z"
+    }
+  ],
+  "notifications": [
+    {
+      "_id": "678000000000000000000001",
+      "employeeId": "674000000000000000000101",
+      "userId": "673000000000000000000101",
+      "type": "request_approved",
+      "title": "Leave Request Approved",
+      "message": "Your leave request for 2024-12-20 to 2024-12-22 has been approved.",
+      "priority": "medium",
+      "isRead": false,
+      "actionUrl": "/leave",
+      "relatedEntity": {
+        "entityType": "LeaveRequest",
+        "entityId": "679000000000000000000001"
+      },
+      "createdAt": "2024-11-24T10:30:00.000Z",
+      "updatedAt": "2024-11-24T10:30:00.000Z"
+    },
+    {
+      "_id": "678000000000000000000002",
+      "employeeId": "674000000000000000000201",
+      "userId": "673000000000000000000002",
+      "type": "payslip_available",
+      "title": "Payslip Available",
+      "message": "Your payslip for October 2024 is now available.",
+      "priority": "low",
+      "isRead": true,
+      "readAt": "2024-11-02T08:00:00.000Z",
+      "actionUrl": "/payslips",
+      "relatedEntity": {
+        "entityType": "Payslip",
+        "entityId": "676000000000000000000002"
+      },
+      "createdAt": "2024-11-01T10:00:00.000Z",
+      "updatedAt": "2024-11-02T08:00:00.000Z"
+    }
+  ],
+  "documents": [
+    {
+      "_id": "680000000000000000000001",
+      "employeeId": "674000000000000000000101",
+      "fileName": "employment_contract_john_smith.pdf",
+      "originalName": "Employment Contract - John Smith.pdf",
+      "fileType": "PDF",
+      "fileSize": 245678,
+      "mimeType": "application/pdf",
+      "documentType": "Contract",
+      "storagePath": "/uploads/documents/employment_contract_john_smith.pdf",
+      "uploadedBy": "673000000000000000000002",
+      "uploadedAt": "2024-01-15T00:00:00.000Z",
+      "isPublic": false,
+      "accessibleBy": ["673000000000000000000002"],
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-01-15T00:00:00.000Z"
+    },
+    {
+      "_id": "680000000000000000000002",
+      "employeeId": "674000000000000000000201",
+      "fileName": "resume_sarah_johnson.pdf",
+      "originalName": "Resume - Sarah Johnson.pdf",
+      "fileType": "PDF",
+      "fileSize": 189234,
+      "mimeType": "application/pdf",
+      "documentType": "Resume",
+      "storagePath": "/uploads/documents/resume_sarah_johnson.pdf",
+      "uploadedBy": "673000000000000000000002",
+      "uploadedAt": "2024-01-15T00:00:00.000Z",
+      "isPublic": false,
+      "accessibleBy": ["673000000000000000000002"],
+      "createdAt": "2024-01-15T00:00:00.000Z",
+      "updatedAt": "2024-01-15T00:00:00.000Z"
+    }
+  ],
+  "requests": [
+    {
+      "_id": "681000000000000000000001",
+      "employeeId": "674000000000000000000101",
+      "requestType": "reimbursement",
+      "status": "approved",
+      "reimbursement": {
+        "expenseType": "travel",
+        "amount": 450.50,
+        "description": "Reimbursement for travel expenses to client site in Los Angeles",
+        "receipts": [
+          {
+            "fileName": "flight_ticket.pdf",
+            "fileUrl": "/uploads/requests/flight_ticket.pdf",
+            "uploadedAt": "2024-11-20T10:00:00.000Z"
+          },
+          {
+            "fileName": "hotel_receipt.pdf",
+            "fileUrl": "/uploads/requests/hotel_receipt.pdf",
+            "uploadedAt": "2024-11-20T10:00:00.000Z"
+          }
+        ],
+        "expenseDate": "2024-11-18T00:00:00.000Z"
+      },
+      "submittedAt": "2024-11-20T10:00:00.000Z",
+      "approvalWorkflow": [
+        {
+          "approver": "674000000000000000000102",
+          "role": "manager",
+          "status": "approved",
+          "comments": "Approved as per company policy",
+          "actionDate": "2024-11-21T14:30:00.000Z"
+        }
+      ],
+      "finalApprover": "674000000000000000000102",
+      "finalApprovalDate": "2024-11-21T14:30:00.000Z",
+      "createdBy": "673000000000000000000101",
+      "updatedBy": "673000000000000000000102",
+      "createdAt": "2024-11-20T10:00:00.000Z",
+      "updatedAt": "2024-11-21T14:30:00.000Z"
+    },
+    {
+      "_id": "681000000000000000000002",
+      "employeeId": "674000000000000000000201",
+      "requestType": "advance",
+      "status": "pending",
+      "advance": {
+        "amount": 5000,
+        "reason": "Personal emergency - medical expenses",
+        "repaymentMonths": 10,
+        "monthlyDeduction": 500,
+        "outstandingBalance": 5000,
+        "eligibilityChecked": true,
+        "maxEligibleAmount": 8000
+      },
+      "submittedAt": "2024-11-23T09:00:00.000Z",
+      "approvalWorkflow": [
+        {
+          "approver": "674000000000000000000102",
+          "role": "manager",
+          "status": "pending",
+          "comments": "",
+          "actionDate": null
+        }
+      ],
+      "createdBy": "673000000000000000000002",
+      "updatedBy": "673000000000000000000002",
+      "createdAt": "2024-11-23T09:00:00.000Z",
+      "updatedAt": "2024-11-23T09:00:00.000Z"
+    }
+  ],
+  "config": [
+    {
+      "_id": "682000000000000000000001",
+      "key": "leave_policy",
+      "category": "system",
+      "description": "Leave policy configuration including accrual rates and limits",
+      "value": {
+        "annual": {
+          "daysPerYear": 20,
+          "accrualType": "monthly",
+          "accrualRate": 1.67,
+          "carryForwardLimit": 5,
+          "encashmentAllowed": true
+        },
+        "sick": {
+          "daysPerYear": 12,
+          "accrualType": "monthly",
+          "accrualRate": 1,
+          "carryForwardLimit": 0,
+          "encashmentAllowed": false
+        },
+        "personal": {
+          "daysPerYear": 10,
+          "accrualType": "monthly",
+          "accrualRate": 0.83,
+          "carryForwardLimit": 0,
+          "encashmentAllowed": false
+        }
+      },
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "_id": "682000000000000000000002",
+      "key": "working_hours",
+      "category": "system",
+      "description": "Working hours and overtime configuration",
+      "value": {
+        "standardHours": 9,
+        "weeklyHours": 45,
+        "overtimeThreshold": 9,
+        "overtimeRate": 1.5,
+        "workingDays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+        "weekendDays": ["Saturday", "Sunday"]
+      },
+      "createdAt": "2024-01-01T00:00:00.000Z",
+      "updatedAt": "2024-01-01T00:00:00.000Z"
+    }
+  ]
+}

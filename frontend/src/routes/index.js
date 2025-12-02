@@ -1,0 +1,9 @@
+export { employeeRoutes } from "./employeeRoutes";
+export { essRoutes } from "./essRoutes";
+export { hrRoutes } from "./hrRoutes";
+export { managerRoutes } from "./managerRoutes";
+export { organizationRoutes } from "./organizationRoutes";
+export { payrollRoutes } from "./payrollRoutes";
+export { calendarRoutes } from "./calendarRoutes";
+export { adminRoutes } from "./adminRoutes";
+export { dashboardRoutes } from "./dashboardRoutes";

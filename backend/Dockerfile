@@ -1,0 +1,63 @@
+# Backend Dockerfile
+FROM node:18-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+
+# Development image
+FROM base AS development
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 5000
+
+CMD ["npm", "run", "dev"]
+
+# Production build
+FROM base AS builder
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+
+# Production image
+FROM base AS production
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 hrm
+
+# Copy dependencies
+COPY --from=deps --chown=hrm:nodejs /app/node_modules ./node_modules
+
+# Copy application code
+COPY --chown=hrm:nodejs . .
+
+# Create necessary directories
+RUN mkdir -p logs uploads/temp uploads/documents && \
+    chown -R hrm:nodejs logs uploads
+
+USER hrm
+
+EXPOSE 5000
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:5000/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+
+CMD ["node", "src/server.js"]

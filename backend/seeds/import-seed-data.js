@@ -1,0 +1,207 @@
+const fs = require('fs');
+const path = require('path');
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+require('dotenv').config();
+
+// Import models
+const User = require('../src/models/User');
+const Employee = require('../src/models/Employee');
+const Department = require('../src/models/Department');
+const LeaveBalance = require('../src/models/LeaveBalance');
+const Payslip = require('../src/models/Payslip');
+const AttendanceRecord = require('../src/models/AttendanceRecord');
+const Notification = require('../src/models/Notification');
+const Document = require('../src/models/Document');
+const Request = require('../src/models/Request');
+const Config = require('../src/models/Config');
+
+// Connect to MongoDB
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/hrms');
+    console.log('✅ MongoDB connected successfully');
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
+  }
+};
+
+// Hash passwords
+const hashPassword = async (password) => {
+  const salt = await bcrypt.genSalt(10);
+  return bcrypt.hash(password, salt);
+};
+
+// Import seed data
+const importData = async () => {
+  try {
+    // Read seed data file
+    const seedDataPath = path.join(__dirname, 'hrm_seed_data.json');
+    const seedData = JSON.parse(fs.readFileSync(seedDataPath, 'utf-8'));
+
+    console.log('📦 Starting data import...\n');
+
+    // Clear existing data
+    console.log('🗑️  Clearing existing data...');
+    await Promise.all([
+      Department.deleteMany({}),
+      User.deleteMany({}),
+      Employee.deleteMany({}),
+      LeaveBalance.deleteMany({}),
+      Payslip.deleteMany({}),
+      AttendanceRecord.deleteMany({}),
+      Notification.deleteMany({}),
+      Document.deleteMany({}),
+      Request.deleteMany({}),
+      Config.deleteMany({})
+    ]);
+    console.log('✅ Existing data cleared\n');
+
+    // Import Departments
+    if (seedData.departments && seedData.departments.length > 0) {
+      console.log(`📁 Importing ${seedData.departments.length} departments...`);
+      await Department.insertMany(seedData.departments);
+      console.log('✅ Departments imported\n');
+    }
+
+    // Import Users with hashed passwords
+    if (seedData.users && seedData.users.length > 0) {
+      console.log(`👤 Importing ${seedData.users.length} users...`);
+      const usersWithHashedPasswords = await Promise.all(
+        seedData.users.map(async (user) => ({
+          ...user,
+          password: await hashPassword('password123'), // Default password
+        }))
+      );
+      await User.insertMany(usersWithHashedPasswords);
+      console.log('✅ Users imported (default password: password123)\n');
+    }
+
+    // Import Employees
+    if (seedData.employees && seedData.employees.length > 0) {
+      console.log(`👥 Importing ${seedData.employees.length} employees...`);
+      await Employee.insertMany(seedData.employees);
+      console.log('✅ Employees imported\n');
+    }
+
+    // Import Leave Balances
+    if (seedData.leaveBalances && seedData.leaveBalances.length > 0) {
+      console.log(`📅 Importing ${seedData.leaveBalances.length} leave balances...`);
+      await LeaveBalance.insertMany(seedData.leaveBalances);
+      console.log('✅ Leave balances imported\n');
+    }
+
+    // Import Payslips
+    if (seedData.payslips && seedData.payslips.length > 0) {
+      console.log(`💰 Importing ${seedData.payslips.length} payslips...`);
+      await Payslip.insertMany(seedData.payslips);
+      console.log('✅ Payslips imported\n');
+    }
+
+    // Import Attendance Records
+    if (seedData.attendanceRecords && seedData.attendanceRecords.length > 0) {
+      console.log(`⏰ Importing ${seedData.attendanceRecords.length} attendance records...`);
+      await AttendanceRecord.insertMany(seedData.attendanceRecords);
+      console.log('✅ Attendance records imported\n');
+    }
+
+    // Import Notifications
+    if (seedData.notifications && seedData.notifications.length > 0) {
+      console.log(`🔔 Importing ${seedData.notifications.length} notifications...`);
+      await Notification.insertMany(seedData.notifications);
+      console.log('✅ Notifications imported\n');
+    }
+
+    // Import Documents
+    if (seedData.documents && seedData.documents.length > 0) {
+      console.log(`📄 Importing ${seedData.documents.length} documents...`);
+      await Document.insertMany(seedData.documents);
+      console.log('✅ Documents imported\n');
+    }
+
+    // Import Requests
+    if (seedData.requests && seedData.requests.length > 0) {
+      console.log(`📝 Importing ${seedData.requests.length} requests...`);
+      await Request.insertMany(seedData.requests);
+      console.log('✅ Requests imported\n');
+    }
+
+    // Import Config
+    if (seedData.config && seedData.config.length > 0) {
+      console.log(`⚙️  Importing ${seedData.config.length} config items...`);
+      await Config.insertMany(seedData.config);
+      console.log('✅ Config imported\n');
+    }
+
+    console.log('🎉 All data imported successfully!\n');
+    console.log('📊 Summary:');
+    console.log(`   Departments: ${seedData.departments?.length || 0}`);
+    console.log(`   Users: ${seedData.users?.length || 0}`);
+    console.log(`   Employees: ${seedData.employees?.length || 0}`);
+    console.log(`   Leave Balances: ${seedData.leaveBalances?.length || 0}`);
+    console.log(`   Payslips: ${seedData.payslips?.length || 0}`);
+    console.log(`   Attendance Records: ${seedData.attendanceRecords?.length || 0}`);
+    console.log(`   Notifications: ${seedData.notifications?.length || 0}`);
+    console.log(`   Documents: ${seedData.documents?.length || 0}`);
+    console.log(`   Requests: ${seedData.requests?.length || 0}`);
+    console.log(`   Config Items: ${seedData.config?.length || 0}`);
+    console.log('\n🔑 Login Credentials:');
+    console.log('   SuperAdmin: admin@hrmsystem.com / password123');
+    console.log('   HR Admin: hr.admin@hrmsystem.com / password123');
+    console.log('   HR Manager: hr.manager.eng@hrmsystem.com / password123');
+
+  } catch (error) {
+    console.error('❌ Error importing data:', error);
+    process.exit(1);
+  }
+};
+
+// Delete all data
+const deleteData = async () => {
+  try {
+    console.log('🗑️  Deleting all data...');
+    await Promise.all([
+      Department.deleteMany({}),
+      User.deleteMany({}),
+      Employee.deleteMany({}),
+      LeaveBalance.deleteMany({}),
+      Payslip.deleteMany({}),
+      AttendanceRecord.deleteMany({}),
+      Notification.deleteMany({}),
+      Document.deleteMany({}),
+      Request.deleteMany({}),
+      Config.deleteMany({})
+    ]);
+    console.log('✅ All data deleted successfully');
+  } catch (error) {
+    console.error('❌ Error deleting data:', error);
+    process.exit(1);
+  }
+};
+
+// Main execution
+const main = async () => {
+  await connectDB();
+
+  const args = process.argv.slice(2);
+  const command = args[0];
+
+  if (command === '--delete' || command === '-d') {
+    await deleteData();
+  } else if (command === '--import' || command === '-i' || !command) {
+    await importData();
+  } else {
+    console.log('Usage:');
+    console.log('  node import-seed-data.js          # Import seed data');
+    console.log('  node import-seed-data.js --import # Import seed data');
+    console.log('  node import-seed-data.js --delete # Delete all data');
+  }
+
+  await mongoose.connection.close();
+  console.log('\n👋 Database connection closed');
+  process.exit(0);
+};
+
+// Run the script
+main();
