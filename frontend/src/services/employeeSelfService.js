@@ -1,4 +1,5 @@
 import api from './api';
+import { toast } from 'react-toastify';
 
 /**
  * Employee Self-Service API Service
@@ -9,13 +10,30 @@ const employeeSelfService = {
   // Profile Management
   profile: {
     get: async () => {
-      const response = await api.get('/employee/profile');
-      return response.data;
+      try {
+        console.log('👤 [ESS] Fetching profile');
+        const response = await api.get('/employee/profile');
+        console.log('✅ [ESS] Profile fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch profile:', error);
+        toast.error(error.message || 'Failed to load profile');
+        throw error;
+      }
     },
     
     update: async (profileData) => {
-      const response = await api.put('/employee/profile', profileData);
-      return response.data;
+      try {
+        console.log('✏️ [ESS] Updating profile:', profileData);
+        const response = await api.put('/employee/profile', profileData);
+        console.log('✅ [ESS] Profile updated:', response.data);
+        toast.success('Profile updated successfully');
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to update profile:', error);
+        toast.error(error.message || 'Failed to update profile');
+        throw error;
+      }
     },
     
     getChangeHistory: async () => {
@@ -69,13 +87,29 @@ const employeeSelfService = {
   // Payslips
   payslips: {
     list: async (params = {}) => {
-      const response = await api.get('/employee/payslips', { params });
-      return response.data;
+      try {
+        console.log('💰 [ESS] Fetching payslips:', params);
+        const response = await api.get('/employee/payslips', { params });
+        console.log('✅ [ESS] Payslips fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch payslips:', error);
+        toast.error(error.message || 'Failed to load payslips');
+        throw error;
+      }
     },
     
     getById: async (id) => {
-      const response = await api.get(`/employee/payslips/${id}`);
-      return response.data;
+      try {
+        console.log('💰 [ESS] Fetching payslip:', id);
+        const response = await api.get(`/employee/payslips/${id}`);
+        console.log('✅ [ESS] Payslip fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch payslip:', error);
+        toast.error(error.message || 'Failed to load payslip');
+        throw error;
+      }
     },
     
     download: async (id) => {

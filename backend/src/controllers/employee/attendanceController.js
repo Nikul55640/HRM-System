@@ -16,19 +16,37 @@ const getDeviceType = (userAgent = "") => {
 };
 
 // ---------------------------------------------------------
+// Helper: get user ID (handles both id and _id from JWT)
+// ---------------------------------------------------------
+const getUserId = (user) => {
+  return user.id || user._id;
+};
+
+// ---------------------------------------------------------
 // 1. GET ATTENDANCE RECORDS
 // ---------------------------------------------------------
 const getAttendanceRecords = async (req, res) => {
   try {
-    if (!requireEmployeeProfile(req, res)) return;
+    // Check if user has employee profile
+    if (!req.user?.employeeId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Employee profile not linked to your account.',
+        error: {
+          code: 'NO_EMPLOYEE_PROFILE',
+          message: 'Employee Self-Service is only available for employees.',
+        },
+      });
+    }
 
     const {
       employeeId,
-      _id: userId,
       fullName,
       email,
       role,
     } = req.user;
+    
+    const userId = getUserId(req.user);
 
     const {
       year = new Date().getFullYear(),
@@ -109,15 +127,26 @@ const getAttendanceRecords = async (req, res) => {
 // ---------------------------------------------------------
 const getMonthlySummary = async (req, res) => {
   try {
-    if (!requireEmployeeProfile(req, res)) return;
+    // Check if user has employee profile
+    if (!req.user?.employeeId) {
+      return res.status(403).json({
+        success: false,
+        message: 'Employee profile not linked to your account.',
+        error: {
+          code: 'NO_EMPLOYEE_PROFILE',
+          message: 'Employee Self-Service is only available for employees.',
+        },
+      });
+    }
 
     const {
       employeeId,
-      _id: userId,
       fullName,
       email,
       role,
     } = req.user;
+    
+    const userId = getUserId(req.user);
 
     const {
       year = new Date().getFullYear(),
@@ -189,14 +218,15 @@ const getMonthlySummary = async (req, res) => {
     await AuditLog.logAction({
       action: "VIEW",
       severity: "info",
-      entityType: "Attendance Summary",
+      entityType: "Attendance",
       entityId: employeeId,
-      entityDisplayName: fullName,
+      entityDisplayName: `${fullName} - Monthly Summary`,
       userId,
       userRole: role,
       performedByName: fullName,
       performedByEmail: email,
       meta: {
+        type: "MONTHLY_SUMMARY",
         year: Number(year),
         month: Number(month),
         totalDays: result.totalDays,
@@ -227,11 +257,12 @@ const checkIn = async (req, res) => {
   try {
     const {
       employeeId,
-      _id: userId,
       fullName,
       email,
       role,
     } = req.user;
+    
+    const userId = getUserId(req.user);
 
     if (!employeeId) {
       return res.status(400).json({
@@ -345,11 +376,12 @@ const checkOut = async (req, res) => {
   try {
     const {
       employeeId,
-      _id: userId,
       fullName,
       email,
       role,
     } = req.user;
+    
+    const userId = getUserId(req.user);
 
     if (!employeeId) {
       return res.status(400).json({
@@ -468,11 +500,12 @@ const exportAttendanceReport = async (req, res) => {
   try {
     const {
       employeeId,
-      _id: userId,
       fullName,
       email,
       role,
     } = req.user;
+    
+    const userId = getUserId(req.user);
 
     const {
       format = "pdf",
@@ -552,11 +585,12 @@ const exportAttendanceReport = async (req, res) => {
 const manualUpdateAttendance = async (req, res) => {
   try {
     const {
-      _id: userId,
       fullName,
       email,
       role,
     } = req.user;
+    
+    const userId = getUserId(req.user);
 
     const { recordId } = req.params;
 

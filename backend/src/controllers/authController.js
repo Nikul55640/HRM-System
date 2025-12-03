@@ -160,6 +160,15 @@ const login = async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
+    // Fetch employee data if employeeId exists
+    let employeeData = null;
+    if (user.employeeId) {
+      const Employee = (await import('../models/Employee.js')).default;
+      employeeData = await Employee.findById(user.employeeId)
+        .select('fullName employeeNumber department position')
+        .lean();
+    }
+
     // Return success response
     res.status(200).json({
       success: true,
@@ -170,6 +179,10 @@ const login = async (req, res) => {
           role: user.role,
           assignedDepartments: user.assignedDepartments,
           employeeId: user.employeeId,
+          fullName: employeeData?.fullName || user.email.split('@')[0], // Fallback to email username
+          employeeNumber: employeeData?.employeeNumber,
+          department: employeeData?.department,
+          position: employeeData?.position,
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,

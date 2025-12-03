@@ -2,6 +2,7 @@ import axios from "axios";
 import store from "../store";
 import { logout, updateToken } from "../store/slices/authSlice";
 import { logError } from "../utils/errorHandler";
+import { toast } from "react-toastify";
 
 // Create axios instance with base configuration
 const api = axios.create({
@@ -170,9 +171,12 @@ api.interceptors.response.use(
       }
     }
 
-    // Handle 403 Forbidden - Redirect to unauthorized page
+    // Handle 403 Forbidden
     if (error.response.status === 403) {
-      if (window.location.pathname !== "/unauthorized") {
+      const errorMsg = error.response?.data?.message || 'Access denied';
+      toast.error(errorMsg);
+      // Only redirect if it's a general forbidden error, not employee profile issues
+      if (!errorMsg.includes('Employee profile') && window.location.pathname !== "/unauthorized") {
         window.location.href = "/unauthorized";
       }
     }
@@ -189,6 +193,12 @@ api.interceptors.response.use(
       );
       await delay(RETRY_DELAY * originalRequest._retryCount);
       return api(originalRequest);
+    }
+
+    // Show toast for 500 errors after retries exhausted
+    if (error.response.status >= 500) {
+      const errorMsg = error.response?.data?.message || 'Server error occurred';
+      toast.error(errorMsg);
     }
 
     // Log error

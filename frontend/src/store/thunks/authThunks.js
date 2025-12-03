@@ -27,6 +27,8 @@ export const login = (email, password) => async (dispatch) => {
     localStorage.setItem('refreshToken', data.refreshToken);
     localStorage.setItem('user', JSON.stringify(data.user));
     console.log('💾 [AUTH] Tokens and user stored in localStorage');
+    console.log('🔑 [AUTH] User role stored:', data.user.role);
+    console.log('🔑 [AUTH] Role type:', typeof data.user.role);
 
     dispatch(loginSuccess({
       user: data.user,

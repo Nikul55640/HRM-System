@@ -6,6 +6,7 @@ import App from './App';
 import store from './store';
 import { initializeAuth } from './store/thunks/authThunks';
 import './index.css';
+import 'react-toastify/dist/ReactToastify.css';
 
 // Initialize auth from localStorage
 console.log('🚀 [APP] Application starting, initializing auth...');

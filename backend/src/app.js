@@ -38,6 +38,9 @@ import documentRoutes from "./routes/documentRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import configRoutes from "./routes/configRoutes.js";
 
+// Manager Routes
+import managerRoutes from "./routes/managerRoutes.js";
+
 const app = express();
 
 // ===================================================
@@ -143,6 +146,9 @@ app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/document", documentRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/config", configRoutes);
+
+// MANAGER ROUTES
+app.use("/api/manager", managerRoutes);
 
 // ===================================================
 // 404 HANDLER

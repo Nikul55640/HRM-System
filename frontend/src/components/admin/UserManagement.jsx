@@ -26,13 +26,18 @@ const UserManagement = () => {
       ]);
       
       // Ensure users is always an array
+      // Backend returns: { success: true, data: { users: [...], pagination: {...} } }
       const usersArray = Array.isArray(usersData) 
         ? usersData 
-        : Array.isArray(usersData?.data) 
-          ? usersData.data 
-          : Array.isArray(usersData?.users)
-            ? usersData.users
-            : [];
+        : Array.isArray(usersData?.data?.users)
+          ? usersData.data.users
+          : Array.isArray(usersData?.data) 
+            ? usersData.data 
+            : Array.isArray(usersData?.users)
+              ? usersData.users
+              : [];
+      
+      console.log('👥 [USER MANAGEMENT] Users loaded:', usersArray.length, 'users');
       
       // Ensure departments is always an array
       const departmentsArray = Array.isArray(departmentsData)

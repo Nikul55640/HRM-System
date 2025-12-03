@@ -66,10 +66,11 @@ const ClockInOut = () => {
         }
       }
     } catch (error) {
-      // Silently handle errors - component will show check-in button if no record
-      if (error.response?.status !== 400) {
-        console.error('Error fetching today record:', error);
+      // Show toast for critical errors
+      if (error.status === 403 || error.status === 500) {
+        toast.error(error.message || 'Failed to load attendance data');
       }
+      console.error('Error fetching today record:', error);
     }
   };
 

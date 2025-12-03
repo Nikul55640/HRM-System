@@ -4,7 +4,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { formatDate, calculateWorkHours, getStatusBadgeColor } from '../../utils/essHelpers';
 import { Badge } from '../../components/ui/badge';
 const AttendanceCalendar = ({ records }) => {
-  if (!records || records.length === 0) {
+  // Handle both array and object with data property
+  const recordsArray = Array.isArray(records) ? records : (records?.data || []);
+  
+  if (!recordsArray || recordsArray.length === 0) {
     return (
       <Card>
         <CardContent className="p-6 text-center text-muted-foreground">
@@ -32,7 +35,7 @@ const AttendanceCalendar = ({ records }) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {records.map((record) => {
+              {recordsArray.map((record) => {
                 const workHours = calculateWorkHours(record.checkIn, record.checkOut);
                 const statusColor = getStatusBadgeColor(record.status);
                 

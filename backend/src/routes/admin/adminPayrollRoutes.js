@@ -1,24 +1,33 @@
-import express from "express";
-import { authenticate, authorize } from "../../middleware/authenticate.js";
-
+import express from 'express';
+import { authenticate } from '../../middleware/authenticate.js';
+import { requireRoles } from '../../middleware/requireRoles.js';
 import {
-  generatePayslip,
-  generatePayslipsForAll,
-  publishPayslip,
-} from "../../controllers/admin/payslipAdminnController.js";
+  getPayrollDashboard,
+  getAllPayslips,
+  generatePayslips,
+  getPayslipById,
+  deletePayslip
+} from '../../controllers/admin/payrollController.js';
 
 const router = express.Router();
 
-// Must be admin, hr or superadmin
-router.use(authenticate, authorize("admin", "hr", "superadmin"));
+// Apply authentication and role middleware
+router.use(authenticate);
+router.use(requireRoles(['SuperAdmin']));
 
-// Generate payslip for 1 employee
-router.post("/generate", generatePayslip);
+// Payroll Dashboard
+router.get('/dashboard', getPayrollDashboard);
 
-// Generate for all employees
-router.post("/generate-all", generatePayslipsForAll);
+// Get all payslips
+router.get('/payslips', getAllPayslips);
 
-// Publish payslip
-router.put("/publish/:id", publishPayslip);
+// Generate payslips (bulk)
+router.post('/generate', generatePayslips);
+
+// Get payslip by ID
+router.get('/payslips/:id', getPayslipById);
+
+// Delete payslip
+router.delete('/payslips/:id', deletePayslip);
 
 export default router;

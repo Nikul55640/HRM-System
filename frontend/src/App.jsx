@@ -24,7 +24,18 @@ import {
 function App() {
   return (
     <Suspense fallback={<div className="p-6">Loading...</div>}>
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer 
+        position="top-right" 
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={true}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
 
       <Routes>
         <Route path="/login" element={<Login />} />

@@ -32,7 +32,11 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   }
 
   if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-    console.log('❌ [PROTECTED ROUTE] User role not allowed, redirecting to unauthorized');
+    console.log('❌ [PROTECTED ROUTE] User role not allowed');
+    console.log('   Required roles:', allowedRoles);
+    console.log('   User role:', user?.role);
+    console.log('   Role type:', typeof user?.role);
+    console.log('   Exact match check:', allowedRoles.map(r => `"${r}" === "${user?.role}" = ${r === user?.role}`));
     return <Navigate to="/unauthorized" replace />;
   }
 
