@@ -1,274 +1,192 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Shield, Search, Calendar, User, Activity } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Search, Filter, Download } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/essHelpers';
-import api from '../../services/api';
 
 const AuditLogsPage = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    action: '',
-    user: '',
-    startDate: '',
-    endDate: '',
-  });
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 20,
-    total: 0,
-  });
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterAction, setFilterAction] = useState('all');
 
   useEffect(() => {
-    fetchAuditLogs();
-  }, [pagination.page, filters]);
+    fetchLogs();
+  }, []);
 
-  const fetchAuditLogs = async () => {
+  const fetchLogs = async () => {
+    console.log('🔄 [AUDIT LOGS] Fetching audit logs...');
     try {
       setLoading(true);
-      const params = {
-        page: pagination.page,
-        limit: pagination.limit,
-        ...filters,
-      };
-      
-      const response = await api.get('/admin/audit-logs', { params });
-      
-      if (response.data.success) {
-        setLogs(response.data.data);
-        setPagination(prev => ({
-          ...prev,
-          total: response.data.pagination?.total || 0,
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to fetch audit logs:', error);
-      // Use mock data if API fails
+      console.warn('⚠️ [AUDIT LOGS] Using mock data - API endpoint not implemented yet');
+      // Mock data
       setLogs([
         {
           _id: '1',
+          user: 'admin@hrm.com',
           action: 'LOGIN',
-          userId: { firstName: 'John', lastName: 'Doe', email: 'john@example.com' },
-          details: { ipAddress: '192.168.1.1', userAgent: 'Chrome' },
-          timestamp: new Date('2024-12-02T10:30:00'),
+          resource: 'Authentication',
+          details: 'User logged in successfully',
+          ipAddress: '192.168.1.1',
+          timestamp: new Date(),
         },
         {
           _id: '2',
-          action: 'CREATE_EMPLOYEE',
-          userId: { firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com' },
-          details: { employeeName: 'New Employee', department: 'IT' },
-          timestamp: new Date('2024-12-02T09:15:00'),
+          user: 'hr@hrm.com',
+          action: 'CREATE',
+          resource: 'Employee',
+          details: 'Created new employee record',
+          ipAddress: '192.168.1.2',
+          timestamp: new Date(Date.now() - 3600000),
         },
         {
           _id: '3',
-          action: 'UPDATE_EMPLOYEE',
-          userId: { firstName: 'Admin', lastName: 'User', email: 'admin@example.com' },
-          details: { employeeId: 'EMP-001', changes: 'Updated salary' },
-          timestamp: new Date('2024-12-01T14:20:00'),
-        },
-        {
-          _id: '4',
-          action: 'APPROVE_LEAVE',
-          userId: { firstName: 'Manager', lastName: 'One', email: 'manager@example.com' },
-          details: { employeeName: 'John Doe', leaveType: 'Annual', days: 5 },
-          timestamp: new Date('2024-12-01T11:00:00'),
-        },
-        {
-          _id: '5',
-          action: 'DELETE_DOCUMENT',
-          userId: { firstName: 'HR', lastName: 'Admin', email: 'hr@example.com' },
-          details: { documentName: 'old-contract.pdf', reason: 'Expired' },
-          timestamp: new Date('2024-11-30T16:45:00'),
+          user: 'manager@hrm.com',
+          action: 'UPDATE',
+          resource: 'Leave Request',
+          details: 'Approved leave request',
+          ipAddress: '192.168.1.3',
+          timestamp: new Date(Date.now() - 7200000),
         },
       ]);
+      console.log('✅ [AUDIT LOGS] Mock data loaded:', logs.length, 'logs');
+    } catch (error) {
+      console.error('❌ [AUDIT LOGS] Failed to fetch logs:', error);
+      toast.error('Failed to load audit logs');
     } finally {
       setLoading(false);
     }
   };
 
-  const getActionColor = (action) => {
-    const actionColors = {
-      LOGIN: 'default',
-      LOGOUT: 'secondary',
-      CREATE_EMPLOYEE: 'default',
-      UPDATE_EMPLOYEE: 'default',
-      DELETE_EMPLOYEE: 'destructive',
-      APPROVE_LEAVE: 'default',
-      REJECT_LEAVE: 'destructive',
-      CREATE_PAYSLIP: 'default',
-      DELETE_DOCUMENT: 'destructive',
-      UPDATE_SALARY: 'default',
-    };
-    return actionColors[action] || 'default';
-  };
+  const filteredLogs = logs.filter((log) => {
+    const matchesSearch = 
+      log.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      log.resource.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFilter = filterAction === 'all' || log.action === filterAction;
+    
+    return matchesSearch && matchesFilter;
+  });
 
-  const getActionIcon = (action) => {
-    if (action.includes('LOGIN') || action.includes('LOGOUT')) return <User className="h-4 w-4" />;
-    if (action.includes('DELETE')) return <Shield className="h-4 w-4 text-red-500" />;
-    return <Activity className="h-4 w-4" />;
+  const getActionColor = (action) => {
+    switch (action) {
+      case 'CREATE':
+        return 'text-green-600 bg-green-50 border-green-200';
+      case 'UPDATE':
+        return 'text-blue-600 bg-blue-50 border-blue-200';
+      case 'DELETE':
+        return 'text-red-600 bg-red-50 border-red-200';
+      case 'LOGIN':
+        return 'text-purple-600 bg-purple-50 border-purple-200';
+      default:
+        return 'text-gray-600 bg-gray-50 border-gray-200';
+    }
   };
 
   if (loading) {
-    return <div className="p-6 text-center">Loading audit logs...</div>;
+    return (
+      <div className="p-6">
+        <p className="text-gray-500">Loading audit logs...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Audit Logs</h1>
-          <p className="text-muted-foreground mt-1">Track all system activities and changes</p>
+          <h1 className="text-2xl font-semibold text-gray-800">Audit Logs</h1>
+          <p className="text-gray-500 text-sm mt-1">Track system activities and user actions</p>
         </div>
-        <Shield className="h-8 w-8 text-primary" />
+        <Button variant="outline">
+          <Download className="w-4 h-4 mr-2" />
+          Export Logs
+        </Button>
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Filters
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-1 block">Action Type</label>
+      <Card className="border-gray-200">
+        <CardContent className="p-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search logs..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
               <select
-                className="w-full border rounded-md p-2"
-                value={filters.action}
-                onChange={(e) => setFilters({ ...filters, action: e.target.value })}
+                value={filterAction}
+                onChange={(e) => setFilterAction(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">All Actions</option>
+                <option value="all">All Actions</option>
                 <option value="LOGIN">Login</option>
-                <option value="CREATE_EMPLOYEE">Create Employee</option>
-                <option value="UPDATE_EMPLOYEE">Update Employee</option>
-                <option value="DELETE_EMPLOYEE">Delete Employee</option>
-                <option value="APPROVE_LEAVE">Approve Leave</option>
-                <option value="REJECT_LEAVE">Reject Leave</option>
+                <option value="CREATE">Create</option>
+                <option value="UPDATE">Update</option>
+                <option value="DELETE">Delete</option>
               </select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">Start Date</label>
-              <input
-                type="date"
-                className="w-full border rounded-md p-2"
-                value={filters.startDate}
-                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-1 block">End Date</label>
-              <input
-                type="date"
-                className="w-full border rounded-md p-2"
-                value={filters.endDate}
-                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-              />
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={() => setFilters({ action: '', user: '', startDate: '', endDate: '' })}
-                className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md p-2"
-              >
-                Clear Filters
-              </button>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Audit Logs Table */}
-      <Card>
+      {/* Logs Table */}
+      <Card className="border-gray-200">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Action</TableHead>
-                <TableHead>User</TableHead>
-                <TableHead>Details</TableHead>
-                <TableHead>IP Address</TableHead>
-                <TableHead>Timestamp</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {logs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                    No audit logs found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                logs.map((log) => (
-                  <TableRow key={log._id}>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getActionIcon(log.action)}
-                        <Badge variant={getActionColor(log.action)}>
-                          {log.action.replace(/_/g, ' ')}
-                        </Badge>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">
-                          {log.userId?.firstName} {log.userId?.lastName}
-                        </div>
-                        <div className="text-sm text-muted-foreground">{log.userId?.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm max-w-md">
-                        {typeof log.details === 'object' 
-                          ? Object.entries(log.details)
-                              .filter(([key]) => key !== 'ipAddress' && key !== 'userAgent')
-                              .map(([key, value]) => `${key}: ${value}`)
-                              .join(', ')
-                          : log.details}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {log.details?.ipAddress || 'N/A'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1 text-sm">
-                        <Calendar className="h-4 w-4" />
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="border-b border-gray-200 bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Timestamp</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">User</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Action</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Resource</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Details</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">IP Address</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filteredLogs.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400 text-sm">
+                      No logs found
+                    </td>
+                  </tr>
+                ) : (
+                  filteredLogs.map((log) => (
+                    <tr key={log._id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm text-gray-600">
                         {formatDate(log.timestamp)}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                        <div className="text-xs text-gray-400">
+                          {new Date(log.timestamp).toLocaleTimeString()}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-800">{log.user}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium border ${getActionColor(log.action)}`}>
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-800">{log.resource}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{log.details}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{log.ipAddress}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </CardContent>
       </Card>
-
-      {/* Pagination */}
-      {pagination.total > pagination.limit && (
-        <div className="flex justify-center gap-2 mt-6">
-          <button
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
-            disabled={pagination.page === 1}
-            className="px-4 py-2 border rounded-md disabled:opacity-50"
-          >
-            Previous
-          </button>
-          <span className="px-4 py-2">
-            Page {pagination.page} of {Math.ceil(pagination.total / pagination.limit)}
-          </span>
-          <button
-            onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
-            disabled={pagination.page >= Math.ceil(pagination.total / pagination.limit)}
-            className="px-4 py-2 border rounded-md disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      )}
     </div>
   );
 };

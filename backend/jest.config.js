@@ -1,23 +1,30 @@
-module.exports = {
+export default {
   testEnvironment: 'node',
-  coverageDirectory: 'coverage',
+  transform: {},
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+  testMatch: [
+    '**/__tests__/**/*.test.js',
+    '**/?(*.)+(spec|test).js'
+  ],
   collectCoverageFrom: [
     'src/**/*.js',
     '!src/server.js',
-    '!src/config/*.js'
-  ],
-  testMatch: [
-    '**/__tests__/**/*.js',
-    '**/?(*.)+(spec|test).js'
+    '!src/**/*.test.js',
+    '!src/**/*.spec.js',
+    '!**/node_modules/**',
   ],
   coverageThreshold: {
     global: {
-      branches: 30,
-      functions: 30,
-      lines: 30,
-      statements: 30
-    }
+      branches: 80,
+      functions: 80,
+      lines: 80,
+      statements: 80,
+    },
   },
-  testTimeout: 60000,
-  setupFilesAfterEnv: ['<rootDir>/tests/setup.js']
+  coverageDirectory: 'coverage',
+  verbose: true,
+  testTimeout: 30000,
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
 };

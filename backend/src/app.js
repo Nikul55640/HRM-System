@@ -130,6 +130,10 @@ app.use("/api/admin/leave", adminLeaveRoutes);
 app.use("/api/admin/departments", departmentRoutes);
 app.use("/api/admin/payroll", adminPayrollRoutes);
 
+// Import admin attendance routes
+import adminAttendanceRoutes from "./routes/admin/adminAttendanceRoutes.js";
+app.use("/api/admin/attendance", adminAttendanceRoutes);
+
 // AUTH SECTION
 app.use("/api/auth", authRoutes);
 

@@ -66,6 +66,71 @@ const payrollService = {
     }
   },
 
+  // Get employee payroll information
+  getEmployeePayroll: async (params = {}) => {
+    try {
+      console.log('👥 [PAYROLL SERVICE] Fetching employee payroll');
+      const response = await api.get('/admin/payroll/employees', { params });
+      console.log('✅ [PAYROLL SERVICE] Employee payroll fetched:', response.data.data?.length);
+      return response.data;
+    } catch (error) {
+      console.error('❌ [PAYROLL SERVICE] Employee payroll fetch failed:', error);
+      throw error;
+    }
+  },
+
+  // Get salary structures
+  getSalaryStructures: async (params = {}) => {
+    try {
+      console.log('💰 [PAYROLL SERVICE] Fetching salary structures');
+      const response = await api.get('/admin/payroll/structures', { params });
+      console.log('✅ [PAYROLL SERVICE] Salary structures fetched:', response.data.data?.length);
+      return response.data;
+    } catch (error) {
+      console.error('❌ [PAYROLL SERVICE] Salary structures fetch failed:', error);
+      throw error;
+    }
+  },
+
+  // Create salary structure
+  createSalaryStructure: async (data) => {
+    try {
+      console.log('➕ [PAYROLL SERVICE] Creating salary structure');
+      const response = await api.post('/admin/payroll/structures', data);
+      console.log('✅ [PAYROLL SERVICE] Salary structure created');
+      return response.data;
+    } catch (error) {
+      console.error('❌ [PAYROLL SERVICE] Salary structure creation failed:', error);
+      throw error;
+    }
+  },
+
+  // Update salary structure
+  updateSalaryStructure: async (id, data) => {
+    try {
+      console.log('✏️ [PAYROLL SERVICE] Updating salary structure:', id);
+      const response = await api.put(`/admin/payroll/structures/${id}`, data);
+      console.log('✅ [PAYROLL SERVICE] Salary structure updated');
+      return response.data;
+    } catch (error) {
+      console.error('❌ [PAYROLL SERVICE] Salary structure update failed:', error);
+      throw error;
+    }
+  },
+
+  // Delete salary structure
+  deleteSalaryStructure: async (id) => {
+    try {
+      console.log('🗑️ [PAYROLL SERVICE] Deleting salary structure:', id);
+      const response = await api.delete(`/admin/payroll/structures/${id}`);
+      console.log('✅ [PAYROLL SERVICE] Salary structure deleted');
+      return response.data;
+    } catch (error) {
+      console.error('❌ [PAYROLL SERVICE] Salary structure deletion failed:', error);
+      throw error;
+    }
+  },
+
   // Employee: Get own payslips
   getMyPayslips: async (params = {}) => {
     try {

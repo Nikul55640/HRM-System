@@ -1,7 +1,7 @@
 import { lazy } from "react";
 
-const HRLeaveApprovals = lazy(() =>
-  import("../features/hr/leave/HRLeaveApprovals.jsx")
+const LeaveManagement = lazy(() =>
+  import("../features/admin/LeaveManagement.jsx")
 );
 const AttendanceAdminList = lazy(() =>
   import("../features/hr/attendance/AttendanceAdminList")
@@ -13,5 +13,5 @@ const AttendanceAdminDetail = lazy(() =>
 export const hrRoutes = [
   { path: "admin/attendance", element: AttendanceAdminList, roles: ["HR Administrator", "HR Manager", "SuperAdmin"] },
   { path: "admin/attendance/:id", element: AttendanceAdminDetail, roles: ["HR Administrator", "HR Manager", "SuperAdmin"] },
-  { path: "admin/leave-requests", element: HRLeaveApprovals, roles: ["HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "admin/leave-requests", element: LeaveManagement, roles: ["HR Administrator", "HR Manager", "SuperAdmin"] },
 ];

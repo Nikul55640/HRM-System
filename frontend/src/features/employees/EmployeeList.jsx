@@ -15,17 +15,20 @@ import {
 } from '../../components/ui/select';
 import { LayoutGrid, List, Plus, Users } from 'lucide-react';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
-import { Pagination, RoleGuard, ScopeIndicator } from '../../components/common';
+import { Pagination, RoleGuard, ScopeIndicator, PermissionGate } from '../../components/common';
 import EmployeeCard from './EmployeeCard';
 import EmployeeTable from './EmployeeTable';
 import DeleteConfirmModal  from '../../components/ui/DeleteConfirmModal';
 import useAuth from '../../hooks/useAuth';
+import { usePermissions } from '../../hooks';
+import { MODULES } from '../../utils/rolePermissions';
 
 const EmployeeList = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { employees = [], pagination = { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 10 }, loading, error } = useSelector((state) => state.employee || {});
-  const { user, hasRole, isHRManager, isSuperAdmin, isHRAdmin } = useAuth();
+  const { user, isHRManager } = useAuth();
+  const { can } = usePermissions();
   
   const [viewMode, setViewMode] = useState('card'); // 'card' or 'table'
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -101,7 +104,11 @@ const EmployeeList = () => {
   };
 
   const canManageEmployees = () => {
-    return hasRole(['SuperAdmin', 'HR Administrator', 'HR Manager']);
+    return can.doAny([
+      MODULES.EMPLOYEE.UPDATE_ANY,
+      MODULES.EMPLOYEE.UPDATE_OWN,
+      MODULES.EMPLOYEE.DELETE,
+    ]);
   };
 
   if (loading && employees.length === 0) {
@@ -176,12 +183,12 @@ const EmployeeList = () => {
           </div>
 
           {/* Create Button */}
-          <RoleGuard allowedRoles={['SuperAdmin', 'HR Administrator', 'HR Manager']}>
+          <PermissionGate permission={MODULES.EMPLOYEE.CREATE}>
             <Button onClick={handleCreateNew}>
               <Plus className="h-4 w-4 mr-2" />
               Add Employee
             </Button>
-          </RoleGuard>
+          </PermissionGate>
         </div>
       </div>
 
@@ -196,12 +203,12 @@ const EmployeeList = () => {
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-semibold mb-2">No employees found</h3>
             <p className="text-sm text-muted-foreground mb-6">Get started by creating a new employee.</p>
-            <RoleGuard allowedRoles={['SuperAdmin', 'HR Administrator', 'HR Manager']}>
+            <PermissionGate permission={MODULES.EMPLOYEE.CREATE}>
               <Button onClick={handleCreateNew}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Employee
               </Button>
-            </RoleGuard>
+            </PermissionGate>
           </CardContent>
         </Card>
       ) : (

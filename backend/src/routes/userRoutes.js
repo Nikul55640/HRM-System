@@ -1,7 +1,8 @@
 import express from 'express';
 import userController from '../controllers/userController.js';
 import { authenticate } from '../middleware/authenticate.js';
-import { authorize } from '../middleware/authorize.js';
+import { checkPermission } from '../middleware/checkPermission.js';
+import { MODULES } from '../config/rolePermissions.js';
 
 const router = express.Router();
 
@@ -13,52 +14,56 @@ const router = express.Router();
 /**
  * @route   POST /api/users
  * @desc    Create a new user
- * @access  SuperAdmin only
+ * @access  HR Admin, SuperAdmin
  * @requirements 11.1, 11.2
+ * @permission USER.CREATE
  */
 router.post(
   '/',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.USER.CREATE),
   userController.createUser,
 );
 
 /**
  * @route   GET /api/users
  * @desc    Get all users with pagination and filtering
- * @access  SuperAdmin only
+ * @access  HR Admin, SuperAdmin
  * @requirements 11.1, 11.2, 11.5
+ * @permission USER.VIEW
  */
 router.get(
   '/',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.USER.VIEW),
   userController.getUsers,
 );
 
 /**
  * @route   GET /api/users/:id
  * @desc    Get user by ID
- * @access  SuperAdmin only
+ * @access  HR Admin, SuperAdmin
  * @requirements 11.1, 11.2
+ * @permission USER.VIEW
  */
 router.get(
   '/:id',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.USER.VIEW),
   userController.getUserById,
 );
 
 /**
  * @route   PUT /api/users/:id
  * @desc    Update user
- * @access  SuperAdmin only
+ * @access  HR Admin, SuperAdmin
  * @requirements 11.1, 11.2, 11.3
+ * @permission USER.UPDATE
  */
 router.put(
   '/:id',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.USER.UPDATE),
   userController.updateUser,
 );
 
@@ -67,24 +72,26 @@ router.put(
  * @desc    Change user role
  * @access  SuperAdmin only
  * @requirements 11.1, 11.2, 11.3, 11.5
+ * @permission USER.CHANGE_ROLE
  */
 router.patch(
   '/:id/role',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.USER.CHANGE_ROLE),
   userController.changeUserRole,
 );
 
 /**
  * @route   PATCH /api/users/:id/activate
  * @desc    Activate user
- * @access  SuperAdmin only
+ * @access  HR Admin, SuperAdmin
  * @requirements 11.1, 11.2, 11.5
+ * @permission USER.UPDATE
  */
 router.patch(
   '/:id/activate',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.USER.UPDATE),
   userController.activateUser,
 );
 
@@ -93,11 +100,12 @@ router.patch(
  * @desc    Deactivate user
  * @access  SuperAdmin only
  * @requirements 11.1, 11.2, 11.3, 11.4, 11.5
+ * @permission USER.DELETE
  */
 router.delete(
   '/:id',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.USER.DELETE),
   userController.deactivateUser,
 );
 

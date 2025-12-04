@@ -21,12 +21,7 @@ const MainLayout = () => {
       {/* Quick User Switcher for Testing */}
       {process.env.NODE_ENV === 'development' && <UserSwitcher />}
       
-      {/* Debug: Show current user role */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="fixed bottom-4 left-4 bg-black text-white px-3 py-2 rounded text-xs font-mono z-50">
-          Role: {JSON.parse(localStorage.getItem('user') || '{}').role || 'None'}
-        </div>
-      )}
+
     </div>
   );
 };

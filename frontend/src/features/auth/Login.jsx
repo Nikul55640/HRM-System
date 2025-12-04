@@ -1,200 +1,170 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { Formik, Form as FormikForm, ErrorMessage } from 'formik';
-import * as Yup from 'yup';
-import { login } from '../../store/thunks/authThunks';
-import { Button }  from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Checkbox } from '../../components/ui/checkbox';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { Eye, EyeOff, Loader2 } from 'lucide-react';
-
-const loginSchema = Yup.object().shape({
-  email: Yup.string()
-    .email('Invalid email address')
-    .required('Email is required'),
-  password: Yup.string()
-    .min(8, 'Password must be at least 8 characters')
-    .required('Password is required'),
-});
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { Eye, EyeOff, User, Lock, Building2 } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Card, CardContent } from '../../components/ui/card';
+import useAuth from '../../hooks/useAuth';
 
 const Login = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const dispatch = useDispatch();
-  const { isAuthenticated, loading } = useSelector((state) => state.auth);
+  const { login, loading } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+  });
   const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  const from = location.state?.from?.pathname || '/dashboard';
-
-  useEffect(() => {
-    console.log('🔍 [LOGIN] Auth state changed:', { isAuthenticated, from });
-    if (isAuthenticated) {
-      console.log('✅ [LOGIN] User is authenticated, navigating to:', from);
-      navigate(from, { replace: true });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    // Clear error when user starts typing
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }));
     }
-  }, [isAuthenticated, navigate, from]);
+  };
 
-  const handleSubmit = async (values, { setSubmitting }) => {
-    console.log('📝 [LOGIN] Form submitted with email:', values.email);
-    const result = await dispatch(login(values.email, values.password));
-    console.log('📊 [LOGIN] Login result:', result);
+  const validateForm = () => {
+    const newErrors = {};
     
-    if (result.success) {
-      console.log('✅ [LOGIN] Login successful, navigating to:', from);
-      navigate(from, { replace: true });
-    } else {
-      console.log('❌ [LOGIN] Login failed:', result.error);
+    if (!formData.email) {
+      newErrors.email = 'Email is required';
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email';
     }
     
-    setSubmitting(false);
+    if (!formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      await login(formData.email, formData.password);
+      toast.success('Login successful!');
+      navigate('/dashboard');
+    } catch (error) {
+      toast.error(error.message || 'Login failed. Please try again.');
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="flex justify-center">
-            <div className="w-16 h-16 bg-indigo-600 rounded-lg flex items-center justify-center">
-              <svg
-                className="w-10 h-10 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-            </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 bg-blue-600 rounded-lg flex items-center justify-center mx-auto mb-4">
+            <Building2 className="w-8 h-8 text-white" />
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            HR Management System
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Sign in to your account
-          </p>
+          <h1 className="text-2xl font-semibold text-gray-800">Welcome Back</h1>
+          <p className="text-gray-500 text-sm mt-2">Sign in to your HRM account</p>
         </div>
 
-        <Card className="w-full">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-2xl text-center">Sign in</CardTitle>
-            <CardDescription className="text-center">
-              Enter your credentials to access your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Formik
-              initialValues={{ email: '', password: '', rememberMe: false }}
-              validationSchema={loginSchema}
-              onSubmit={handleSubmit}
-            >
-              {({ isSubmitting, errors, touched, values, setFieldValue }) => (
-                <FormikForm className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email address</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      autoComplete="email"
-                      value={values.email}
-                      onChange={(e) => setFieldValue('email', e.target.value)}
-                      className={errors.email && touched.email ? 'border-destructive' : ''}
-                    />
-                    <ErrorMessage
-                      name="email"
-                      component="p"
-                      className="text-sm text-destructive"
-                    />
+        {/* Login Form */}
+        <Card className="border-gray-200 w-auto ">
+          <CardContent className="pt-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Email Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" />
                   </div>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.email ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter your email"
+                    disabled={loading}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="text-red-600 text-sm mt-1">{errors.email}</p>
+                )}
+              </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <Input
-                        id="password"
-                        name="password"
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder="••••••••"
-                        autoComplete="current-password"
-                        value={values.password}
-                        onChange={(e) => setFieldValue('password', e.target.value)}
-                        className={errors.password && touched.password ? 'border-destructive pr-10' : 'pr-10'}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                    </div>
-                    <ErrorMessage
-                      name="password"
-                      component="p"
-                      className="text-sm text-destructive"
-                    />
+              {/* Password Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock className="h-5 w-5 text-gray-400" />
                   </div>
-
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id="remember-me"
-                        checked={values.rememberMe}
-                        onCheckedChange={(checked) => setFieldValue('rememberMe', checked)}
-                      />
-                      <Label
-                        htmlFor="remember-me"
-                        className="text-sm font-normal cursor-pointer"
-                      >
-                        Remember me
-                      </Label>
-                    </div>
-
-                    <a
-                      href="#"
-                      className="text-sm font-medium text-primary hover:underline"
-                    >
-                      Forgot password?
-                    </a>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={isSubmitting || loading}
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className={`w-full pl-10 pr-12 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                      errors.password ? 'border-red-300' : 'border-gray-300'
+                    }`}
+                    placeholder="Enter your password"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    disabled={loading}
                   >
-                    {isSubmitting || loading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Signing in...
-                      </>
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                     ) : (
-                      'Sign in'
+                      <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                     )}
-                  </Button>
-                </FormikForm>
-              )}
-            </Formik>
+                  </button>
+                </div>
+                {errors.password && (
+                  <p className="text-red-600 text-sm mt-1">{errors.password}</p>
+                )}
+              </div>
+
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full"
+              >
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Signing in...
+                  </div>
+                ) : (
+                  'Sign In'
+                )}
+              </Button>
+            </form>
+
+       
           </CardContent>
         </Card>
 
-        <div className="text-center">
-          <p className="text-xs text-gray-500">
-            © 2024 HRMS. All rights reserved.
+        {/* Footer */}
+        <div className="text-center mt-6">
+          <p className="text-sm text-gray-500">
+            © 2024 HRM System. All rights reserved.
           </p>
         </div>
       </div>

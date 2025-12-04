@@ -1,6 +1,8 @@
 import express from 'express';
 import dashboardController from '../controllers/dashboardController.js';
 import { authenticate } from '../middleware/authenticate.js';
+import { checkAnyPermission } from '../middleware/checkPermission.js';
+import { MODULES } from '../config/rolePermissions.js';
 
 const router = express.Router();
 
@@ -14,6 +16,7 @@ const router = express.Router();
  * @desc    Get complete dashboard data (profile, leave, attendance, activity)
  * @access  All authenticated users
  * @requirements 6.1, 6.2
+ * @permission Any authenticated user (role-based filtering in controller)
  */
 router.get(
   '/',
@@ -26,34 +29,49 @@ router.get(
  * @desc    Get employee profile summary
  * @access  All authenticated users
  * @requirements 6.1
+ * @permission EMPLOYEE.VIEW_OWN
  */
 router.get(
   '/profile',
   authenticate,
+  checkAnyPermission([
+    MODULES.EMPLOYEE.VIEW_OWN,
+    MODULES.EMPLOYEE.VIEW_ALL,
+  ]),
   dashboardController.getProfileSummary,
 );
 
 /**
  * @route   GET /api/dashboard/leave
- * @desc    Get leave balance (placeholder for Leave module)
+ * @desc    Get leave balance
  * @access  All authenticated users
  * @requirements 6.2
+ * @permission LEAVE.VIEW_OWN
  */
 router.get(
   '/leave',
   authenticate,
+  checkAnyPermission([
+    MODULES.LEAVE.VIEW_OWN,
+    MODULES.LEAVE.VIEW_ALL,
+  ]),
   dashboardController.getLeaveBalance,
 );
 
 /**
  * @route   GET /api/dashboard/attendance
- * @desc    Get attendance records (placeholder for Attendance module)
+ * @desc    Get attendance records
  * @access  All authenticated users
  * @requirements 6.2
+ * @permission ATTENDANCE.VIEW_OWN
  */
 router.get(
   '/attendance',
   authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_OWN,
+    MODULES.ATTENDANCE.VIEW_ALL,
+  ]),
   dashboardController.getAttendanceRecords,
 );
 
@@ -62,6 +80,7 @@ router.get(
  * @desc    Get recent activity feed from audit logs
  * @access  All authenticated users
  * @requirements 6.2
+ * @permission Any authenticated user
  */
 router.get(
   '/activity',

@@ -3,6 +3,8 @@ import employeeController from "../controllers/employeeController.js";
 
 import { authenticate } from "../middleware/authenticate.js";
 import { authorize, checkDepartmentAccess } from "../middleware/authorize.js";
+import { checkPermission, checkAnyPermission } from "../middleware/checkPermission.js";
+import { MODULES } from "../config/rolePermissions.js";
 
 import {
   validate,
@@ -23,31 +25,47 @@ const router = express.Router();
 
 /* -----------------------------------
    CREATE EMPLOYEE
+   Permission: EMPLOYEE.CREATE
+   Roles: HR Manager, HR Admin, SuperAdmin
 ----------------------------------- */
 router.post(
   "/",
   authenticate,
-  authorize("HR Administrator", "HR Manager", "SuperAdmin"),
+  checkPermission(MODULES.EMPLOYEE.CREATE),
   validate(createEmployeeSchema),
   employeeController.createEmployee
 );
 
 /* -----------------------------------
    LIST EMPLOYEES (with filters)
+   Permission: VIEW_OWN, VIEW_TEAM, or VIEW_ALL
+   Roles: All authenticated users (filtered by role)
 ----------------------------------- */
 router.get(
   "/",
   authenticate,
+  checkAnyPermission([
+    MODULES.EMPLOYEE.VIEW_OWN,
+    MODULES.EMPLOYEE.VIEW_TEAM,
+    MODULES.EMPLOYEE.VIEW_ALL,
+  ]),
   validateQuery(searchEmployeeSchema),
   employeeController.getEmployees
 );
 
 /* -----------------------------------
    SEARCH EMPLOYEES
+   Permission: VIEW_OWN, VIEW_TEAM, or VIEW_ALL
+   Roles: All authenticated users (filtered by role)
 ----------------------------------- */
 router.get(
   "/search",
   authenticate,
+  checkAnyPermission([
+    MODULES.EMPLOYEE.VIEW_OWN,
+    MODULES.EMPLOYEE.VIEW_TEAM,
+    MODULES.EMPLOYEE.VIEW_ALL,
+  ]),
   validateQuery(searchEmployeeSchema),
   employeeController.searchEmployees
 );
@@ -85,11 +103,16 @@ router.patch(
 
 /* -----------------------------------
    UPDATE EMPLOYEE
+   Permission: UPDATE_ANY or UPDATE_OWN
+   Roles: HR Manager, HR Admin, SuperAdmin, or self
 ----------------------------------- */
 router.put(
   "/:id",
   authenticate,
-  authorize("HR Administrator", "HR Manager", "SuperAdmin"),
+  checkAnyPermission([
+    MODULES.EMPLOYEE.UPDATE_ANY,
+    MODULES.EMPLOYEE.UPDATE_OWN,
+  ]),
   validateParams(employeeIdParamSchema),
   checkDepartmentAccess,
   validate(updateEmployeeSchema),
@@ -98,11 +121,13 @@ router.put(
 
 /* -----------------------------------
    DELETE EMPLOYEE (Soft Delete)
+   Permission: EMPLOYEE.DELETE
+   Roles: HR Admin, SuperAdmin only
 ----------------------------------- */
 router.delete(
   "/:id",
   authenticate,
-  authorize("HR Administrator", "HR Manager", "SuperAdmin"),
+  checkPermission(MODULES.EMPLOYEE.DELETE),
   validateParams(employeeIdParamSchema),
   checkDepartmentAccess,
   employeeController.deleteEmployee

@@ -50,7 +50,7 @@ const getBankDetails = async (req, res) => {
  */
  const updateBankDetails = async (req, res) => {
   try {
-    const { employeeId } = req.user;
+    const { employeeId, id: userId } = req.user;
     const {
       accountNumber,
       bankName,
@@ -82,8 +82,8 @@ const getBankDetails = async (req, res) => {
     if (!profile) {
       profile = new EmployeeProfile({
         employeeId,
-        userId: req.user._id,
-        createdBy: req.user._id,
+        userId,
+        createdBy: userId,
       });
     }
 
@@ -110,12 +110,12 @@ const getBankDetails = async (req, res) => {
         oldValue: oldBankDetails,
         newValue: profile.bankDetails,
         changedAt: new Date(),
-        changedBy: req.user._id,
+        changedBy: userId,
         approvalStatus: 'pending',
       });
     }
 
-    profile.updatedBy = req.user._id;
+    profile.updatedBy = userId;
     await profile.save();
 
     res.json({
@@ -166,7 +166,7 @@ const getBankDetails = async (req, res) => {
 
     // Update verification status to pending
     profile.bankDetails.verificationStatus = 'pending';
-    profile.updatedBy = req.user._id;
+    profile.updatedBy = req.user.id;
     await profile.save();
 
     // TODO: Send notification to HR for verification
@@ -224,7 +224,7 @@ const verifyBankDetails = async (req, res) => {
 
     if (status === 'verified') {
       profile.bankDetails.verifiedAt = new Date();
-      profile.bankDetails.verifiedBy = req.user._id;
+      profile.bankDetails.verifiedBy = req.user.id;
       profile.bankDetails.rejectionReason = undefined;
     } else {
       profile.bankDetails.rejectionReason = rejectionReason;
@@ -232,7 +232,7 @@ const verifyBankDetails = async (req, res) => {
       profile.bankDetails.verifiedBy = null;
     }
 
-    profile.updatedBy = req.user._id;
+    profile.updatedBy = req.user.id;
     await profile.save();
 
     // TODO: Send notification to employee about verification status

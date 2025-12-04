@@ -3,6 +3,7 @@ import authReducer from './slices/authSlice';
 import employeeReducer from './slices/employeeSlice';
 import uiReducer from './slices/uiSlice';
 import notificationReducer from './slices/notificationSlice';
+import payrollReducer from './slices/payrollSlice';
 import employeeSelfServiceReducer from './employeeSelfServiceStore';
 
 const store = configureStore({
@@ -11,6 +12,7 @@ const store = configureStore({
     employee: employeeReducer,
     ui: uiReducer,
     notifications: notificationReducer,
+    payroll: payrollReducer,
     employeeSelfService: employeeSelfServiceReducer,
   },
   middleware: (getDefaultMiddleware) =>

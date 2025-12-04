@@ -1,16 +1,31 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { CheckCircle, XCircle, Clock, Calendar, FileText } from 'lucide-react';
 import { managerService } from '../../services';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/essHelpers';
+import { PermissionGate } from '../../components/common';
+import { usePermissions } from '../../hooks';
+import { MODULES } from '../../utils/rolePermissions';
 
 const ManagerApprovals = () => {
+  const { can } = usePermissions();
   const [approvals, setApprovals] = useState({ leave: [], attendance: [], expense: [] });
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState('leave');
+
+  // Check if user has approval permissions
+  if (!can.doAny([MODULES.LEAVE.APPROVE_TEAM, MODULES.ATTENDANCE.APPROVE_CORRECTION])) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+          <h3 className="text-lg font-semibold text-red-900 mb-2">Access Denied</h3>
+          <p className="text-red-700">You do not have permission to approve requests.</p>
+        </div>
+      </div>
+    );
+  }
 
   useEffect(() => {
     fetchPendingApprovals();
@@ -47,27 +62,10 @@ const ManagerApprovals = () => {
     }
   };
 
-  const handleAttendanceApproval = async (id, action) => {
-    try {
-      if (action === 'approve') {
-        await managerService.approveAttendance(id, { comments: 'Approved' });
-        toast.success('Attendance approved');
-      } else {
-        await managerService.rejectAttendance(id, { reason: 'Rejected' });
-        toast.error('Attendance rejected');
-      }
-      fetchPendingApprovals();
-    } catch (error) {
-      toast.error(`Failed to ${action} attendance`);
-    }
-  };
-
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+      <div className="p-6">
+        <p className="text-gray-500">Loading approvals...</p>
       </div>
     );
   }
@@ -75,150 +73,157 @@ const ManagerApprovals = () => {
   const totalPending = (approvals.leave?.length || 0) + (approvals.attendance?.length || 0) + (approvals.expense?.length || 0);
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Pending Approvals</h1>
-        <p className="text-muted-foreground mt-1">Review and approve team requests</p>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-800">Pending Approvals</h1>
+        <p className="text-gray-500 text-sm mt-1">Review and approve team requests</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-            <Clock className="h-4 w-4 text-orange-500" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="border-gray-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Total Pending</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalPending}</div>
+            <div className="text-2xl font-semibold text-gray-800">{totalPending}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Leave Requests</CardTitle>
-            <Calendar className="h-4 w-4 text-blue-500" />
+        <Card className="border-gray-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Leave Requests</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{approvals.leave?.length || 0}</div>
+            <div className="text-2xl font-semibold text-gray-800">{approvals.leave?.length || 0}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Attendance</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+        <Card className="border-gray-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Attendance</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{approvals.attendance?.length || 0}</div>
+            <div className="text-2xl font-semibold text-gray-800">{approvals.attendance?.length || 0}</div>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Expenses</CardTitle>
-            <FileText className="h-4 w-4 text-purple-500" />
+        <Card className="border-gray-200">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-gray-600">Expenses</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{approvals.expense?.length || 0}</div>
+            <div className="text-2xl font-semibold text-gray-800">{approvals.expense?.length || 0}</div>
           </CardContent>
         </Card>
       </div>
 
-      <Tabs defaultValue="leave" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="leave">
-            Leave Requests ({approvals.leave?.length || 0})
-          </TabsTrigger>
-          <TabsTrigger value="attendance">
-            Attendance ({approvals.attendance?.length || 0})
-          </TabsTrigger>
-          <TabsTrigger value="expenses">
-            Expenses ({approvals.expense?.length || 0})
-          </TabsTrigger>
-        </TabsList>
+      {/* Tabs */}
+      <Card className="border-gray-200">
+        <CardContent className="p-4">
+          <div className="flex gap-2 border-b border-gray-200 pb-4">
+            <Button
+              variant={activeTab === 'leave' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('leave')}
+            >
+              Leave Requests ({approvals.leave?.length || 0})
+            </Button>
+            <Button
+              variant={activeTab === 'attendance' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('attendance')}
+            >
+              Attendance ({approvals.attendance?.length || 0})
+            </Button>
+            <Button
+              variant={activeTab === 'expenses' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => setActiveTab('expenses')}
+            >
+              Expenses ({approvals.expense?.length || 0})
+            </Button>
+          </div>
 
-        <TabsContent value="leave">
-          <Card>
-            <CardContent className="p-6">
-              {!approvals.leave || approvals.leave.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  No pending leave requests
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {approvals.leave.map((request) => (
-                    <Card key={request._id} className="border-l-4 border-l-blue-500">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-2">
-                              <h3 className="font-semibold text-lg">
-                                {request.employeeId?.personalInfo?.firstName} {request.employeeId?.personalInfo?.lastName}
-                              </h3>
-                              <Badge>{request.type}</Badge>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm mb-3">
-                              <div>
-                                <span className="text-muted-foreground">Duration:</span>
-                                <div className="font-medium">
-                                  {formatDate(request.startDate)} - {formatDate(request.endDate)}
+          <div className="mt-4">
+            {activeTab === 'leave' && (
+              <>
+                {!approvals.leave || approvals.leave.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-400 text-sm">No pending leave requests</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {approvals.leave.map((request) => (
+                      <Card key={request._id} className="border-l-4 border-l-blue-500 border-gray-200">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-gray-800">
+                                  {request.employeeId?.personalInfo?.firstName} {request.employeeId?.personalInfo?.lastName}
+                                </h3>
+                                <span className="inline-block px-2 py-1 rounded text-xs font-medium border text-blue-600 bg-blue-50 border-blue-200">
+                                  {request.type}
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-2 gap-4 text-sm mb-3">
+                                <div>
+                                  <span className="text-gray-500">Duration:</span>
+                                  <div className="font-medium text-gray-800">
+                                    {formatDate(request.startDate)} - {formatDate(request.endDate)}
+                                  </div>
+                                  <div className="text-gray-500">{request.days} days</div>
                                 </div>
-                                <div className="text-muted-foreground">{request.days} days</div>
+                                <div>
+                                  <span className="text-gray-500">Applied on:</span>
+                                  <div className="font-medium text-gray-800">{formatDate(request.appliedAt)}</div>
+                                </div>
                               </div>
-                              <div>
-                                <span className="text-muted-foreground">Applied on:</span>
-                                <div className="font-medium">{formatDate(request.appliedAt)}</div>
+                              <div className="text-sm">
+                                <span className="text-gray-500">Reason:</span>
+                                <p className="mt-1 text-gray-700">{request.reason}</p>
                               </div>
                             </div>
-                            <div className="text-sm">
-                              <span className="text-muted-foreground">Reason:</span>
-                              <p className="mt-1">{request.reason}</p>
+                            <div className="flex gap-2 ml-4">
+                              <Button
+                                size="sm"
+                                onClick={() => handleLeaveApproval(request._id, 'approve')}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-1" />
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleLeaveApproval(request._id, 'reject')}
+                              >
+                                <XCircle className="w-4 h-4 mr-1" />
+                                Reject
+                              </Button>
                             </div>
                           </div>
-                          <div className="flex gap-2 ml-4">
-                            <Button
-                              size="sm"
-                              onClick={() => handleLeaveApproval(request._id, 'approve')}
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              <CheckCircle className="h-4 w-4 mr-1" />
-                              Approve
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleLeaveApproval(request._id, 'reject')}
-                            >
-                              <XCircle className="h-4 w-4 mr-1" />
-                              Reject
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
 
-        <TabsContent value="attendance">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center py-12 text-muted-foreground">
-                No pending attendance requests
+            {activeTab === 'attendance' && (
+              <div className="text-center py-12">
+                <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-400 text-sm">No pending attendance requests</p>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
+            )}
 
-        <TabsContent value="expenses">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center py-12 text-muted-foreground">
-                No pending expense requests
+            {activeTab === 'expenses' && (
+              <div className="text-center py-12">
+                <FileText className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-400 text-sm">No pending expense requests</p>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

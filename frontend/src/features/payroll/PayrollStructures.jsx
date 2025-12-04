@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../components/ui/dialog';
 import { Plus, Edit, Trash2 } from 'lucide-react';
 import { payrollService } from '../../services';
 import { toast } from 'react-toastify';
@@ -9,7 +8,7 @@ import { toast } from 'react-toastify';
 const PayrollStructures = () => {
   const [structures, setStructures] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editingStructure, setEditingStructure] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -23,15 +22,18 @@ const PayrollStructures = () => {
   }, []);
 
   const fetchStructures = async () => {
+    console.log('🔄 [SALARY STRUCTURES] Fetching salary structures...');
     try {
       setLoading(true);
       const response = await payrollService.getSalaryStructures();
+      console.log('✅ [SALARY STRUCTURES] Response received:', response);
       
       if (response.success) {
         setStructures(response.data);
+        console.log('✅ [SALARY STRUCTURES] Loaded:', response.data?.length || 0, 'structures');
       }
     } catch (error) {
-      console.error('Failed to fetch structures:', error);
+      console.error('❌ [SALARY STRUCTURES] Failed to fetch structures:', error);
       toast.error('Failed to load salary structures');
     } finally {
       setLoading(false);
@@ -48,7 +50,7 @@ const PayrollStructures = () => {
         await payrollService.createSalaryStructure(formData);
         toast.success('Structure created');
       }
-      setIsDialogOpen(false);
+      setShowModal(false);
       resetForm();
       fetchStructures();
     } catch (error) {
@@ -64,7 +66,7 @@ const PayrollStructures = () => {
       hra: structure.hra,
       allowances: structure.allowances,
     });
-    setIsDialogOpen(true);
+    setShowModal(true);
   };
 
   const handleDelete = async (id) => {
@@ -90,122 +92,63 @@ const PayrollStructures = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+      <div className="p-6">
+        <p className="text-gray-500">Loading salary structures...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-3xl font-bold">Salary Structures</h1>
-          <p className="text-muted-foreground mt-1">Manage salary templates</p>
+          <h1 className="text-2xl font-semibold text-gray-800">Salary Structures</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage salary templates</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Structure
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>{editingStructure ? 'Edit Structure' : 'Add Structure'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Structure Name *</label>
-                <input
-                  type="text"
-                  required
-                  className="w-full border rounded-md p-2 mt-1"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Basic Salary *</label>
-                <input
-                  type="number"
-                  required
-                  className="w-full border rounded-md p-2 mt-1"
-                  value={formData.basic}
-                  onChange={(e) => setFormData({ ...formData, basic: Number(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">HRA *</label>
-                <input
-                  type="number"
-                  required
-                  className="w-full border rounded-md p-2 mt-1"
-                  value={formData.hra}
-                  onChange={(e) => setFormData({ ...formData, hra: Number(e.target.value) })}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Allowances *</label>
-                <input
-                  type="number"
-                  required
-                  className="w-full border rounded-md p-2 mt-1"
-                  value={formData.allowances}
-                  onChange={(e) => setFormData({ ...formData, allowances: Number(e.target.value) })}
-                />
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">{editingStructure ? 'Update' : 'Create'}</Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button onClick={() => setShowModal(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          Add Structure
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {structures.length === 0 ? (
-          <Card className="col-span-full">
-            <CardContent className="py-12 text-center text-muted-foreground">
-              No salary structures found. Click "Add Structure" to create one.
+          <Card className="col-span-full border-gray-200">
+            <CardContent className="py-12 text-center">
+              <p className="text-gray-400 text-sm">No salary structures found. Click "Add Structure" to create one.</p>
             </CardContent>
           </Card>
         ) : (
           structures.map(structure => (
-            <Card key={structure._id} className="hover:shadow-lg transition-shadow">
+            <Card key={structure._id} className="border-gray-200">
               <CardHeader>
-                <CardTitle>{structure.name}</CardTitle>
+                <CardTitle className="text-base font-semibold text-gray-800">{structure.name}</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Basic:</span>
-                    <span className="font-medium">₹{structure.basic?.toLocaleString()}</span>
+                    <span className="text-gray-600">Basic:</span>
+                    <span className="font-medium text-gray-800">₹{structure.basic?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">HRA:</span>
-                    <span className="font-medium">₹{structure.hra?.toLocaleString()}</span>
+                    <span className="text-gray-600">HRA:</span>
+                    <span className="font-medium text-gray-800">₹{structure.hra?.toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Allowances:</span>
-                    <span className="font-medium">₹{structure.allowances?.toLocaleString()}</span>
+                    <span className="text-gray-600">Allowances:</span>
+                    <span className="font-medium text-gray-800">₹{structure.allowances?.toLocaleString()}</span>
                   </div>
-                  <div className="flex justify-between text-sm font-bold border-t pt-2">
-                    <span>Total:</span>
-                    <span>₹{calculateTotal(structure).toLocaleString()}</span>
+                  <div className="flex justify-between text-sm font-semibold border-t border-gray-200 pt-2 mt-2">
+                    <span className="text-gray-800">Total:</span>
+                    <span className="text-gray-800">₹{calculateTotal(structure).toLocaleString()}</span>
                   </div>
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex gap-2 mt-4 pt-2 border-t border-gray-200">
                     <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(structure)}>
-                      <Edit className="h-4 w-4 mr-1" />
+                      <Edit className="w-4 h-4 mr-1" />
                       Edit
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleDelete(structure._id)}>
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                    <Button variant="ghost" size="sm" onClick={() => handleDelete(structure._id)}>
+                      <Trash2 className="w-4 h-4 text-red-600" />
                     </Button>
                   </div>
                 </div>
@@ -214,6 +157,69 @@ const PayrollStructures = () => {
           ))
         )}
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <Card className="max-w-md w-full border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-800">
+                {editingStructure ? 'Edit Structure' : 'Add Structure'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Structure Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Basic Salary *</label>
+                  <input
+                    type="number"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.basic}
+                    onChange={(e) => setFormData({ ...formData, basic: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">HRA *</label>
+                  <input
+                    type="number"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.hra}
+                    onChange={(e) => setFormData({ ...formData, hra: Number(e.target.value) })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Allowances *</label>
+                  <input
+                    type="number"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={formData.allowances}
+                    onChange={(e) => setFormData({ ...formData, allowances: Number(e.target.value) })}
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <Button type="button" variant="outline" onClick={() => { setShowModal(false); resetForm(); }} className="flex-1">
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1">{editingStructure ? 'Update' : 'Create'}</Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

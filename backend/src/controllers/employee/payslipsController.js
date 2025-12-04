@@ -12,13 +12,13 @@ const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
 // ==============================
 const getPayslips = async (req, res) => {
   try {
-    const { employeeId, _id: user } = req.user;
+    const { employeeId, id: userId } = req.user;
     const { year, month } = req.query;
 
     if (!employeeId) {
       await AuditLog.create({
         action: "PAYSLIP_ACCESS_DENIED",
-        user,
+        userId,
         details: "User attempted to access payslips without employeeId",
         ipAddress: req.ip,
         userAgent: req.get("User-Agent"),
@@ -40,7 +40,7 @@ const getPayslips = async (req, res) => {
 
     await AuditLog.create({
       action: "PAYSLIPS_ACCESSED",
-      user,
+      userId,
       employeeId,
       details: `Accessed ${payslips.length} payslips`,
       ipAddress: req.ip,
@@ -62,7 +62,7 @@ const getPayslips = async (req, res) => {
 // ==============================
 const getPayslipById = async (req, res) => {
   try {
-    const { employeeId, _id: user } = req.user;
+    const { employeeId, id: userId } = req.user;
     const { id } = req.params;
 
     if (!isValidObjectId(id)) {
@@ -75,7 +75,7 @@ const getPayslipById = async (req, res) => {
     if (!employeeId) {
       await AuditLog.create({
         action: "PAYSLIP_ACCESS_DENIED",
-        user,
+        userId,
         details: `User attempted to access single payslip ${id}`,
         ipAddress: req.ip,
         userAgent: req.get("User-Agent"),
@@ -96,7 +96,7 @@ const getPayslipById = async (req, res) => {
     if (!payslip) {
       await AuditLog.create({
         action: "PAYSLIP_ACCESS_FAILED",
-        user,
+        userId,
         employeeId,
         details: `Payslip ${id} not found or unauthorized`,
         ipAddress: req.ip,
@@ -111,7 +111,7 @@ const getPayslipById = async (req, res) => {
 
     await AuditLog.create({
       action: "PAYSLIP_VIEWED",
-      user,
+      userId,
       employeeId,
       resource: payslip._id,
       details: `Viewed payslip ${payslip.month}/${payslip.year}`,
@@ -134,13 +134,13 @@ const getPayslipById = async (req, res) => {
 // ==============================
 const downloadPayslip = async (req, res) => {
   try {
-    const { employeeId, _id: user } = req.user;
+    const { employeeId, id: userId } = req.user;
     const { id } = req.params;
 
     if (!employeeId) {
       await AuditLog.create({
         action: "PAYSLIP_DOWNLOAD_DENIED",
-        user,
+        userId,
         details: `User attempted to download payslip ${id}`,
         ipAddress: req.ip,
         userAgent: req.get("User-Agent"),
@@ -168,7 +168,7 @@ const downloadPayslip = async (req, res) => {
     if (!payslip) {
       await AuditLog.create({
         action: "PAYSLIP_DOWNLOAD_FAILED",
-        user,
+        userId,
         employeeId,
         details: `Payslip ${id} not found or unauthorized`,
         ipAddress: req.ip,
@@ -192,7 +192,7 @@ const downloadPayslip = async (req, res) => {
     // Log the download
     await AuditLog.create({
       action: "PAYSLIP_DOWNLOADED",
-      user,
+      userId,
       employeeId,
       resource: payslip._id,
       details: `Downloaded payslip PDF for ${payslip.month}/${payslip.year}`,

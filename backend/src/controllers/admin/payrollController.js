@@ -10,9 +10,11 @@ import { generatePayslipPDF } from '../../utils/generatePayslipPDF.js';
 const getPayrollDashboard = async (req, res) => {
   try {
     console.log('📊 [PAYROLL] Fetching dashboard data');
+    console.log('📊 [PAYROLL] User:', req.user);
     
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
+    console.log('📊 [PAYROLL] Period:', { currentMonth, currentYear });
     
     // Get payroll statistics
     const totalEmployees = await Employee.countDocuments({ isActive: true });
@@ -73,25 +75,29 @@ const getPayrollDashboard = async (req, res) => {
     
     console.log('✅ [PAYROLL] Dashboard data prepared');
     
-    // Log audit
-    await AuditLog.logAction({
-      action: 'VIEW',
-      severity: 'info',
-      entityType: 'Payroll',
-      entityId: 'dashboard',
-      entityDisplayName: 'Payroll Dashboard',
-      userId: req.user.id || req.user._id,
-      userRole: req.user.role,
-      performedByName: req.user.fullName,
-      performedByEmail: req.user.email,
-      meta: {
-        totalEmployees,
-        processedPayslips,
-        pendingPayslips
-      },
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent')
-    });
+    // Log audit (optional - don't fail if audit logging fails)
+    try {
+      await AuditLog.logAction({
+        action: 'VIEW',
+        severity: 'info',
+        entityType: 'Payroll',
+        entityId: 'dashboard',
+        entityDisplayName: 'Payroll Dashboard',
+        userId: req.user?.id || req.user?._id,
+        userRole: req.user?.role,
+        performedByName: req.user?.fullName || 'Unknown',
+        performedByEmail: req.user?.email || 'unknown@example.com',
+        meta: {
+          totalEmployees,
+          processedPayslips,
+          pendingPayslips
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent')
+      });
+    } catch (auditError) {
+      console.warn('⚠️ [PAYROLL] Audit log failed (non-critical):', auditError.message);
+    }
     
     res.status(200).json({
       success: true,
@@ -100,10 +106,12 @@ const getPayrollDashboard = async (req, res) => {
     
   } catch (error) {
     console.error('❌ [PAYROLL] Dashboard error:', error);
+    console.error('❌ [PAYROLL] Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Error fetching payroll dashboard',
-      error: error.message
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };
@@ -408,10 +416,170 @@ const deletePayslip = async (req, res) => {
   }
 };
 
+// ---------------------------------------------------------
+// GET EMPLOYEE PAYROLL INFO
+// ---------------------------------------------------------
+const getEmployeePayroll = async (req, res) => {
+  try {
+    console.log('👥 [PAYROLL] Fetching employee payroll information');
+    
+    const employees = await Employee.find({ isActive: true })
+      .select('employeeNumber personalInfo jobDetails salaryStructure')
+      .populate('salaryStructure')
+      .lean();
+    
+    console.log('✅ [PAYROLL] Employee payroll fetched:', employees.length);
+    
+    res.status(200).json({
+      success: true,
+      data: employees
+    });
+  } catch (error) {
+    console.error('❌ [PAYROLL] Employee payroll error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching employee payroll',
+      error: error.message
+    });
+  }
+};
+
+// ---------------------------------------------------------
+// GET SALARY STRUCTURES
+// ---------------------------------------------------------
+const getSalaryStructures = async (req, res) => {
+  try {
+    console.log('💰 [PAYROLL] Fetching salary structures');
+    
+    const structures = await SalaryStructure.find({ isActive: true })
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    console.log('✅ [PAYROLL] Salary structures fetched:', structures.length);
+    
+    res.status(200).json({
+      success: true,
+      data: structures
+    });
+  } catch (error) {
+    console.error('❌ [PAYROLL] Salary structures error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching salary structures',
+      error: error.message
+    });
+  }
+};
+
+// ---------------------------------------------------------
+// CREATE SALARY STRUCTURE
+// ---------------------------------------------------------
+const createSalaryStructure = async (req, res) => {
+  try {
+    console.log('➕ [PAYROLL] Creating salary structure');
+    
+    const structure = new SalaryStructure(req.body);
+    await structure.save();
+    
+    console.log('✅ [PAYROLL] Salary structure created:', structure._id);
+    
+    res.status(201).json({
+      success: true,
+      data: structure,
+      message: 'Salary structure created successfully'
+    });
+  } catch (error) {
+    console.error('❌ [PAYROLL] Create salary structure error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating salary structure',
+      error: error.message
+    });
+  }
+};
+
+// ---------------------------------------------------------
+// UPDATE SALARY STRUCTURE
+// ---------------------------------------------------------
+const updateSalaryStructure = async (req, res) => {
+  try {
+    console.log('✏️ [PAYROLL] Updating salary structure:', req.params.id);
+    
+    const structure = await SalaryStructure.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true, runValidators: true }
+    );
+    
+    if (!structure) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salary structure not found'
+      });
+    }
+    
+    console.log('✅ [PAYROLL] Salary structure updated');
+    
+    res.status(200).json({
+      success: true,
+      data: structure,
+      message: 'Salary structure updated successfully'
+    });
+  } catch (error) {
+    console.error('❌ [PAYROLL] Update salary structure error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating salary structure',
+      error: error.message
+    });
+  }
+};
+
+// ---------------------------------------------------------
+// DELETE SALARY STRUCTURE
+// ---------------------------------------------------------
+const deleteSalaryStructure = async (req, res) => {
+  try {
+    console.log('🗑️ [PAYROLL] Deleting salary structure:', req.params.id);
+    
+    const structure = await SalaryStructure.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false },
+      { new: true }
+    );
+    
+    if (!structure) {
+      return res.status(404).json({
+        success: false,
+        message: 'Salary structure not found'
+      });
+    }
+    
+    console.log('✅ [PAYROLL] Salary structure deleted');
+    
+    res.status(200).json({
+      success: true,
+      message: 'Salary structure deleted successfully'
+    });
+  } catch (error) {
+    console.error('❌ [PAYROLL] Delete salary structure error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting salary structure',
+      error: error.message
+    });
+  }
+};
+
 export {
   getPayrollDashboard,
   getAllPayslips,
   generatePayslips,
   getPayslipById,
-  deletePayslip
+  deletePayslip,
+  getEmployeePayroll,
+  getSalaryStructures,
+  createSalaryStructure,
+  updateSalaryStructure,
+  deleteSalaryStructure
 };

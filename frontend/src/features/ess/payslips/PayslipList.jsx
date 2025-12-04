@@ -1,58 +1,69 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Button } from '../../../components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from  '../../../components/ui/table';  
 import { Download, Eye } from 'lucide-react';
-import { formatDate, formatCurrency } from '../../../utils/essHelpers';
-const PayslipList = ({ payslips, onView, onDownload }) => {
+import { formatDate } from '../../../utils/essHelpers';
+
+const PayslipList = ({ payslips, onDownload, onView }) => {
   if (!payslips || payslips.length === 0) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center text-muted-foreground">
-          No payslips available.
+      <Card className="border-gray-200">
+        <CardContent className="py-12 text-center">
+          <p className="text-gray-400 text-sm">No payslips found</p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card>
+    <Card className="border-gray-200">
       <CardHeader>
-        <CardTitle>Payslips</CardTitle>
+        <CardTitle className="text-base font-semibold text-gray-800">Payslip History</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Month</TableHead>
-                <TableHead>Year</TableHead>
-                <TableHead>Net Salary</TableHead>
-                <TableHead>Generated On</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="border-b border-gray-200">
+              <tr>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Period</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Gross Salary</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Deductions</th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Net Salary</th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
               {payslips.map((payslip) => (
-                <TableRow key={payslip.id || payslip._id}>
-                  <TableCell className="font-medium">{payslip.month}</TableCell>
-                  <TableCell>{payslip.year}</TableCell>
-                  <TableCell>{formatCurrency(payslip.netSalary)}</TableCell>
-                  <TableCell>{formatDate(payslip.generatedAt)}</TableCell>
-                  <TableCell className="text-right">
+                <tr key={payslip._id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 text-sm font-medium text-gray-800">
+                    {payslip.month} {payslip.year}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">
+                    ₹{payslip.grossSalary?.toLocaleString() || 0}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-red-600">
+                    ₹{payslip.totalDeductions?.toLocaleString() || 0}
+                  </td>
+                  <td className="px-4 py-3 text-sm font-medium text-green-600">
+                    ₹{payslip.netSalary?.toLocaleString() || 0}
+                  </td>
+                  <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => onView(payslip)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => onDownload(payslip)}>
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      {onView && (
+                        <Button variant="ghost" size="sm" onClick={() => onView(payslip)}>
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                      )}
+                      {onDownload && (
+                        <Button variant="ghost" size="sm" onClick={() => onDownload(payslip)}>
+                          <Download className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
       </CardContent>
     </Card>

@@ -1,6 +1,7 @@
 import Employee from "../models/Employee.js";
 import AuditLog from "../models/AuditLog.js";
 import logger from "../utils/logger.js";
+import { ROLES } from "../config/rolePermissions.js";
 
 /**
  * Employee Service Layer
@@ -313,7 +314,7 @@ const getEmployeeById = async (employeeId, user) => {
     const query = { _id: employeeId };
 
     // Apply role-based filtering
-    if (user.role === "HR Manager") {
+    if (user.role === ROLES.HR_MANAGER) {
       // HR Manager can only access employees in their assigned departments
       if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
         throw {
@@ -323,7 +324,7 @@ const getEmployeeById = async (employeeId, user) => {
         };
       }
       query["jobInfo.department"] = { $in: user.assignedDepartments };
-    } else if (user.role === "Employee") {
+    } else if (user.role === ROLES.EMPLOYEE) {
       // Employees can only access their own profile
       if (!user.employeeId || user.employeeId.toString() !== employeeId) {
         throw {
@@ -379,7 +380,7 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
     const query = {};
 
     // Apply role-based scope filtering
-    if (user.role === "HR Manager") {
+    if (user.role === ROLES.HR_MANAGER) {
       if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
         throw {
           code: "NO_DEPARTMENTS_ASSIGNED",
@@ -388,7 +389,7 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
         };
       }
       query["jobInfo.department"] = { $in: user.assignedDepartments };
-    } else if (user.role === "Employee") {
+    } else if (user.role === ROLES.EMPLOYEE) {
       // Employees can only see their own profile in list
       if (user.employeeId) {
         query._id = user.employeeId;

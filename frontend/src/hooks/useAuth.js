@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { logout as logoutThunk } from '../store/slices/authSlice';
+import { login as loginThunk, logout as logoutThunk } from '../store/thunks/authThunks';
 
 const useAuth = () => {
   const dispatch = useDispatch();
@@ -8,6 +8,11 @@ const useAuth = () => {
   const { user, token, isAuthenticated, loading, error } = useSelector(
     (state) => state.auth
   );
+
+  const login = async (email, password) => {
+    const result = await dispatch(loginThunk(email, password));
+    return result;
+  };
 
   const logout = async () => {
     await dispatch(logoutThunk());
@@ -41,6 +46,7 @@ const useAuth = () => {
     isAuthenticated,
     loading,
     error,
+    login,
     logout,
     hasRole,
     isSuperAdmin,

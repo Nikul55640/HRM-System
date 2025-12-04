@@ -1,23 +1,26 @@
-// Global test setup
-const mongoose = require('mongoose');
+/**
+ * Jest Setup File
+ * Runs before all tests
+ */
 
-// Increase timeout for all tests
-jest.setTimeout(60000);
+// Set test environment variables
+process.env.NODE_ENV = 'test';
+process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
+process.env.JWT_REFRESH_SECRET = 'test-refresh-secret-key-for-testing-only';
+process.env.JWT_ACCESS_EXPIRY = '15m';
+process.env.JWT_REFRESH_EXPIRY = '7d';
 
-// Mock console methods to reduce noise during tests
-global.console = {
-  ...console,
-  log: jest.fn(),
-  debug: jest.fn(),
-  info: jest.fn(),
-  warn: jest.fn(),
-  error: jest.fn(),
+// Global test utilities
+global.testUtils = {
+  // Add global test utilities here
 };
 
-// Global test teardown
-afterAll(async () => {
-  // Close any remaining database connections
-  if (mongoose.connection.readyState !== 0) {
-    await mongoose.connection.close();
-  }
-});
+// Suppress console output during tests (optional)
+// global.console = {
+//   ...console,
+//   log: () => {},
+//   debug: () => {},
+//   info: () => {},
+//   warn: () => {},
+//   error: () => {},
+// };

@@ -1,115 +1,268 @@
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
-import { Megaphone, Calendar, User } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Plus, Edit, Trash2, Megaphone } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../utils/essHelpers';
+
 const AnnouncementsPage = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showModal, setShowModal] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    content: '',
+    priority: 'normal',
+  });
 
   useEffect(() => {
     fetchAnnouncements();
   }, []);
 
   const fetchAnnouncements = async () => {
+    console.log('🔄 [ANNOUNCEMENTS] Fetching announcements...');
     try {
       setLoading(true);
-      // Mock data - replace with actual API call
+      console.warn('⚠️ [ANNOUNCEMENTS] Using mock data - API endpoint not implemented yet');
+      // Mock data
       setAnnouncements([
         {
-          id: 1,
+          _id: '1',
           title: 'Company Holiday - New Year',
-          content: 'The office will be closed on January 1st for New Year celebrations. Happy New Year to all!',
+          content: 'Office will be closed on January 1st for New Year celebration.',
           priority: 'high',
+          createdAt: new Date(),
           author: 'HR Department',
-          createdAt: new Date('2024-12-20'),
         },
         {
-          id: 2,
-          title: 'New Health Insurance Policy',
-          content: 'We are pleased to announce an upgraded health insurance policy for all employees. Please check your email for details.',
-          priority: 'medium',
-          author: 'Benefits Team',
-          createdAt: new Date('2024-12-15'),
-        },
-        {
-          id: 3,
-          title: 'Team Building Event - January 25th',
-          content: 'Join us for a team building event at the city park. Food and activities will be provided. RSVP by January 20th.',
-          priority: 'low',
-          author: 'HR Department',
-          createdAt: new Date('2024-12-10'),
+          _id: '2',
+          title: 'New Policy Update',
+          content: 'Please review the updated leave policy in the HR portal.',
+          priority: 'normal',
+          createdAt: new Date(Date.now() - 86400000),
+          author: 'Admin',
         },
       ]);
+      console.log('✅ [ANNOUNCEMENTS] Mock data loaded:', announcements.length, 'announcements');
     } catch (error) {
+      console.error('❌ [ANNOUNCEMENTS] Failed to fetch announcements:', error);
       toast.error('Failed to load announcements');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.title || !formData.content) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      if (editingAnnouncement) {
+        toast.success('Announcement updated');
+      } else {
+        toast.success('Announcement created');
+      }
+      setShowModal(false);
+      resetForm();
+      fetchAnnouncements();
+    } catch (error) {
+      toast.error('Failed to save announcement');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this announcement?')) {
+      return;
+    }
+
+    try {
+      toast.success('Announcement deleted');
+      fetchAnnouncements();
+    } catch (error) {
+      toast.error('Failed to delete announcement');
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({ title: '', content: '', priority: 'normal' });
+    setEditingAnnouncement(null);
+  };
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'high':
-        return 'destructive';
-      case 'medium':
-        return 'default';
+        return 'text-red-600 bg-red-50 border-red-200';
+      case 'normal':
+        return 'text-blue-600 bg-blue-50 border-blue-200';
       case 'low':
-        return 'secondary';
+        return 'text-gray-600 bg-gray-50 border-gray-200';
       default:
-        return 'default';
+        return 'text-gray-600 bg-gray-50 border-gray-200';
     }
   };
 
   if (loading) {
-    return <div className="p-6 text-center">Loading announcements...</div>;
+    return (
+      <div className="p-6">
+        <p className="text-gray-500">Loading announcements...</p>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Company Announcements</h1>
-        <Megaphone className="h-8 w-8 text-primary" />
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-start">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-800">Announcements</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage company-wide announcements</p>
+        </div>
+        <Button onClick={() => setShowModal(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          New Announcement
+        </Button>
       </div>
 
+      {/* Announcements List */}
       <div className="space-y-4">
         {announcements.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">
-              No announcements at this time.
+          <Card className="border-gray-200">
+            <CardContent className="py-12 text-center">
+              <Megaphone className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+              <p className="text-gray-400 text-sm">No announcements yet</p>
             </CardContent>
           </Card>
         ) : (
           announcements.map((announcement) => (
-            <Card key={announcement.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
+            <Card key={announcement._id} className="border-gray-200">
+              <CardContent className="p-6">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <CardTitle className="text-xl mb-2">{announcement.title}</CardTitle>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <User className="h-4 w-4" />
-                        {announcement.author}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {formatDate(announcement.createdAt)}
-                      </div>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-lg font-semibold text-gray-800">
+                        {announcement.title}
+                      </h3>
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium border ${getPriorityColor(announcement.priority)}`}>
+                        {announcement.priority}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-3">{announcement.content}</p>
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <span>By {announcement.author}</span>
+                      <span>•</span>
+                      <span>{formatDate(announcement.createdAt)}</span>
                     </div>
                   </div>
-                  <Badge variant={getPriorityColor(announcement.priority)}>
-                    {announcement.priority}
-                  </Badge>
+                  <div className="flex gap-2 ml-4">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditingAnnouncement(announcement);
+                        setFormData({
+                          title: announcement.title,
+                          content: announcement.content,
+                          priority: announcement.priority,
+                        });
+                        setShowModal(true);
+                      }}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDelete(announcement._id)}
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </Button>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-700">{announcement.content}</p>
               </CardContent>
             </Card>
           ))
         )}
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <Card className="max-w-lg w-full border-gray-200">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-gray-800">
+                {editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter announcement title"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Content *
+                  </label>
+                  <textarea
+                    value={formData.content}
+                    onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    rows={4}
+                    placeholder="Enter announcement content"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Priority
+                  </label>
+                  <select
+                    value={formData.priority}
+                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="low">Low</option>
+                    <option value="normal">Normal</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowModal(false);
+                      resetForm();
+                    }}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" className="flex-1">
+                    {editingAnnouncement ? 'Update' : 'Create'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 };

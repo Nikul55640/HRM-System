@@ -1,7 +1,8 @@
 import express from 'express';
 import configController from '../controllers/configController.js';
 import { authenticate } from '../middleware/authenticate.js';
-import { authorize } from '../middleware/authorize.js';
+import { checkPermission } from '../middleware/checkPermission.js';
+import { MODULES } from '../config/rolePermissions.js';
 
 const router = express.Router();
 
@@ -37,13 +38,14 @@ router.get(
 /**
  * @route   POST /api/config/departments
  * @desc    Create a new department
- * @access  SuperAdmin only
+ * @access  HR Admin, SuperAdmin
  * @requirements 12.1, 12.3
+ * @permission DEPARTMENT.CREATE
  */
 router.post(
   '/departments',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.DEPARTMENT.CREATE),
   configController.createDepartment,
 );
 
@@ -52,23 +54,26 @@ router.post(
  * @desc    Get department by ID
  * @access  All authenticated users
  * @requirements 12.1, 13.4
+ * @permission DEPARTMENT.VIEW
  */
 router.get(
   '/departments/:id',
   authenticate,
+  checkPermission(MODULES.DEPARTMENT.VIEW),
   configController.getDepartmentById,
 );
 
 /**
  * @route   PUT /api/config/departments/:id
  * @desc    Update a department
- * @access  SuperAdmin only
+ * @access  HR Admin, SuperAdmin
  * @requirements 12.1, 12.3
+ * @permission DEPARTMENT.UPDATE
  */
 router.put(
   '/departments/:id',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.DEPARTMENT.UPDATE),
   configController.updateDepartment,
 );
 
@@ -77,11 +82,12 @@ router.put(
  * @desc    Delete (deactivate) a department
  * @access  SuperAdmin only
  * @requirements 12.1, 12.3
+ * @permission DEPARTMENT.DELETE
  */
 router.delete(
   '/departments/:id',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.DEPARTMENT.DELETE),
   configController.deleteDepartment,
 );
 
@@ -102,11 +108,12 @@ router.get(
  * @desc    Set custom employee fields
  * @access  SuperAdmin only
  * @requirements 12.2, 12.3
+ * @permission SYSTEM.MANAGE_CONFIG
  */
 router.post(
   '/custom-fields/employee',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.SYSTEM.MANAGE_CONFIG),
   configController.setCustomEmployeeFields,
 );
 
@@ -115,11 +122,12 @@ router.post(
  * @desc    Set custom document categories
  * @access  SuperAdmin only
  * @requirements 12.2, 12.3
+ * @permission SYSTEM.MANAGE_CONFIG
  */
 router.post(
   '/custom-fields/document',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.SYSTEM.MANAGE_CONFIG),
   configController.setCustomDocumentCategories,
 );
 
@@ -128,11 +136,12 @@ router.post(
  * @desc    Get all system configurations
  * @access  SuperAdmin only
  * @requirements 12.2, 12.4, 12.5
+ * @permission SYSTEM.VIEW_CONFIG
  */
 router.get(
   '/system',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.SYSTEM.VIEW_CONFIG),
   configController.getAllConfigs,
 );
 
@@ -141,11 +150,12 @@ router.get(
  * @desc    Set a system configuration
  * @access  SuperAdmin only
  * @requirements 12.2, 12.3, 12.5
+ * @permission SYSTEM.MANAGE_CONFIG
  */
 router.post(
   '/system',
   authenticate,
-  authorize('SuperAdmin'),
+  checkPermission(MODULES.SYSTEM.MANAGE_CONFIG),
   configController.setSystemConfig,
 );
 

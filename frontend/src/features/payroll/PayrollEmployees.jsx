@@ -1,9 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '../../components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
-import { Badge } from '../../components/ui/badge';
-import { Button } from '../../components/ui/button';
-import { Eye, Search } from 'lucide-react';
+import { Eye, Search, Download } from 'lucide-react';
 import { payrollService } from '../../services';
 import { toast } from 'react-toastify';
 
@@ -17,15 +13,18 @@ const PayrollEmployees = () => {
   }, []);
 
   const fetchEmployees = async () => {
+    console.log('🔄 [PAYROLL EMPLOYEES] Fetching employee payroll data...');
     try {
       setLoading(true);
       const response = await payrollService.getEmployeePayroll();
+      console.log('✅ [PAYROLL EMPLOYEES] Response received:', response);
       
       if (response.success) {
         setEmployees(response.data);
+        console.log('✅ [PAYROLL EMPLOYEES] Loaded:', response.data?.length || 0, 'employees');
       }
     } catch (error) {
-      console.error('Failed to fetch employees:', error);
+      console.error('❌ [PAYROLL EMPLOYEES] Failed to fetch employees:', error);
       toast.error('Failed to load employee payroll');
     } finally {
       setLoading(false);
@@ -38,81 +37,107 @@ const PayrollEmployees = () => {
     emp.employeeId?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Paid':
+        return 'bg-green-100 text-green-700 border-green-300';
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+      case 'Processing':
+        return 'bg-blue-100 text-blue-700 border-blue-300';
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-300';
+    }
+  };
+
   if (loading) {
     return (
-      <div className="container mx-auto p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-        </div>
+      <div className="p-6 text-center">
+        <div className="inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <p className="mt-2 text-gray-600">Loading employee payroll...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Employee Payroll</h1>
+    <div className="p-6 max-w-7xl mx-auto">
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-gray-900">Employee Payroll</h1>
+        <p className="text-gray-600 mt-1">View and manage employee salary information</p>
+      </div>
 
-      <Card className="mb-6">
-        <CardContent className="p-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search employees..."
-              className="w-full pl-10 pr-4 py-2 border rounded-md"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-        </CardContent>
-      </Card>
+      {/* Search Bar */}
+      <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search employees by name or ID..."
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+      </div>
 
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee ID</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Department</TableHead>
-                <TableHead>Salary</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+      {/* Employee Table */}
+      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Employee ID</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Name</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Department</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Salary</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Status</th>
+                <th className="px-6 py-3 text-left text-sm font-medium text-gray-700">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
               {filteredEmployees.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <tr>
+                  <td colSpan={6} className="px-6 py-12 text-center text-gray-600">
                     No employees found
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ) : (
                 filteredEmployees.map(emp => (
-                  <TableRow key={emp._id}>
-                    <TableCell className="font-medium">{emp.employeeId}</TableCell>
-                    <TableCell>
+                  <tr key={emp._id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      {emp.employeeId}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900">
                       {emp.personalInfo?.firstName} {emp.personalInfo?.lastName}
-                    </TableCell>
-                    <TableCell>{emp.jobInfo?.department?.name || 'N/A'}</TableCell>
-                    <TableCell>₹{emp.salary?.toLocaleString() || 'N/A'}</TableCell>
-                    <TableCell>
-                      <Badge variant={emp.payrollStatus === 'Paid' ? 'default' : 'secondary'}>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-700">
+                      {emp.jobInfo?.department?.name || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      ₹{emp.salary?.toLocaleString() || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex px-3 py-1 rounded-lg text-sm font-medium border ${getStatusColor(emp.payrollStatus || 'Pending')}`}>
                         {emp.payrollStatus || 'Pending'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex gap-2">
+                        <button className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
+                          <Eye className="h-4 w-4" />
+                        </button>
+                        <button className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg">
+                          <Download className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))
               )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
