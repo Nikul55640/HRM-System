@@ -1,6 +1,8 @@
 import { lazy } from "react";
 
-const Dashboard = lazy(() => import("../features/dashboard/Dashboard"));
+const Dashboard = lazy(() =>
+  import("../features/employee/dashboard/pages/Dashboard")
+);
 
 export const dashboardRoutes = [
   {
@@ -10,6 +12,6 @@ export const dashboardRoutes = [
     icon: "LayoutDashboard",
     group: "General",
     roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"],
-    sidebar: true
-  }
+    sidebar: true,
+  },
 ];

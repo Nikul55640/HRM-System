@@ -40,7 +40,7 @@ router.post(
 router.patch(
   "/attendance/manual/:recordId",
   authenticate,
-  requireRoles(["HRManager", "HRAdmin", "SuperAdmin"]),
+  requireRoles(["HR Manager", "HR Administrator", "SuperAdmin"]),
   attendanceController.manualUpdateAttendance
 );
 

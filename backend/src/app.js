@@ -22,6 +22,9 @@ import employeeRoutes from "./routes/employeeRoutes.js";
 // Employee Self Service (User side)
 import employeeSelfServiceRoutes from "./routes/employee/index.js";
 
+// Attendance Routes
+import attendanceRoutes from "./routes/attendanceRoutes.js";
+
 // Admin modules
 import adminLeaveRoutes from "./routes/admin/leaveRequestRoutes.js";
 import adminDashboardRoutes from "./routes/admin/adminDashboardRoutes.js";
@@ -143,6 +146,10 @@ app.use("/api/employees", employeeRoutes);
 // EMPLOYEE SELF SERVICE (User side)
 app.use("/api/employee", employeeSelfServiceRoutes);
 app.use("/api/employee", employeePayslipRoutes);
+
+// ATTENDANCE ROUTES (Employee + Admin)
+app.use("/api/employee/attendance", attendanceRoutes);
+app.use("/api/admin/attendance", attendanceRoutes);
 
 // HRM CORE MODULES
 app.use("/api/calendar", calendarRoutes);

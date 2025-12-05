@@ -1,5 +1,82 @@
 import mongoose from 'mongoose';
 
+// Break sub-schema
+const breakSchema = new mongoose.Schema(
+  {
+    breakId: {
+      type: String,
+      required: true,
+      default: () => new mongoose.Types.ObjectId().toString(),
+    },
+    startTime: {
+      type: Date,
+      required: true,
+    },
+    endTime: {
+      type: Date,
+      default: null,
+    },
+    durationMinutes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+  { _id: false }
+);
+
+// Session sub-schema
+const sessionSchema = new mongoose.Schema(
+  {
+    sessionId: {
+      type: String,
+      required: true,
+      default: () => new mongoose.Types.ObjectId().toString(),
+    },
+    checkIn: {
+      type: Date,
+      required: true,
+    },
+    checkOut: {
+      type: Date,
+      default: null,
+    },
+    workLocation: {
+      type: String,
+      enum: ['office', 'wfh', 'client_site'],
+      required: true,
+    },
+    locationDetails: {
+      type: String,
+      maxlength: 200,
+    },
+    ipAddressCheckIn: {
+      type: String, // Encrypted
+      required: true,
+    },
+    ipAddressCheckOut: {
+      type: String, // Encrypted
+    },
+    breaks: [breakSchema],
+    totalBreakMinutes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    workedMinutes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    status: {
+      type: String,
+      enum: ['active', 'on_break', 'completed'],
+      default: 'active',
+    },
+  },
+  { _id: false }
+);
+
 const attendanceRecordSchema = new mongoose.Schema(
   {
     employeeId: {
@@ -15,6 +92,11 @@ const attendanceRecordSchema = new mongoose.Schema(
       index: true,
     },
 
+    // New: Multiple sessions support
+    sessions: [sessionSchema],
+
+    // Backward compatibility: keep existing checkIn/checkOut
+    // These will reference the first/last session
     checkIn: {
       type: Date,
       default: null,
@@ -189,6 +271,8 @@ attendanceRecordSchema.index({ employeeId: 1, date: -1 });
 attendanceRecordSchema.index({ date: 1, status: 1 });
 attendanceRecordSchema.index({ employeeId: 1, status: 1 });
 attendanceRecordSchema.index({ approvalStatus: 1 });
+attendanceRecordSchema.index({ 'sessions.status': 1 });
+attendanceRecordSchema.index({ 'sessions.workLocation': 1 });
 
 // Virtual for formatted date
 attendanceRecordSchema.virtual('formattedDate').get(function () {
@@ -203,6 +287,89 @@ attendanceRecordSchema.virtual('totalHours').get(function () {
 
 // Pre-save middleware to calculate work hours / minutes
 attendanceRecordSchema.pre('save', function (next) {
+  // Handle sessions-based records
+  if (this.sessions && this.sessions.length > 0) {
+    // Update backward compatibility fields from sessions
+    const firstSession = this.sessions[0];
+    const lastSession = this.sessions[this.sessions.length - 1];
+    
+    this.checkIn = firstSession.checkIn;
+    this.checkOut = lastSession.checkOut || null;
+    
+    // Calculate total worked minutes across all sessions
+    let totalWorkedMinutes = 0;
+    let totalBreakMinutes = 0;
+    
+    this.sessions.forEach((session) => {
+      if (session.checkIn && session.checkOut) {
+        const diffMs = session.checkOut.getTime() - session.checkIn.getTime();
+        const sessionMinutes = diffMs / (1000 * 60);
+        const breakMinutes = session.totalBreakMinutes || 0;
+        
+        session.workedMinutes = Math.max(0, Math.round(sessionMinutes - breakMinutes));
+        totalWorkedMinutes += session.workedMinutes;
+        totalBreakMinutes += breakMinutes;
+      }
+    });
+    
+    this.workedMinutes = totalWorkedMinutes;
+    this.workHours = Math.round((totalWorkedMinutes / 60) * 100) / 100;
+    this.breakTime = totalBreakMinutes;
+    
+    // Determine status based on total work hours
+    if (this.workHours >= 8) {
+      this.status = 'present';
+    } else if (this.workHours >= 4) {
+      this.status = 'half_day';
+    }
+    
+    // Calculate late/early/overtime based on first/last session
+    if (firstSession.checkIn) {
+      const shiftStartTime = new Date(this.date);
+      const [startHour, startMinute] = (this.shiftStart || '09:00').split(':');
+      shiftStartTime.setHours(parseInt(startHour, 10), parseInt(startMinute, 10), 0, 0);
+      
+      const checkInTime = new Date(firstSession.checkIn);
+      if (checkInTime > shiftStartTime) {
+        const lateMs = checkInTime.getTime() - shiftStartTime.getTime();
+        this.lateMinutes = Math.round(lateMs / (1000 * 60));
+        this.isLate = this.lateMinutes > 0;
+      } else {
+        this.lateMinutes = 0;
+        this.isLate = false;
+      }
+    }
+    
+    if (lastSession.checkOut) {
+      const shiftEndTime = new Date(this.date);
+      const [endHour, endMinute] = (this.shiftEnd || '17:00').split(':');
+      shiftEndTime.setHours(parseInt(endHour, 10), parseInt(endMinute, 10), 0, 0);
+      
+      const checkOutTime = new Date(lastSession.checkOut);
+      if (checkOutTime < shiftEndTime) {
+        const earlyMs = shiftEndTime.getTime() - checkOutTime.getTime();
+        this.earlyExitMinutes = Math.round(earlyMs / (1000 * 60));
+        this.isEarlyDeparture = this.earlyExitMinutes > 0;
+        this.overtimeMinutes = 0;
+        this.overtimeHours = 0;
+      } else if (checkOutTime > shiftEndTime) {
+        const otMs = checkOutTime.getTime() - shiftEndTime.getTime();
+        this.overtimeMinutes = Math.round(otMs / (1000 * 60));
+        this.overtimeHours = Math.round((this.overtimeMinutes / 60) * 100) / 100;
+        this.earlyExitMinutes = 0;
+        this.isEarlyDeparture = false;
+      } else {
+        this.earlyExitMinutes = 0;
+        this.isEarlyDeparture = false;
+        this.overtimeMinutes = 0;
+        this.overtimeHours = 0;
+      }
+    }
+    
+    return next();
+  }
+  
+  // Legacy: Handle old single checkIn/checkOut records
   // reset computed fields
   this.workedMinutes = this.workedMinutes || 0;
   this.workHours = this.workHours || 0;
@@ -377,7 +544,50 @@ attendanceRecordSchema.methods.toSummary = function () {
     overtimeHours: this.overtimeHours,
     remarks: this.remarks,
     approvalStatus: this.approvalStatus,
+    sessions: this.sessions || [],
   };
+};
+
+// Instance method to get active session
+attendanceRecordSchema.methods.getActiveSession = function () {
+  if (!this.sessions || this.sessions.length === 0) return null;
+  return this.sessions.find((s) => s.status === 'active' || s.status === 'on_break');
+};
+
+// Instance method to check if employee can clock in
+attendanceRecordSchema.methods.canClockIn = function () {
+  const activeSession = this.getActiveSession();
+  return !activeSession; // Can clock in if no active session
+};
+
+// Instance method to check if employee can clock out
+attendanceRecordSchema.methods.canClockOut = function () {
+  const activeSession = this.getActiveSession();
+  return activeSession && activeSession.status === 'active';
+};
+
+// Instance method to check if employee can start break
+attendanceRecordSchema.methods.canStartBreak = function () {
+  const activeSession = this.getActiveSession();
+  return activeSession && activeSession.status === 'active';
+};
+
+// Instance method to check if employee can end break
+attendanceRecordSchema.methods.canEndBreak = function () {
+  const activeSession = this.getActiveSession();
+  return activeSession && activeSession.status === 'on_break';
+};
+
+// Static method to find active sessions (for live attendance)
+attendanceRecordSchema.statics.findActiveSessions = function (date = new Date()) {
+  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  
+  return this.find({
+    date: dateOnly,
+    'sessions.status': { $in: ['active', 'on_break'] },
+  })
+    .populate('employeeId', 'firstName lastName email department')
+    .lean();
 };
 
 export default mongoose.model('AttendanceRecord', attendanceRecordSchema);

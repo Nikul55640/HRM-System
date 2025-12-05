@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useRequests } from "../../../features/employees/useEmployeeSelfService";
+import { useRequests } from "../../../features/admin/employees/useEmployeeSelfService";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Button } from "../../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../ui/tabs";

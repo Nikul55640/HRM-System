@@ -35,10 +35,15 @@ const bankDetailsSchema = new Schema(
 /* ----------------------------------------------
    PERSONAL INFO
 ---------------------------------------------- */
+/* ----------------------------------------------
+   PERSONAL INFO (UPDATED)
+---------------------------------------------- */
 const personalInfoSchema = new Schema(
   {
     email: { type: String, trim: true, lowercase: true },
+
     phone: { type: String, trim: true },
+    alternatePhone: { type: String, trim: true },
 
     address: {
       street: { type: String, trim: true },
@@ -47,6 +52,12 @@ const personalInfoSchema = new Schema(
       zipCode: { type: String, trim: true },
       country: { type: String, trim: true },
     },
+
+    emergencyContact: {
+      name: { type: String, trim: true },
+      relationship: { type: String, trim: true },
+      phone: { type: String, trim: true },
+    }
   },
   { _id: false }
 );
@@ -61,6 +72,7 @@ const employeeProfileSchema = new Schema(
       ref: "Employee",
       required: true,
     },
+    
 
     userId: {
       type: Schema.Types.ObjectId,

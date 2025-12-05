@@ -112,6 +112,12 @@ const Sidebar = () => {
           showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
         },
         {
+          name: "Attendance Settings",
+          path: "/attendance-settings",
+          icon: "Settings",
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.SYSTEM.MANAGE_CONFIG]),
+        },
+        {
           name: "Leave Approvals",
           path: "/admin/leave-requests",
           icon: "ClipboardCheck",

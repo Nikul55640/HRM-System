@@ -13,6 +13,7 @@
     "test:unit": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --testPathPattern=unit",
     "test:integration": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --testPathPattern=integration",
     "test:property": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --testPathPattern=property",
+    "test:verify": "node tests/verify-setup.js",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix"
   },

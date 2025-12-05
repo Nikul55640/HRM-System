@@ -4,7 +4,7 @@ import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import store from './store';
-import { initializeAuth } from './store/thunks/authThunks';
+import { initializeAuth } from './features/auth/thunks';
 import './index.css';
 import 'react-toastify/dist/ReactToastify.css';
 

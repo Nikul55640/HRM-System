@@ -1,16 +1,20 @@
 import { lazy } from "react";
 
-const ProfilePage = lazy(() => import("../features/ess/profile/ProfilePage"));
+const ProfilePage = lazy(() =>
+  import("../features/employee/profile/ProfilePage")
+);
 const BankDetailsPage = lazy(() =>
   import("../components/employee-self-service/bank/BankDetailsPage")
 );
-const PayslipsPage = lazy(() => import("../features/ess/payslips/PayslipsPage"));
-const LeavePage = lazy(() => import("../features/ess/leave/LeavePage"));
+const PayslipsPage = lazy(() =>
+  import("../features/employee/payroll/PayslipsPage")
+);
+const LeavePage = lazy(() => import("../features/leave/pages/LeavePage"));
 const AttendancePage = lazy(() =>
-  import("../features/ess/attendance/AttendancePage")
+  import("../features/employee/attendance/AttendancePage")
 );
 const DocumentsPage = lazy(() =>
-  import("../features/ess/documents/DocumentsPage")
+  import("../features/employee/documents/DocumentsPage")
 );
 const RequestsPage = lazy(() =>
   import("../components/employee-self-service/requests/RequestsPage")

@@ -4,8 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Card, CardContent } from '../ui/card';
 import { Users, LogOut } from 'lucide-react';
-import authService from '../../services/authService';
-import { loginSuccess, logout } from '../../store/slices/authSlice';
+import authService from '../../features/auth/services/authService';
+import { loginSuccess, logout } from '../../features/auth/slice';
 import { toast } from 'react-toastify';
 
 const UserSwitcher = () => {

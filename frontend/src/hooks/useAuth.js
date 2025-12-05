@@ -1,6 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { login as loginThunk, logout as logoutThunk } from '../store/thunks/authThunks';
+import { login as loginThunk, logout as logoutThunk } from '../features/auth/thunks';
 
 const useAuth = () => {
   const dispatch = useDispatch();

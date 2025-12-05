@@ -79,6 +79,12 @@ const getAttendanceRecords = async (req, res) => {
       AttendanceRecord.countDocuments(query),
     ]);
 
+    // Ensure sessions are included in response
+    const recordsWithSessions = records.map(record => ({
+      ...record,
+      sessions: record.sessions || [],
+    }));
+
     // -----------------------
     // AUDIT LOG
     // -----------------------
@@ -105,11 +111,11 @@ const getAttendanceRecords = async (req, res) => {
 
     return res.json({
       success: true,
-      data: records,
+      data: recordsWithSessions,
       pagination: {
         current: pageNum,
         total: Math.ceil(total / limitNum),
-        count: records.length,
+        count: recordsWithSessions.length,
         totalRecords: total,
       },
     });

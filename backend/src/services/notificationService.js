@@ -239,6 +239,171 @@ class NotificationService {
       throw error;
     }
   }
+
+  // ============================================
+  // Attendance Notification Methods
+  // ============================================
+
+  /**
+   * Notify HR administrators when an employee clocks in
+   */
+  async notifyHRClockIn(employeeData, sessionData) {
+    try {
+      // Find HR administrators
+      const hrEmployees = await Employee.find({ role: 'hr' }).select('userId _id');
+
+      if (hrEmployees.length === 0) {
+        logger.info('No HR administrators found to notify');
+        return [];
+      }
+
+      const notificationData = {
+        type: 'attendance_clock_in',
+        title: 'Employee Clocked In',
+        message: `${employeeData.fullName} clocked in at ${sessionData.workLocation}`,
+        relatedEntity: {
+          entityType: 'AttendanceSession',
+          entityId: sessionData.sessionId,
+        },
+        priority: 'low',
+        actionUrl: '/admin/attendance/live',
+      };
+
+      return await this.createBulkNotifications(
+        hrEmployees.map((e) => e._id),
+        notificationData
+      );
+    } catch (error) {
+      logger.error('Error notifying HR of clock-in:', error);
+      // Don't throw - notification failure shouldn't block clock-in
+      return [];
+    }
+  }
+
+  /**
+   * Notify HR administrators when an employee clocks out
+   */
+  async notifyHRClockOut(employeeData, sessionData) {
+    try {
+      // Find HR administrators
+      const hrEmployees = await Employee.find({ role: 'hr' }).select('userId _id');
+
+      if (hrEmployees.length === 0) {
+        logger.info('No HR administrators found to notify');
+        return [];
+      }
+
+      const workedHours = (sessionData.workedMinutes / 60).toFixed(2);
+
+      const notificationData = {
+        type: 'attendance_clock_out',
+        title: 'Employee Clocked Out',
+        message: `${employeeData.fullName} clocked out after ${workedHours} hours`,
+        relatedEntity: {
+          entityType: 'AttendanceSession',
+          entityId: sessionData.sessionId,
+        },
+        priority: 'low',
+        actionUrl: '/admin/attendance/live',
+      };
+
+      return await this.createBulkNotifications(
+        hrEmployees.map((e) => e._id),
+        notificationData
+      );
+    } catch (error) {
+      logger.error('Error notifying HR of clock-out:', error);
+      // Don't throw - notification failure shouldn't block clock-out
+      return [];
+    }
+  }
+
+  /**
+   * Batch notifications for multiple simultaneous events
+   */
+  async batchAttendanceNotifications(events) {
+    try {
+      if (!events || events.length === 0) return [];
+
+      // Group events by type
+      const clockIns = events.filter((e) => e.type === 'clock_in');
+      const clockOuts = events.filter((e) => e.type === 'clock_out');
+
+      // Find HR administrators
+      const hrEmployees = await Employee.find({ role: 'hr' }).select('userId _id');
+
+      if (hrEmployees.length === 0) {
+        logger.info('No HR administrators found to notify');
+        return [];
+      }
+
+      const notifications = [];
+
+      // Create batched notification for clock-ins
+      if (clockIns.length > 0) {
+        const message =
+          clockIns.length === 1
+            ? `${clockIns[0].employeeName} clocked in`
+            : `${clockIns.length} employees clocked in`;
+
+        const notificationData = {
+          type: 'attendance_batch',
+          title: 'Attendance Update',
+          message,
+          priority: 'low',
+          actionUrl: '/admin/attendance/live',
+        };
+
+        const created = await this.createBulkNotifications(
+          hrEmployees.map((e) => e._id),
+          notificationData
+        );
+        notifications.push(...created);
+      }
+
+      // Create batched notification for clock-outs
+      if (clockOuts.length > 0) {
+        const message =
+          clockOuts.length === 1
+            ? `${clockOuts[0].employeeName} clocked out`
+            : `${clockOuts.length} employees clocked out`;
+
+        const notificationData = {
+          type: 'attendance_batch',
+          title: 'Attendance Update',
+          message,
+          priority: 'low',
+          actionUrl: '/admin/attendance/live',
+        };
+
+        const created = await this.createBulkNotifications(
+          hrEmployees.map((e) => e._id),
+          notificationData
+        );
+        notifications.push(...created);
+      }
+
+      logger.info(`Batched ${notifications.length} attendance notifications`);
+      return notifications;
+    } catch (error) {
+      logger.error('Error batching attendance notifications:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Check if HR user has attendance notifications enabled
+   */
+  async hasAttendanceNotificationsEnabled(userId) {
+    try {
+      // TODO: Implement user preferences check
+      // For now, return true (all HR users receive notifications)
+      return true;
+    } catch (error) {
+      logger.error('Error checking notification preferences:', error);
+      return true; // Default to enabled
+    }
+  }
 }
 
 export default new NotificationService();

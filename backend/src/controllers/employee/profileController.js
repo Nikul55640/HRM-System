@@ -3,7 +3,6 @@ import crypto from "crypto";
 import fs from "fs";
 import { encryptFile } from "../../utils/encryption.js";
 import { decryptFile } from "../../utils/encryption.js";
-import path from "path";
 import Employee from "../../models/Employee.js";
 import EmployeeProfile from "../../models/EmployeeProfile.js";
 import Document from "../../models/Document.js";
@@ -61,8 +60,10 @@ const getProfile = async (req, res) => {
   }
 };
 
-// Update employee profile
-const updateProfile = async (req, res) => {
+
+
+
+export const updateProfile = async (req, res) => {
   try {
     const { employeeId } = req.user;
     const updateData = req.body;
@@ -70,58 +71,57 @@ const updateProfile = async (req, res) => {
     if (!employeeId) {
       return res.status(400).json({
         success: false,
-        message:
-          "Employee profile not found. Please contact HR to link your account.",
+        message: "Employee profile not found",
       });
     }
 
-    // Find employee
-    const employee = await Employee.findById(employeeId);
+    const profile = await EmployeeProfile.findOne({ employeeId });
 
-    if (!employee) {
+    if (!profile) {
       return res.status(404).json({
         success: false,
-        message: "Employee not found",
+        message: "Profile not found",
       });
     }
 
-    // Only allow updating certain fields
-    const allowedFields = [
-      "personalInfo.phone",
-      "personalInfo.emergencyContact",
-      "contactInfo.currentAddress",
-      "contactInfo.permanentAddress",
-    ];
+    if (!profile.personalInfo) profile.personalInfo = {};
 
-    // Update allowed fields
-    Object.keys(updateData).forEach((key) => {
-      if (allowedFields.includes(key)) {
-        const keys = key.split(".");
-        if (keys.length === 2) {
-          if (!employee[keys[0]]) employee[keys[0]] = {};
-          employee[keys[0]][keys[1]] = updateData[key];
-        } else {
-          employee[key] = updateData[key];
-        }
-      }
-    });
+    // Allowed fields updating inside personalInfo
+    profile.personalInfo.email = updateData.email || profile.personalInfo.email;
+    profile.personalInfo.phone = updateData.phone || profile.personalInfo.phone;
+    profile.personalInfo.alternatePhone =
+      updateData.alternatePhone || profile.personalInfo.alternatePhone;
 
-    employee.updatedBy = req.user._id;
-    await employee.save();
+    if (updateData.address) {
+      profile.personalInfo.address = {
+        ...profile.personalInfo.address,
+        ...updateData.address,
+      };
+    }
+
+    if (updateData.emergencyContact) {
+      profile.personalInfo.emergencyContact = {
+        ...profile.personalInfo.emergencyContact,
+        ...updateData.emergencyContact,
+      };
+    }
+
+    profile.updatedBy = req.user._id;
+    await profile.save();
 
     res.json({
       success: true,
       message: "Profile updated successfully",
-      data: employee,
+      data: profile,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: "Error updating profile",
+      message: "Failed to update profile",
       error: error.message,
     });
   }
-};
+}; 
 
 // Get change history
  const getChangeHistory = async (req, res) => {

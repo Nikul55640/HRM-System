@@ -1,4 +1,4 @@
-import employeeService from '../../services/employeeService';
+import employeeService from "../../features/admin/employees/services/employeeService";
 import {
   fetchEmployeesStart,
   fetchEmployeesSuccess,
@@ -18,21 +18,24 @@ import {
   searchEmployeesStart,
   searchEmployeesSuccess,
   searchEmployeesFailure,
-} from '../slices/employeeSlice';
+} from "../slices/employeeSlice";
 
 // Fetch all employees with pagination and filters
-export const fetchEmployees = (params = {}) => async (dispatch) => {
-  try {
-    dispatch(fetchEmployeesStart());
-    const data = await employeeService.getEmployees(params);
-    dispatch(fetchEmployeesSuccess(data));
-    return data;
-  } catch (error) {
-    const errorMessage = error.response?.data?.error?.message || 'Failed to fetch employees';
-    dispatch(fetchEmployeesFailure(errorMessage));
-    throw error;
-  }
-};
+export const fetchEmployees =
+  (params = {}) =>
+  async (dispatch) => {
+    try {
+      dispatch(fetchEmployeesStart());
+      const data = await employeeService.getEmployees(params);
+      dispatch(fetchEmployeesSuccess(data));
+      return data;
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.error?.message || "Failed to fetch employees";
+      dispatch(fetchEmployeesFailure(errorMessage));
+      throw error;
+    }
+  };
 
 // Fetch single employee by ID
 export const fetchEmployeeById = (id) => async (dispatch) => {
@@ -42,7 +45,8 @@ export const fetchEmployeeById = (id) => async (dispatch) => {
     dispatch(fetchEmployeeSuccess(data.employee));
     return data.employee;
   } catch (error) {
-    const errorMessage = error.response?.data?.error?.message || 'Failed to fetch employee';
+    const errorMessage =
+      error.response?.data?.error?.message || "Failed to fetch employee";
     dispatch(fetchEmployeeFailure(errorMessage));
     throw error;
   }
@@ -56,7 +60,8 @@ export const createEmployee = (employeeData) => async (dispatch) => {
     dispatch(createEmployeeSuccess(data.employee));
     return data.employee;
   } catch (error) {
-    const errorMessage = error.response?.data?.error?.message || 'Failed to create employee';
+    const errorMessage =
+      error.response?.data?.error?.message || "Failed to create employee";
     dispatch(createEmployeeFailure(errorMessage));
     throw error;
   }
@@ -70,7 +75,8 @@ export const updateEmployee = (id, employeeData) => async (dispatch) => {
     dispatch(updateEmployeeSuccess(data.employee));
     return data.employee;
   } catch (error) {
-    const errorMessage = error.response?.data?.error?.message || 'Failed to update employee';
+    const errorMessage =
+      error.response?.data?.error?.message || "Failed to update employee";
     dispatch(updateEmployeeFailure(errorMessage));
     throw error;
   }
@@ -84,7 +90,8 @@ export const deleteEmployee = (id) => async (dispatch) => {
     dispatch(deleteEmployeeSuccess(id));
     return id;
   } catch (error) {
-    const errorMessage = error.response?.data?.error?.message || 'Failed to delete employee';
+    const errorMessage =
+      error.response?.data?.error?.message || "Failed to delete employee";
     dispatch(deleteEmployeeFailure(errorMessage));
     throw error;
   }
@@ -98,7 +105,8 @@ export const searchEmployees = (searchParams) => async (dispatch) => {
     dispatch(searchEmployeesSuccess(data));
     return data;
   } catch (error) {
-    const errorMessage = error.response?.data?.error?.message || 'Failed to search employees';
+    const errorMessage =
+      error.response?.data?.error?.message || "Failed to search employees";
     dispatch(searchEmployeesFailure(errorMessage));
     throw error;
   }

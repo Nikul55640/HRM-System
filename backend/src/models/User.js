@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 const { Schema } = mongoose;
 
@@ -101,6 +102,23 @@ userSchema.methods.changedPasswordAfter = function (JWTTimestamp) {
 
   // Password never changed
   return false;
+};
+
+// Generate password reset token
+userSchema.methods.generatePasswordResetToken = function () {
+  // Generate random token
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  // Hash and set to resetPasswordToken field
+  this.passwordResetToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // Set expiry (10 minutes)
+  this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
+
+  return resetToken; // Return unhashed token
 };
 
 export default mongoose.model("User", userSchema);

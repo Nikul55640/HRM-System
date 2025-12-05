@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { useBankDetails } from '../../../features/employees/useEmployeeSelfService' ;
-import BankDetailsView from './BankDetailsView';
-import BankDetailsForm from './BankDetailsForm';
+import React, { useState, useEffect } from "react";
+import { useBankDetails } from "../../../features/admin/employees/useEmployeeSelfService";
+import BankDetailsView from "./BankDetailsView";
+import BankDetailsForm from "./BankDetailsForm";
 
 const BankDetailsPage = () => {
-  const { bankDetails, loading, error, getBankDetails, updateBankDetails } = useBankDetails();
+  const { bankDetails, loading, error, getBankDetails, updateBankDetails } =
+    useBankDetails();
   const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
@@ -27,7 +28,7 @@ const BankDetailsPage = () => {
   return (
     <div className="container mx-auto p-6">
       <h1 className="text-3xl font-bold mb-6">Bank Details</h1>
-      
+
       {isEditing ? (
         <BankDetailsForm
           bankDetails={bankDetails}

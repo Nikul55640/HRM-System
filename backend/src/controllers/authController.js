@@ -1,6 +1,6 @@
-import bcrypt from 'bcryptjs';
-import User from '../models/User.js';
-import { generateTokens, verifyRefreshToken } from '../utils/jwt.js';
+import bcrypt from "bcryptjs";
+import User from "../models/User.js";
+import { generateTokens, verifyRefreshToken } from "../utils/jwt.js";
 
 /**
  * Register a new user (for initial setup)
@@ -8,9 +8,7 @@ import { generateTokens, verifyRefreshToken } from '../utils/jwt.js';
  */
 const register = async (req, res) => {
   try {
-    const {
-      email, password, role, assignedDepartments,
-    } = req.body;
+    const { email, password, role, assignedDepartments } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -18,8 +16,8 @@ const register = async (req, res) => {
       return res.status(409).json({
         success: false,
         error: {
-          code: 'USER_EXISTS',
-          message: 'A user with this email already exists.',
+          code: "USER_EXISTS",
+          message: "A user with this email already exists.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -29,11 +27,11 @@ const register = async (req, res) => {
     const userData = {
       email,
       password,
-      role: role || 'Employee',
+      role: role || "Employee",
     };
 
     // Add assigned departments for HR Manager
-    if (role === 'HR Manager' && assignedDepartments) {
+    if (role === "HR Manager" && assignedDepartments) {
       userData.assignedDepartments = assignedDepartments;
     }
 
@@ -60,18 +58,18 @@ const register = async (req, res) => {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       },
-      message: 'User registered successfully.',
+      message: "User registered successfully.",
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error("Register error:", error);
 
     // Handle validation errors
-    if (error.name === 'ValidationError') {
+    if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Validation failed.',
+          code: "VALIDATION_ERROR",
+          message: "Validation failed.",
           details: Object.values(error.errors).map((err) => ({
             field: err.path,
             message: err.message,
@@ -84,8 +82,8 @@ const register = async (req, res) => {
     res.status(500).json({
       success: false,
       error: {
-        code: 'REGISTRATION_ERROR',
-        message: 'An error occurred during registration.',
+        code: "REGISTRATION_ERROR",
+        message: "An error occurred during registration.",
         timestamp: new Date().toISOString(),
       },
     });
@@ -105,22 +103,22 @@ const login = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'MISSING_CREDENTIALS',
-          message: 'Please provide email and password.',
+          code: "MISSING_CREDENTIALS",
+          message: "Please provide email and password.",
           timestamp: new Date().toISOString(),
         },
       });
     }
 
     // Find user and include password field
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
       return res.status(401).json({
         success: false,
         error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid email or password.',
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid email or password.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -131,8 +129,9 @@ const login = async (req, res) => {
       return res.status(401).json({
         success: false,
         error: {
-          code: 'ACCOUNT_DEACTIVATED',
-          message: 'Your account has been deactivated. Please contact administrator.',
+          code: "ACCOUNT_DEACTIVATED",
+          message:
+            "Your account has been deactivated. Please contact administrator.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -145,8 +144,8 @@ const login = async (req, res) => {
       return res.status(401).json({
         success: false,
         error: {
-          code: 'INVALID_CREDENTIALS',
-          message: 'Invalid email or password.',
+          code: "INVALID_CREDENTIALS",
+          message: "Invalid email or password.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -163,9 +162,10 @@ const login = async (req, res) => {
     // Fetch employee data if employeeId exists
     let employeeData = null;
     if (user.employeeId) {
-      const Employee = (await import('../models/Employee.js')).default;
+      const Employee = (await import("../models/Employee.js")).default;
       employeeData = await Employee.findById(user.employeeId)
-        .select('fullName employeeNumber department position')
+        .select("personalInfo employeeId jobInfo")
+        .populate("jobInfo.department", "name")
         .lean();
     }
 
@@ -179,23 +179,25 @@ const login = async (req, res) => {
           role: user.role,
           assignedDepartments: user.assignedDepartments,
           employeeId: user.employeeId,
-          fullName: employeeData?.fullName || user.email.split('@')[0], // Fallback to email username
-          employeeNumber: employeeData?.employeeNumber,
-          department: employeeData?.department,
-          position: employeeData?.position,
+          fullName: employeeData
+            ? `${employeeData.personalInfo.firstName} ${employeeData.personalInfo.lastName}`
+            : user.email.split("@")[0], // Fallback to email username
+          employeeNumber: employeeData?.employeeId,
+          department: employeeData?.jobInfo?.department?.name,
+          position: employeeData?.jobInfo?.jobTitle,
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       },
-      message: 'Login successful.',
+      message: "Login successful.",
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error("Login error:", error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'LOGIN_ERROR',
-        message: 'An error occurred during login.',
+        code: "LOGIN_ERROR",
+        message: "An error occurred during login.",
         timestamp: new Date().toISOString(),
       },
     });
@@ -214,8 +216,8 @@ const refresh = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'MISSING_REFRESH_TOKEN',
-          message: 'Please provide a refresh token.',
+          code: "MISSING_REFRESH_TOKEN",
+          message: "Please provide a refresh token.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -226,12 +228,12 @@ const refresh = async (req, res) => {
     try {
       decoded = verifyRefreshToken(refreshToken);
     } catch (error) {
-      if (error.name === 'TokenExpiredError') {
+      if (error.name === "TokenExpiredError") {
         return res.status(401).json({
           success: false,
           error: {
-            code: 'REFRESH_TOKEN_EXPIRED',
-            message: 'Refresh token has expired. Please login again.',
+            code: "REFRESH_TOKEN_EXPIRED",
+            message: "Refresh token has expired. Please login again.",
             timestamp: new Date().toISOString(),
           },
         });
@@ -240,22 +242,22 @@ const refresh = async (req, res) => {
       return res.status(401).json({
         success: false,
         error: {
-          code: 'INVALID_REFRESH_TOKEN',
-          message: 'Invalid refresh token.',
+          code: "INVALID_REFRESH_TOKEN",
+          message: "Invalid refresh token.",
           timestamp: new Date().toISOString(),
         },
       });
     }
 
     // Find user and verify refresh token
-    const user = await User.findById(decoded.id).select('+refreshToken');
+    const user = await User.findById(decoded.id).select("+refreshToken");
 
     if (!user) {
       return res.status(401).json({
         success: false,
         error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found.',
+          code: "USER_NOT_FOUND",
+          message: "User not found.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -266,8 +268,8 @@ const refresh = async (req, res) => {
       return res.status(401).json({
         success: false,
         error: {
-          code: 'ACCOUNT_DEACTIVATED',
-          message: 'Your account has been deactivated.',
+          code: "ACCOUNT_DEACTIVATED",
+          message: "Your account has been deactivated.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -278,8 +280,8 @@ const refresh = async (req, res) => {
       return res.status(401).json({
         success: false,
         error: {
-          code: 'INVALID_REFRESH_TOKEN',
-          message: 'Invalid refresh token.',
+          code: "INVALID_REFRESH_TOKEN",
+          message: "Invalid refresh token.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -299,15 +301,15 @@ const refresh = async (req, res) => {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       },
-      message: 'Token refreshed successfully.',
+      message: "Token refreshed successfully.",
     });
   } catch (error) {
-    console.error('Refresh token error:', error);
+    console.error("Refresh token error:", error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'REFRESH_ERROR',
-        message: 'An error occurred while refreshing token.',
+        code: "REFRESH_ERROR",
+        message: "An error occurred while refreshing token.",
         timestamp: new Date().toISOString(),
       },
     });
@@ -329,15 +331,15 @@ const logout = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Logout successful.',
+      message: "Logout successful.",
     });
   } catch (error) {
-    console.error('Logout error:', error);
+    console.error("Logout error:", error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'LOGOUT_ERROR',
-        message: 'An error occurred during logout.',
+        code: "LOGOUT_ERROR",
+        message: "An error occurred during logout.",
         timestamp: new Date().toISOString(),
       },
     });
@@ -356,8 +358,8 @@ const forgotPassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'MISSING_EMAIL',
-          message: 'Please provide an email address.',
+          code: "MISSING_EMAIL",
+          message: "Please provide an email address.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -370,7 +372,8 @@ const forgotPassword = async (req, res) => {
       // Don't reveal if user exists or not
       return res.status(200).json({
         success: true,
-        message: 'If an account with that email exists, a password reset link has been sent.',
+        message:
+          "If an account with that email exists, a password reset link has been sent.",
       });
     }
 
@@ -382,18 +385,18 @@ const forgotPassword = async (req, res) => {
     // For now, return the token in response (in production, this should be sent via email)
     res.status(200).json({
       success: true,
-      message: 'Password reset token generated.',
+      message: "Password reset token generated.",
       data: {
         resetToken, // Remove this in production
       },
     });
   } catch (error) {
-    console.error('Forgot password error:', error);
+    console.error("Forgot password error:", error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'FORGOT_PASSWORD_ERROR',
-        message: 'An error occurred while processing password reset request.',
+        code: "FORGOT_PASSWORD_ERROR",
+        message: "An error occurred while processing password reset request.",
         timestamp: new Date().toISOString(),
       },
     });
@@ -412,8 +415,8 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'MISSING_FIELDS',
-          message: 'Please provide reset token and new password.',
+          code: "MISSING_FIELDS",
+          message: "Please provide reset token and new password.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -422,29 +425,32 @@ const resetPassword = async (req, res) => {
     // Find user with valid reset token
     const user = await User.findOne({
       passwordResetExpires: { $gt: Date.now() },
-    }).select('+passwordResetToken');
+    }).select("+passwordResetToken");
 
     if (!user) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'INVALID_TOKEN',
-          message: 'Invalid or expired reset token.',
+          code: "INVALID_TOKEN",
+          message: "Invalid or expired reset token.",
           timestamp: new Date().toISOString(),
         },
       });
     }
 
     // Verify reset token
-   
-    const isValidToken = bcrypt.compareSync(resetToken, user.passwordResetToken);
+
+    const isValidToken = bcrypt.compareSync(
+      resetToken,
+      user.passwordResetToken
+    );
 
     if (!isValidToken) {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'INVALID_TOKEN',
-          message: 'Invalid or expired reset token.',
+          code: "INVALID_TOKEN",
+          message: "Invalid or expired reset token.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -459,18 +465,19 @@ const resetPassword = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Password reset successful. Please login with your new password.',
+      message:
+        "Password reset successful. Please login with your new password.",
     });
   } catch (error) {
-    console.error('Reset password error:', error);
+    console.error("Reset password error:", error);
 
     // Handle validation errors
-    if (error.name === 'ValidationError') {
+    if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Password validation failed.',
+          code: "VALIDATION_ERROR",
+          message: "Password validation failed.",
           details: Object.values(error.errors).map((err) => ({
             field: err.path,
             message: err.message,
@@ -483,8 +490,8 @@ const resetPassword = async (req, res) => {
     res.status(500).json({
       success: false,
       error: {
-        code: 'RESET_PASSWORD_ERROR',
-        message: 'An error occurred while resetting password.',
+        code: "RESET_PASSWORD_ERROR",
+        message: "An error occurred while resetting password.",
         timestamp: new Date().toISOString(),
       },
     });
@@ -503,22 +510,22 @@ const changePassword = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'MISSING_FIELDS',
-          message: 'Please provide current password and new password.',
+          code: "MISSING_FIELDS",
+          message: "Please provide current password and new password.",
           timestamp: new Date().toISOString(),
         },
       });
     }
 
     // Find user with password
-    const user = await User.findById(req.user.id).select('+password');
+    const user = await User.findById(req.user.id).select("+password");
 
     if (!user) {
       return res.status(404).json({
         success: false,
         error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found.',
+          code: "USER_NOT_FOUND",
+          message: "User not found.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -531,8 +538,8 @@ const changePassword = async (req, res) => {
       return res.status(401).json({
         success: false,
         error: {
-          code: 'INVALID_PASSWORD',
-          message: 'Current password is incorrect.',
+          code: "INVALID_PASSWORD",
+          message: "Current password is incorrect.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -554,18 +561,18 @@ const changePassword = async (req, res) => {
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
       },
-      message: 'Password changed successfully.',
+      message: "Password changed successfully.",
     });
   } catch (error) {
-    console.error('Change password error:', error);
+    console.error("Change password error:", error);
 
     // Handle validation errors
-    if (error.name === 'ValidationError') {
+    if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
         error: {
-          code: 'VALIDATION_ERROR',
-          message: 'Password validation failed.',
+          code: "VALIDATION_ERROR",
+          message: "Password validation failed.",
           details: Object.values(error.errors).map((err) => ({
             field: err.path,
             message: err.message,
@@ -578,8 +585,8 @@ const changePassword = async (req, res) => {
     res.status(500).json({
       success: false,
       error: {
-        code: 'CHANGE_PASSWORD_ERROR',
-        message: 'An error occurred while changing password.',
+        code: "CHANGE_PASSWORD_ERROR",
+        message: "An error occurred while changing password.",
         timestamp: new Date().toISOString(),
       },
     });
@@ -592,14 +599,14 @@ const changePassword = async (req, res) => {
  */
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate('employeeId');
+    const user = await User.findById(req.user.id).populate("employeeId");
 
     if (!user) {
       return res.status(404).json({
         success: false,
         error: {
-          code: 'USER_NOT_FOUND',
-          message: 'User not found.',
+          code: "USER_NOT_FOUND",
+          message: "User not found.",
           timestamp: new Date().toISOString(),
         },
       });
@@ -612,12 +619,12 @@ const getMe = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Get me error:', error);
+    console.error("Get me error:", error);
     res.status(500).json({
       success: false,
       error: {
-        code: 'GET_USER_ERROR',
-        message: 'An error occurred while fetching user profile.',
+        code: "GET_USER_ERROR",
+        message: "An error occurred while fetching user profile.",
         timestamp: new Date().toISOString(),
       },
     });

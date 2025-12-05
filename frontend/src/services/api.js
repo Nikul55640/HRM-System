@@ -1,6 +1,6 @@
 import axios from "axios";
 import store from "../store";
-import { logout, updateToken } from "../store/slices/authSlice";
+import { logout, updateToken } from "../features/auth/slice";
 import { logError } from "../utils/errorHandler";
 import { toast } from "react-toastify";
 

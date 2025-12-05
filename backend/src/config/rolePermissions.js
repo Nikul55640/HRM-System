@@ -270,6 +270,10 @@ export const ROLE_PERMISSIONS = {
 
     MODULES.ASSET.VIEW_ALL,
     MODULES.ASSET.ASSIGN,
+
+    // System configuration for attendance settings
+    MODULES.SYSTEM.VIEW_CONFIG,
+    MODULES.SYSTEM.MANAGE_CONFIG,
   ],
 
   [ROLES.HR_ADMIN]: [
