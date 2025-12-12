@@ -5,5 +5,5 @@
       "*": ["*"]
     }
   },
-  "include": ["src", "**/*.js", "src/features/auth/slice.js"]
+  "include": ["src", "**/*.js", "src/modules/auth/store/authslice.js"]
 }

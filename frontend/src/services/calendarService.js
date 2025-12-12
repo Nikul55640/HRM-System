@@ -1,4 +1,4 @@
-import api from './api';
+import api from '../core/api/api';
 import { toast } from 'react-toastify';
 
 const calendarService = {

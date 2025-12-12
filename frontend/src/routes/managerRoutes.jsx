@@ -1,8 +1,8 @@
 import { lazy } from "react";
 
-const ManagerApprovals = lazy(() => import("../features/manager/ManagerApprovals"));
-const ManagerTeam = lazy(() => import("../features/manager/ManagerTeam"));
-const ManagerReports = lazy(() => import("../features/manager/ManagerReports"));
+const ManagerApprovals = lazy(() => import("../modules/manager/pages/Dashboard/ManagerApprovals"));
+const ManagerTeam = lazy(() => import("../modules/manager/pages/Dashboard/ManagerTeam"));
+const ManagerReports = lazy(() => import("../modules/manager/pages/Dashboard/ManagerReports"));
 
 export const managerRoutes = [
   { path: "manager/approvals", element: ManagerApprovals, roles: ["HR Manager", "SuperAdmin"] },

@@ -1,7 +1,7 @@
 import { lazy } from "react";
 
 const Dashboard = lazy(() =>
-  import("../features/employee/dashboard/pages/Dashboard")
+  import("../modules/employee/pages/Dashboard/Dashboard")
 );
 
 export const dashboardRoutes = [

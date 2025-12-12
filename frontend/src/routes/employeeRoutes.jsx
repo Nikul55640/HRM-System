@@ -1,17 +1,18 @@
 import { lazy } from "react";
 
 const EmployeeList = lazy(() =>
-  import("../features/admin/employees/pages/EmployeeList")
+  import("../modules/employees/pages/EmployeeList")
 );
 const EmployeeForm = lazy(() =>
-  import("../features/admin/employees/pages/EmployeeForm")
+  import("../modules/employees/pages/EmployeeForm")
 );
 const EmployeeProfile = lazy(() =>
-  import("../features/admin/employees/pages/EmployeeProfile")
+  import("../modules/employees/pages/EmployeeProfile")
 );
-const EmployeeDirectory = lazy(() =>
-  import("../features/admin/employees/EmployeeDirectory")
-);
+// EmployeeDirectory doesn't exist, using EmployeeList for directory functionality
+// const EmployeeDirectory = lazy(() =>
+//   import("../modules/employees/EmployeeDirectory")
+// );
 
 export const employeeRoutes = [
   {
@@ -36,7 +37,7 @@ export const employeeRoutes = [
   },
   {
     path: "directory",
-    element: EmployeeDirectory,
+    element: EmployeeList, // Using EmployeeList for directory functionality
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
 ];

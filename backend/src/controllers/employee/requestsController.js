@@ -132,14 +132,28 @@ const createRequest = async (req, res) => {
     ]);
 
     // Log access
-    await AuditLog.create({
-      action: 'REQUESTS_ACCESSED',
-      userId,
-      employeeId,
-      details: `Retrieved ${requests.length} requests`,
-      ipAddress: req.ip,
-      userAgent: req.get('User-Agent'),
-    });
+    try {
+      await AuditLog.logAction({
+        action: 'VIEW',
+        severity: 'info',
+        entityType: 'Requests',
+        entityId: employeeId,
+        entityDisplayName: 'Employee Requests',
+        userId,
+        userRole: req.user.role,
+        performedByName: req.user.fullName || req.user.email,
+        performedByEmail: req.user.email,
+        meta: {
+          count: requests.length,
+          status,
+          requestType,
+        },
+        ipAddress: req.ip,
+        userAgent: req.get('User-Agent'),
+      });
+    } catch (auditError) {
+      console.error('❌ [REQUESTS] Audit log failed:', auditError);
+    }
 
     res.json({
       success: true,

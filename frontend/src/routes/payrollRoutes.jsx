@@ -1,17 +1,17 @@
 import { lazy } from "react";
 
 const PayrollDashboard = lazy(() =>
-  import("../features/admin/payroll/PayrollDashboard")
+  import("../modules/payroll/admin/PayrollDashboard")
 );
 const PayrollEmployees = lazy(() =>
-  import("../features/admin/payroll/PayrollEmployees")
+  import("../modules/payroll/admin/PayrollEmployees")
 );
 const PayrollStructures = lazy(() =>
-  import("../features/admin/payroll/PayrollStructures")
+  import("../modules/payroll/admin/PayrollStructures")
 );
-const PayrollPayslips = lazy(() =>
-  import("../features/admin/payroll/PayrollPayslips")
-);
+// const PayrollPayslips = lazy(() =>
+//   import("../modules/payroll/admin/PayrollPayslips")
+// );
 
 export const payrollRoutes = [
   { path: "payroll", element: PayrollDashboard, roles: ["SuperAdmin"] },
@@ -25,5 +25,5 @@ export const payrollRoutes = [
     element: PayrollStructures,
     roles: ["SuperAdmin"],
   },
-  { path: "payroll/payslips", element: PayrollPayslips, roles: ["SuperAdmin"] },
+  // { path: "payroll/payslips", element: PayrollPayslips, roles: ["SuperAdmin"] },
 ];

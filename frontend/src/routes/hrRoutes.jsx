@@ -1,13 +1,13 @@
 import { lazy } from "react";
 
 const LeaveManagement = lazy(() =>
-  import("../features/admin/dashboard/pages/LeaveManagement.jsx")
+  import("../modules/leave/hr/LeaveManagement")
 );
 const AttendanceAdminList = lazy(() =>
-  import("../features/admin/attendance/AttendanceAdminList.jsx")
+  import("../modules/attendance/admin/AttendanceAdminList.jsx")
 );
 const AttendanceAdminDetail = lazy(() =>
-  import("../features/admin/attendance/AttendanceAdminDetail.jsx")
+  import("../modules/attendance/admin/AttendanceAdminDetail.jsx")
 );
 
 export const hrRoutes = [

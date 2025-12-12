@@ -15,14 +15,22 @@ const getPayslips = async (req, res) => {
     const { employeeId, id: userId } = req.user;
     const { year, month } = req.query;
 
+    console.log("📄 [PAYSLIPS] Request from user:", { userId, employeeId, year, month });
+
     if (!employeeId) {
-      await AuditLog.create({
-        action: "PAYSLIP_ACCESS_DENIED",
-        userId,
-        details: "User attempted to access payslips without employeeId",
-        ipAddress: req.ip,
-        userAgent: req.get("User-Agent"),
-      });
+      console.warn("⚠️ [PAYSLIPS] Access denied - no employeeId");
+      
+      try {
+        await AuditLog.create({
+          action: "PAYSLIP_ACCESS_DENIED",
+          userId,
+          details: "User attempted to access payslips without employeeId",
+          ipAddress: req.ip,
+          userAgent: req.get("User-Agent"),
+        });
+      } catch (auditError) {
+        console.error("❌ [PAYSLIPS] Audit log failed:", auditError);
+      }
 
       return res.status(403).json({
         success: false,
@@ -34,25 +42,36 @@ const getPayslips = async (req, res) => {
     if (year) query.year = Number(year);
     if (month) query.month = Number(month);
 
+    console.log("🔍 [PAYSLIPS] Query:", query);
+
     const payslips = await Payslip.find(query)
       .sort({ year: -1, month: -1 })
       .select("-pdfUrl"); // Hide PDF URL for security
 
-    await AuditLog.create({
-      action: "PAYSLIPS_ACCESSED",
-      userId,
-      employeeId,
-      details: `Accessed ${payslips.length} payslips`,
-      ipAddress: req.ip,
-      userAgent: req.get("User-Agent"),
-    });
+    console.log("✅ [PAYSLIPS] Found:", payslips.length, "payslips");
+
+    try {
+      await AuditLog.create({
+        action: "PAYSLIPS_ACCESSED",
+        userId,
+        employeeId,
+        details: `Accessed ${payslips.length} payslips`,
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+    } catch (auditError) {
+      console.error("❌ [PAYSLIPS] Audit log failed:", auditError);
+      // Continue anyway - audit log failure shouldn't block the response
+    }
 
     return res.json({ success: true, count: payslips.length, data: payslips });
   } catch (error) {
+    console.error("❌ [PAYSLIPS] Error:", error);
     return res.status(500).json({
       success: false,
       message: "Error fetching payslips",
       error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 };

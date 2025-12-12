@@ -15,13 +15,7 @@ router.use(authenticate);
 
 // Get all attendance records
 // Permission: VIEW_ALL or VIEW_TEAM
-router.get(
-  "/",
-  checkAnyPermission([
-    MODULES.ATTENDANCE.VIEW_ALL,
-    MODULES.ATTENDANCE.VIEW_TEAM,
-  ]),
-  async (req, res) => {
+const getAttendanceRecords = async (req, res) => {
     try {
       console.log("📅 [ADMIN ATTENDANCE] Fetching all attendance records");
 
@@ -82,7 +76,26 @@ router.get(
         error: error.message,
       });
     }
-  }
+};
+
+// Mount the handler on both routes for compatibility
+router.get(
+  "/",
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  getAttendanceRecords
+);
+
+// Add /records alias for frontend compatibility
+router.get(
+  "/records",
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  getAttendanceRecords
 );
 
 // Get attendance statistics
@@ -292,6 +305,189 @@ router.delete(
       res.status(500).json({
         success: false,
         message: "Error deleting attendance record",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Clear test attendance data
+// Permission: EDIT_ANY (Admin only)
+router.delete(
+  "/clear-test-data",
+  checkPermission(MODULES.ATTENDANCE.EDIT_ANY),
+  async (req, res) => {
+    try {
+      console.log("🧹 [ADMIN ATTENDANCE] Clearing test attendance data");
+
+      const today = new Date();
+      const dateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+      // Delete today's attendance records
+      const result = await AttendanceRecord.deleteMany({
+        date: dateOnly,
+      });
+
+      console.log(`✅ [ADMIN ATTENDANCE] Cleared ${result.deletedCount} attendance records`);
+
+      res.status(200).json({
+        success: true,
+        message: `Cleared ${result.deletedCount} attendance records for today`,
+        data: result.deletedCount,
+      });
+    } catch (error) {
+      console.error("❌ [ADMIN ATTENDANCE] Failed to clear test data:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error clearing test attendance data",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Create test attendance data
+// Permission: EDIT_ANY (Admin only)
+router.post(
+  "/create-test-data",
+  checkPermission(MODULES.ATTENDANCE.EDIT_ANY),
+  async (req, res) => {
+    try {
+      console.log("🧪 [ADMIN ATTENDANCE] Creating test attendance data");
+
+      const today = new Date();
+      const dateOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+      // Find some employees to create test data for
+      const employees = await Employee.find({ status: 'Active' }).limit(3).lean();
+      
+      if (employees.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No active employees found to create test data",
+        });
+      }
+
+      const testRecords = [];
+
+      for (const employee of employees) {
+        // Check if already has attendance today
+        const existingRecord = await AttendanceRecord.findOne({
+          employeeId: employee._id,
+          date: dateOnly,
+        });
+
+        if (existingRecord) {
+          console.log(`Employee ${employee.personalInfo?.firstName} already has attendance today`);
+          continue;
+        }
+
+        // Create test attendance record
+        const checkInTime = new Date(Date.now() - Math.random() * 4 * 60 * 60 * 1000); // Random time in last 4 hours
+        const workLocations = ['office', 'wfh', 'client_site'];
+        const workLocation = workLocations[Math.floor(Math.random() * workLocations.length)];
+
+        const newRecord = new AttendanceRecord({
+          employeeId: employee._id,
+          date: dateOnly,
+          checkIn: checkInTime,
+          sessions: [{
+            checkIn: checkInTime,
+            workLocation: workLocation,
+            locationDetails: workLocation === 'office' ? 'Main Office' : workLocation === 'wfh' ? 'Home Office' : 'Client Site',
+            ipAddressCheckIn: '192.168.1.100',
+            status: Math.random() > 0.3 ? 'active' : 'on_break', // 70% active, 30% on break
+            breaks: Math.random() > 0.5 ? [{
+              startTime: new Date(checkInTime.getTime() + 2 * 60 * 60 * 1000), // 2 hours after check-in
+              endTime: new Date(checkInTime.getTime() + 2 * 60 * 60 * 1000 + 15 * 60 * 1000), // 15 min break
+              durationMinutes: 15,
+            }] : [],
+            totalBreakMinutes: Math.random() > 0.5 ? 15 : 0,
+          }],
+          status: 'present',
+        });
+
+        await newRecord.save();
+        testRecords.push(newRecord);
+      }
+
+      console.log(`✅ [ADMIN ATTENDANCE] Created ${testRecords.length} test records`);
+
+      res.status(201).json({
+        success: true,
+        message: `Created ${testRecords.length} test attendance records`,
+        data: testRecords.length,
+      });
+    } catch (error) {
+      console.error("❌ [ADMIN ATTENDANCE] Failed to create test data:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error creating test attendance data",
+        error: error.message,
+      });
+    }
+  }
+);
+
+// Export attendance report
+// Permission: VIEW_ALL or VIEW_TEAM
+router.get(
+  "/export",
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  async (req, res) => {
+    try {
+      console.log("📊 [ADMIN ATTENDANCE] Exporting attendance report");
+
+      // For now, return a simple CSV format
+      // In production, you'd use a library like xlsx or csv-writer
+      const { startDate, endDate } = req.query;
+      const query = {};
+
+      if (startDate || endDate) {
+        query.date = {};
+        if (startDate) query.date.$gte = new Date(startDate);
+        if (endDate) query.date.$lte = new Date(endDate);
+      }
+
+      const records = await AttendanceRecord.find(query)
+        .populate("employeeId", "personalInfo employeeNumber")
+        .sort({ date: -1 })
+        .lean();
+
+      // Create CSV content
+      const csvHeader = "Employee ID,Employee Name,Date,Check In,Check Out,Work Hours,Status\n";
+      const csvRows = records.map(record => {
+        const employeeName = record.employeeId 
+          ? `${record.employeeId.personalInfo?.firstName || ''} ${record.employeeId.personalInfo?.lastName || ''}`.trim()
+          : 'Unknown';
+        
+        return [
+          record.employeeId?.employeeNumber || 'N/A',
+          employeeName,
+          record.date ? new Date(record.date).toLocaleDateString() : 'N/A',
+          record.checkInTime ? new Date(record.checkInTime).toLocaleTimeString() : 'N/A',
+          record.checkOutTime ? new Date(record.checkOutTime).toLocaleTimeString() : 'N/A',
+          record.workHours || 'N/A',
+          record.status || 'N/A'
+        ].join(',');
+      }).join('\n');
+
+      const csvContent = csvHeader + csvRows;
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename=attendance-report-${new Date().toISOString().split('T')[0]}.csv`);
+      res.send(csvContent);
+
+      console.log("✅ [ADMIN ATTENDANCE] Report exported successfully");
+
+    } catch (error) {
+      console.error("❌ [ADMIN ATTENDANCE] Failed to export report:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error exporting attendance report",
         error: error.message,
       });
     }

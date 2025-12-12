@@ -1,8 +1,8 @@
 import { lazy } from "react";
 
-const UnifiedCalendar = lazy(() => import("../features/calendar/UnifiedCalendar"));
-const DailyCalendarView = lazy(() => import("../features/calendar/DailyCalendarView"));
-const MonthlyCalendarView = lazy(() => import("../features/calendar/MonthlyCalendarView"));
+const UnifiedCalendar = lazy(() => import("../modules/attendance/calendar/UnifiedCalendar"));
+const DailyCalendarView = lazy(() => import("../modules/attendance/calendar/DailyCalendarView"));
+const MonthlyCalendarView = lazy(() => import("../modules/attendance/calendar/MonthlyCalendarView"));
 
 export const calendarRoutes = [
   { path: "calendar", element: UnifiedCalendar },

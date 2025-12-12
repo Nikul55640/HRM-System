@@ -18,14 +18,29 @@ router.get('/team',
     
     // Get employees managed by this user
     const managerId = req.user.employeeId;
+    const userRole = req.user.role;
     
-    const team = await Employee.find({ 
-      'jobInfo.manager': managerId,
-      status: { $in: ['Active', 'On Leave'] }
-    })
-    .populate('jobInfo.department', 'name')
-    .select('employeeId personalInfo contactInfo jobInfo status')
-    .lean();
+    let query = { status: { $in: ['Active', 'On Leave'] } };
+    
+    // SuperAdmin and HR can see all employees, managers only see their team
+    if (managerId && !['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(userRole)) {
+      query['jobInfo.manager'] = managerId;
+    } else if (!managerId && ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(userRole)) {
+      // SuperAdmin/HR without employeeId can see all employees
+      // Keep the query as is (all active employees)
+    } else if (!managerId) {
+      // Regular user without employeeId has no team
+      return res.json({
+        success: true,
+        data: [],
+        message: 'No team members found - user not associated with employee record',
+      });
+    }
+    
+    const team = await Employee.find(query)
+      .populate('jobInfo.department', 'name')
+      .select('employeeId personalInfo contactInfo jobInfo status')
+      .lean();
 
     res.json({
       success: true,
@@ -50,37 +65,100 @@ router.get('/approvals',
   ]),
   async (req, res) => {
   try {
-    const { LeaveRequest } = await import('../models/LeaveRequest.js');
-    const { AttendanceRecord } = await import('../models/AttendanceRecord.js');
+    // Import models with better error handling
+    let LeaveRequest, AttendanceRecord;
+    
+    try {
+      const leaveModule = await import('../models/LeaveRequest.js');
+      LeaveRequest = leaveModule.default || leaveModule.LeaveRequest;
+      
+      const attendanceModule = await import('../models/AttendanceRecord.js');
+      AttendanceRecord = attendanceModule.default || attendanceModule.AttendanceRecord;
+    } catch (importError) {
+      console.error('Error importing models:', importError);
+      return res.status(500).json({
+        success: false,
+        message: 'Database models not available',
+        error: 'Model import failed',
+      });
+    }
     
     const managerId = req.user.employeeId;
+    const userRole = req.user.role;
+    
+    // SuperAdmin and HR roles can see all approvals, others need employeeId
+    if (!managerId && !['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(userRole)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Manager ID not found in user context',
+        error: 'User is not associated with an employee record',
+      });
+    }
+    
+    let filteredLeaves = [];
+    let filteredAttendance = [];
     
     // Get pending leave requests for team members
-    const leaveRequests = await LeaveRequest.find({
-      status: 'pending',
-    })
-    .populate({
-      path: 'employeeId',
-      match: { 'jobInfo.manager': managerId },
-      select: 'employeeId personalInfo',
-    })
-    .lean();
+    try {
+      if (LeaveRequest && typeof LeaveRequest.find === 'function') {
+        let leaveQuery = { status: 'pending' };
+        let populateOptions = {
+          path: 'employeeId',
+          select: 'employeeId personalInfo jobInfo',
+        };
 
-    // Filter out null employeeId (not in team)
-    const filteredLeaves = leaveRequests.filter(req => req.employeeId !== null);
+        // SuperAdmin and HR can see all requests, managers only see their team
+        if (managerId && !['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(userRole)) {
+          populateOptions.match = { 'jobInfo.manager': managerId };
+        }
+
+        const leaveRequests = await LeaveRequest.find(leaveQuery)
+          .populate(populateOptions)
+          .lean();
+
+        // Filter out null employeeId (not in team for managers)
+        if (managerId && !['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(userRole)) {
+          filteredLeaves = leaveRequests.filter(req => req.employeeId !== null);
+        } else {
+          // SuperAdmin/HR see all requests
+          filteredLeaves = leaveRequests.filter(req => req.employeeId !== null);
+        }
+      }
+    } catch (leaveError) {
+      console.error('Error fetching leave requests:', leaveError);
+      // Continue with empty array
+    }
 
     // Get pending attendance corrections
-    const attendanceRequests = await AttendanceRecord.find({
-      approvalStatus: 'pending',
-    })
-    .populate({
-      path: 'employeeId',
-      match: { 'jobInfo.manager': managerId },
-      select: 'employeeId personalInfo',
-    })
-    .lean();
+    try {
+      if (AttendanceRecord && typeof AttendanceRecord.find === 'function') {
+        let attendanceQuery = { approvalStatus: 'pending' };
+        let populateOptions = {
+          path: 'employeeId',
+          select: 'employeeId personalInfo jobInfo',
+        };
 
-    const filteredAttendance = attendanceRequests.filter(req => req.employeeId !== null);
+        // SuperAdmin and HR can see all requests, managers only see their team
+        if (managerId && !['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(userRole)) {
+          populateOptions.match = { 'jobInfo.manager': managerId };
+        }
+
+        const attendanceRequests = await AttendanceRecord.find(attendanceQuery)
+          .populate(populateOptions)
+          .lean();
+
+        // Filter out null employeeId (not in team for managers)
+        if (managerId && !['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(userRole)) {
+          filteredAttendance = attendanceRequests.filter(req => req.employeeId !== null);
+        } else {
+          // SuperAdmin/HR see all requests
+          filteredAttendance = attendanceRequests.filter(req => req.employeeId !== null);
+        }
+      }
+    } catch (attendanceError) {
+      console.error('Error fetching attendance requests:', attendanceError);
+      // Continue with empty array
+    }
 
     res.json({
       success: true,

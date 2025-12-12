@@ -1,5 +1,5 @@
 import express from "express";
-import employeeController from "../controllers/employeeController.js";
+import employeeController from "../controllers/admin/employeeController.js"
 
 import { authenticate } from "../middleware/authenticate.js";
 import { authorize, checkDepartmentAccess } from "../middleware/authorize.js";

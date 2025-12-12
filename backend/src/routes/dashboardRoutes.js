@@ -1,5 +1,5 @@
 import express from 'express';
-import dashboardController from '../controllers/dashboardController.js';
+import dashboardController from '../controllers/employee/dashboardController.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { checkAnyPermission } from '../middleware/checkPermission.js';
 import { MODULES } from '../config/rolePermissions.js';

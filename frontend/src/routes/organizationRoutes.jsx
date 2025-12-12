@@ -1,45 +1,45 @@
 import { lazy } from "react";
 
 const DepartmentPage = lazy(() =>
-  import("../features/admin/organization/DepartmentPage")
+  import("../modules/organization/pages/DepartmentPage")
 );
 const DesignationPage = lazy(() =>
-  import("../features/admin/organization/DesignationPage")
+  import("../modules/organization/pages/DesignationPage")
 );
 const PolicyPage = lazy(() =>
-  import("../features/admin/organization/PolicyPage")
+  import("../modules/organization/pages/PolicyPage")
 );
 const HolidayPage = lazy(() =>
-  import("../features/admin/organization/HolidayPage")
+  import("../modules/organization/pages/HolidayPage")
 );
 const CompanyDocumentsPage = lazy(() =>
-  import("../features/admin/organization/CompanyDocumentsPage")
+  import("../modules/organization/pages/CompanyDocumentsPage")
 );
 
 export const organizationRoutes = [
   {
     path: "hr/departments",
-    element: DepartmentPage,
+    element: <DepartmentPage />,
     roles: ["HR Manager", "SuperAdmin"],
   },
   {
     path: "hr/designations",
-    element: DesignationPage,
+    element: <DesignationPage />,
     roles: ["HR Manager", "SuperAdmin"],
   },
   {
     path: "hr/policies",
-    element: PolicyPage,
+    element: <PolicyPage />,
     roles: ["HR Manager", "SuperAdmin"],
   },
   {
     path: "hr/holidays",
-    element: HolidayPage,
+    element: <HolidayPage />,
     roles: ["HR Manager", "SuperAdmin"],
   },
   {
     path: "hr/documents",
-    element: CompanyDocumentsPage,
+    element: <CompanyDocumentsPage />,
     roles: ["HR Manager", "SuperAdmin"],
   },
 ];

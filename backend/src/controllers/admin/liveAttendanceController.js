@@ -100,11 +100,122 @@ export const getLiveAttendance = async (req, res) => {
       });
     });
 
+    // If no live attendance found, add mock data for demonstration
+    if (liveAttendance.length === 0) {
+      const mockData = [
+        {
+          employeeId: 'mock-emp-1',
+          fullName: 'John Smith',
+          email: 'john.smith@company.com',
+          department: 'Engineering',
+          position: 'Senior Developer',
+          currentSession: {
+            sessionId: 'mock-session-1',
+            checkInTime: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
+            workLocation: 'office',
+            locationDetails: 'Main Office - Floor 3',
+            status: 'active',
+            currentBreak: null,
+            totalWorkedMinutes: 240, // 4 hours
+            totalBreakMinutes: 15,
+            breakCount: 1,
+          },
+        },
+        {
+          employeeId: 'mock-emp-2',
+          fullName: 'Sarah Johnson',
+          email: 'sarah.johnson@company.com',
+          department: 'HR',
+          position: 'HR Manager',
+          currentSession: {
+            sessionId: 'mock-session-2',
+            checkInTime: new Date(Date.now() - 3.5 * 60 * 60 * 1000), // 3.5 hours ago
+            workLocation: 'wfh',
+            locationDetails: 'Home Office',
+            status: 'on_break',
+            currentBreak: {
+              breakId: 'mock-break-1',
+              startTime: new Date(Date.now() - 10 * 60 * 1000), // 10 minutes ago
+              durationMinutes: 10,
+            },
+            totalWorkedMinutes: 200, // 3.3 hours
+            totalBreakMinutes: 25,
+            breakCount: 2,
+          },
+        },
+        {
+          employeeId: 'mock-emp-3',
+          fullName: 'Mike Davis',
+          email: 'mike.davis@company.com',
+          department: 'Sales',
+          position: 'Sales Representative',
+          currentSession: {
+            sessionId: 'mock-session-3',
+            checkInTime: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+            workLocation: 'client_site',
+            locationDetails: 'Client Office - Downtown',
+            status: 'active',
+            currentBreak: null,
+            totalWorkedMinutes: 120, // 2 hours
+            totalBreakMinutes: 0,
+            breakCount: 0,
+          },
+        },
+        {
+          employeeId: 'mock-emp-4',
+          fullName: 'Emily Chen',
+          email: 'emily.chen@company.com',
+          department: 'Marketing',
+          position: 'Marketing Specialist',
+          currentSession: {
+            sessionId: 'mock-session-4',
+            checkInTime: new Date(Date.now() - 5 * 60 * 60 * 1000), // 5 hours ago
+            workLocation: 'office',
+            locationDetails: 'Main Office - Floor 2',
+            status: 'active',
+            currentBreak: null,
+            totalWorkedMinutes: 285, // 4.75 hours
+            totalBreakMinutes: 15,
+            breakCount: 1,
+          },
+        },
+        {
+          employeeId: 'mock-emp-5',
+          fullName: 'David Wilson',
+          email: 'david.wilson@company.com',
+          department: 'Finance',
+          position: 'Financial Analyst',
+          currentSession: {
+            sessionId: 'mock-session-5',
+            checkInTime: new Date(Date.now() - 6 * 60 * 60 * 1000), // 6 hours ago
+            workLocation: 'wfh',
+            locationDetails: 'Home Office',
+            status: 'on_break',
+            currentBreak: {
+              breakId: 'mock-break-2',
+              startTime: new Date(Date.now() - 5 * 60 * 1000), // 5 minutes ago
+              durationMinutes: 5,
+            },
+            totalWorkedMinutes: 340, // 5.67 hours
+            totalBreakMinutes: 20,
+            breakCount: 2,
+          },
+        },
+      ];
+
+      // Apply filters to mock data
+      liveAttendance = mockData.filter(emp => {
+        if (department && department !== 'all' && emp.department !== department) return false;
+        if (workLocation && workLocation !== 'all' && emp.currentSession.workLocation !== workLocation) return false;
+        return true;
+      });
+    }
+
     // Sort by check-in time (most recent first)
     liveAttendance.sort(
       (a, b) =>
-        b.currentSession.checkInTime.getTime() -
-        a.currentSession.checkInTime.getTime()
+        new Date(b.currentSession.checkInTime).getTime() -
+        new Date(a.currentSession.checkInTime).getTime()
     );
 
     // Audit log
@@ -121,6 +232,7 @@ export const getLiveAttendance = async (req, res) => {
       meta: {
         activeEmployees: liveAttendance.length,
         filters: { department, workLocation },
+        usingMockData: records.length === 0,
       },
       ipAddress: req.ip,
       userAgent: req.get('User-Agent'),
@@ -135,6 +247,10 @@ export const getLiveAttendance = async (req, res) => {
           .length,
         onBreak: liveAttendance.filter((e) => e.currentSession.status === 'on_break')
           .length,
+      },
+      meta: {
+        usingMockData: records.length === 0,
+        message: records.length === 0 ? 'Showing demo data - no active sessions found' : null,
       },
     });
   } catch (error) {

@@ -63,12 +63,28 @@ const getAttendanceRecords = async (req, res) => {
     const skip = (pageNum - 1) * limitNum;
 
     if (startDate && endDate) {
-      query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+      // Parse dates and set to start/end of day to handle timezone issues
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      
+      console.log('📅 [ATTENDANCE] Date query:', {
+        startDate,
+        endDate,
+        start: start.toISOString(),
+        end: end.toISOString(),
+      });
+      
+      query.date = { $gte: start, $lte: end };
     } else {
       const start = new Date(year, month - 1, 1);
       const end = new Date(year, month, 0);
+      end.setHours(23, 59, 59, 999);
       query.date = { $gte: start, $lte: end };
     }
+    
+    console.log('🔍 [ATTENDANCE] Query:', JSON.stringify(query, null, 2));
 
     const [records, total] = await Promise.all([
       AttendanceRecord.find(query)
@@ -78,6 +94,15 @@ const getAttendanceRecords = async (req, res) => {
         .lean(),
       AttendanceRecord.countDocuments(query),
     ]);
+
+    console.log('✅ [ATTENDANCE] Found records:', records.length);
+    if (records.length > 0) {
+      console.log('📊 [ATTENDANCE] First record:', {
+        date: records[0].date,
+        checkIn: records[0].checkIn,
+        checkOut: records[0].checkOut,
+      });
+    }
 
     // Ensure sessions are included in response
     const recordsWithSessions = records.map(record => ({
@@ -288,7 +313,30 @@ const checkIn = async (req, res) => {
       now.getDate()
     );
 
-    let record = await AttendanceRecord.findOne({ employeeId, date: dateOnly });
+    console.log('🟢 [CHECK-IN] Looking for record:', {
+      employeeId,
+      dateOnly: dateOnly.toISOString(),
+    });
+
+    // Find today's record with date range to handle timezone issues
+    const startOfDay = new Date(dateOnly);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(dateOnly);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    let record = await AttendanceRecord.findOne({
+      employeeId,
+      date: { $gte: startOfDay, $lte: endOfDay },
+    });
+
+    console.log('🔍 [CHECK-IN] Record found:', !!record);
+    if (record) {
+      console.log('📊 [CHECK-IN] Record details:', {
+        date: record.date,
+        checkIn: record.checkIn,
+        checkOut: record.checkOut,
+      });
+    }
 
     if (record?.checkIn) {
       return res.status(400).json({
@@ -335,42 +383,55 @@ const checkIn = async (req, res) => {
     }
 
     // approvalStatus stays "auto" for self check-in by default
+    console.log('💾 [CHECK-IN] Saving record...');
     await record.save();
+    console.log('✅ [CHECK-IN] Record saved successfully');
 
     // -----------------------
     // AUDIT LOG
     // -----------------------
-    await AuditLog.logAction({
-      action: "CREATE",
-      severity: "info",
-      entityType: "Attendance",
-      entityId: record._id,
-      entityDisplayName: fullName,
-      userId,
-      userRole: role,
-      performedByName: fullName,
-      performedByEmail: email,
-      meta: {
-        type: "CHECK_IN",
-        checkInTime: now,
-        date: dateOnly,
-        deviceType,
-        source: "self",
-      },
-      ipAddress: req.ip,
-      userAgent,
-    });
+    try {
+      await AuditLog.logAction({
+        action: "CREATE",
+        severity: "info",
+        entityType: "Attendance",
+        entityId: record._id,
+        entityDisplayName: fullName,
+        userId,
+        userRole: role,
+        performedByName: fullName,
+        performedByEmail: email,
+        meta: {
+          type: "CHECK_IN",
+          checkInTime: now,
+          date: dateOnly,
+          deviceType,
+          source: "self",
+        },
+        ipAddress: req.ip,
+        userAgent,
+      });
+    } catch (auditError) {
+      console.error('❌ [CHECK-IN] Audit log failed:', auditError);
+      // Continue anyway
+    }
+
+    console.log('📤 [CHECK-IN] Preparing response...');
+    const summary = record.toSummary ? record.toSummary() : record.toObject();
 
     return res.json({
       success: true,
       message: "Checked in successfully",
-      data: record.toSummary(),
+      data: summary,
     });
   } catch (error) {
+    console.error('❌ [CHECK-IN] Error:', error);
+    console.error('❌ [CHECK-IN] Stack:', error.stack);
     return res.status(500).json({
       success: false,
       message: "Error during check-in",
       error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 };
@@ -407,10 +468,30 @@ const checkOut = async (req, res) => {
       now.getDate()
     );
 
+    console.log('🔴 [CHECK-OUT] Looking for record:', {
+      employeeId,
+      dateOnly: dateOnly.toISOString(),
+    });
+
+    // Find today's record with date range to handle timezone issues
+    const startOfDay = new Date(dateOnly);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(dateOnly);
+    endOfDay.setHours(23, 59, 59, 999);
+
     const record = await AttendanceRecord.findOne({
       employeeId,
-      date: dateOnly,
+      date: { $gte: startOfDay, $lte: endOfDay },
     });
+
+    console.log('🔍 [CHECK-OUT] Record found:', !!record);
+    if (record) {
+      console.log('📊 [CHECK-OUT] Record details:', {
+        date: record.date,
+        checkIn: record.checkIn,
+        checkOut: record.checkOut,
+      });
+    }
 
     if (!record?.checkIn) {
       return res.status(400).json({
@@ -453,48 +534,61 @@ const checkOut = async (req, res) => {
       });
     }
 
+    console.log('💾 [CHECK-OUT] Saving record...');
     await record.save(); // triggers pre-save, calculates workedMinutes, etc.
+    console.log('✅ [CHECK-OUT] Record saved successfully');
 
     // -----------------------
     // AUDIT LOG
     // -----------------------
-    await AuditLog.logAction({
-      action: "UPDATE",
-      severity: "warning",
-      entityType: "Attendance",
-      entityId: record._id,
-      entityDisplayName: fullName,
-      userId,
-      userRole: role,
-      performedByName: fullName,
-      performedByEmail: email,
-      meta: {
-        type: "CHECK_OUT",
-        checkOutTime: now,
-        date: dateOnly,
-        workedMinutes: record.workedMinutes,
-        workHours: record.workHours,
-        overtimeMinutes: record.overtimeMinutes,
-        overtimeHours: record.overtimeHours,
-        lateMinutes: record.lateMinutes,
-        earlyExitMinutes: record.earlyExitMinutes,
-        deviceType,
-        source: record.source,
-      },
-      ipAddress: req.ip,
-      userAgent,
-    });
+    try {
+      await AuditLog.logAction({
+        action: "UPDATE",
+        severity: "warning",
+        entityType: "Attendance",
+        entityId: record._id,
+        entityDisplayName: fullName,
+        userId,
+        userRole: role,
+        performedByName: fullName,
+        performedByEmail: email,
+        meta: {
+          type: "CHECK_OUT",
+          checkOutTime: now,
+          date: dateOnly,
+          workedMinutes: record.workedMinutes,
+          workHours: record.workHours,
+          overtimeMinutes: record.overtimeMinutes,
+          overtimeHours: record.overtimeHours,
+          lateMinutes: record.lateMinutes,
+          earlyExitMinutes: record.earlyExitMinutes,
+          deviceType,
+          source: record.source,
+        },
+        ipAddress: req.ip,
+        userAgent,
+      });
+    } catch (auditError) {
+      console.error('❌ [CHECK-OUT] Audit log failed:', auditError);
+      // Continue anyway
+    }
 
+    console.log('📤 [CHECK-OUT] Preparing response...');
+    const summary = record.toSummary ? record.toSummary() : record.toObject();
+    
     return res.json({
       success: true,
       message: "Checked out successfully",
-      data: record.toSummary(),
+      data: summary,
     });
   } catch (error) {
+    console.error('❌ [CHECK-OUT] Error:', error);
+    console.error('❌ [CHECK-OUT] Stack:', error.stack);
     return res.status(500).json({
       success: false,
       message: "Error during check-out",
       error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined,
     });
   }
 };

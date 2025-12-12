@@ -3,6 +3,16 @@ import Employee from '../../models/Employee.js';
 import { validateIFSC } from '../../validators/bankDetailsValidator.js';
 
 /**
+ * Helper function to mask account number
+ */
+const maskAccountNumber = (accountNumber) => {
+  if (!accountNumber) return '';
+  const str = accountNumber.toString();
+  if (str.length <= 4) return str;
+  return 'X'.repeat(str.length - 4) + str.slice(-4);
+};
+
+/**
  * Get bank details for the authenticated employee
  * Returns masked account number for security
  */
@@ -10,7 +20,12 @@ const getBankDetails = async (req, res) => {
   try {
     const { employeeId } = req.user;
 
+    console.log('🏦 [BANK DETAILS] Fetching for employeeId:', employeeId);
+
     const profile = await EmployeeProfile.findOne({ employeeId }).select('bankDetails');
+
+    console.log('🏦 [BANK DETAILS] Profile found:', !!profile);
+    console.log('🏦 [BANK DETAILS] Bank details exist:', !!profile?.bankDetails);
 
     if (!profile || !profile.bankDetails) {
       return res.status(404).json({
@@ -21,7 +36,7 @@ const getBankDetails = async (req, res) => {
 
     // Return bank details with masked account number
     const bankDetails = {
-      accountNumber: profile.getMaskedAccountNumber(),
+      accountNumber: maskAccountNumber(profile.bankDetails.accountNumber),
       bankName: profile.bankDetails.bankName,
       ifscCode: profile.bankDetails.ifscCode,
       accountHolderName: profile.bankDetails.accountHolderName,
@@ -31,11 +46,14 @@ const getBankDetails = async (req, res) => {
       verifiedAt: profile.bankDetails.verifiedAt,
     };
 
+    console.log('✅ [BANK DETAILS] Returning masked details');
+
     res.json({
       success: true,
       data: bankDetails,
     });
   } catch (error) {
+    console.error('❌ [BANK DETAILS] Error:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching bank details',
@@ -122,7 +140,7 @@ const getBankDetails = async (req, res) => {
       success: true,
       message: 'Bank details updated successfully. Pending HR verification.',
       data: {
-        accountNumber: profile.getMaskedAccountNumber(),
+        accountNumber: maskAccountNumber(profile.bankDetails.accountNumber),
         bankName: profile.bankDetails.bankName,
         ifscCode: profile.bankDetails.ifscCode,
         accountHolderName: profile.bankDetails.accountHolderName,
@@ -278,7 +296,7 @@ const getPendingVerifications = async (req, res) => {
       bankName: profile.bankDetails?.bankName,
       ifscCode: profile.bankDetails?.ifscCode,
       accountHolderName: profile.bankDetails?.accountHolderName,
-      accountNumber: profile.getMaskedAccountNumber(),
+      accountNumber: maskAccountNumber(profile.bankDetails?.accountNumber),
       updatedAt: profile.updatedAt,
     }));
 

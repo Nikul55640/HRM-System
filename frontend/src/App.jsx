@@ -1,15 +1,16 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { ToastContainer } from "react-toastify";
 import {
-  ProtectedRoute,
   ErrorBoundary,
   LoadingSpinner,
-} from "./components/common";
+} from "./shared/components";
+import  ProtectedRoute  from "./core/guards/ProtectedRoute";
 import { applyRoutes } from "./routes/applyRoutes";
+import { setupZustandStores } from "./stores/setupStores";
 
-import Login from "./features/auth/pages/Login";
-import MainLayout from "./components/layout/MainLayout";
+import Login from "./modules/auth/pages/Login";
+import MainLayout from "./core/layout/MainLayout";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
@@ -26,6 +27,13 @@ import {
 } from "./routes";
 
 function App() {
+  useEffect(() => {
+    // Initialize all Zustand stores
+    setupZustandStores();
+  }, []);
+
+  console.log('🚀 [APP] App component rendered');
+
   return (
     <ErrorBoundary>
       <Suspense
