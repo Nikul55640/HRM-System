@@ -1,6 +1,6 @@
 import api from '../core/api/api';
 import { API_ENDPOINTS } from '../core/constants/apiEndpoints';
-import { format, addDays, startOfWeek, endOfWeek, isToday, parseISO } from 'date-fns';
+import { format, addDays, startOfWeek, endOfWeek,parseISO } from 'date-fns';
 
 const employeeDashboardService = {
   /**

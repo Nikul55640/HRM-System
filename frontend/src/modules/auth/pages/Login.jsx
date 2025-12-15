@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import { Eye, EyeOff, User, Lock, Building2 } from "lucide-react";
+import { Eye, EyeOff, User, ArrowBigRight , Lock, Building2 } from "lucide-react";
 import { Button } from "../../../shared/ui/button";
 import { Card, CardContent } from "../../../shared/ui/card";
 import useAuth from "../../../core/hooks/useAuth";
@@ -50,17 +50,19 @@ const Login = () => {
     if (!validateForm()) return;
 
     try {
-      console.log('📝 [LOGIN] Attempting login with:', { email: formData.email });
+      console.log("📝 [LOGIN] Attempting login with:", {
+        email: formData.email,
+      });
       const userData = await login(formData.email, formData.password);
-      console.log('📝 [LOGIN] Login successful, user data:', userData);
+      console.log("📝 [LOGIN] Login successful, user data:", userData);
       toast.success("Login successful!");
 
-      console.log('📝 [LOGIN] Navigating to /dashboard...');
+      console.log("📝 [LOGIN] Navigating to /dashboard...");
       // Navigate to dashboard - it will automatically show the right dashboard based on role
       navigate("/dashboard");
-      console.log('📝 [LOGIN] Navigation called');
+      console.log("📝 [LOGIN] Navigation called");
     } catch (error) {
-      console.error('📝 [LOGIN] Login failed:', error);
+      console.error("📝 [LOGIN] Login failed:", error);
       toast.error(error.message || "Invalid email or password");
     }
   };
@@ -69,22 +71,24 @@ const Login = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
         {/* Branding Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-3 shadow-lg">
-            <Building2 className="w-8 h-8 text-white" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">Welcome Back!</h1>
-          <p className="text-sm text-gray-600 mt-1">Sign in to continue</p>
-        </div>
 
         {/* Login Card */}
         <Card className="border-none shadow-2xl rounded-2xl bg-white">
           <CardContent className="pt-6">
+            <div className="text-center mb-8">
+              <div className="w-14 h-14 bg-indigo-500 rounded-lg flex items-center justify-center mx-auto mb-3 shadow-lg">
+                <Building2 className="w-8 h-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Welcome Back!
+              </h1>
+              <p className="text-sm text-gray-600 mt-1">Login to continue</p>
+            </div>
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div>
-                <label className="text-sm text-gray-700 font-medium">
-                  Email
+                <label className="text-sm text-gray-900 font-medium">
+                  Email  Address
                 </label>
                 <div className="relative mt-1">
                   <User className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
@@ -107,7 +111,7 @@ const Login = () => {
 
               {/* Password */}
               <div>
-                <label className="text-sm text-gray-700 font-medium">
+                <label className="text-sm text-gray-900 font-medium">
                   Password
                 </label>
                 <div className="relative mt-1">
@@ -141,7 +145,7 @@ const Login = () => {
               <div className="text-right">
                 <button
                   type="button"
-                  className="text-sm text-indigo-600 hover:underline"
+                  className="text-sm  text-indigo-600 hover:underline"
                   onClick={() => navigate("/forgot-password")}
                 >
                   Forgot password?
@@ -157,10 +161,12 @@ const Login = () => {
                 {loading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Signing In...
+                    Loging In...
                   </div>
                 ) : (
-                  "Sign In"
+                  <div className="flex">
+                    LOGIN <ArrowBigRight className="ml-1 mt-1"  size={16}/>
+</div>
                 )}
               </Button>
             </form>

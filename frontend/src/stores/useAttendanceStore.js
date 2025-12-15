@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { toast } from 'react-toastify';
-import attendanceService from '../core/services/attendanceService';
+import attendanceService from '../modules/attendance/services/attendanceService';
 
 const useAttendanceStore = create(
   devtools(
@@ -49,7 +49,7 @@ const useAttendanceStore = create(
         set({ loading: true, error: null });
         
         try {
-          const response = await attendanceService.getAttendanceRecords({
+          const response = await attendanceService.getAllAttendance({
             ...filters,
             ...params,
             page: pagination.page,
@@ -159,7 +159,7 @@ const useAttendanceStore = create(
         set({ loading: true, error: null });
         
         try {
-          const response = await attendanceService.getAttendanceSummary(params);
+          const response = await attendanceService.getAllAttendance(params);
           
           set({
             attendanceSummary: response.data,

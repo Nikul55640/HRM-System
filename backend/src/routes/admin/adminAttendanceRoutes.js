@@ -5,8 +5,8 @@ import {
   checkAnyPermission,
 } from "../../middleware/checkPermission.js";
 import { MODULES } from "../../config/rolePermissions.js";
-import AttendanceRecord from "../../models/AttendanceRecord.js";
-import Employee from "../../models/Employee.js";
+import AttendanceRecord from "../../models/sequelize/AttendanceRecord.js";
+import Employee from "../../models/sequelize/Employee.js";
 
 const router = express.Router();
 

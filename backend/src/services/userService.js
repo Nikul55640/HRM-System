@@ -1,5 +1,4 @@
-import User from '../models/User.js';
-import AuditLog from '../models/AuditLog.js';
+import { User, AuditLog, Department, Employee } from '../models/sequelize/index.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -7,7 +6,9 @@ import logger from '../utils/logger.js';
  */
 const createUser = async (userData, currentUser, metadata = {}) => {
   try {
-    const existingUser = await User.findOne({ email: userData.email.toLowerCase() });
+    const existingUser = await User.findOne({ 
+      where: { email: userData.email.toLowerCase() } 
+    });
 
     if (existingUser) {
       throw {
@@ -27,7 +28,7 @@ const createUser = async (userData, currentUser, metadata = {}) => {
       }
     }
 
-    const user = new User({
+    const user = await User.create({
       email: userData.email,
       password: userData.password,
       role: userData.role,
@@ -37,12 +38,10 @@ const createUser = async (userData, currentUser, metadata = {}) => {
       createdBy: currentUser.id,
     });
 
-    await user.save();
-
     await AuditLog.logAction({
       action: 'CREATE',
       entityType: 'User',
-      entityId: user._id,
+      entityId: user.id.toString(),
       userId: currentUser.id,
       userRole: currentUser.role,
       changes: [
@@ -74,7 +73,7 @@ const createUser = async (userData, currentUser, metadata = {}) => {
  */
 const updateUser = async (userId, updateData, currentUser, metadata = {}) => {
   try {
-    const user = await User.findById(userId);
+    const user = await User.findByPk(userId);
     if (!user) {
       throw {
         code: 'USER_NOT_FOUND',
@@ -88,8 +87,10 @@ const updateUser = async (userId, updateData, currentUser, metadata = {}) => {
 
       if (newEmail !== user.email.toLowerCase()) {
         const existingUser = await User.findOne({
-          email: newEmail,
-          _id: { $ne: userId },
+          where: {
+            email: newEmail,
+            id: { [User.sequelize.Sequelize.Op.ne]: userId },
+          },
         });
 
         if (existingUser) {
@@ -181,7 +182,7 @@ const updateUser = async (userId, updateData, currentUser, metadata = {}) => {
       await AuditLog.logAction({
         action: 'UPDATE',
         entityType: 'User',
-        entityId: user._id,
+        entityId: user.id.toString(),
         userId: currentUser.id,
         userRole: currentUser.role,
         changes,
@@ -203,7 +204,7 @@ const updateUser = async (userId, updateData, currentUser, metadata = {}) => {
  */
 const changeUserRole = async (userId, newRole, currentUser, metadata = {}) => {
   try {
-    const user = await User.findById(userId);
+    const user = await User.findByPk(userId);
     if (!user) {
       throw {
         code: 'USER_NOT_FOUND',
@@ -253,7 +254,7 @@ const changeUserRole = async (userId, newRole, currentUser, metadata = {}) => {
     await AuditLog.logAction({
       action: 'UPDATE',
       entityType: 'User',
-      entityId: user._id,
+      entityId: user.id.toString(),
       userId: currentUser.id,
       userRole: currentUser.role,
       changes: [{ field: 'role', oldValue: oldRole, newValue: newRole }],
@@ -274,7 +275,7 @@ const changeUserRole = async (userId, newRole, currentUser, metadata = {}) => {
  */
 const deactivateUser = async (userId, currentUser, metadata = {}) => {
   try {
-    const user = await User.findById(userId);
+    const user = await User.findByPk(userId);
     if (!user) {
       throw {
         code: 'USER_NOT_FOUND',
@@ -292,9 +293,11 @@ const deactivateUser = async (userId, currentUser, metadata = {}) => {
     }
 
     if (user.role === 'SuperAdmin') {
-      const activeSuperAdmins = await User.countDocuments({
-        role: 'SuperAdmin',
-        isActive: true,
+      const activeSuperAdmins = await User.count({
+        where: {
+          role: 'SuperAdmin',
+          isActive: true,
+        },
       });
 
       if (activeSuperAdmins <= 1) {
@@ -314,7 +317,7 @@ const deactivateUser = async (userId, currentUser, metadata = {}) => {
     await AuditLog.logAction({
       action: 'UPDATE',
       entityType: 'User',
-      entityId: user._id,
+      entityId: user.id.toString(),
       userId: currentUser.id,
       userRole: currentUser.role,
       changes: [{ field: 'isActive', oldValue: true, newValue: false }],
@@ -334,7 +337,7 @@ const deactivateUser = async (userId, currentUser, metadata = {}) => {
  */
 const activateUser = async (userId, currentUser, metadata = {}) => {
   try {
-    const user = await User.findById(userId);
+    const user = await User.findByPk(userId);
     if (!user) {
       throw {
         code: 'USER_NOT_FOUND',
@@ -357,7 +360,7 @@ const activateUser = async (userId, currentUser, metadata = {}) => {
     await AuditLog.logAction({
       action: 'UPDATE',
       entityType: 'User',
-      entityId: user._id,
+      entityId: user.id.toString(),
       userId: currentUser.id,
       userRole: currentUser.role,
       changes: [{ field: 'isActive', oldValue: false, newValue: true }],
@@ -377,10 +380,15 @@ const activateUser = async (userId, currentUser, metadata = {}) => {
  */
 const getUserById = async (userId) => {
   try {
-    const user = await User.findById(userId)
-      .populate('assignedDepartments', 'name code location')
-      .populate('employeeId', 'personalInfo.firstName personalInfo.lastName employeeId')
-      .populate('createdBy', 'email role');
+    const user = await User.findByPk(userId, {
+      include: [
+        {
+          model: Employee,
+          as: 'employee',
+          attributes: ['personalInfo', 'employeeId'],
+        },
+      ],
+    });
 
     if (!user) {
       throw {
@@ -406,27 +414,30 @@ const listUsers = async (filters = {}, pagination = {}) => {
       page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc',
     } = pagination;
 
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    const query = {};
+    const where = {};
 
-    if (filters.role) query.role = filters.role;
-    if (filters.isActive !== undefined) query.isActive = filters.isActive;
-    if (filters.department) query.assignedDepartments = filters.department;
-    if (filters.search) query.email = new RegExp(filters.search, 'i');
+    if (filters.role) where.role = filters.role;
+    if (filters.isActive !== undefined) where.isActive = filters.isActive;
+    if (filters.search) {
+      where.email = { [User.sequelize.Sequelize.Op.like]: `%${filters.search}%` };
+    }
 
-    const total = await User.countDocuments(query);
-
-    const sort = {};
-    sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
-
-    const users = await User.find(query)
-      .populate('assignedDepartments', 'name code location')
-      .populate('employeeId', 'personalInfo.firstName personalInfo.lastName employeeId')
-      .populate('createdBy', 'email role')
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit));
+    const { count: total, rows: users } = await User.findAndCountAll({
+      where,
+      include: [
+        {
+          model: Employee,
+          as: 'employee',
+          attributes: ['personalInfo', 'employeeId'],
+          required: false,
+        },
+      ],
+      order: [[sortBy, sortOrder.toUpperCase()]],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
 
     return {
       users,
@@ -448,10 +459,12 @@ const listUsers = async (filters = {}, pagination = {}) => {
  */
 const isEmailUnique = async (email, excludeUserId = null) => {
   try {
-    const query = { email: email.toLowerCase() };
-    if (excludeUserId) query._id = { $ne: excludeUserId };
+    const where = { email: email.toLowerCase() };
+    if (excludeUserId) {
+      where.id = { [User.sequelize.Sequelize.Op.ne]: excludeUserId };
+    }
 
-    const exists = await User.findOne(query);
+    const exists = await User.findOne({ where });
     return !exists;
   } catch (error) {
     logger.error('Error checking email:', error);
@@ -464,9 +477,11 @@ const isEmailUnique = async (email, excludeUserId = null) => {
  */
 const getActiveSuperAdminCount = async () => {
   try {
-    return await User.countDocuments({
-      role: 'SuperAdmin',
-      isActive: true,
+    return await User.count({
+      where: {
+        role: 'SuperAdmin',
+        isActive: true,
+      },
     });
   } catch (error) {
     logger.error('Error counting superadmins:', error);

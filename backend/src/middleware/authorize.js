@@ -1,4 +1,4 @@
-import Employee from '../models/Employee.js';
+import { Employee } from '../models/sequelize/index.js';
 
 /**
  * Role-based access control middleware
@@ -102,7 +102,9 @@ const checkDepartmentAccess = async (req, res, next) => {
       }
 
       // Fetch employee to check department
-      const employee = await Employee.findById(employeeId).select('jobInfo.department');
+      const employee = await Employee.findByPk(employeeId, {
+        attributes: ['jobInfo']
+      });
 
       if (!employee) {
         return res.status(404).json({

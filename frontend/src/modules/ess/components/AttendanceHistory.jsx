@@ -7,7 +7,7 @@ import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '.
 import { Select } from '../../../shared/ui/select';
 import LoadingSpinner from '../../../shared/components/LoadingSpinner';
 import Pagination from '../../../shared/components/Pagination';
-import attendanceService from '../../../core/services/attendanceService';
+import attendanceService from '../../attendance/services/attendanceService';
 
 const AttendanceHistory = ({ employeeId }) => {
   const [attendanceRecords, setAttendanceRecords] = useState([]);

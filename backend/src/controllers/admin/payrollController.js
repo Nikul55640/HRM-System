@@ -1,7 +1,7 @@
-import Payslip from '../../models/Payslip.js';
-import Employee from '../../models/Employee.js';
-import SalaryStructure from '../../models/SalaryStructure.js';
-import AuditLog from '../../models/AuditLog.js';
+import Payslip from '../../models/sequelize/Payslip.js';
+import Employee from '../../models/sequelize/Employee.js';
+import SalaryStructure from '../../models/sequelize/SalaryStructure.js';
+import AuditLog from '../../models/sequelize/AuditLog.js';
 import { generatePayslipPDF } from '../../utils/generatePayslipPDF.js';
 
 // ---------------------------------------------------------

@@ -1,5 +1,4 @@
-import Config from '../models/Config.js';
-import AuditLog from '../models/AuditLog.js';
+import { Config, AuditLog } from '../models/sequelize/index.js';
 import logger from '../utils/logger.js';
 
 /**

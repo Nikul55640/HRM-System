@@ -7,7 +7,7 @@ const Dashboard = lazy(() =>
 export const dashboardRoutes = [
   {
     path: "dashboard",
-    element: Dashboard,
+    element: <Dashboard />,
     label: "Dashboard",
     icon: "LayoutDashboard",
     group: "General",

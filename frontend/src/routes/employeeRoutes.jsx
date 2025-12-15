@@ -17,27 +17,27 @@ const EmployeeProfile = lazy(() =>
 export const employeeRoutes = [
   {
     path: "employees",
-    element: EmployeeList,
+    element: <EmployeeList />,
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "employees/new",
-    element: EmployeeForm,
+    element: <EmployeeForm />,
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "employees/:id",
-    element: EmployeeProfile,
+    element: <EmployeeProfile />,
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "employees/:id/edit",
-    element: EmployeeForm,
+    element: <EmployeeForm />,
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "directory",
-    element: EmployeeList, // Using EmployeeList for directory functionality
+    element: <EmployeeList />, // Using EmployeeList for directory functionality
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
 ];

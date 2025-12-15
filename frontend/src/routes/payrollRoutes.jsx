@@ -14,16 +14,16 @@ const PayrollStructures = lazy(() =>
 // );
 
 export const payrollRoutes = [
-  { path: "payroll", element: PayrollDashboard, roles: ["SuperAdmin"] },
+  { path: "payroll", element: <PayrollDashboard />, roles: ["SuperAdmin"] },
   {
     path: "payroll/employees",
-    element: PayrollEmployees,
+    element: <PayrollEmployees />,
     roles: ["SuperAdmin"],
   },
   {
     path: "payroll/structures",
-    element: PayrollStructures,
+    element: <PayrollStructures />,
     roles: ["SuperAdmin"],
   },
-  // { path: "payroll/payslips", element: PayrollPayslips, roles: ["SuperAdmin"] },
+  // { path: "payroll/payslips", element: <PayrollPayslips />, roles: ["SuperAdmin"] },
 ];

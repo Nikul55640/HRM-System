@@ -7,6 +7,9 @@
   "scripts": {
     "dev": "nodemon src/server.js",
     "start": "node src/server.js",
+    "migrate": "node src/scripts/migrate-to-mysql.js",
+    "db:sync": "node -e \"import('./src/models/sequelize/index.js').then(({sequelize}) => sequelize.sync({alter: true}).then(() => process.exit(0)))\"",
+    "seed": "node seeds/mysql-seed.js",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "test:watch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch",
     "test:coverage": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --coverage",
@@ -24,18 +27,19 @@
     "dotenv": "^16.3.1",
     "exceljs": "^4.4.0",
     "express": "^4.18.2",
-    "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
     "hpp": "^0.2.3",
     "joi": "^17.11.0",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.0.3",
     "multer": "^1.4.5-lts.1",
+    "mysql2": "^3.6.5",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.7",
     "pdfkit": "^0.14.0",
     "puppeteer": "^24.31.0",
+    "sequelize": "^6.35.2",
+    "uuid": "^9.0.1",
     "winston": "^3.11.0"
   },
   "devDependencies": {
@@ -45,8 +49,8 @@
     "eslint-plugin-import": "^2.29.1",
     "fast-check": "^4.3.0",
     "jest": "^29.7.0",
-    "mongodb-memory-server": "^9.1.4",
     "nodemon": "^3.0.2",
+    "sequelize-cli": "^6.6.2",
     "supertest": "^6.3.3"
   },
   "engines": {

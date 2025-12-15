@@ -1,15 +1,23 @@
 import Joi from 'joi';
 
 /**
- * Custom validator for MongoDB ObjectId
+ * Custom validator for integer IDs
  */
-const objectIdValidator = Joi.string().pattern(/^[0-9a-fA-F]{24}$/).messages({
-  'string.pattern.base': 'Invalid ID format',
+const idValidator = Joi.number().integer().positive().messages({
+  'number.base': 'ID must be a number',
+  'number.integer': 'ID must be an integer',
+  'number.positive': 'ID must be positive',
+});
+const objectIdValidator = Joi.string().hex().length(24).messages({
+  'string.base': 'ID must be a string',
+  'string.length': 'ID must be a 24-character hexadecimal string',
+  'string.hex': 'ID must be a valid hexadecimal string',
 });
 
 /**
  * Custom validator for email format
  */
+
 const emailValidator = Joi.string()
   .email({ tlds: { allow: false } })
   .lowercase()
@@ -177,10 +185,10 @@ const jobInfoSchema = Joi.object({
       'string.max': 'Job title cannot exceed 100 characters',
       'any.required': 'Job title is required',
     }),
-  department: objectIdValidator.required().messages({
+  department: idValidator.required().messages({
     'any.required': 'Department is required',
   }),
-  manager: objectIdValidator.optional().allow(null),
+  manager: idValidator.optional().allow(null),
   hireDate: hireDateValidator.required().messages({
     'any.required': 'Hire date is required',
   }),
@@ -285,8 +293,8 @@ const updateEmployeeSchema = Joi.object({
     jobTitle: Joi.string().trim().max(100).messages({
       'string.max': 'Job title cannot exceed 100 characters',
     }),
-    department: objectIdValidator,
-    manager: objectIdValidator.allow(null),
+    department: idValidator,
+    manager: idValidator.allow(null),
     hireDate: hireDateValidator,
     employmentType: Joi.string()
       .valid('Full-time', 'Part-time', 'Contract', 'Intern')
@@ -347,7 +355,7 @@ const searchEmployeeSchema = Joi.object({
     .messages({
       'string.max': 'Search term cannot exceed 100 characters',
     }),
-  department: objectIdValidator.optional(),
+  department: idValidator.optional(),
   jobTitle: Joi.string().trim().max(100).optional(),
   employmentType: Joi.string()
     .valid('Full-time', 'Part-time', 'Contract', 'Intern')

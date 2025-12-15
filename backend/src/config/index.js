@@ -11,11 +11,20 @@ const config = {
 
   // Database
   database: {
-    uri: process.env.MONGODB_URI || 'mongodb://localhost:27017/hrms',
-    options: {
-      maxPoolSize: Number(process.env.DB_MAX_POOL_SIZE) || 10,
-      minPoolSize: Number(process.env.DB_MIN_POOL_SIZE) || 5,
+    // MySQL Configuration
+    host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT) || 3306,
+    database: process.env.DB_NAME || 'hrms',
+    username: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    dialect: 'mysql',
+    pool: {
+      max: Number(process.env.DB_MAX_POOL_SIZE) || 10,
+      min: Number(process.env.DB_MIN_POOL_SIZE) || 5,
+      acquire: 30000,
+      idle: 10000,
     },
+    logging: process.env.NODE_ENV === 'development' ? console.log : false,
   },
 
   // JWT Tokens
@@ -71,7 +80,7 @@ const config = {
 
 // Config Validation
 const validateConfig = () => {
-  const required = ['database.uri', 'jwt.secret', 'jwt.refreshSecret'];
+  const required = ['database.host', 'database.database', 'database.username', 'jwt.secret', 'jwt.refreshSecret'];
   const missing = [];
 
   required.forEach((path) => {

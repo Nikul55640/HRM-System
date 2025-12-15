@@ -3,9 +3,7 @@ import crypto from "crypto";
 import fs from "fs";
 import { encryptFile } from "../../utils/encryption.js";
 import { decryptFile } from "../../utils/encryption.js";
-import Employee from "../../models/Employee.js";
-import EmployeeProfile from "../../models/EmployeeProfile.js";
-import Document from "../../models/Document.js";
+import { Employee, EmployeeProfile, Document, Department } from "../../models/sequelize/index.js";
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -33,12 +31,16 @@ const getProfile = async (req, res) => {
     }
 
     // Get the full employee record
-    const employee = await Employee.findById(employeeId)
-      .populate("jobInfo.department", "name code")
-      .populate(
-        "jobInfo.manager",
-        "personalInfo.firstName personalInfo.lastName employeeId"
-      );
+    const employee = await Employee.findByPk(employeeId, {
+      include: [
+        {
+          model: Department,
+          as: 'department',
+          attributes: ['name', 'code'],
+          required: false,
+        },
+      ],
+    });
 
     if (!employee) {
       return res.status(404).json({
@@ -75,7 +77,9 @@ export const updateProfile = async (req, res) => {
       });
     }
 
-    const profile = await EmployeeProfile.findOne({ employeeId });
+    const profile = await EmployeeProfile.findOne({ 
+      where: { employeeId } 
+    });
 
     if (!profile) {
       return res.status(404).json({

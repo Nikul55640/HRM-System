@@ -1,6 +1,6 @@
-import Request from '../../models/Request.js';
-import AuditLog from '../../models/AuditLog.js';
-import Employee from '../../models/Employee.js';
+import Request from '../../models/sequelize/Request.js';
+import AuditLog from '../../models/sequelize/AuditLog.js';
+import Employee from '../../models/sequelize/Employee.js';
 
 /**
  * Create a new request

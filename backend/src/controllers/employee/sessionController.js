@@ -3,9 +3,9 @@
  * Handles multiple daily work sessions for attendance tracking
  */
 
-import mongoose from 'mongoose';
-import AttendanceRecord from '../../models/AttendanceRecord.js';
-import AuditLog from '../../models/AuditLog.js';
+import { v4 as uuidv4 } from 'uuid';
+import AttendanceRecord from '../../models/sequelize/AttendanceRecord.js';
+import AuditLog from '../../models/sequelize/AuditLog.js';
 import IPService from '../../services/IPService.js';
 import NotificationService from '../../services/notificationService.js';
 
@@ -93,7 +93,7 @@ export const startSession = async (req, res) => {
 
     // Create new session
     const newSession = {
-      sessionId: new mongoose.Types.ObjectId().toString(),
+      sessionId: uuidv4(),
       checkIn: now,
       checkOut: null,
       workLocation,

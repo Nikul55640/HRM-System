@@ -3,9 +3,9 @@
  * Handles real-time attendance monitoring for HR/Admin
  */
 
-import AttendanceRecord from '../../models/AttendanceRecord.js';
-import Employee from '../../models/Employee.js';
-import AuditLog from '../../models/AuditLog.js';
+import AttendanceRecord from '../../models/sequelize/AttendanceRecord.js';
+import Employee from '../../models/sequelize/Employee.js';
+import AuditLog from '../../models/sequelize/AuditLog.js';
 
 // Helper: get user ID
 const getUserId = (user) => user.id || user._id;

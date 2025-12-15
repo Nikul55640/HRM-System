@@ -1,5 +1,5 @@
 import app from './app.js';
-import { connectDB } from './config/database.js';
+import { connectDB } from './config/sequelize.js';
 import logger from './utils/logger.js';
 
 const PORT = process.env.PORT || 5000;

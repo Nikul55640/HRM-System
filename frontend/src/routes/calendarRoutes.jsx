@@ -5,7 +5,7 @@ const DailyCalendarView = lazy(() => import("../modules/attendance/calendar/Dail
 const MonthlyCalendarView = lazy(() => import("../modules/attendance/calendar/MonthlyCalendarView"));
 
 export const calendarRoutes = [
-  { path: "calendar", element: UnifiedCalendar },
-  { path: "calendar/daily", element: DailyCalendarView },
-  { path: "calendar/monthly", element: MonthlyCalendarView },
+  { path: "calendar", element: <UnifiedCalendar /> },
+  { path: "calendar/daily", element: <DailyCalendarView /> },
+  { path: "calendar/monthly", element: <MonthlyCalendarView /> },
 ];

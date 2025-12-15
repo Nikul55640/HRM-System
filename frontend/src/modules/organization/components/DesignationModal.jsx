@@ -44,7 +44,7 @@ const DesignationModal = ({ open, designation, onClose }) => {
         await fetchDesignations();
         onClose();
       } catch (error) {
-        
+        console.error("Failed to save designation:", error);
       }
     },
   });

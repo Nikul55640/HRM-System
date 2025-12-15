@@ -66,7 +66,7 @@ const HolidayModal = ({ open, holiday, onClose }) => {
         fetchHolidays();
         onClose();
       } catch (error) {
-        
+        console.error("Failed to save holiday:", error);
       }
     },
   });

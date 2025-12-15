@@ -2,7 +2,6 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import compression from "compression";
-import mongoSanitize from "express-mongo-sanitize";
 import hpp from "hpp";
 import rateLimit from "express-rate-limit";
 import config from "./config/index.js";
@@ -68,7 +67,6 @@ app.use(
   })
 );
 
-app.use(mongoSanitize());
 app.use(hpp());
 
 // ===================================================

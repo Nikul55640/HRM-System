@@ -1,23 +1,17 @@
-import User from "../models/User.js";
+import { User } from "../models/sequelize/index.js";
 import { verifyAccessToken, extractTokenFromHeader } from "../utils/jwt.js";
 
 /**
  * Authenticate User - Required
  */
 const authenticate = async (req, res, next) => {
-  console.log("\n================ AUTH CHECK ================");
-  console.log("[AUTH] Incoming Request:", req.method, req.originalUrl);
+
 
   try {
-    const rawHeader = req.headers.authorization;
-    console.log("[AUTH] Authorization Header:", rawHeader);
-
-    const token = extractTokenFromHeader(rawHeader);
-    console.log("[AUTH] Extracted Token:", token);
+    const token = extractTokenFromHeader(req.headers.authorization);
 
     // No token
     if (!token) {
-      console.log("❌ No token provided");
       return res.status(401).json({
         success: false,
         error: {
@@ -31,11 +25,8 @@ const authenticate = async (req, res, next) => {
     // Verify token
     let decoded;
     try {
-      console.log("[AUTH] Verifying token...");
       decoded = verifyAccessToken(token);
-      console.log("✅ Token decoded:", decoded);
     } catch (error) {
-      console.log("❌ Token verification failed:", error.message);
 
       if (error.name === "TokenExpiredError") {
         return res.status(401).json({
@@ -63,11 +54,9 @@ const authenticate = async (req, res, next) => {
     }
 
     // Fetch user from DB
-    console.log("[AUTH] Fetching user:", decoded.id);
-    const user = await User.findById(decoded.id).select("+passwordChangedAt");
+    const user = await User.findByPk(decoded.id);
 
     if (!user) {
-      console.log("❌ User not found in DB");
       return res.status(401).json({
         success: false,
         error: {
@@ -78,11 +67,8 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    console.log("✅ User found:", user.email);
-
     // User deactivated
     if (!user.isActive) {
-      console.log("❌ User is deactivated");
       return res.status(401).json({
         success: false,
         error: {
@@ -93,34 +79,21 @@ const authenticate = async (req, res, next) => {
       });
     }
 
-    // Password changed after token issued
-    if (user.changedPasswordAfter(decoded.iat)) {
-      console.log("❌ Password changed after token issued");
-      return res.status(401).json({
-        success: false,
-        error: {
-          code: "PASSWORD_CHANGED",
-          message: "Password was changed recently.",
-          timestamp: new Date().toISOString(),
-        },
-      });
-    }
+    // Note: Password change tracking not implemented in current Sequelize model
+    // This can be added later if needed
 
     // SUCCESS
     req.user = {
-      id: user._id,
+      id: user.id,
       email: user.email,
       role: user.role,
       assignedDepartments: user.assignedDepartments || [],
-      employeeId: decoded.employeeId, // ✅ CORRECT
+      employeeId: user.employeeId,
     };
-
-    console.log("✅ AUTH SUCCESS:", req.user);
-    console.log("=============================================\n");
 
     next();
   } catch (error) {
-    console.error("🔥 AUTH MIDDLEWARE ERROR:", error);
+    console.error("Authentication error:", error);
 
     return res.status(500).json({
       success: false,
@@ -137,38 +110,33 @@ const authenticate = async (req, res, next) => {
  * Optional Authentication
  */
 const optionalAuthenticate = async (req, res, next) => {
-  console.log("\n[OPTIONAL AUTH] Checking token...");
   try {
     const token = extractTokenFromHeader(req.headers.authorization);
-    console.log("[OPTIONAL AUTH] Token:", token);
 
     if (!token) return next();
 
     let decoded;
     try {
       decoded = verifyAccessToken(token);
-      console.log("[OPTIONAL AUTH] Decoded:", decoded);
     } catch {
-      console.log("[OPTIONAL AUTH] Invalid or expired token");
       return next();
     }
 
-    const user = await User.findById(decoded.id);
+    const user = await User.findByPk(decoded.id);
 
-    if (user && user.isActive && !user.changedPasswordAfter(decoded.iat)) {
+    if (user && user.isActive) {
       req.user = {
-        id: user._id,
+        id: user.id,
         email: user.email,
         role: user.role,
         assignedDepartments: user.assignedDepartments || [],
         employeeId: user.employeeId,
       };
-      console.log("[OPTIONAL AUTH] User set:", req.user);
     }
 
     next();
   } catch (err) {
-    console.error("🔥 OPTIONAL AUTH ERROR:", err);
+    console.error("Optional authentication error:", err);
     next();
   }
 };
@@ -177,12 +145,7 @@ const optionalAuthenticate = async (req, res, next) => {
  * Authorization Middleware
  */
 const authorize = (roles) => (req, res, next) => {
-  console.log("\n🔐 AUTHORIZATION CHECK");
-  console.log("[AUTHZ] Required Roles:", roles);
-  console.log("[AUTHZ] User:", req.user);
-
   if (!req.user) {
-    console.log("❌ No user found in req");
     return res.status(401).json({
       success: false,
       error: {
@@ -196,10 +159,6 @@ const authorize = (roles) => (req, res, next) => {
   const allowedRoles = Array.isArray(roles) ? roles : [roles];
 
   if (!allowedRoles.includes(req.user.role)) {
-    console.log(
-      `❌ Forbidden: user role ${req.user.role} not in required roles ${allowedRoles}`
-    );
-
     return res.status(403).json({
       success: false,
       error: {
@@ -214,7 +173,6 @@ const authorize = (roles) => (req, res, next) => {
     });
   }
 
-  console.log("✅ Authorization success");
   next();
 };
 

@@ -1,7 +1,6 @@
 import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
-import AttendanceRecord from "../../models/AttendanceRecord.js";
-import AuditLog from "../../models/AuditLog.js";
+import { AttendanceRecord, AuditLog } from "../../models/sequelize/index.js";
 import { requireEmployeeProfile } from "../../utils/essHelpers.js";
 
 // ---------------------------------------------------------
@@ -57,10 +56,10 @@ const getAttendanceRecords = async (req, res) => {
       limit = 31,
     } = req.query;
 
-    const query = { employeeId };
+    const where = { employeeId };
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
-    const skip = (pageNum - 1) * limitNum;
+    const offset = (pageNum - 1) * limitNum;
 
     if (startDate && endDate) {
       // Parse dates and set to start/end of day to handle timezone issues
@@ -76,24 +75,22 @@ const getAttendanceRecords = async (req, res) => {
         end: end.toISOString(),
       });
       
-      query.date = { $gte: start, $lte: end };
+      where.date = { [AttendanceRecord.sequelize.Sequelize.Op.between]: [start, end] };
     } else {
       const start = new Date(year, month - 1, 1);
       const end = new Date(year, month, 0);
       end.setHours(23, 59, 59, 999);
-      query.date = { $gte: start, $lte: end };
+      where.date = { [AttendanceRecord.sequelize.Sequelize.Op.between]: [start, end] };
     }
     
-    console.log('🔍 [ATTENDANCE] Query:', JSON.stringify(query, null, 2));
+    console.log('🔍 [ATTENDANCE] Query:', JSON.stringify(where, null, 2));
 
-    const [records, total] = await Promise.all([
-      AttendanceRecord.find(query)
-        .sort({ date: -1 })
-        .skip(skip)
-        .limit(limitNum)
-        .lean(),
-      AttendanceRecord.countDocuments(query),
-    ]);
+    const { count: total, rows: records } = await AttendanceRecord.findAndCountAll({
+      where,
+      order: [['date', 'DESC']],
+      limit: limitNum,
+      offset,
+    });
 
     console.log('✅ [ATTENDANCE] Found records:', records.length);
     if (records.length > 0) {
@@ -106,7 +103,7 @@ const getAttendanceRecords = async (req, res) => {
 
     // Ensure sessions are included in response
     const recordsWithSessions = records.map(record => ({
-      ...record,
+      ...record.toJSON(),
       sessions: record.sessions || [],
     }));
 
@@ -325,8 +322,10 @@ const checkIn = async (req, res) => {
     endOfDay.setHours(23, 59, 59, 999);
 
     let record = await AttendanceRecord.findOne({
-      employeeId,
-      date: { $gte: startOfDay, $lte: endOfDay },
+      where: {
+        employeeId,
+        date: { [AttendanceRecord.sequelize.Sequelize.Op.between]: [startOfDay, endOfDay] },
+      },
     });
 
     console.log('🔍 [CHECK-IN] Record found:', !!record);
@@ -346,7 +345,7 @@ const checkIn = async (req, res) => {
     }
 
     if (!record) {
-      record = new AttendanceRecord({
+      record = await AttendanceRecord.create({
         employeeId,
         date: dateOnly,
         createdBy: userId,
@@ -360,26 +359,27 @@ const checkIn = async (req, res) => {
     record.updatedBy = userId; // initial update by same user
     record.source = "self";
 
-    if (!record.deviceInfo) {
-      record.deviceInfo = {};
-    }
-    record.deviceInfo.deviceType = deviceType;
-    record.deviceInfo.userAgent = userAgent;
-    record.deviceInfo.ipAddress = req.ip;
+    const deviceInfo = record.deviceInfo || {};
+    deviceInfo.deviceType = deviceType;
+    deviceInfo.userAgent = userAgent;
+    deviceInfo.ipAddress = req.ip;
+    record.deviceInfo = deviceInfo;
 
     if (location) {
-      record.location = record.location || {};
-      record.location.checkIn = location;
+      const locationData = record.location || {};
+      locationData.checkIn = location;
+      record.location = locationData;
     }
 
     if (remarks) {
       record.remarks = remarks;
-      record.remarksHistory = record.remarksHistory || [];
-      record.remarksHistory.push({
+      const remarksHistory = record.remarksHistory || [];
+      remarksHistory.push({
         note: remarks,
         addedBy: userId,
         addedAt: new Date(),
       });
+      record.remarksHistory = remarksHistory;
     }
 
     // approvalStatus stays "auto" for self check-in by default
@@ -395,7 +395,7 @@ const checkIn = async (req, res) => {
         action: "CREATE",
         severity: "info",
         entityType: "Attendance",
-        entityId: record._id,
+        entityId: record.id.toString(),
         entityDisplayName: fullName,
         userId,
         userRole: role,
@@ -480,8 +480,10 @@ const checkOut = async (req, res) => {
     endOfDay.setHours(23, 59, 59, 999);
 
     const record = await AttendanceRecord.findOne({
-      employeeId,
-      date: { $gte: startOfDay, $lte: endOfDay },
+      where: {
+        employeeId,
+        date: { [AttendanceRecord.sequelize.Sequelize.Op.between]: [startOfDay, endOfDay] },
+      },
     });
 
     console.log('🔍 [CHECK-OUT] Record found:', !!record);
@@ -512,26 +514,27 @@ const checkOut = async (req, res) => {
     record.source = record.source || "self"; // keep original or default self
     record.statusReason = record.statusReason || "Self check-out";
 
-    if (!record.deviceInfo) {
-      record.deviceInfo = {};
-    }
-    record.deviceInfo.deviceType = deviceType;
-    record.deviceInfo.userAgent = userAgent;
-    record.deviceInfo.ipAddress = req.ip;
+    const deviceInfo = record.deviceInfo || {};
+    deviceInfo.deviceType = deviceType;
+    deviceInfo.userAgent = userAgent;
+    deviceInfo.ipAddress = req.ip;
+    record.deviceInfo = deviceInfo;
 
     if (location) {
-      record.location = record.location || {};
-      record.location.checkOut = location;
+      const locationData = record.location || {};
+      locationData.checkOut = location;
+      record.location = locationData;
     }
 
     if (remarks) {
       record.remarks = remarks;
-      record.remarksHistory = record.remarksHistory || [];
-      record.remarksHistory.push({
+      const remarksHistory = record.remarksHistory || [];
+      remarksHistory.push({
         note: remarks,
         addedBy: userId,
         addedAt: new Date(),
       });
+      record.remarksHistory = remarksHistory;
     }
 
     console.log('💾 [CHECK-OUT] Saving record...');
@@ -546,7 +549,7 @@ const checkOut = async (req, res) => {
         action: "UPDATE",
         severity: "warning",
         entityType: "Attendance",
-        entityId: record._id,
+        entityId: record.id.toString(),
         entityDisplayName: fullName,
         userId,
         userRole: role,
@@ -615,21 +618,24 @@ const exportAttendanceReport = async (req, res) => {
       endDate,
     } = req.query;
 
-    const query = { employeeId };
+    const where = { employeeId };
     let periodText = "";
 
     if (startDate && endDate) {
-      query.date = { $gte: new Date(startDate), $lte: new Date(endDate) };
+      where.date = { [AttendanceRecord.sequelize.Sequelize.Op.between]: [new Date(startDate), new Date(endDate)] };
       periodText = `${startDate} to ${endDate}`;
     } else {
       const start = new Date(year, month - 1, 1);
       const end = new Date(year, month, 0);
-      query.date = { $gte: start, $lte: end };
+      where.date = { [AttendanceRecord.sequelize.Sequelize.Op.between]: [start, end] };
       periodText = `${month}/${year}`;
     }
 
     const [records, summary] = await Promise.all([
-      AttendanceRecord.find(query).sort({ date: 1 }).lean(),
+      AttendanceRecord.findAll({
+        where,
+        order: [['date', 'ASC']],
+      }),
       AttendanceRecord.getMonthlySummary(
         employeeId,
         parseInt(year),
@@ -711,7 +717,7 @@ const manualUpdateAttendance = async (req, res) => {
     const deviceType = getDeviceType(userAgent);
 
     // 1. Find the record
-    const record = await AttendanceRecord.findById(recordId);
+    const record = await AttendanceRecord.findByPk(recordId);
 
     if (!record) {
       return res.status(404).json({
@@ -721,7 +727,7 @@ const manualUpdateAttendance = async (req, res) => {
     }
 
     // Snapshot before changes (for AuditLog diff)
-    const before = record.toObject();
+    const before = record.toJSON();
 
     // 2. Apply updates only if provided
     if (checkIn !== undefined) {
@@ -768,26 +774,26 @@ const manualUpdateAttendance = async (req, res) => {
 
     if (remarks !== undefined) {
       record.remarks = remarks || "";
-      record.remarksHistory = record.remarksHistory || [];
+      const remarksHistory = record.remarksHistory || [];
       if (remarks) {
-        record.remarksHistory.push({
+        remarksHistory.push({
           note: remarks,
           addedBy: userId,
           addedAt: new Date(),
         });
       }
+      record.remarksHistory = remarksHistory;
     }
 
     // 3. Generic meta fields
     record.updatedBy = userId;
     record.source = "manual";
 
-    if (!record.deviceInfo) {
-      record.deviceInfo = {};
-    }
-    record.deviceInfo.deviceType = deviceType;
-    record.deviceInfo.userAgent = userAgent;
-    record.deviceInfo.ipAddress = req.ip;
+    const deviceInfo = record.deviceInfo || {};
+    deviceInfo.deviceType = deviceType;
+    deviceInfo.userAgent = userAgent;
+    deviceInfo.ipAddress = req.ip;
+    record.deviceInfo = deviceInfo;
 
     // 4. Save (triggers pre-save calculations)
     await record.save();
@@ -835,8 +841,8 @@ const manualUpdateAttendance = async (req, res) => {
       action: "UPDATE",
       severity: "warning",
       entityType: "Attendance",
-      entityId: record._id,
-      entityDisplayName: `Attendance for ${record.formattedDate}`,
+      entityId: record.id.toString(),
+      entityDisplayName: `Attendance for ${record.date}`,
       userId,
       userRole: role,
       performedByName: fullName,
@@ -844,7 +850,7 @@ const manualUpdateAttendance = async (req, res) => {
       meta: {
         type: "MANUAL_UPDATE",
         employeeId: record.employeeId,
-        recordId: record._id,
+        recordId: record.id,
         changedFields,
       },
       ipAddress: req.ip,

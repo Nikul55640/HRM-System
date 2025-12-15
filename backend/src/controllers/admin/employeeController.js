@@ -1,9 +1,5 @@
 import employeeService from '../../services/employeeService.js';
-import { sendEmail,
-  sendWelcomeEmail,
-  sendProfileUpdateEmail,
-  sendPasswordResetEmail,
-  initializeTransporter } from '../../services/emailService.js';
+import emailService from '../../services/emailService.js';
 import logger from '../../utils/logger.js';
 
 /**
@@ -32,7 +28,7 @@ const createEmployee = async (req, res) => {
 
     // Send welcome email notification (requirement 1.4)
     try {
-      await sendWelcomeEmail(employee);
+      await emailService.sendWelcomeEmail(employee);
     } catch (emailError) {
       // Log email error but don't fail the request
       logger.error('Failed to send welcome email:', emailError);

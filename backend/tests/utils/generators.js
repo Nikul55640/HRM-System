@@ -4,19 +4,17 @@
  */
 
 import fc from 'fast-check';
-import mongoose from 'mongoose';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
- * Generate valid MongoDB ObjectId strings
+ * Generate valid UUID strings
  */
-export const objectIdGen = fc
-  .hexaString({ minLength: 24, maxLength: 24 })
-  .map((hex) => hex.toLowerCase());
+export const uuidGen = fc.constant(uuidv4());
 
 /**
- * Generate valid employee IDs (MongoDB ObjectIds)
+ * Generate valid employee IDs (integers)
  */
-export const employeeIdGen = objectIdGen;
+export const employeeIdGen = fc.integer({ min: 1, max: 999999 });
 
 /**
  * Generate timestamps within a reasonable range
@@ -66,7 +64,7 @@ export const validBreakGen = fc
   .map(([startTime, durationMinutes]) => {
     const endTime = new Date(startTime.getTime() + durationMinutes * 60 * 1000);
     return {
-      breakId: new mongoose.Types.ObjectId().toString(),
+      breakId: uuidv4(),
       startTime,
       endTime,
       durationMinutes,
@@ -87,7 +85,7 @@ export const validSessionGen = fc
   .map(([checkIn, durationMinutes, workLocation, locationDetails]) => {
     const checkOut = new Date(checkIn.getTime() + durationMinutes * 60 * 1000);
     return {
-      sessionId: new mongoose.Types.ObjectId().toString(),
+      sessionId: uuidv4(),
       checkIn,
       checkOut,
       workLocation,
@@ -108,7 +106,7 @@ export const validSessionGen = fc
 export const activeSessionGen = fc
   .tuple(timestampGen(), workLocationGen, fc.option(locationDetailsGen, { nil: null }))
   .map(([checkIn, workLocation, locationDetails]) => ({
-    sessionId: new mongoose.Types.ObjectId().toString(),
+    sessionId: uuidv4(),
     checkIn,
     checkOut: null,
     workLocation,
@@ -149,7 +147,7 @@ export const sessionWithBreaksGen = fc
       const breakEnd = new Date(breakStart.getTime() + breakDuration * 60 * 1000);
 
       breaks.push({
-        breakId: new mongoose.Types.ObjectId().toString(),
+        breakId: uuidv4(),
         startTime: breakStart,
         endTime: breakEnd,
         durationMinutes: breakDuration,
@@ -159,7 +157,7 @@ export const sessionWithBreaksGen = fc
     }
 
     return {
-      sessionId: new mongoose.Types.ObjectId().toString(),
+      sessionId: uuidv4(),
       checkIn,
       checkOut,
       workLocation,

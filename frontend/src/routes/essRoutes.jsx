@@ -28,4 +28,5 @@ export const essRoutes = [
   { path: "attendance", element: <AttendancePage /> },
   { path: "documents", element: <DocumentsPage /> },
   { path: "requests", element: <RequestsPage /> },
+  { }
 ];

@@ -4,19 +4,15 @@ import { Route } from "react-router-dom";
 import ProtectedRoute from "../core/guards/ProtectedRoute";
 
 export const applyRoutes = (routes) => {
-  console.log('🛣️ [APPLY ROUTES] Applying routes:', routes.map(r => ({ path: r.path, roles: r.roles })));
-  
-  return routes.map(({ path, element: Element, roles }, index) => {
-    console.log(`🛣️ [APPLY ROUTES] Creating route: ${path} with roles:`, roles);
-    
-    const Wrapped = (
+  return routes.map(({ path, element, roles }, index) => {
+    const wrappedElement = roles ? (
       <ProtectedRoute allowedRoles={roles}>
-        <Element />
+        {element}
       </ProtectedRoute>
-    );
+    ) : element;
 
-    return <React.Fragment key={index}>
-      <Route path={path} element={roles ? Wrapped : <Element />} />
-    </React.Fragment>;
+    return (
+      <Route key={index} path={path} element={wrappedElement} />
+    );
   });
 };

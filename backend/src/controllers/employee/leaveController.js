@@ -1,7 +1,6 @@
 import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
-import LeaveBalance from "../../models/LeaveBalance.js";
-import AuditLog from "../../models/AuditLog.js";
+import { LeaveBalance, AuditLog, Employee } from "../../models/sequelize/index.js";
 
 // FINAL valid leave types used in your system
 const VALID_LEAVE_TYPES = [
@@ -36,14 +35,13 @@ const createDefaultBalance = async (employeeId, year) => {
     pending: 0,
   }));
 
-  const balance = new LeaveBalance({
+  const balance = await LeaveBalance.create({
     employeeId,
     year,
     leaveTypes,
     history: [],
   });
 
-  await balance.save();
   return balance;
 };
 
@@ -62,10 +60,12 @@ const getLeaveBalance = async (req, res) => {
       });
     }
 
-    let leaveBalance = await LeaveBalance.findByEmployeeAndYear(
-      employeeId,
-      year
-    );
+    let leaveBalance = await LeaveBalance.findOne({
+      where: {
+        employeeId,
+        year,
+      },
+    });
 
     // Auto-create default balance if not exists
     if (!leaveBalance) {
@@ -100,10 +100,12 @@ const getLeaveHistory = async (req, res) => {
       });
     }
 
-    const leaveBalance = await LeaveBalance.findByEmployeeAndYear(
-      employeeId,
-      year
-    );
+    const leaveBalance = await LeaveBalance.findOne({
+      where: {
+        employeeId,
+        year,
+      },
+    });
 
     return res.json({
       success: true,
@@ -134,13 +136,19 @@ const exportLeaveSummary = async (req, res) => {
       });
     }
 
-    const leaveBalance = await LeaveBalance.findByEmployeeAndYear(
-      employeeId,
-      year
-    ).populate(
-      "employeeId",
-      "employeeId personalInfo.firstName personalInfo.lastName"
-    );
+    const leaveBalance = await LeaveBalance.findOne({
+      where: {
+        employeeId,
+        year,
+      },
+      include: [
+        {
+          model: Employee,
+          as: 'employee',
+          attributes: ['employeeId', 'personalInfo'],
+        },
+      ],
+    });
 
     if (!leaveBalance) {
       return res.status(404).json({
@@ -149,7 +157,7 @@ const exportLeaveSummary = async (req, res) => {
       });
     }
 
-    const employeeName = `${leaveBalance.employeeId.personalInfo.firstName} ${leaveBalance.employeeId.personalInfo.lastName}`;
+    const employeeName = `${leaveBalance.employee.personalInfo.firstName} ${leaveBalance.employee.personalInfo.lastName}`;
 
     if (format === "pdf") {
       await generatePDF(res, leaveBalance, employeeName, year);
@@ -166,7 +174,7 @@ const exportLeaveSummary = async (req, res) => {
     await AuditLog.logAction({
       action: "EXPORT",
       entityType: "LeaveSummary",
-      entityId: leaveBalance._id,
+      entityId: leaveBalance.id.toString(),
       performedByName: employeeName,
       userId,
       userRole: req.user.role,

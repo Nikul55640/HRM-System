@@ -1,5 +1,4 @@
-import Notification from '../models/Notification.js';
-import Employee from '../models/Employee.js';
+import { Notification, Employee } from '../models/sequelize/index.js';
 import logger from '../utils/logger.js';
 
 class NotificationService {

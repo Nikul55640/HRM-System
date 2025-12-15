@@ -10,6 +10,7 @@ const useAuthStore = create(
         // State
         user: null,
         token: null,
+        refreshToken: null,
         isAuthenticated: false,
         loading: false,
         error: null,
@@ -24,9 +25,9 @@ const useAuthStore = create(
             const response = await api.post('/auth/login', credentials);
             console.log('🔐 [AUTH STORE] Login API response:', response.data);
             
-            const { user, token, accessToken, permissions } = response.data.data;
+            const { user, token, accessToken, refreshToken, permissions } = response.data.data;
             const finalToken = token || accessToken; // Handle both token formats
-            console.log('🔐 [AUTH STORE] Extracted data:', { user, token: finalToken ? 'present' : 'missing', permissions });
+            console.log('🔐 [AUTH STORE] Extracted data:', { user, token: finalToken ? 'present' : 'missing', refreshToken: refreshToken ? 'present' : 'missing', permissions });
             
             // Set token in API headers
             api.defaults.headers.common['Authorization'] = `Bearer ${finalToken}`;
@@ -34,6 +35,7 @@ const useAuthStore = create(
             const newState = {
               user,
               token: finalToken,
+              refreshToken,
               permissions: permissions || [],
               isAuthenticated: true,
               loading: false,
@@ -73,6 +75,7 @@ const useAuthStore = create(
             set({
               user: null,
               token: null,
+              refreshToken: null,
               permissions: [],
               isAuthenticated: false,
               loading: false,
@@ -84,18 +87,18 @@ const useAuthStore = create(
         },
         
         refreshToken: async () => {
-          const { token } = get();
-          if (!token) return false;
+          const { refreshToken } = get();
+          if (!refreshToken) return false;
           
           try {
-            const response = await api.post('/auth/refresh', { token });
-            const { token: newToken, user } = response.data.data || response.data;
+            const response = await api.post('/auth/refresh', { refreshToken });
+            const { accessToken, refreshToken: newRefreshToken } = response.data.data;
             
-            api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+            api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
             
             set({
-              token: newToken,
-              user: user || get().user
+              token: accessToken,
+              refreshToken: newRefreshToken
             });
             
             return true;
@@ -217,6 +220,7 @@ const useAuthStore = create(
         partialize: (state) => ({
           user: state.user,
           token: state.token,
+          refreshToken: state.refreshToken,
           isAuthenticated: state.isAuthenticated,
           permissions: state.permissions
         })

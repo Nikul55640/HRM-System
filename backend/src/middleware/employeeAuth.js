@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
+import { User } from "../models/sequelize/index.js";
 
 export const authenticateEmployee = async (req, res, next) => {
   try {
@@ -28,7 +28,7 @@ export const authenticateEmployee = async (req, res, next) => {
     console.log("✅ [EMPLOYEE AUTH] Token verified:", { userId: decoded.id });
 
     // Get user from token
-    const user = await User.findById(decoded.id).select("-password");
+    const user = await User.findByPk(decoded.id);
 
     if (!user) {
       console.log("❌ [EMPLOYEE AUTH] User not found:", { userId: decoded.id });
@@ -42,7 +42,7 @@ export const authenticateEmployee = async (req, res, next) => {
     }
 
     console.log("👤 [EMPLOYEE AUTH] User loaded:", {
-      userId: user._id,
+      userId: user.id,
       email: user.email,
       role: user.role,
       hasEmployeeId: !!user.employeeId,
@@ -50,7 +50,7 @@ export const authenticateEmployee = async (req, res, next) => {
 
     // Check if user is active
     if (!user.isActive) {
-      console.log("❌ [EMPLOYEE AUTH] Account inactive:", { userId: user._id });
+      console.log("❌ [EMPLOYEE AUTH] Account inactive:", { userId: user.id });
       return res.status(403).json({
         success: false,
         error: {
@@ -63,7 +63,7 @@ export const authenticateEmployee = async (req, res, next) => {
     // CRITICAL: Check if user has an associated employee profile
     if (!user.employeeId) {
       console.log("⚠️ [EMPLOYEE AUTH] No employee profile:", {
-        userId: user._id,
+        userId: user.id,
         email: user.email,
         role: user.role,
       });
@@ -86,7 +86,7 @@ export const authenticateEmployee = async (req, res, next) => {
     req.user.employeeId = user.employeeId;
 
     console.log("✅ [EMPLOYEE AUTH] Authentication successful:", {
-      userId: user._id,
+      userId: user.id,
       employeeId: user.employeeId,
     });
 

@@ -1,8 +1,4 @@
-import CompanyEvent from ".././models/CompanyEvent.js";
-import Employee from ".././models/Employee.js";
-import LeaveRequest from ".././models/LeaveRequest.js";
-import Attendance from ".././models/AttendanceRecord.js";
-import AuditLog from ".././models/AuditLog.js";
+import { CompanyEvent, Employee, LeaveRequest, AttendanceRecord, AuditLog } from "../models/sequelize/index.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -76,14 +72,23 @@ import logger from "../utils/logger.js";
     let attendanceEvents = [];
 
     if (includeAttendance === "true") {
-      const attendance = await Attendance.find({
-        date: { $gte: start, $lte: end },
-      }).populate("employeeId", "employeeId personalInfo.firstName personalInfo.lastName");
+      const attendance = await AttendanceRecord.findAll({
+        where: {
+          date: { [AttendanceRecord.sequelize.Sequelize.Op.between]: [start, end] },
+        },
+        include: [
+          {
+            model: Employee,
+            as: 'employee',
+            attributes: ['employeeId', 'personalInfo'],
+          },
+        ],
+      });
 
       attendanceEvents = attendance.map((a) => ({
-        _id: `att-${a._id}`,
+        _id: `att-${a.id}`,
         type: "attendance",
-        title: `${a.employeeId.personalInfo.firstName} ${a.employeeId.personalInfo.lastName} - ${a.status}`,
+        title: `${a.employee.personalInfo.firstName} ${a.employee.personalInfo.lastName} - ${a.status}`,
         date: a.date,
         isAllDay: false,
         checkIn: a.checkIn,

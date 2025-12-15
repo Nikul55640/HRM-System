@@ -1,5 +1,5 @@
-import EmployeeProfile from '../../models/EmployeeProfile.js';
-import Employee from '../../models/Employee.js';
+import EmployeeProfile from '../../models/sequelize/EmployeeProfile.js';
+import Employee from '../../models/sequelize/Employee.js';
 import { validateIFSC } from '../../validators/bankDetailsValidator.js';
 
 /**

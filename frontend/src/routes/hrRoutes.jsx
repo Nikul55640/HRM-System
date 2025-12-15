@@ -13,17 +13,17 @@ const AttendanceAdminDetail = lazy(() =>
 export const hrRoutes = [
   {
     path: "admin/attendance",
-    element: AttendanceAdminList,
+    element: <AttendanceAdminList />,
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "admin/attendance/:id",
-    element: AttendanceAdminDetail,
+    element: <AttendanceAdminDetail />,
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "admin/leave-requests",
-    element: LeaveManagement,
+    element: <LeaveManagement />,
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
 ];

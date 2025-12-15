@@ -1,4 +1,4 @@
-import departmentService from "../../services/departmentService.js"; // Import the departmentService from the services/departmentService.js";
+import departmentService from "../../services/departmentService.js";
 import logger from "../../utils/logger.js";
 
 /**

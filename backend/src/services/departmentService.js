@@ -1,7 +1,5 @@
-import Department from '../models/Department.js';
-import AuditLog from '../models/AuditLog.js';
+import { Department, AuditLog, Employee } from '../models/sequelize/index.js';
 import logger from '../utils/logger.js';
-import Employee from '../models/Employee.js';
 
 /**
  * Department Service Layer
@@ -19,8 +17,10 @@ const createDepartment = async (departmentData, user, metadata = {}) => {
   try {
     // Check if department name already exists
     const existingDepartment = await Department.findOne({
-      name: departmentData.name,
-      isActive: true,
+      where: {
+        name: departmentData.name,
+        isActive: true,
+      },
     });
 
     if (existingDepartment) {
@@ -33,8 +33,10 @@ const createDepartment = async (departmentData, user, metadata = {}) => {
 
     // If code is provided, check uniqueness
     if (departmentData.code) {
-      const isUnique = await Department.isCodeUnique(departmentData.code);
-      if (!isUnique) {
+      const existingCode = await Department.findOne({
+        where: { code: departmentData.code },
+      });
+      if (existingCode) {
         throw {
           code: 'DUPLICATE_DEPARTMENT_CODE',
           message: 'A department with this code already exists.',
@@ -45,7 +47,7 @@ const createDepartment = async (departmentData, user, metadata = {}) => {
 
     // Validate parent department exists if provided
     if (departmentData.parentDepartment) {
-      const parentDept = await Department.findById(departmentData.parentDepartment);
+      const parentDept = await Department.findByPk(departmentData.parentDepartment);
       if (!parentDept) {
         throw {
           code: 'PARENT_DEPARTMENT_NOT_FOUND',
@@ -63,14 +65,13 @@ const createDepartment = async (departmentData, user, metadata = {}) => {
     }
 
     // Create department
-    const department = new Department(departmentData);
-    await department.save();
+    const department = await Department.create(departmentData);
 
     // Log creation in audit log
     await AuditLog.logAction({
       action: 'CREATE',
       entityType: 'Department',
-      entityId: department._id,
+      entityId: department.id.toString(),
       userId: user.id,
       userRole: user.role,
       changes: [
@@ -109,7 +110,7 @@ const createDepartment = async (departmentData, user, metadata = {}) => {
 const updateDepartment = async (departmentId, updateData, user, metadata = {}) => {
   try {
     // Find existing department
-    const department = await Department.findById(departmentId);
+    const department = await Department.findByPk(departmentId);
     if (!department) {
       throw {
         code: 'DEPARTMENT_NOT_FOUND',
@@ -124,9 +125,11 @@ const updateDepartment = async (departmentId, updateData, user, metadata = {}) =
     // Check if name is being changed and if new name already exists
     if (updateData.name && updateData.name !== department.name) {
       const existingDepartment = await Department.findOne({
-        name: updateData.name,
-        _id: { $ne: departmentId },
-        isActive: true,
+        where: {
+          name: updateData.name,
+          id: { [Department.sequelize.Sequelize.Op.ne]: departmentId },
+          isActive: true,
+        },
       });
 
       if (existingDepartment) {
@@ -166,7 +169,7 @@ const updateDepartment = async (departmentId, updateData, user, metadata = {}) =
     if (updateData.parentDepartment !== undefined) {
       if (updateData.parentDepartment) {
         // Prevent department from being its own parent
-        if (updateData.parentDepartment.toString() === departmentId) {
+        if (updateData.parentDepartment.toString() === departmentId.toString()) {
           throw {
             code: 'INVALID_PARENT_DEPARTMENT',
             message: 'Department cannot be its own parent.',
@@ -174,7 +177,7 @@ const updateDepartment = async (departmentId, updateData, user, metadata = {}) =
           };
         }
 
-        const parentDept = await Department.findById(updateData.parentDepartment);
+        const parentDept = await Department.findByPk(updateData.parentDepartment);
         if (!parentDept) {
           throw {
             code: 'PARENT_DEPARTMENT_NOT_FOUND',
@@ -219,7 +222,7 @@ const updateDepartment = async (departmentId, updateData, user, metadata = {}) =
       await AuditLog.logAction({
         action: 'UPDATE',
         entityType: 'Department',
-        entityId: department._id,
+        entityId: department.id.toString(),
         userId: user.id,
         userRole: user.role,
         changes,
@@ -254,48 +257,59 @@ const getDepartments = async (filters = {}, options = {}) => {
       search,
     } = options;
 
-    // Build query
-    const query = {};
+    // Build where clause
+    const where = {};
 
     // Filter by active status
     if (!includeInactive) {
-      query.isActive = true;
+      where.isActive = true;
     }
 
     // Filter by parent department
     if (parentDepartment !== undefined) {
-      query.parentDepartment = parentDepartment === 'null' || parentDepartment === null ? null : parentDepartment;
+      where.parentDepartment = parentDepartment === 'null' || parentDepartment === null ? null : parentDepartment;
     }
 
     // Search by name or code
     if (search) {
-      const regex = new RegExp(search, 'i');
-      query.$or = [{ name: regex }, { code: regex }];
+      where[Department.sequelize.Sequelize.Op.or] = [
+        { name: { [Department.sequelize.Sequelize.Op.like]: `%${search}%` } },
+        { code: { [Department.sequelize.Sequelize.Op.like]: `%${search}%` } }
+      ];
     }
 
     // Calculate pagination
-    const skip = (page - 1) * limit;
-    const sort = { [sortBy]: sortOrder === 'asc' ? 1 : -1 };
+    const offset = (page - 1) * limit;
 
     // Execute query
-    const [departments, total] = await Promise.all([
-      Department.find(query)
-        .populate('parentDepartment', 'name code')
-        .populate('manager', 'personalInfo.firstName personalInfo.lastName employeeId')
-        .sort(sort)
-        .limit(limit)
-        .skip(skip)
-        .lean(),
-      Department.countDocuments(query),
-    ]);
+    const { count: total, rows: departments } = await Department.findAndCountAll({
+      where,
+      include: [
+        {
+          model: Department,
+          as: 'parent',
+          attributes: ['id', 'name', 'code'],
+          required: false,
+        },
+        {
+          model: Employee,
+          as: 'managerEmployee',
+          attributes: ['id', 'employeeId', 'personalInfo'],
+          required: false,
+        },
+      ],
+      order: [[sortBy, sortOrder.toUpperCase()]],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
 
     logger.info(`Retrieved ${departments.length} departments (total: ${total})`);
 
     return {
       departments,
       pagination: {
-        page,
-        limit,
+        page: parseInt(page),
+        limit: parseInt(limit),
         total,
         pages: Math.ceil(total / limit),
       },
@@ -314,9 +328,22 @@ const getDepartments = async (filters = {}, options = {}) => {
  */
 const getDepartmentById = async (departmentId, includeChildren = false) => {
   try {
-    const department = await Department.findById(departmentId)
-      .populate('parentDepartment', 'name code')
-      .populate('manager', 'personalInfo.firstName personalInfo.lastName employeeId contactInfo.email');
+    const department = await Department.findByPk(departmentId, {
+      include: [
+        {
+          model: Department,
+          as: 'parent',
+          attributes: ['id', 'name', 'code'],
+          required: false,
+        },
+        {
+          model: Employee,
+          as: 'managerEmployee',
+          attributes: ['id', 'employeeId', 'personalInfo', 'contactInfo'],
+          required: false,
+        },
+      ],
+    });
 
     if (!department) {
       throw {
@@ -326,18 +353,23 @@ const getDepartmentById = async (departmentId, includeChildren = false) => {
       };
     }
 
-    const result = department.toObject();
+    const result = department.toJSON();
 
     // Include child departments if requested
     if (includeChildren) {
-      result.children = await Department.find({ parentDepartment: departmentId, isActive: true })
-        .select('name code manager location')
-        .populate('manager', 'personalInfo.firstName personalInfo.lastName')
-        .lean();
+      result.children = await Department.findAll({
+        where: { parentDepartment: departmentId, isActive: true },
+        attributes: ['id', 'name', 'code', 'manager', 'location'],
+        include: [
+          {
+            model: Employee,
+            as: 'managerEmployee',
+            attributes: ['id', 'personalInfo'],
+            required: false,
+          },
+        ],
+      });
     }
-
-    // Get full path
-    result.fullPath = await department.getFullPath();
 
     logger.info(`Retrieved department: ${department.name}`);
     return result;
@@ -354,7 +386,31 @@ const getDepartmentById = async (departmentId, includeChildren = false) => {
  */
 const getDepartmentHierarchy = async (rootId = null) => {
   try {
-    const tree = await Department.getHierarchyTree(rootId);
+    // Get all departments and build hierarchy
+    const departments = await Department.findAll({
+      where: { isActive: true },
+      include: [
+        {
+          model: Employee,
+          as: 'managerEmployee',
+          attributes: ['id', 'personalInfo'],
+          required: false,
+        },
+      ],
+      order: [['name', 'ASC']],
+    });
+
+    // Build tree structure
+    const buildTree = (parentId) => {
+      return departments
+        .filter(dept => dept.parentDepartment === parentId)
+        .map(dept => ({
+          ...dept.toJSON(),
+          children: buildTree(dept.id),
+        }));
+    };
+
+    const tree = buildTree(rootId);
     logger.info('Retrieved department hierarchy tree');
     return tree;
   } catch (error) {
@@ -372,7 +428,7 @@ const getDepartmentHierarchy = async (rootId = null) => {
  */
 const deleteDepartment = async (departmentId, user, metadata = {}) => {
   try {
-    const department = await Department.findById(departmentId);
+    const department = await Department.findByPk(departmentId);
     if (!department) {
       throw {
         code: 'DEPARTMENT_NOT_FOUND',
@@ -382,8 +438,11 @@ const deleteDepartment = async (departmentId, user, metadata = {}) => {
     }
 
     // Check if department has children
-    const hasChildren = await department.hasChildren();
-    if (hasChildren) {
+    const childrenCount = await Department.count({
+      where: { parentDepartment: departmentId, isActive: true },
+    });
+
+    if (childrenCount > 0) {
       throw {
         code: 'DEPARTMENT_HAS_CHILDREN',
         message: 'Cannot delete department with child departments. Please reassign or delete child departments first.',
@@ -392,9 +451,11 @@ const deleteDepartment = async (departmentId, user, metadata = {}) => {
     }
 
     // Check if department has employees
-    const employeeCount = await Employee.countDocuments({
-      'jobInfo.department': departmentId,
-      status: { $ne: 'Terminated' },
+    const employeeCount = await Employee.count({
+      where: {
+        'jobInfo.department': departmentId,
+        status: { [Employee.sequelize.Sequelize.Op.ne]: 'Terminated' },
+      },
     });
 
     if (employeeCount > 0) {
@@ -413,7 +474,7 @@ const deleteDepartment = async (departmentId, user, metadata = {}) => {
     await AuditLog.logAction({
       action: 'DELETE',
       entityType: 'Department',
-      entityId: department._id,
+      entityId: department.id.toString(),
       userId: user.id,
       userRole: user.role,
       changes: [

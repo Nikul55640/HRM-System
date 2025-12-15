@@ -1,7 +1,7 @@
 import logger from "../../utils/logger.js";
-import LeaveBalance from "../../models/LeaveBalance.js";
-import Employee from "../../models/Employee.js";
-import AuditLog from "../../models/AuditLog.js";
+import LeaveBalance from "../../models/sequelize/LeaveBalance.js";
+import Employee from "../../models/sequelize/Employee.js";
+import AuditLog from "../../models/sequelize/AuditLog.js";
 
 /**
  * Get all employees' leave balances

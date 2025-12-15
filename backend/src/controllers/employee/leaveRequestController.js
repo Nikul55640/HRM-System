@@ -1,9 +1,9 @@
-import LeaveRequest from "../../models/LeaveRequest.js";
-import LeaveBalance from "../../models/LeaveBalance.js";
-import AuditLog from "../../models/AuditLog.js";
+import LeaveRequest from "../../models/sequelize/LeaveRequest.js";
+import LeaveBalance from "../../models/sequelize/LeaveBalance.js";
+import AuditLog from "../../models/sequelize/AuditLog.js";
 import logger from "../../utils/logger.js";
-import Notification from "../../models/Notification.js";
-import User from "../../models/User.js";
+import Notification from "../../models/sequelize/Notification.js";
+import User from "../../models/sequelize/User.js";
 
 /* ----------------------------------------------
    FINAL VALID LEAVE TYPES (Matches Admin Logic)

@@ -28,15 +28,15 @@ const generateRefreshToken = (payload) =>
  */
 const generateTokens = (user) => {
   const payload = {
-    id: user._id,
+    id: user.id,
     email: user.email,
     role: user.role,
     assignedDepartments: user.assignedDepartments || [],
-    employeeId: user.employeeId, // ✅ ADD THIS
+    employeeId: user.employeeId,
   };
 
   const accessToken = generateAccessToken(payload);
-  const refreshToken = generateRefreshToken({ id: user._id });
+  const refreshToken = generateRefreshToken({ id: user.id });
 
   return {
     accessToken,

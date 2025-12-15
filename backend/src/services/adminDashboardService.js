@@ -1,7 +1,4 @@
-import Employee from "../models/Employee.js";
-import Department from "../models/Department.js";
-import LeaveRequest from "../models/LeaveRequest.js";
-import Attendance from "../models/AttendanceRecord.js";
+import { Employee, Department, LeaveRequest, AttendanceRecord } from "../models/sequelize/index.js";
 
 const adminDashboardService = {
   getDashboardStats: async () => {

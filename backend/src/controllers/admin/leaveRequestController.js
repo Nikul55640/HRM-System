@@ -1,10 +1,8 @@
 import logger from "../../utils/logger.js";
-import LeaveRequest from "../../models/LeaveRequest.js";
-import LeaveBalance from "../../models/LeaveBalance.js";
-import Notification from "../../models/Notification.js";
-import AuditLog from "../../models/AuditLog.js";
-import AttendanceRecord from "../../models/AttendanceRecord.js";
-
+import LeaveRequest from "../../models/sequelize/LeaveRequest.js";
+import { LeaveBalance, Notification, AttendanceRecord, Employee } from "../../models/sequelize/index.js";
+import AuditLog from "../../models/sequelize/AuditLog.js";
+import { Op } from "sequelize";
 /**
  * Admin Leave Request Controller
  * Handles leave request approval/rejection by HR/Managers
@@ -26,33 +24,36 @@ const getAllLeaveRequests = async (req, res) => {
       limit = 20,
     } = req.query;
 
-    const query = {};
+    const where = {};
 
-    if (status) query.status = status;
-    if (type) query.type = type;
-    if (employeeId) query.employeeId = employeeId;
+    if (status) where.status = status;
+    if (type) where.type = type;
+    if (employeeId) where.employeeId = employeeId;
 
     if (startDate || endDate) {
-      query.startDate = {};
-      if (startDate) query.startDate.$gte = new Date(startDate);
-      if (endDate) query.startDate.$lte = new Date(endDate);
+      where.startDate = {};
+      if (startDate) where.startDate[LeaveRequest.sequelize.Sequelize.Op.gte] = new Date(startDate);
+      if (endDate) where.startDate[LeaveRequest.sequelize.Sequelize.Op.lte] = new Date(endDate);
     }
 
     const pageNum = parseInt(page);
     const limitNum = parseInt(limit);
 
-    const skip = (pageNum - 1) * limitNum;
-    const total = await LeaveRequest.countDocuments(query);
+    const offset = (pageNum - 1) * limitNum;
 
-    const leaveRequests = await LeaveRequest.find(query)
-      .populate(
-        "employeeId",
-        "employeeId personalInfo.firstName personalInfo.lastName department"
-      )
-      .populate("reviewedBy", "firstName lastName email")
-      .sort({ appliedAt: -1 })
-      .skip(skip)
-      .limit(limitNum);
+    const { count: total, rows: leaveRequests } = await LeaveRequest.findAndCountAll({
+      where,
+      include: [
+        {
+          model: Employee,
+          as: 'employee',
+          attributes: ['employeeId', 'personalInfo', 'jobInfo'],
+        },
+      ],
+      order: [['appliedAt', 'DESC']],
+      limit: limitNum,
+      offset: offset,
+    });
 
     res.json({
       success: true,
@@ -82,9 +83,15 @@ const getLeaveRequestById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const leaveRequest = await LeaveRequest.findById(id)
-      .populate("employeeId", "employeeId personalInfo department jobInfo")
-      .populate("reviewedBy", "firstName lastName email role");
+    const leaveRequest = await LeaveRequest.findByPk(id, {
+      include: [
+        {
+          model: Employee,
+          as: 'employee',
+          attributes: ['employeeId', 'personalInfo', 'jobInfo'],
+        },
+      ],
+    });
 
     if (!leaveRequest) {
       return res.status(404).json({
@@ -194,12 +201,14 @@ const applyLeaveToAttendance = async (leaveRequest, approverId) => {
     }
 
     let attendance = await AttendanceRecord.findOne({
-      employeeId,
-      date: dateOnly,
+      where: {
+        employeeId,
+        date: dateOnly,
+      },
     });
 
     if (!attendance) {
-      attendance = new AttendanceRecord({
+      attendance = await AttendanceRecord.create({
         employeeId,
         date: dateOnly,
         status,
@@ -208,22 +217,21 @@ const applyLeaveToAttendance = async (leaveRequest, approverId) => {
         createdBy: approverId,
       });
     } else {
-      attendance.status = status;
-      attendance.statusReason = statusReason;
-      attendance.checkIn = null;
-      attendance.checkOut = null;
-      attendance.workHours = 0;
-      attendance.overtimeHours = 0;
-      attendance.breakTime = 0;
-      attendance.overtimeHours = 0;
-      attendance.overtimeMinutes = 0;
-      attendance.isLate = false;
-      attendance.isEarlyDeparture = false;
-      attendance.updatedBy = approverId;
-      attendance.source = "system";
+      await attendance.update({
+        status,
+        statusReason,
+        checkIn: null,
+        checkOut: null,
+        workHours: 0,
+        overtimeHours: 0,
+        breakTime: 0,
+        overtimeMinutes: 0,
+        isLate: false,
+        isEarlyDeparture: false,
+        updatedBy: approverId,
+        source: "system",
+      });
     }
-
-    await attendance.save();
     datesApplied.push(dateOnly.toISOString().split("T")[0]);
 
     current.setDate(current.getDate() + 1);
@@ -241,10 +249,15 @@ const approveLeaveRequest = async (req, res) => {
     const { id } = req.params;
     const { comments } = req.body;
 
-    const leaveRequest = await LeaveRequest.findById(id).populate(
-      "employeeId",
-      "employeeId personalInfo.firstName personalInfo.lastName userId"
-    );
+    const leaveRequest = await LeaveRequest.findByPk(id, {
+      include: [
+        {
+          model: Employee,
+          as: 'employee',
+          attributes: ['employeeId', 'personalInfo'],
+        },
+      ],
+    });
 
     if (!leaveRequest) {
       return res.status(404).json({
@@ -261,55 +274,63 @@ const approveLeaveRequest = async (req, res) => {
     }
 
     // Update leave request
-    leaveRequest.status = "approved";
-    leaveRequest.reviewedBy = req.user._id;
-    leaveRequest.reviewedAt = new Date();
-    if (comments) leaveRequest.rejectionReason = comments; // reuse field as approver comments
-    await leaveRequest.save();
+    await leaveRequest.update({
+      status: "approved",
+      reviewedBy: req.user.id,
+      reviewedAt: new Date(),
+      rejectionReason: comments || leaveRequest.rejectionReason,
+    });
 
     // Update leave balance (use leave's year)
     const year = leaveRequest.startDate.getFullYear();
-    const leaveBalance = await LeaveBalance.findByEmployeeAndYear(
-      leaveRequest.employeeId._id,
-      year
-    );
+    const leaveBalance = await LeaveBalance.findOne({
+      where: {
+        employeeId: leaveRequest.employeeId,
+        year: year,
+      },
+    });
 
     if (leaveBalance) {
-      const leaveTypeBalance = leaveBalance.leaveTypes.find(
+      const leaveTypes = leaveBalance.leaveTypes || [];
+      const leaveTypeIndex = leaveTypes.findIndex(
         (lt) => lt.type === leaveRequest.type
       );
 
-      if (leaveTypeBalance) {
-        leaveTypeBalance.pending -= leaveRequest.days;
-        if (leaveTypeBalance.pending < 0) leaveTypeBalance.pending = 0;
-        leaveTypeBalance.used += leaveRequest.days;
+      if (leaveTypeIndex !== -1) {
+        leaveTypes[leaveTypeIndex].pending -= leaveRequest.days;
+        if (leaveTypes[leaveTypeIndex].pending < 0) leaveTypes[leaveTypeIndex].pending = 0;
+        leaveTypes[leaveTypeIndex].used += leaveRequest.days;
       }
 
-      const historyEntry = leaveBalance.history.find(
+      const history = leaveBalance.history || [];
+      const historyIndex = history.findIndex(
         (h) =>
           h.leaveRequestId &&
-          h.leaveRequestId.toString() === leaveRequest._id.toString()
+          h.leaveRequestId.toString() === leaveRequest.id.toString()
       );
-      if (historyEntry) {
-        historyEntry.status = "approved";
-        historyEntry.approvedAt = new Date();
+      if (historyIndex !== -1) {
+        history[historyIndex].status = "approved";
+        history[historyIndex].approvedAt = new Date();
       }
 
-      await leaveBalance.save();
+      await leaveBalance.update({
+        leaveTypes: leaveTypes,
+        history: history,
+      });
     }
 
     // Apply leave to attendance
     const appliedDates = await applyLeaveToAttendance(
       leaveRequest,
-      req.user._id
+      req.user.id
     );
 
     // Notification to employee
-    const employeeName = `${leaveRequest.employeeId.personalInfo.firstName} ${leaveRequest.employeeId.personalInfo.lastName}`;
-    const approverName = `${req.user.firstName} ${req.user.lastName}`;
+    const employeeName = `${leaveRequest.employee.personalInfo.firstName} ${leaveRequest.employee.personalInfo.lastName}`;
+    const approverName = `${req.user.firstName || req.user.email} ${req.user.lastName || ''}`;
 
     await Notification.create({
-      userId: leaveRequest.employeeId.userId,
+      userId: leaveRequest.employee.userId || leaveRequest.employeeId,
       type: "leave_approved",
       title: "Leave Request Approved",
       message: `Your ${leaveRequest.type} leave for ${
@@ -320,7 +341,7 @@ const approveLeaveRequest = async (req, res) => {
       priority: "high",
       relatedEntity: {
         entityType: "LeaveRequest",
-        entityId: leaveRequest._id,
+        entityId: leaveRequest.id,
       },
     });
 
@@ -328,8 +349,8 @@ const approveLeaveRequest = async (req, res) => {
     await AuditLog.logAction({
       action: "UPDATE",
       entityType: "LeaveRequest",
-      entityId: leaveRequest._id,
-      userId: req.user._id,
+      entityId: leaveRequest.id.toString(),
+      userId: req.user.id,
       userRole: req.user.role,
       performedByName: approverName,
       performedByEmail: req.user.email,
@@ -344,7 +365,7 @@ const approveLeaveRequest = async (req, res) => {
     });
 
     logger.info(
-      `Leave request approved: ${leaveRequest._id} by ${req.user._id}`
+      `Leave request approved: ${leaveRequest.id} by ${req.user.id}`
     );
 
     res.json({
@@ -378,10 +399,15 @@ const rejectLeaveRequest = async (req, res) => {
       });
     }
 
-    const leaveRequest = await LeaveRequest.findById(id).populate(
-      "employeeId",
-      "employeeId personalInfo.firstName personalInfo.lastName userId"
-    );
+    const leaveRequest = await LeaveRequest.findByPk(id, {
+      include: [
+        {
+          model: Employee,
+          as: 'employee',
+          attributes: ['employeeId', 'personalInfo'],
+        },
+      ],
+    });
 
     if (!leaveRequest) {
       return res.status(404).json({
@@ -398,46 +424,54 @@ const rejectLeaveRequest = async (req, res) => {
     }
 
     // Update leave request
-    leaveRequest.status = "rejected";
-    leaveRequest.reviewedBy = req.user._id;
-    leaveRequest.reviewedAt = new Date();
-    leaveRequest.rejectionReason = reason;
-    await leaveRequest.save();
+    await leaveRequest.update({
+      status: "rejected",
+      reviewedBy: req.user.id,
+      reviewedAt: new Date(),
+      rejectionReason: reason,
+    });
 
     // Restore leave balance
     const year = leaveRequest.startDate.getFullYear();
-    const leaveBalance = await LeaveBalance.findByEmployeeAndYear(
-      leaveRequest.employeeId._id,
-      year
-    );
+    const leaveBalance = await LeaveBalance.findOne({
+      where: {
+        employeeId: leaveRequest.employeeId,
+        year: year,
+      },
+    });
 
     if (leaveBalance) {
-      const leaveTypeBalance = leaveBalance.leaveTypes.find(
+      const leaveTypes = leaveBalance.leaveTypes || [];
+      const leaveTypeIndex = leaveTypes.findIndex(
         (lt) => lt.type === leaveRequest.type
       );
 
-      if (leaveTypeBalance) {
-        leaveTypeBalance.pending -= leaveRequest.days;
-        if (leaveTypeBalance.pending < 0) leaveTypeBalance.pending = 0;
+      if (leaveTypeIndex !== -1) {
+        leaveTypes[leaveTypeIndex].pending -= leaveRequest.days;
+        if (leaveTypes[leaveTypeIndex].pending < 0) leaveTypes[leaveTypeIndex].pending = 0;
         // available is recalculated via pre-save hook
       }
 
-      const historyEntry = leaveBalance.history.find(
+      const history = leaveBalance.history || [];
+      const historyIndex = history.findIndex(
         (h) =>
           h.leaveRequestId &&
-          h.leaveRequestId.toString() === leaveRequest._id.toString()
+          h.leaveRequestId.toString() === leaveRequest.id.toString()
       );
-      if (historyEntry) {
-        historyEntry.status = "rejected";
+      if (historyIndex !== -1) {
+        history[historyIndex].status = "rejected";
       }
 
-      await leaveBalance.save();
+      await leaveBalance.update({
+        leaveTypes: leaveTypes,
+        history: history,
+      });
     }
 
-    const approverName = `${req.user.firstName} ${req.user.lastName}`;
+    const approverName = `${req.user.firstName || req.user.email} ${req.user.lastName || ''}`;
 
     await Notification.create({
-      userId: leaveRequest.employeeId.userId,
+      userId: leaveRequest.employee.userId || leaveRequest.employeeId,
       type: "leave_rejected",
       title: "Leave Request Rejected",
       message: `Your ${
@@ -446,15 +480,15 @@ const rejectLeaveRequest = async (req, res) => {
       priority: "high",
       relatedEntity: {
         entityType: "LeaveRequest",
-        entityId: leaveRequest._id,
+        entityId: leaveRequest.id,
       },
     });
 
     await AuditLog.logAction({
       action: "UPDATE",
       entityType: "LeaveRequest",
-      entityId: leaveRequest._id,
-      userId: req.user._id,
+      entityId: leaveRequest.id.toString(),
+      userId: req.user.id,
       userRole: req.user.role,
       performedByName: approverName,
       performedByEmail: req.user.email,
@@ -469,7 +503,7 @@ const rejectLeaveRequest = async (req, res) => {
     });
 
     logger.info(
-      `Leave request rejected: ${leaveRequest._id} by ${req.user._id}`
+      `Leave request rejected: ${leaveRequest.id} by ${req.user.id}`
     );
 
     res.json({
@@ -498,42 +532,50 @@ const getLeaveStatistics = async (req, res) => {
     const startOfYear = new Date(year, 0, 1);
     const endOfYear = new Date(year, 11, 31, 23, 59, 59);
 
-    const statistics = await LeaveRequest.aggregate([
-      {
-        $match: {
-          startDate: { $gte: startOfYear, $lte: endOfYear },
+    const statistics = await LeaveRequest.findAll({
+      where: {
+        startDate: { 
+          [LeaveRequest.sequelize.Sequelize.Op.between]: [startOfYear, endOfYear] 
         },
       },
-      {
-        $group: {
-          _id: "$status",
-          count: { $sum: 1 },
-          totalDays: { $sum: "$days" },
-        },
-      },
-    ]);
+      attributes: [
+        'status',
+        [LeaveRequest.sequelize.fn('COUNT', LeaveRequest.sequelize.col('status')), 'count'],
+        [LeaveRequest.sequelize.fn('SUM', LeaveRequest.sequelize.col('days')), 'totalDays'],
+      ],
+      group: ['status'],
+      raw: true,
+    });
 
-    const typeStatistics = await LeaveRequest.aggregate([
-      {
-        $match: {
-          startDate: { $gte: startOfYear, $lte: endOfYear },
-          status: "approved",
+    const typeStatistics = await LeaveRequest.findAll({
+      where: {
+        startDate: { 
+          [LeaveRequest.sequelize.Sequelize.Op.between]: [startOfYear, endOfYear] 
         },
+        status: "approved",
       },
-      {
-        $group: {
-          _id: "$type",
-          count: { $sum: 1 },
-          totalDays: { $sum: "$days" },
-        },
-      },
-    ]);
+      attributes: [
+        'type',
+        [LeaveRequest.sequelize.fn('COUNT', LeaveRequest.sequelize.col('type')), 'count'],
+        [LeaveRequest.sequelize.fn('SUM', LeaveRequest.sequelize.col('days')), 'totalDays'],
+      ],
+      group: ['type'],
+      raw: true,
+    });
 
     res.json({
       success: true,
       data: {
-        byStatus: statistics,
-        byType: typeStatistics,
+        byStatus: statistics.map(stat => ({
+          _id: stat.status,
+          count: parseInt(stat.count),
+          totalDays: parseFloat(stat.totalDays) || 0,
+        })),
+        byType: typeStatistics.map(stat => ({
+          _id: stat.type,
+          count: parseInt(stat.count),
+          totalDays: parseFloat(stat.totalDays) || 0,
+        })),
         year: parseInt(year, 10),
       },
     });

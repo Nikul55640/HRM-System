@@ -18,4 +18,5 @@ export const generalRoutes = [
   { path: "help", element: <HelpPage /> },
   { path: "reports", element: <ReportsPage />, roles: ["HR Manager", "SuperAdmin"] },
   { path: "settings", element: <SettingsPage /> },
+  
 ];

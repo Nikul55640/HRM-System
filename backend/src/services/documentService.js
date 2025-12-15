@@ -1,8 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { promisify } from 'util';
-import Document from '../models/Document.js';
-import Employee from '../models/Employee.js';
+import { Document, Employee } from '../models/sequelize/index.js';
 import {
   encryptFile,
   decryptFile,

@@ -13,7 +13,7 @@ import {
 // Zustand stores imported but not used directly in this component
 // Data is fetched via services instead
 import employeeDashboardService from "../../../../services/employeeDashboardService";
-import attendanceService from "../../../../core/services/attendanceService";
+import attendanceService from "../../../attendance/services/attendanceService";
 import {
   LogOut,
   CalendarDays,
@@ -42,42 +42,47 @@ const EmployeeDashboard = () => {
     fetchAttendanceStatus();
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true);
-      
-      // Check if employeeDashboardService is available
-      if (typeof employeeDashboardService === 'undefined') {
-        toast.error("Dashboard service not available");
-        setLoading(false);
-        return;
-      }
-      
-      const res = await employeeDashboardService.getDashboardData();
-      
-      if (res.success) {
-        setDashboardData(res.data);
-      } else {
-        toast.error(res.message || "Failed to load dashboard");
-      }
-    } catch (error) {
-      toast.error("Failed to load dashboard");
-    } finally {
-      setLoading(false);
+const fetchDashboardData = async () => {
+  try {
+    setLoading(true);
+
+    const res = await employeeDashboardService.getDashboardData();
+
+    console.log("Dashboard API Response:", res);
+
+    if (res.success) {
+      console.log("Personal Info:", res.data.personalInfo);
+      console.log("Job Info:", res.data.jobInfo);
+      console.log("Employee ID:", res.data.employeeId);
+
+      setDashboardData(res.data);
+    } else {
+      toast.error(res.message || "Failed to load dashboard");
     }
-  };
+  } catch (error) {
+    
+    toast.error("Failed to load dashboard");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const fetchAttendanceStatus = async () => {
     try {
       const today = format(new Date(), "yyyy-MM-dd");
-      
+
       const res = await attendanceService.getMyAttendance({
         startDate: today,
         endDate: today,
       });
-      
+
       // Backend returns {success: true, data: [...]}
-      if (res.success && res.data && Array.isArray(res.data) && res.data.length > 0) {
+      if (
+        res.success &&
+        res.data &&
+        Array.isArray(res.data) &&
+        res.data.length > 0
+      ) {
         setAttendanceStatus(res.data[0]);
       } else {
         setAttendanceStatus(null);
@@ -90,11 +95,11 @@ const EmployeeDashboard = () => {
   const handleClockIn = async () => {
     try {
       setClockingIn(true);
-      
+
       await attendanceService.checkIn("Office");
-      
+
       toast.success("Good morning! Clocked in successfully.");
-      
+
       // Wait a bit for backend to process, then fetch status
       setTimeout(() => {
         fetchAttendanceStatus();
@@ -116,11 +121,11 @@ const EmployeeDashboard = () => {
   const handleClockOut = async () => {
     try {
       setClockingOut(true);
-      
+
       await attendanceService.checkOut("Office");
-      
+
       toast.success("Have a great evening! Clocked out.");
-      
+
       // Wait a bit for backend to process, then fetch status
       setTimeout(() => {
         fetchAttendanceStatus();
@@ -153,8 +158,7 @@ const EmployeeDashboard = () => {
     );
   }
 
-  const isClockedIn =
-    attendanceStatus?.checkIn && !attendanceStatus?.checkOut;
+  const isClockedIn = attendanceStatus?.checkIn && !attendanceStatus?.checkOut;
 
   const getGreeting = () => {
     const hour = new Date().getHours();

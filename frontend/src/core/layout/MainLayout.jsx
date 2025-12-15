@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import Footer from './Footer';
-import { UserSwitcher } from '../../shared/components';
+
 
 const MainLayout = () => {
   return (
@@ -17,11 +17,6 @@ const MainLayout = () => {
         </main>
       </div>
       <Footer />
-      
-      {/* Quick User Switcher for Testing */}
-      {process.env.NODE_ENV === 'development' && <UserSwitcher />}
-      
-
     </div>
   );
 };

@@ -10,6 +10,7 @@ import { applyRoutes } from "./routes/applyRoutes";
 import { setupZustandStores } from "./stores/setupStores";
 
 import Login from "./modules/auth/pages/Login";
+import ForgotPassword from "./modules/auth/pages/ForgotPassword";
 import MainLayout from "./core/layout/MainLayout";
 import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
@@ -24,6 +25,7 @@ import {
   calendarRoutes,
   adminRoutes,
   dashboardRoutes,
+  generalRoutes
 } from "./routes";
 
 function App() {
@@ -61,6 +63,7 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />  
 
           <Route
             path="/"
@@ -81,6 +84,7 @@ function App() {
             {applyRoutes(calendarRoutes)}
             {applyRoutes(adminRoutes)}
             {applyRoutes(dashboardRoutes)}
+            {applyRoutes(generalRoutes)}
           </Route>
 
           <Route path="*" element={<NotFound />} />

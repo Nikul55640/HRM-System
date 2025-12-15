@@ -1,4 +1,4 @@
-import AuditLog from '../../models/AuditLog.js';
+import { AuditLog } from '../../models/sequelize/index.js';
 
 // ---------------------------------------------------------
 // GET AUDIT LOGS (Admin)
@@ -19,90 +19,88 @@ const getAuditLogs = async (req, res) => {
     
     console.log('📋 [AUDIT] Fetching audit logs:', { page, limit, severity, entityType, action });
     
-    // Build filter
-    const filter = {};
+    // Build where clause
+    const where = {};
     
-    if (severity) filter.severity = severity;
-    if (entityType) filter.entityType = entityType;
-    if (action) filter.action = action;
-    if (userId) filter.userId = userId;
+    if (severity) where.severity = severity;
+    if (entityType) where.entityType = entityType;
+    if (action) where.action = action;
+    if (userId) where.userId = userId;
     
     // Date range filter
     if (startDate || endDate) {
-      filter.timestamp = {};
-      if (startDate) filter.timestamp.$gte = new Date(startDate);
-      if (endDate) filter.timestamp.$lte = new Date(endDate);
+      where.timestamp = {};
+      if (startDate) where.timestamp[AuditLog.sequelize.Sequelize.Op.gte] = new Date(startDate);
+      if (endDate) where.timestamp[AuditLog.sequelize.Sequelize.Op.lte] = new Date(endDate);
     }
     
     // Search filter
     if (search) {
-      filter.$or = [
-        { entityDisplayName: { $regex: search, $options: 'i' } },
-        { performedByName: { $regex: search, $options: 'i' } },
-        { performedByEmail: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+      where[AuditLog.sequelize.Sequelize.Op.or] = [
+        { entityDisplayName: { [AuditLog.sequelize.Sequelize.Op.like]: `%${search}%` } },
+        { performedByName: { [AuditLog.sequelize.Sequelize.Op.like]: `%${search}%` } },
+        { performedByEmail: { [AuditLog.sequelize.Sequelize.Op.like]: `%${search}%` } },
+        { description: { [AuditLog.sequelize.Sequelize.Op.like]: `%${search}%` } }
       ];
     }
     
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const offset = (parseInt(page) - 1) * parseInt(limit);
     
     // Get logs with pagination
-    const logs = await AuditLog.find(filter)
-      .sort({ timestamp: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
+    const { count: total, rows: logs } = await AuditLog.findAndCountAll({
+      where,
+      order: [['timestamp', 'DESC']],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
     
-    const total = await AuditLog.countDocuments(filter);
-    
-    // Get summary statistics
-    const stats = await AuditLog.aggregate([
-      { $match: filter },
-      {
-        $group: {
-          _id: null,
-          totalLogs: { $sum: 1 },
-          severityBreakdown: {
-            $push: '$severity'
-          },
-          actionBreakdown: {
-            $push: '$action'
-          },
-          entityTypeBreakdown: {
-            $push: '$entityType'
-          }
-        }
-      }
-    ]);
+    // Get summary statistics using raw SQL for aggregation
+    const severityStats = await AuditLog.findAll({
+      where,
+      attributes: [
+        'severity',
+        [AuditLog.sequelize.fn('COUNT', AuditLog.sequelize.col('severity')), 'count']
+      ],
+      group: ['severity'],
+      raw: true,
+    });
+
+    const actionStats = await AuditLog.findAll({
+      where,
+      attributes: [
+        'action',
+        [AuditLog.sequelize.fn('COUNT', AuditLog.sequelize.col('action')), 'count']
+      ],
+      group: ['action'],
+      raw: true,
+    });
+
+    const entityTypeStats = await AuditLog.findAll({
+      where,
+      attributes: [
+        'entityType',
+        [AuditLog.sequelize.fn('COUNT', AuditLog.sequelize.col('entityType')), 'count']
+      ],
+      group: ['entityType'],
+      raw: true,
+    });
     
     // Process statistics
-    let summary = {
-      totalLogs: 0,
-      severityBreakdown: {},
-      actionBreakdown: {},
-      entityTypeBreakdown: {}
+    const summary = {
+      totalLogs: total,
+      severityBreakdown: severityStats.reduce((acc, stat) => {
+        acc[stat.severity] = parseInt(stat.count);
+        return acc;
+      }, {}),
+      actionBreakdown: actionStats.reduce((acc, stat) => {
+        acc[stat.action] = parseInt(stat.count);
+        return acc;
+      }, {}),
+      entityTypeBreakdown: entityTypeStats.reduce((acc, stat) => {
+        acc[stat.entityType] = parseInt(stat.count);
+        return acc;
+      }, {}),
     };
-    
-    if (stats.length > 0) {
-      const stat = stats[0];
-      summary.totalLogs = stat.totalLogs;
-      
-      // Count occurrences
-      summary.severityBreakdown = stat.severityBreakdown.reduce((acc, severity) => {
-        acc[severity] = (acc[severity] || 0) + 1;
-        return acc;
-      }, {});
-      
-      summary.actionBreakdown = stat.actionBreakdown.reduce((acc, action) => {
-        acc[action] = (acc[action] || 0) + 1;
-        return acc;
-      }, {});
-      
-      summary.entityTypeBreakdown = stat.entityTypeBreakdown.reduce((acc, entityType) => {
-        acc[entityType] = (acc[entityType] || 0) + 1;
-        return acc;
-      }, {});
-    }
     
     console.log('✅ [AUDIT] Audit logs fetched:', logs.length, 'logs');
     
@@ -137,7 +135,7 @@ const getAuditLogById = async (req, res) => {
     
     console.log('📄 [AUDIT] Fetching audit log:', id);
     
-    const log = await AuditLog.findById(id).lean();
+    const log = await AuditLog.findByPk(id);
     
     if (!log) {
       return res.status(404).json({
@@ -179,22 +177,23 @@ const exportAuditLogs = async (req, res) => {
     
     console.log('📤 [AUDIT] Exporting audit logs:', { format, severity, entityType });
     
-    // Build filter (same as getAuditLogs)
-    const filter = {};
-    if (severity) filter.severity = severity;
-    if (entityType) filter.entityType = entityType;
-    if (action) filter.action = action;
+    // Build where clause (same as getAuditLogs)
+    const where = {};
+    if (severity) where.severity = severity;
+    if (entityType) where.entityType = entityType;
+    if (action) where.action = action;
     
     if (startDate || endDate) {
-      filter.timestamp = {};
-      if (startDate) filter.timestamp.$gte = new Date(startDate);
-      if (endDate) filter.timestamp.$lte = new Date(endDate);
+      where.timestamp = {};
+      if (startDate) where.timestamp[AuditLog.sequelize.Sequelize.Op.gte] = new Date(startDate);
+      if (endDate) where.timestamp[AuditLog.sequelize.Sequelize.Op.lte] = new Date(endDate);
     }
     
     // Get all matching logs (no pagination for export)
-    const logs = await AuditLog.find(filter)
-      .sort({ timestamp: -1 })
-      .lean();
+    const logs = await AuditLog.findAll({
+      where,
+      order: [['timestamp', 'DESC']],
+    });
     
     console.log('✅ [AUDIT] Export data prepared:', logs.length, 'logs');
     
@@ -293,11 +292,15 @@ const cleanupAuditLogs = async (req, res) => {
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - parseInt(olderThanDays));
     
-    const result = await AuditLog.deleteMany({
-      timestamp: { $lt: cutoffDate }
+    const result = await AuditLog.destroy({
+      where: {
+        timestamp: { [AuditLog.sequelize.Sequelize.Op.lt]: cutoffDate }
+      }
     });
     
-    console.log('✅ [AUDIT] Cleanup completed:', result.deletedCount, 'logs deleted');
+    const deletedCount = result;
+    
+    console.log('✅ [AUDIT] Cleanup completed:', deletedCount, 'logs deleted');
     
     // Log the cleanup action
     await AuditLog.logAction({
@@ -313,7 +316,7 @@ const cleanupAuditLogs = async (req, res) => {
       meta: {
         olderThanDays: parseInt(olderThanDays),
         cutoffDate: cutoffDate.toISOString(),
-        deletedCount: result.deletedCount
+        deletedCount: deletedCount
       },
       ipAddress: req.ip,
       userAgent: req.get('User-Agent')
@@ -323,7 +326,7 @@ const cleanupAuditLogs = async (req, res) => {
       success: true,
       message: `Deleted ${result.deletedCount} audit logs older than ${olderThanDays} days`,
       data: {
-        deletedCount: result.deletedCount,
+        deletedCount: deletedCount,
         cutoffDate: cutoffDate.toISOString()
       }
     });

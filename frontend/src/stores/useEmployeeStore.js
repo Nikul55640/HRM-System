@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { toast } from "react-toastify";
 
-import employeeService from "../core/services/employeeService";
+import employeeService from "../modules/employees/services/employeeService";
 import departmentService from "../core/services/departmentService";
 
 const useEmployeeStore = create(
@@ -84,7 +84,7 @@ const useEmployeeStore = create(
             ...params,
           };
 
-          console.log("🚀 Fetching employees with params:", requestParams);
+
 
           const response = await employeeService.getEmployees(requestParams);
 
@@ -234,7 +234,7 @@ const useEmployeeStore = create(
           set({ departments: response.data || [] });
           return response.data;
         } catch (error) {
-          console.error("Failed to fetch departments:", error);
+          // Error handled by service
         }
       },
 

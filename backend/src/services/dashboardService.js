@@ -1,5 +1,4 @@
-import Employee from '../models/Employee.js';
-import AuditLog from '../models/AuditLog.js';
+import { Employee, AuditLog } from '../models/sequelize/index.js';
 import logger from '../utils/logger.js';
 
 // ------------------------------
@@ -63,7 +62,7 @@ const getLeaveBalance = async (user) => {
       return { message: 'Leave tracking not applicable for system users' };
     }
 
-    const { default: LeaveBalance } = await import('../models/LeaveBalance.js');
+    const { default: LeaveBalance } = await import('../models/sequelize/LeaveBalance.js');
 
     const currentYear = new Date().getFullYear();
     let leaveBalance = await LeaveBalance.findByEmployeeAndYear(user.employeeId, currentYear);

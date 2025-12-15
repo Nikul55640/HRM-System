@@ -5,15 +5,15 @@ import { Input } from '../../../shared/ui/input';
 import { Badge } from '../../../shared/ui/badge';
 import { 
   Bell, 
-  Search, 
-  Filter, 
-  MarkAsRead, 
+  Search,  
   Trash2, 
   CheckCircle, 
-  AlertTriangle, 
   Info, 
-  Calendar,
-  User,
+  Calendar, 
+  Users, 
+  Clock, 
+  AlertCircle,
+  Check,
   DollarSign,
   FileText
 } from 'lucide-react';
@@ -34,60 +34,18 @@ const NotificationsPage = () => {
   const fetchNotifications = async () => {
     try {
       setLoading(true);
+
       // Mock data - replace with actual API call
-      const mockNotifications = [
-        {
-          id: 1,
-          type: 'leave',
-          title: 'Leave Request Approved',
-          message: 'Your leave request for March 15-17 has been approved by your manager.',
-          read: false,
-          createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-          priority: 'high',
-          actionUrl: '/leave'
-        },
-        {
-          id: 2,
-          type: 'payroll',
-          title: 'Payslip Generated',
-          message: 'Your payslip for February 2024 is now available for download.',
-          read: false,
-          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-          priority: 'medium',
-          actionUrl: '/payslips'
-        },
-        {
-          id: 3,
-          type: 'attendance',
-          title: 'Attendance Reminder',
-          message: 'You forgot to clock out yesterday. Please update your attendance.',
-          read: true,
-          createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-          priority: 'medium',
-          actionUrl: '/attendance'
-        },
-        {
-          id: 4,
-          type: 'system',
-          title: 'System Maintenance',
-          message: 'Scheduled maintenance will occur on Sunday, March 10th from 2:00 AM to 4:00 AM.',
-          read: true,
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
-          priority: 'low',
-          actionUrl: null
-        },
-        {
-          id: 5,
-          type: 'announcement',
-          title: 'New Company Policy',
-          message: 'Please review the updated remote work policy effective immediately.',
-          read: false,
-          createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-          priority: 'high',
-          actionUrl: '/announcements'
-        }
-      ];
-      
+      const mockNotifications = [...Array(10)].map((_, i) => ({
+        id: i + 1,
+        title: `Notification ${i + 1}`,
+        message: `This is notification ${i + 1}.`,
+        type: 'leave',
+        priority: 'low',
+        status: 'unread',
+        read: false,
+        createdAt: new Date(),
+      }));
       setNotifications(mockNotifications);
     } catch (error) {
       toast.error('Failed to load notifications');
@@ -205,7 +163,7 @@ const NotificationsPage = () => {
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (
             <Button onClick={markAllAsRead} variant="outline" size="sm">
-              <MarkAsRead className="w-4 h-4 mr-2" />
+              <Check className="w-4 h-4 mr-2" />
               Mark All Read ({unreadCount})
             </Button>
           )}
@@ -331,7 +289,7 @@ const NotificationsPage = () => {
                             size="sm"
                             onClick={() => markAsRead(notification.id)}
                           >
-                            <MarkAsRead className="w-4 h-4" />
+                          <Check className="w-4 h-4" />
                           </Button>
                         )}
                         

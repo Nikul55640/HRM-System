@@ -103,6 +103,11 @@ api.interceptors.response.use(
 
     // Handle 401 Unauthorized - Token expired
     if (error.response.status === 401 && !originalRequest._retry) {
+      // Skip token refresh for login and refresh endpoints
+      if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh')) {
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
@@ -119,36 +124,18 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      const refreshToken = useAuthStore.getState().refreshToken;
-
-      if (!refreshToken) {
-        useAuthStore.getState().logout();
-        // Redirect to login page
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
-        }
-        return Promise.reject(error);
-      }
-
+      // Try to refresh token using the auth store method
       try {
-        const response = await axios.post(
-          `${
-            import.meta.env.VITE_API_URL || "http://localhost:5000/api"
-          }/auth/refresh`,
-          { refreshToken }
-        );
-
-        const { token: newToken, refreshToken: newRefreshToken } =
-          response.data;
-
-        // Update tokens using tokenManager
-        tokenManager.setToken(newToken);
-        tokenManager.setRefreshToken(newRefreshToken);
-
-        processQueue(null, newToken);
-
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return api(originalRequest);
+        const refreshSuccess = await useAuthStore.getState().refreshToken();
+        
+        if (refreshSuccess) {
+          const newToken = useAuthStore.getState().token;
+          processQueue(null, newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          return api(originalRequest);
+        } else {
+          throw new Error('Token refresh failed');
+        }
       } catch (refreshError) {
         processQueue(refreshError, null);
         useAuthStore.getState().logout();

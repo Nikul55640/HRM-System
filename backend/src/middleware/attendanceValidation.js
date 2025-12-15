@@ -3,7 +3,7 @@
  * Validates attendance data for integrity and consistency
  */
 
-import AttendanceRecord from '../models/AttendanceRecord.js';
+import { AttendanceRecord } from '../models/sequelize/index.js';
 
 /**
  * Validate session start request
@@ -64,7 +64,7 @@ export const preventHistoricalModification = async (req, res, next) => {
       return next();
     }
 
-    const record = await AttendanceRecord.findById(recordId);
+    const record = await AttendanceRecord.findByPk(recordId);
 
     if (!record) {
       return res.status(404).json({
@@ -221,7 +221,7 @@ export const detectInconsistencies = async (record) => {
 export const checkConsistencyBeforeSave = async (req, res, next) => {
   try {
     const { recordId } = req.params;
-    const record = await AttendanceRecord.findById(recordId);
+    const record = await AttendanceRecord.findByPk(recordId);
 
     if (!record) {
       return res.status(404).json({

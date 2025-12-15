@@ -1,5 +1,5 @@
 import notificationService from '../../services/notificationService.js';
-import Employee from '../../models/Employee.js';
+import Employee from '../../models/sequelize/Employee.js';
 
 /**
  * Get notifications for the authenticated employee

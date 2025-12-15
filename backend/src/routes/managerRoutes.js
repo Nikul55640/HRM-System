@@ -14,7 +14,7 @@ router.get('/team',
   checkPermission(MODULES.EMPLOYEE.VIEW_TEAM),
   async (req, res) => {
   try {
-    const { Employee } = await import('../models/Employee.js');
+    const { Employee } = await import('../models/sequelize/Employee.js');
     
     // Get employees managed by this user
     const managerId = req.user.employeeId;
@@ -69,7 +69,7 @@ router.get('/approvals',
     let LeaveRequest, AttendanceRecord;
     
     try {
-      const leaveModule = await import('../models/LeaveRequest.js');
+      const leaveModule = await import('../models/sequelize/LeaveRequest.js');
       LeaveRequest = leaveModule.default || leaveModule.LeaveRequest;
       
       const attendanceModule = await import('../models/AttendanceRecord.js');
@@ -184,7 +184,7 @@ router.put('/leave/:id/approve',
   checkPermission(MODULES.LEAVE.APPROVE_TEAM),
   async (req, res) => {
   try {
-    const { LeaveRequest } = await import('../models/LeaveRequest.js');
+    const { LeaveRequest } = await import('../models/sequelize/LeaveRequest.js');
     
     const leaveRequest = await LeaveRequest.findByIdAndUpdate(
       req.params.id,
@@ -224,7 +224,7 @@ router.put('/leave/:id/reject',
   checkPermission(MODULES.LEAVE.APPROVE_TEAM),
   async (req, res) => {
   try {
-    const { LeaveRequest } = await import('../models/LeaveRequest.js');
+    const { LeaveRequest } = await import('../models/sequelize/LeaveRequest.js');
     const { reason } = req.body;
     
     const leaveRequest = await LeaveRequest.findByIdAndUpdate(
@@ -266,7 +266,7 @@ router.get('/reports',
   checkPermission(MODULES.REPORTS.VIEW_TEAM),
   async (req, res) => {
   try {
-    const { Employee } = await import('../models/Employee.js');
+    const { Employee } = await import('../models/sequelize/Employee.js');
     const { AttendanceRecord } = await import('../models/AttendanceRecord.js');
     
     const managerId = req.user.employeeId;

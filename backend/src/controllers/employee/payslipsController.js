@@ -1,11 +1,10 @@
-import Payslip from "../../models/Payslip.js";
-import AuditLog from "../../models/AuditLog.js";
-import mongoose from "mongoose";
+import Payslip from "../../models/sequelize/Payslip.js";
+import AuditLog from "../../models/sequelize/AuditLog.js";
 
 // ==============================
-//  Helper: Validate ObjectId
+//  Helper: Validate ID
 // ==============================
-const isValidObjectId = (id) => mongoose.Types.ObjectId.isValid(id);
+const isValidId = (id) => !isNaN(parseInt(id)) && parseInt(id) > 0;
 
 // ==============================
 //  Get all payslips of logged-in employee
@@ -84,7 +83,7 @@ const getPayslipById = async (req, res) => {
     const { employeeId, id: userId } = req.user;
     const { id } = req.params;
 
-    if (!isValidObjectId(id)) {
+    if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid payslip ID",
@@ -171,7 +170,7 @@ const downloadPayslip = async (req, res) => {
       });
     }
 
-    if (!isValidObjectId(id)) {
+    if (!isValidId(id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid payslip ID",

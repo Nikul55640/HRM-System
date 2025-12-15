@@ -441,7 +441,7 @@ Please do not reply to this email.
   }
 };
 
-export {
+export default {
   sendEmail,
   sendWelcomeEmail,
   sendProfileUpdateEmail,

@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
-import User from "../models/User.js";
+import crypto from "crypto";
+import { User, Employee, Department } from "../models/sequelize/index.js";
 import { generateTokens, verifyRefreshToken } from "../utils/jwt.js";
 
 /**
@@ -11,7 +12,7 @@ const register = async (req, res) => {
     const { email, password, role, assignedDepartments } = req.body;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ where: { email } });
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -50,7 +51,7 @@ const register = async (req, res) => {
       success: true,
       data: {
         user: {
-          id: user._id,
+          id: user.id,
           email: user.email,
           role: user.role,
           assignedDepartments: user.assignedDepartments,
@@ -64,13 +65,13 @@ const register = async (req, res) => {
     console.error("Register error:", error);
 
     // Handle validation errors
-    if (error.name === "ValidationError") {
+    if (error.name === "SequelizeValidationError") {
       return res.status(400).json({
         success: false,
         error: {
           code: "VALIDATION_ERROR",
           message: "Validation failed.",
-          details: Object.values(error.errors).map((err) => ({
+          details: error.errors.map((err) => ({
             field: err.path,
             message: err.message,
           })),
@@ -111,7 +112,7 @@ const login = async (req, res) => {
     }
 
     // Find user and include password field
-    const user = await User.findOne({ email }).select("+password");
+    const user = await User.scope('withPassword').findOne({ where: { email } });
 
     if (!user) {
       return res.status(401).json({
@@ -162,11 +163,9 @@ const login = async (req, res) => {
     // Fetch employee data if employeeId exists
     let employeeData = null;
     if (user.employeeId) {
-      const Employee = (await import("../models/Employee.js")).default;
-      employeeData = await Employee.findById(user.employeeId)
-        .select("personalInfo employeeId jobInfo")
-        .populate("jobInfo.department", "name")
-        .lean();
+      employeeData = await Employee.findByPk(user.employeeId, {
+        attributes: ['personalInfo', 'jobInfo', 'employeeId'],
+      });
     }
 
     // Return success response
@@ -174,16 +173,16 @@ const login = async (req, res) => {
       success: true,
       data: {
         user: {
-          id: user._id,
+          id: user.id,
           email: user.email,
           role: user.role,
           assignedDepartments: user.assignedDepartments,
           employeeId: user.employeeId,
           fullName: employeeData
-            ? `${employeeData.personalInfo.firstName} ${employeeData.personalInfo.lastName}`
-            : user.email.split("@")[0], // Fallback to email username
+            ? `${employeeData.personalInfo?.firstName || ''} ${employeeData.personalInfo?.lastName || ''}`.trim()
+            : user.name || user.email.split("@")[0], // Fallback to name or email username
           employeeNumber: employeeData?.employeeId,
-          department: employeeData?.jobInfo?.department?.name,
+          department: employeeData?.jobInfo?.department,
           position: employeeData?.jobInfo?.jobTitle,
         },
         accessToken: tokens.accessToken,
@@ -250,7 +249,7 @@ const refresh = async (req, res) => {
     }
 
     // Find user and verify refresh token
-    const user = await User.findById(decoded.id).select("+refreshToken");
+    const user = await User.scope('withRefreshToken').findByPk(decoded.id);
 
     if (!user) {
       return res.status(401).json({
@@ -325,9 +324,10 @@ const logout = async (req, res) => {
     const userId = req.user.id;
 
     // Clear refresh token from database
-    await User.findByIdAndUpdate(userId, {
-      $unset: { refreshToken: 1 },
-    });
+    await User.update(
+      { refreshToken: null },
+      { where: { id: userId } }
+    );
 
     res.status(200).json({
       success: true,
@@ -366,7 +366,7 @@ const forgotPassword = async (req, res) => {
     }
 
     // Find user
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ where: { email } });
 
     if (!user) {
       // Don't reveal if user exists or not
@@ -423,9 +423,12 @@ const resetPassword = async (req, res) => {
     }
 
     // Find user with valid reset token
+    const { Op } = await import('sequelize');
     const user = await User.findOne({
-      passwordResetExpires: { $gt: Date.now() },
-    }).select("+passwordResetToken");
+      where: {
+        passwordResetExpires: { [Op.gt]: new Date() },
+      },
+    });
 
     if (!user) {
       return res.status(400).json({
@@ -439,11 +442,12 @@ const resetPassword = async (req, res) => {
     }
 
     // Verify reset token
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(resetToken)
+      .digest('hex');
 
-    const isValidToken = bcrypt.compareSync(
-      resetToken,
-      user.passwordResetToken
-    );
+    const isValidToken = hashedToken === user.passwordResetToken;
 
     if (!isValidToken) {
       return res.status(400).json({
@@ -518,7 +522,7 @@ const changePassword = async (req, res) => {
     }
 
     // Find user with password
-    const user = await User.findById(req.user.id).select("+password");
+    const user = await User.scope('withPassword').findByPk(req.user.id);
 
     if (!user) {
       return res.status(404).json({
@@ -599,7 +603,14 @@ const changePassword = async (req, res) => {
  */
 const getMe = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate("employeeId");
+    const user = await User.findByPk(req.user.id, {
+      include: [
+        {
+          model: Employee,
+          as: 'employee',
+        },
+      ],
+    });
 
     if (!user) {
       return res.status(404).json({

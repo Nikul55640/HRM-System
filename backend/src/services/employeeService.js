@@ -1,5 +1,4 @@
-import Employee from "../models/Employee.js";
-import AuditLog from "../models/AuditLog.js";
+import { Employee, AuditLog, Department } from "../models/sequelize/index.js";
 import logger from "../utils/logger.js";
 import { ROLES } from "../config/rolePermissions.js";
 
@@ -64,7 +63,7 @@ const createEmployee = async (employeeData, user, metadata = {}) => {
     // 2. CHECK EMAIL UNIQUE
     // -------------------------
     const existingEmployee = await Employee.findOne({
-      "contactInfo.email": employeeData.contactInfo.email.toLowerCase(),
+      where: Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.email') = '${employeeData.contactInfo.email.toLowerCase()}'`),
     });
 
     if (existingEmployee) {
@@ -78,13 +77,11 @@ const createEmployee = async (employeeData, user, metadata = {}) => {
     // -------------------------
     // 3. CREATE EMPLOYEE
     // -------------------------
-    const employee = new Employee({
+    const employee = await Employee.create({
       ...employeeData,
       createdBy: user.id,
       updatedBy: user.id,
     });
-
-    await employee.save();
 
     // -------------------------
     // 4. LOG IN AUDIT
@@ -92,14 +89,14 @@ const createEmployee = async (employeeData, user, metadata = {}) => {
     await AuditLog.logAction({
       action: "CREATE",
       entityType: "Employee",
-      entityId: employee._id,
+      entityId: employee.id.toString(),
       userId: user.id,
       userRole: user.role,
       changes: [
         {
           field: "employee",
           oldValue: null,
-          newValue: employee.getSummary(),
+          newValue: employee.toJSON(),
         },
       ],
       ipAddress: metadata.ipAddress,
@@ -127,7 +124,7 @@ const createEmployee = async (employeeData, user, metadata = {}) => {
  */
 const updateEmployee = async (employeeId, updateData, user, metadata = {}) => {
   try {
-    const employee = await Employee.findById(employeeId);
+    const employee = await Employee.findByPk(employeeId);
 
     if (!employee) {
       throw {
@@ -140,10 +137,15 @@ const updateEmployee = async (employeeId, updateData, user, metadata = {}) => {
     // Check email uniqueness if email is being updated
     if (updateData.contactInfo?.email) {
       const emailLower = updateData.contactInfo.email.toLowerCase();
-      if (emailLower !== employee.contactInfo.email.toLowerCase()) {
+      const currentEmail = employee.contactInfo?.email?.toLowerCase();
+      if (emailLower !== currentEmail) {
         const existingEmployee = await Employee.findOne({
-          "contactInfo.email": emailLower,
-          _id: { $ne: employeeId },
+          where: {
+            [Employee.sequelize.Sequelize.Op.and]: [
+              Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.email') = '${emailLower}'`),
+              { id: { [Employee.sequelize.Sequelize.Op.ne]: employeeId } }
+            ]
+          },
         });
 
         if (existingEmployee) {
@@ -283,7 +285,7 @@ const updateEmployee = async (employeeId, updateData, user, metadata = {}) => {
       await AuditLog.logAction({
         action: "UPDATE",
         entityType: "Employee",
-        entityId: employee._id,
+        entityId: employee.id.toString(),
         userId: user.id,
         userRole: user.role,
         changes,
@@ -311,7 +313,7 @@ const updateEmployee = async (employeeId, updateData, user, metadata = {}) => {
  */
 const getEmployeeById = async (employeeId, user) => {
   try {
-    const query = { _id: employeeId };
+    const where = { id: employeeId };
 
     // Apply role-based filtering
     if (user.role === ROLES.HR_MANAGER) {
@@ -323,7 +325,9 @@ const getEmployeeById = async (employeeId, user) => {
           statusCode: 403,
         };
       }
-      query["jobInfo.department"] = { $in: user.assignedDepartments };
+      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = {
+        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments
+      };
     } else if (user.role === ROLES.EMPLOYEE) {
       // Employees can only access their own profile
       if (!user.employeeId || user.employeeId.toString() !== employeeId) {
@@ -335,14 +339,17 @@ const getEmployeeById = async (employeeId, user) => {
       }
     }
 
-    const employee = await Employee.findOne(query)
-      .populate("jobInfo.department", "name code location")
-      .populate(
-        "jobInfo.manager",
-        "personalInfo.firstName personalInfo.lastName employeeId"
-      )
-      .populate("createdBy", "email role")
-      .populate("updatedBy", "email role");
+    const employee = await Employee.findOne({
+      where,
+      include: [
+        {
+          model: Department,
+          as: 'department',
+          attributes: ['name', 'code', 'location'],
+          required: false,
+        },
+      ],
+    });
 
     if (!employee) {
       throw {
@@ -374,10 +381,10 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
       sortBy = "createdAt",
       sortOrder = "desc",
     } = pagination;
-    const skip = (page - 1) * limit;
+    const offset = (page - 1) * limit;
 
-    // Build query based on filters
-    const query = {};
+    // Build where clause based on filters
+    const where = {};
 
     // Apply role-based scope filtering
     if (user.role === ROLES.HR_MANAGER) {
@@ -388,11 +395,13 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
           statusCode: 403,
         };
       }
-      query["jobInfo.department"] = { $in: user.assignedDepartments };
+      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = {
+        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments
+      };
     } else if (user.role === ROLES.EMPLOYEE) {
       // Employees can only see their own profile in list
       if (user.employeeId) {
-        query._id = user.employeeId;
+        where.id = user.employeeId;
       } else {
         // No employee profile linked
         return {
@@ -409,53 +418,54 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
 
     // Apply additional filters
     if (filters.department) {
-      query["jobInfo.department"] = filters.department;
+      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = filters.department;
     }
 
     if (filters.status) {
-      query.status = filters.status;
+      where.status = filters.status;
     }
 
     if (filters.employmentType) {
-      query["jobInfo.employmentType"] = filters.employmentType;
+      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.employmentType')")] = filters.employmentType;
     }
 
     if (filters.jobTitle) {
-      query["jobInfo.jobTitle"] = new RegExp(filters.jobTitle, "i");
+      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")] = {
+        [Employee.sequelize.Sequelize.Op.like]: `%${filters.jobTitle}%`
+      };
     }
 
     if (filters.workLocation) {
-      query["jobInfo.workLocation"] = new RegExp(filters.workLocation, "i");
+      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.workLocation')")] = {
+        [Employee.sequelize.Sequelize.Op.like]: `%${filters.workLocation}%`
+      };
     }
 
     if (filters.search) {
-      const searchRegex = new RegExp(filters.search, "i");
-      query.$or = [
-        { "personalInfo.firstName": searchRegex },
-        { "personalInfo.lastName": searchRegex },
-        { "contactInfo.email": searchRegex },
-        { employeeId: searchRegex },
-        { "contactInfo.phoneNumber": searchRegex },
+      where[Employee.sequelize.Sequelize.Op.or] = [
+        Employee.sequelize.literal(`JSON_EXTRACT(personalInfo, '$.firstName') LIKE '%${filters.search}%'`),
+        Employee.sequelize.literal(`JSON_EXTRACT(personalInfo, '$.lastName') LIKE '%${filters.search}%'`),
+        Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.email') LIKE '%${filters.search}%'`),
+        { employeeId: { [Employee.sequelize.Sequelize.Op.like]: `%${filters.search}%` } },
+        Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.phoneNumber') LIKE '%${filters.search}%'`),
       ];
     }
 
-    // Count total documents
-    const total = await Employee.countDocuments(query);
-
-    // Build sort object
-    const sort = {};
-    sort[sortBy] = sortOrder === "asc" ? 1 : -1;
-
-    // Fetch employees
-    const employees = await Employee.find(query)
-      .populate("jobInfo.department", "name code")
-      .populate(
-        "jobInfo.manager",
-        "personalInfo.firstName personalInfo.lastName employeeId"
-      )
-      .sort(sort)
-      .skip(skip)
-      .limit(parseInt(limit));
+    // Count and fetch employees
+    const { count: total, rows: employees } = await Employee.findAndCountAll({
+      where,
+      include: [
+        {
+          model: Department,
+          as: 'department',
+          attributes: ['name', 'code'],
+          required: false,
+        },
+      ],
+      order: [[sortBy, sortOrder.toUpperCase()]],
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+    });
 
     return {
       employees,
@@ -481,7 +491,7 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
  */
 const softDeleteEmployee = async (employeeId, user, metadata = {}) => {
   try {
-    const employee = await Employee.findById(employeeId);
+    const employee = await Employee.findByPk(employeeId);
 
     if (!employee) {
       throw {
@@ -515,7 +525,7 @@ const softDeleteEmployee = async (employeeId, user, metadata = {}) => {
     await AuditLog.logAction({
       action: "DELETE",
       entityType: "Employee",
-      entityId: employee._id,
+      entityId: employee.id.toString(),
       userId: user.id,
       userRole: user.role,
       changes: [
@@ -553,12 +563,15 @@ const softDeleteEmployee = async (employeeId, user, metadata = {}) => {
  */
 const isEmailUnique = async (email, excludeEmployeeId = null) => {
   try {
-    const query = { "contactInfo.email": email.toLowerCase() };
+    const where = {
+      [Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.email') = '${email.toLowerCase()}'`)]: true
+    };
+    
     if (excludeEmployeeId) {
-      query._id = { $ne: excludeEmployeeId };
+      where.id = { [Employee.sequelize.Sequelize.Op.ne]: excludeEmployeeId };
     }
 
-    const existingEmployee = await Employee.findOne(query);
+    const existingEmployee = await Employee.findOne({ where });
     return !existingEmployee;
   } catch (error) {
     logger.error("Error checking email uniqueness:", error);
@@ -914,14 +927,16 @@ const getCurrentEmployee = async (user) => {
       };
     }
 
-    const employee = await Employee.findById(user.employeeId)
-      .populate("jobInfo.department", "name code location")
-      .populate(
-        "jobInfo.manager",
-        "personalInfo.firstName personalInfo.lastName employeeId"
-      )
-      .populate("createdBy", "email role")
-      .populate("updatedBy", "email role");
+    const employee = await Employee.findByPk(user.employeeId, {
+      include: [
+        {
+          model: Department,
+          as: 'department',
+          attributes: ['name', 'code', 'location'],
+          required: false,
+        },
+      ],
+    });
 
     if (!employee) {
       throw {
@@ -957,7 +972,7 @@ const selfUpdateEmployee = async (updateData, user, metadata = {}) => {
       };
     }
 
-    const employee = await Employee.findById(user.employeeId);
+    const employee = await Employee.findByPk(user.employeeId);
 
     if (!employee) {
       throw {
@@ -1069,7 +1084,7 @@ const selfUpdateEmployee = async (updateData, user, metadata = {}) => {
       await AuditLog.logAction({
         action: "UPDATE",
         entityType: "Employee",
-        entityId: employee._id,
+        entityId: employee.id.toString(),
         userId: user.id,
         userRole: user.role,
         changes,

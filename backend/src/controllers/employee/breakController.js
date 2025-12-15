@@ -3,9 +3,9 @@
  * Handles break tracking within work sessions
  */
 
-import mongoose from 'mongoose';
-import AttendanceRecord from '../../models/AttendanceRecord.js';
-import AuditLog from '../../models/AuditLog.js';
+import { v4 as uuidv4 } from 'uuid';
+import AttendanceRecord from '../../models/sequelize/AttendanceRecord.js';
+import AuditLog from '../../models/sequelize/AuditLog.js';
 
 // Helper: get user ID
 const getUserId = (user) => user.id || user._id;
@@ -63,7 +63,7 @@ export const startBreak = async (req, res) => {
 
     // Create new break
     const newBreak = {
-      breakId: new mongoose.Types.ObjectId().toString(),
+      breakId: uuidv4(),
       startTime: now,
       endTime: null,
       durationMinutes: 0,
