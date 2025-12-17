@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { leaveApplicationSchema } from '../../../core/utils/essValidation';
@@ -16,10 +17,8 @@ import {
 } from '../../../shared/ui/select'; 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../shared/ui/card';
 import { toast } from 'react-toastify';
-import useLeaveStore from '../../../stores/useLeaveStore';
 
 const LeaveApplicationForm = ({ onSubmit, isLoading, leaveBalance }) => {
-  const { applyLeave, loading: leaveLoading } = useLeaveStore();
   
   // Initialize form first (hooks must be called unconditionally)
   const {
@@ -58,7 +57,17 @@ const LeaveApplicationForm = ({ onSubmit, isLoading, leaveBalance }) => {
 
   const handleFormSubmit = async (data) => {
     try {
-      await onSubmit(data);
+      // Transform data to match backend expectations
+      const submitData = {
+        type: data.leaveType,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        reason: data.reason,
+        isHalfDay: data.isHalfDay,
+        halfDayPeriod: data.isHalfDay ? data.halfDayPeriod : null,
+      };
+      
+      await onSubmit(submitData);
       toast.success('Leave application submitted successfully');
       reset();
     } catch (error) {
@@ -151,6 +160,22 @@ const LeaveApplicationForm = ({ onSubmit, isLoading, leaveBalance }) => {
       </CardContent>
     </Card>
   );
+};
+
+LeaveApplicationForm.propTypes = {
+  onSubmit: PropTypes.func.isRequired,
+  isLoading: PropTypes.bool,
+  leaveBalance: PropTypes.shape({
+    leaveTypes: PropTypes.arrayOf(PropTypes.shape({
+      type: PropTypes.string.isRequired,
+      available: PropTypes.number.isRequired,
+    })),
+  }),
+};
+
+LeaveApplicationForm.defaultProps = {
+  isLoading: false,
+  leaveBalance: null,
 };
 
 export default LeaveApplicationForm;

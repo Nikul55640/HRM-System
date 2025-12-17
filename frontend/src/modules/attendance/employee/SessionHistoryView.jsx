@@ -13,6 +13,7 @@ import {
 import { Calendar, Clock, MapPin, Coffee, Building2, Home, Users } from 'lucide-react';
 import { toast } from 'react-toastify';
 import api from '../../../core/api/api';
+import { formatDecimal } from '../../../lib/utils';
 
 const SessionHistoryView = () => {
   const [sessions, setSessions] = useState([]);
@@ -212,7 +213,7 @@ const SessionHistoryView = () => {
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">
-                            {record.workHours?.toFixed(2) || 0} hours worked
+                            {formatDecimal(record.workHours)} hours worked
                           </span>
                         </div>
                         <span

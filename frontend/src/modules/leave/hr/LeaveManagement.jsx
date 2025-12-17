@@ -223,7 +223,7 @@ const LeaveManagement = () => {
 
       {/* Leave Requests List */}
       <div className="grid gap-4">
-        {leaveRequests?.length === 0 ? (
+        {!leaveRequests || leaveRequests.length === 0 ? (
           <Card>
             <CardContent className="p-8 text-center">
               <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -237,7 +237,7 @@ const LeaveManagement = () => {
           </Card>
         ) : (
           leaveRequests.map((request) => (
-            <Card key={request._id} className="hover:shadow-md transition-shadow">
+            <Card key={request._id || request.id} className="hover:shadow-md transition-shadow">
               <CardContent className="p-6">
 
                 <div className="flex items-start justify-between">
@@ -268,7 +268,7 @@ const LeaveManagement = () => {
                         <Calendar className="w-4 h-4 text-gray-500" />
                         <div>
                           <p className="text-sm text-gray-600">Leave Type</p>
-                          <p className="font-medium capitalize">{request.leaveType}</p>
+                          <p className="font-medium capitalize">{request.leaveType || request.type}</p>
                         </div>
                       </div>
 
@@ -280,7 +280,7 @@ const LeaveManagement = () => {
                             {formatDate(request.startDate)} - {formatDate(request.endDate)}
                           </p>
                           <p className="text-sm text-gray-500">
-                            ({calculateDuration(request.startDate, request.endDate, request.isHalfDay)})
+                            ({request.totalDays || calculateDuration(request.startDate, request.endDate, request.isHalfDay)} day{(request.totalDays || 1) !== 1 ? 's' : ''})
                           </p>
                         </div>
                       </div>
@@ -321,7 +321,7 @@ const LeaveManagement = () => {
                   {request.status === 'pending' && (
                     <div className="flex gap-2 ml-4">
                       <Button
-                        onClick={() => handleApprove(request._id)}
+                        onClick={() => handleApprove(request._id || request.id)}
                         disabled={actionLoading}
                         className="bg-green-600 hover:bg-green-700 text-white"
                         size="sm"
@@ -404,7 +404,7 @@ const LeaveManagement = () => {
                   disabled={actionLoading || !selectedRequest.rejectionReason?.trim()}
                   onClick={() =>
                     handleReject(
-                      selectedRequest._id,
+                      selectedRequest._id || selectedRequest.id,
                       selectedRequest.rejectionReason
                     )
                   }

@@ -13,35 +13,29 @@ import logger from "./utils/logger.js";
 // ===================================================
 
 // Auth
-import authRoutes from "./routes/authRoutes.js";
+import authRoutes from "./routes/auth.routes.js";
 
 // Employees (Admin side)
-import employeeRoutes from "./routes/employeeRoutes.js";
+import employeeRoutes from "./routes/admin/employee.routes.js";
 
 // Employee Self Service (User side)
 import employeeSelfServiceRoutes from "./routes/employee/index.js";
 
-// Attendance Routes
-import attendanceRoutes from "./routes/attendanceRoutes.js";
-
 // Admin modules
-import adminLeaveRoutes from "./routes/admin/leaveRequestRoutes.js";
-import adminDashboardRoutes from "./routes/admin/adminDashboardRoutes.js";
-import departmentRoutes from "./routes/admin/departmentRoutes.js";
+import adminLeaveRoutes from "./routes/admin/leaveRequest.routes.js";
+import adminDashboardRoutes from "./routes/admin/adminDashboard.routes.js";
+import adminAttendanceRoutes from "./routes/admin/attendance.routes.js";
+import departmentRoutes from "./routes/admin/department.routes.js";
 
 // Payroll (Admin + Employee)
-import adminPayrollRoutes from "./routes/admin/adminPayrollRoutes.js";
-import employeePayslipRoutes from "./routes/employee/payslips.js";
+import adminPayrollRoutes from "./routes/admin/adminPayroll.routes.js";
+import employeePayslipRoutes from "./routes/employee/payslips.routes.js";
 
 // HRM Modules
-import calendarRoutes from "./routes/companyCalendarRoutes.js";
-import dashboardRoutes from "./routes/dashboardRoutes.js";
-import documentRoutes from "./routes/documentRoutes.js";
-import userRoutes from "./routes/userRoutes.js";
-import configRoutes from "./routes/configRoutes.js";
-
-// Manager Routes
-import managerRoutes from "./routes/managerRoutes.js";
+import calendarRoutes from "./routes/companyCalendar.routes.js";
+import documentRoutes from "./routes/document.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import configRoutes from "./routes/config.routes.js";
 
 const app = express();
 
@@ -130,9 +124,6 @@ app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/leave", adminLeaveRoutes);
 app.use("/api/admin/departments", departmentRoutes);
 app.use("/api/admin/payroll", adminPayrollRoutes);
-
-// Import admin attendance routes
-import adminAttendanceRoutes from "./routes/admin/adminAttendanceRoutes.js";
 app.use("/api/admin/attendance", adminAttendanceRoutes);
 
 // AUTH SECTION
@@ -145,19 +136,11 @@ app.use("/api/employees", employeeRoutes);
 app.use("/api/employee", employeeSelfServiceRoutes);
 app.use("/api/employee", employeePayslipRoutes);
 
-// ATTENDANCE ROUTES (Employee + Admin)
-app.use("/api/employee/attendance", attendanceRoutes);
-app.use("/api/admin/attendance", attendanceRoutes);
-
 // HRM CORE MODULES
 app.use("/api/calendar", calendarRoutes);
-app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/document", documentRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/config", configRoutes);
-
-// MANAGER ROUTES
-app.use("/api/manager", managerRoutes);
 
 // ===================================================
 // 404 HANDLER

@@ -50,13 +50,14 @@ const useLeaveStore = create(
       // ========================
       // FETCH ALL LEAVE REQUESTS (ADMIN SIDE)
       // ========================
-      fetchLeaveRequests: async () => {
-        const { filters, pagination } = get();
+      fetchLeaveRequests: async (customFilters = null) => {
+        const { filters: storeFilters, pagination } = get();
+        const filtersToUse = customFilters || storeFilters;
         set({ loading: true, error: null });
 
         try {
           const response = await leaveService.getLeaveRequests({
-            ...filters,
+            ...filtersToUse,
             page: pagination.page,
             limit: pagination.limit,
           });
@@ -109,7 +110,7 @@ const useLeaveStore = create(
 
           set((state) => ({
             leaveRequests: state.leaveRequests.map((req) =>
-              req._id === id ? response.data : req
+              (req._id || req.id) === id ? response.data : req
             ),
             loading: false,
           }));
@@ -132,12 +133,12 @@ const useLeaveStore = create(
 
         try {
           const response = await leaveService.rejectLeaveRequest(id, {
-            comments,
+            reason: comments,
           });
 
           set((state) => ({
             leaveRequests: state.leaveRequests.map((req) =>
-              req._id === id ? response.data : req
+              (req._id || req.id) === id ? response.data : req
             ),
             loading: false,
           }));
@@ -145,6 +146,7 @@ const useLeaveStore = create(
           toast.success("Leave request rejected");
         } catch (error) {
           const message =
+            error.response?.data?.message ||
             error.response?.data?.error?.message ||
             "Failed to reject leave request";
           toast.error(message);

@@ -1,0 +1,333 @@
+{
+  "backend": {
+    "description": "Node.js Express Backend with Sequelize ORM and MySQL Database",
+    "database": "MySQL with Sequelize ORM",
+    "architecture": "MVC Pattern with Service Layer",
+    "authentication": "JWT with Role-Based Access Control (RBAC)",
+    "naming_convention": "Dot notation for better organization (e.g., controller.js, service.js, routes.js)",
+    "last_updated": "2025-01-17",
+    "structure": {
+      "src": {
+        "description": "Main source directory",
+        "files": {
+          "app.js": "Express application setup and middleware configuration",
+          "server.js": "Server entry point and startup configuration",
+          "backend_structure.txt": "Documentation file",
+          "Admindashboard": "Legacy file (needs cleanup)"
+        },
+        "directories": {
+          "Admin": {
+            "description": "Legacy admin modules directory (mostly empty, being phased out)",
+            "Dashboard": {
+              "description": "Empty - functionality moved to controllers/admin/"
+            }
+          },
+          "config": {
+            "description": "Configuration files and settings",
+            "files": {
+              "index.js": "Main configuration exports",
+              "rolePermissions.js": "RBAC permissions and role definitions",
+              "sequelize.js": "Sequelize database connection and configuration"
+            }
+          },
+          "controllers": {
+            "description": "Request handlers and API endpoints (organized by role)",
+            "files": {
+              "authController.js": "Authentication controller (legacy)",
+              "companyCalendarController.js": "Company calendar management",
+              "configController.js": "System configuration management",
+              "documentController.js": "Document management controller"
+            },
+            "admin": {
+              "description": "Admin-specific controllers with dot notation",
+              "adminDashboard.controller.js": "Admin dashboard controller logic",
+              "auditLog.controller.js": "Audit log management",
+              "department.controller.js": "Department CRUD operations",
+              "employee.controller.js": "Employee management for admins",
+              "leaveBalance.controller.js": "Leave balance management",
+              "leaveRequest.controller.js": "Leave request approval/management",
+              "liveAttendanceController.js": "Real-time attendance monitoring (legacy naming)",
+              "payrollController.js": "Payroll processing and management (legacy naming)",
+              "salaryStructureController.js": "Salary structure management (legacy naming)",
+              "userController.js": "User account management (legacy naming)"
+            },
+            "calendar": {
+              "description": "Calendar-related controllers",
+              "calendarViewController.js": "Calendar view and events"
+            },
+            "employee": {
+              "description": "Employee-facing controllers",
+              "attendanceController.js": "Employee attendance operations",
+              "bankDetailsController.js": "Employee bank details management",
+              "breakController.js": "Break time management",
+              "dashboardController.js": "Employee dashboard data",
+              "employeeCalendarController.js": "Employee calendar views",
+              "leaveController.js": "Employee leave operations",
+              "leaveRequestController.js": "Employee leave requests",
+              "notificationsController.js": "Employee notifications",
+              "payslipsController.js": "Employee payslip access",
+              "profileController.js": "Employee profile management",
+              "requestsController.js": "Employee service requests",
+              "sessionController.js": "Attendance session management"
+            },
+            "sequelize": {
+              "description": "Sequelize-specific controllers",
+              "authController.js": "Authentication with Sequelize models"
+            }
+          },
+          "jobs": {
+            "description": "Background jobs and scheduled tasks",
+            "notificationCleanup.js": "Cleanup old notifications job"
+          },
+          "middleware": {
+            "description": "Express middleware functions",
+            "attendanceValidation.js": "Attendance data validation",
+            "authenticate.js": "JWT authentication middleware",
+            "authorize.js": "Authorization middleware",
+            "checkPermission.js": "Permission-based access control",
+            "employeeAuth.js": "Employee-specific authentication",
+            "errorHandler.js": "Global error handling middleware",
+            "requireRoles.js": "Role-based access middleware",
+            "upload.js": "File upload handling middleware"
+          },
+          "models": {
+            "description": "Database models and ORM definitions",
+            "index.js": "Main model exports and associations",
+            "sequelize": {
+              "description": "Sequelize model definitions",
+              "index.js": "Sequelize models index and associations",
+              "AttendanceRecord.js": "Employee attendance records",
+              "AuditLog.js": "System audit logging",
+              "CompanyEvent.js": "Company events and holidays",
+              "Config.js": "System configuration settings",
+              "Department.js": "Organizational departments",
+              "Document.js": "Document management",
+              "Employee.js": "Employee master data",
+              "EmployeeProfile.js": "Extended employee profile information",
+              "LeaveBalance.js": "Employee leave balances",
+              "LeaveRequest.js": "Leave applications and approvals",
+              "Notification.js": "System notifications",
+              "Payslip.js": "Employee payslips",
+              "Request.js": "Employee service requests",
+              "SalaryStructure.js": "Employee salary structures",
+              "User.js": "User authentication and authorization"
+            }
+          },
+          "routes": {
+            "description": "API route definitions (organized by feature and role)",
+            "files": {
+              "attendanceRoutes.js": "Attendance-related routes",
+              "authRoutes.js": "Authentication routes",
+              "companyCalendarRoutes.js": "Company calendar routes",
+              "configRoutes.js": "Configuration routes",
+              "dashboardRoutes.js": "Dashboard routes",
+              "documentRoutes.js": "Document management routes",
+              "managerRoutes.js": "Manager-specific routes",
+              "userRoutes.js": "User management routes"
+            },
+            "admin": {
+              "description": "Admin-specific routes with dot notation",
+              "adminAttendanceRoutes.js": "Admin attendance management (legacy naming)",
+              "adminDashboard.routes.js": "Admin dashboard routes",
+              "adminPayrollRoutes.js": "Admin payroll management (legacy naming)",
+              "auditLog.routes.js": "Audit log routes",
+              "department.routes.js": "Department management routes",
+              "employeeRoutes.js": "Employee management routes (legacy naming)",
+              "leaveRequestRoutes.js": "Leave request management routes (legacy naming)",
+              "salaryStructureRoutes.js": "Salary structure routes (legacy naming)"
+            },
+            "calendar": {
+              "description": "Calendar-specific routes",
+              "calendarViewRoutes.js": "Calendar view routes"
+            },
+            "employee": {
+              "description": "Employee-specific routes",
+              "index.js": "Employee routes index",
+              "attendance.js": "Employee attendance routes",
+              "bankDetails.js": "Bank details routes",
+              "employeeCalendar.js": "Employee calendar routes",
+              "leave.js": "Employee leave routes",
+              "notifications.js": "Employee notification routes",
+              "payslips.js": "Employee payslip routes",
+              "profile.js": "Employee profile routes",
+              "requests.js": "Employee request routes"
+            }
+          },
+          "scripts": {
+            "description": "Database migration and utility scripts",
+            "add-user-columns.js": "Add user table columns",
+            "fix-audit-log.js": "Fix audit log issues",
+            "fix-config-json.js": "Fix configuration JSON",
+            "fix-document-column.js": "Fix document table columns",
+            "migrate-to-mysql.js": "Migration to MySQL",
+            "mysql-migration.js": "MySQL migration script",
+            "simple-migrate.js": "Simple migration utility",
+            "simple-mysql-migration.js": "Simple MySQL migration",
+            "test-connection.js": "Test database connection",
+            "test-migration.js": "Test migration scripts"
+          },
+          "services": {
+            "description": "Business logic and service layer (organized by domain)",
+            "files": {
+              "config.service.js": "Configuration management service",
+              "dashboard.service.js": "Dashboard data service",
+              "document.service.js": "Document management service",
+              "IP.service.js": "IP address management service",
+              "notification.service.js": "Notification management service",
+              "userService.js": "User management service (legacy naming)"
+            },
+            "admin": {
+              "description": "Admin-specific services with dot notation",
+              "adminDashboard..service.js": "Admin dashboard service (double dot - needs fixing)",
+              "auditLog.service.js": "Audit logging service",
+              "department.service.js": "Department management service",
+              "employee.service.js": "Employee management service for admins"
+            },
+            "audit": {
+              "description": "Audit-specific services",
+              "audit.service.js": "Centralized audit service"
+            },
+            "email": {
+              "description": "Email-related services",
+              "email.service.js": "Email notification service"
+            }
+          },
+          "utils": {
+            "description": "Utility functions and helpers",
+            "debug.js": "Debug utilities",
+            "employeeHelper.js": "Employee-related helper functions",
+            "encryption.js": "Data encryption utilities",
+            "essHelpers.js": "Employee Self Service helpers",
+            "generatePayslipPDF.js": "PDF generation for payslips",
+            "jwt.js": "JWT token utilities",
+            "logger.js": "Application logging utility",
+            "malwareScanner.js": "File malware scanning"
+          },
+          "validators": {
+            "description": "Input validation schemas",
+            "authValidator.js": "Authentication validation",
+            "bankDetailsValidator.js": "Bank details validation",
+            "documentValidator.js": "Document validation",
+            "employeeValidator.js": "Employee data validation"
+          }
+        }
+      }
+    },
+    "key_features": {
+      "authentication": {
+        "type": "JWT-based",
+        "features": ["Login", "Logout", "Token refresh", "Password reset"]
+      },
+      "authorization": {
+        "type": "Role-Based Access Control (RBAC)",
+        "roles": ["Admin", "HR", "Manager", "Employee"],
+        "permissions": "Module and action-based permissions"
+      },
+      "employee_management": {
+        "features": [
+          "Employee CRUD operations",
+          "Profile management",
+          "Department assignment",
+          "Document management",
+          "Employee directory"
+        ]
+      },
+      "attendance_system": {
+        "features": [
+          "Clock in/out",
+          "Break management",
+          "Location tracking",
+          "Attendance reports",
+          "Live attendance monitoring"
+        ]
+      },
+      "leave_management": {
+        "features": [
+          "Leave applications",
+          "Leave approvals",
+          "Leave balance tracking",
+          "Leave calendar",
+          "Leave reports"
+        ]
+      },
+      "payroll_system": {
+        "features": [
+          "Salary structure management",
+          "Payslip generation",
+          "Payroll processing",
+          "Tax calculations",
+          "Payroll reports"
+        ]
+      },
+      "calendar_system": {
+        "features": [
+          "Company events",
+          "Holiday management",
+          "Employee calendar",
+          "Event notifications"
+        ]
+      },
+      "notification_system": {
+        "features": [
+          "Real-time notifications",
+          "Email notifications",
+          "Notification preferences",
+          "Bulk notifications"
+        ]
+      },
+      "audit_system": {
+        "features": [
+          "Activity logging",
+          "Audit trails",
+          "System monitoring",
+          "Compliance reporting"
+        ]
+      }
+    },
+    "database_models": {
+      "User": "Authentication and user accounts",
+      "Employee": "Employee master data and profiles",
+      "EmployeeProfile": "Extended employee information",
+      "Department": "Organizational structure",
+      "AttendanceRecord": "Daily attendance tracking",
+      "LeaveRequest": "Leave applications and approvals",
+      "LeaveBalance": "Employee leave entitlements",
+      "Payslip": "Monthly payslip records",
+      "SalaryStructure": "Employee compensation structure",
+      "Document": "Employee document management",
+      "Notification": "System notifications",
+      "AuditLog": "System activity logging",
+      "CompanyEvent": "Company events and holidays",
+      "Config": "System configuration",
+      "Request": "Employee service requests"
+    },
+    "api_structure": {
+      "base_url": "/api",
+      "endpoints": {
+        "auth": "/api/auth/*",
+        "employees": "/api/employees/*",
+        "attendance": "/api/attendance/*",
+        "leave": "/api/leave/*",
+        "payroll": "/api/payroll/*",
+        "admin": "/api/admin/*",
+        "calendar": "/api/calendar/*",
+        "documents": "/api/documents/*",
+        "notifications": "/api/notifications/*"
+      }
+    },
+    "migration_status": {
+      "database": "Migrated from MongoDB to MySQL",
+      "orm": "Migrated from Mongoose to Sequelize",
+      "models": "✅ All 16 models migrated to Sequelize",
+      "controllers": "⚠️ Some controllers still use Mongoose syntax",
+      "services": "⚠️ Some services still use Mongoose syntax",
+      "pending_fixes": [
+        "Convert remaining Mongoose syntax to Sequelize",
+        "Update query operators ($gte, $lte, $in to Op.gte, Op.lte, Op.in)",
+        "Replace .populate() with include syntax",
+        "Update .find() to .findAll()",
+        "Remove .lean() calls"
+      ]
+    }
+  }
+}

@@ -70,6 +70,7 @@ export const moduleRoutes = {
   // ESS module routes
   ess: {
     profile: '/employee/profile',
+    settings: '/employee/settings',
     bankDetails: '/employee/bank-details',
     payslips: '/employee/payslips',
     leaveBalance: '/employee/leave-balance',
@@ -195,6 +196,11 @@ export const navigationConfig = {
       title: 'My Profile',
       path: moduleRoutes.ess.profile,
       icon: 'profile'
+    },
+    {
+      title: 'Settings',
+      path: moduleRoutes.ess.settings,
+      icon: 'settings'
     },
     {
       title: 'Bank Details',

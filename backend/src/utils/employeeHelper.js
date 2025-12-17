@@ -1,4 +1,4 @@
-const Employee = require('../models/Employee');
+import { Employee } from '../models/sequelize/index.js';
 
 /**
  * Get employee from authenticated request
@@ -6,7 +6,7 @@ const Employee = require('../models/Employee');
  * @returns {Promise<Employee>} Employee document
  * @throws {Error} If employee not found
  */
-exports.getEmployeeFromAuth = async (req) => {
+export const getEmployeeFromAuth = async (req) => {
   if (!req.user || !req.user.employeeId) {
     const error = new Error('No employee ID found in authentication');
     error.code = 'NO_EMPLOYEE_ID';

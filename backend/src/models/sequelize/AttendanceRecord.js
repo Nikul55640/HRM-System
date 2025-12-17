@@ -159,10 +159,40 @@ AttendanceRecord.prototype.toSummary = function() {
     earlyExitMinutes: this.earlyExitMinutes,
     isLate: this.isLate,
     isEarlyDeparture: this.isEarlyDeparture,
-    sessions: this.sessions,
+    sessions: this.sessions || [],
     approvalStatus: this.approvalStatus,
     source: this.source,
   };
+};
+
+// Session management methods
+AttendanceRecord.prototype.canClockIn = function() {
+  const sessions = this.sessions || [];
+  // Can clock in if no active session exists
+  return !sessions.some(session => session.status === 'active' || session.status === 'on_break');
+};
+
+AttendanceRecord.prototype.canClockOut = function() {
+  const sessions = this.sessions || [];
+  // Can clock out if there's an active session (not on break)
+  return sessions.some(session => session.status === 'active');
+};
+
+AttendanceRecord.prototype.canStartBreak = function() {
+  const sessions = this.sessions || [];
+  // Can start break if there's an active session (not already on break)
+  return sessions.some(session => session.status === 'active');
+};
+
+AttendanceRecord.prototype.canEndBreak = function() {
+  const sessions = this.sessions || [];
+  // Can end break if there's a session on break
+  return sessions.some(session => session.status === 'on_break');
+};
+
+AttendanceRecord.prototype.getActiveSession = function() {
+  const sessions = this.sessions || [];
+  return sessions.find(session => session.status === 'active' || session.status === 'on_break');
 };
 
 // Static methods

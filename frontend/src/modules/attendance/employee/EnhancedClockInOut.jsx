@@ -31,15 +31,18 @@ const EnhancedClockInOut = () => {
       console.log('📊 [FETCH] Fetching today\'s attendance record...');
       
       const today = new Date();
-      const response = await api.get('/employee/attendance', {
+      const startDate = today.toISOString().split('T')[0];
+      const endDate = startDate;
+      
+      const response = await api.get('/employee/attendance/sessions', {
         params: {
-          year: today.getFullYear(),
-          month: today.getMonth() + 1,
+          startDate,
+          endDate,
           limit: 1,
         },
       });
 
-      console.log('📊 [FETCH] Response:', response.data);
+      console.log('📊 [FETCH] Sessions response:', response.data);
 
       if (response.data.success && response.data.data.length > 0) {
         const record = response.data.data[0];
@@ -56,15 +59,18 @@ const EnhancedClockInOut = () => {
           console.log('✅ [FETCH] Today\'s record set:', record);
         } else {
           console.log('⚠️ [FETCH] Record is not for today');
+          setTodayRecord(null);
         }
       } else {
         console.log('⚠️ [FETCH] No records found');
+        setTodayRecord(null);
       }
     } catch (error) {
-      if (error.status === 403 || error.status === 500) {
-        toast.error(error.message || 'Failed to load attendance data');
+      if (error.response?.status === 403 || error.response?.status === 500) {
+        toast.error(error.response?.data?.message || 'Failed to load attendance data');
       }
       console.error('❌ [FETCH] Error fetching today record:', error);
+      setTodayRecord(null);
     }
   };
 
@@ -102,7 +108,12 @@ const EnhancedClockInOut = () => {
       console.log('🔴 [CLOCK-OUT] Starting clock-out process...');
       
       setLoading(true);
-      const response = await api.post('/employee/attendance/session/end');
+      
+      // Use different endpoint based on whether it's a legacy record or new session
+      const endpoint = hasLegacyClockIn ? '/employee/attendance/check-out' : '/employee/attendance/session/end';
+      console.log('🔴 [CLOCK-OUT] Using endpoint:', endpoint);
+      
+      const response = await api.post(endpoint);
       
       console.log('✅ [CLOCK-OUT] Response received:', response.data);
 
@@ -158,7 +169,7 @@ const EnhancedClockInOut = () => {
       }
     } catch (error) {
       console.error('❌ [END-BREAK] Error:', error);
-      console.error('❌ [END-BREAK] Error response:', error.response?.data);
+      
       const message = error.response?.data?.message || 'Failed to end break';
       toast.error(message);
     } finally {
@@ -189,6 +200,14 @@ const EnhancedClockInOut = () => {
     return `${hours}h ${mins}m`;
   };
 
+  const calculateWorkedMinutes = (checkInTime) => {
+    if (!checkInTime) return 0;
+    const now = new Date();
+    const checkIn = new Date(checkInTime);
+    const diffMs = now.getTime() - checkIn.getTime();
+    return Math.max(0, Math.floor(diffMs / (1000 * 60)));
+  };
+
   const getLocationIcon = (location) => {
     switch (location) {
       case 'office':
@@ -215,21 +234,24 @@ const EnhancedClockInOut = () => {
     }
   };
 
-  // Get active session
+  // Get active session (handle both new session format and legacy format)
   const activeSession = todayRecord?.sessions?.find(
     (s) => s.status === 'active' || s.status === 'on_break'
   );
 
-  const isActive = activeSession && activeSession.status === 'active';
-  const isOnBreak = activeSession && activeSession.status === 'on_break';
+  // Handle legacy format (checkIn/checkOut without sessions)
+  const hasLegacyClockIn = todayRecord?.checkIn && !todayRecord?.checkOut && (!todayRecord?.sessions || todayRecord.sessions.length === 0);
+  
+  const isActive = activeSession?.status === 'active' || hasLegacyClockIn;
+  const isOnBreak = activeSession?.status === 'on_break';
   const hasCompletedSessions = todayRecord?.sessions?.some((s) => s.status === 'completed');
 
-  // Debug logs
-  console.log('🎯 [RENDER] Today Record:', todayRecord);
-  console.log('🎯 [RENDER] Active Session:', activeSession);
-  console.log('🎯 [RENDER] Is Active:', isActive);
-  console.log('🎯 [RENDER] Is On Break:', isOnBreak);
-  console.log('🎯 [RENDER] Has Completed Sessions:', hasCompletedSessions);
+  // Debug logs (only when needed)
+  // console.log('🎯 [RENDER] Today Record:', todayRecord);
+  // console.log('🎯 [RENDER] Active Session:', activeSession);
+  // console.log('🎯 [RENDER] Is Active:', isActive);
+  // console.log('🎯 [RENDER] Is On Break:', isOnBreak);
+  // console.log('🎯 [RENDER] Has Completed Sessions:', hasCompletedSessions);
 
   return (
     <>
@@ -251,14 +273,23 @@ const EnhancedClockInOut = () => {
             </div>
 
             {/* Active Session Info */}
-            {activeSession && (
+            {(activeSession || hasLegacyClockIn) && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {getLocationIcon(activeSession.workLocation)}
-                    <span className="font-medium">
-                      {getLocationLabel(activeSession.workLocation)}
-                    </span>
+                    {activeSession ? (
+                      <>
+                        {getLocationIcon(activeSession.workLocation)}
+                        <span className="font-medium">
+                          {getLocationLabel(activeSession.workLocation)}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Building2 className="h-4 w-4" />
+                        <span className="font-medium">Office (Legacy)</span>
+                      </>
+                    )}
                   </div>
                   <span
                     className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -275,7 +306,7 @@ const EnhancedClockInOut = () => {
                   <div>
                     <div className="text-muted-foreground">Clock In</div>
                     <div className="font-semibold">
-                      {new Date(activeSession.checkIn).toLocaleTimeString('en-US', {
+                      {new Date(activeSession?.checkIn || todayRecord?.checkIn).toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
@@ -284,22 +315,31 @@ const EnhancedClockInOut = () => {
                   <div>
                     <div className="text-muted-foreground">Worked Time</div>
                     <div className="font-semibold">
-                      {formatDuration(activeSession.workedMinutes || 0)}
+                      {activeSession ? 
+                        formatDuration(activeSession.workedMinutes || 0) :
+                        formatDuration(calculateWorkedMinutes(todayRecord?.checkIn))
+                      }
                     </div>
                   </div>
                 </div>
 
-                {activeSession.locationDetails && (
+                {activeSession?.locationDetails && (
                   <div className="text-sm text-muted-foreground">
                     📍 {activeSession.locationDetails}
                   </div>
                 )}
 
-                {activeSession.breaks && activeSession.breaks.length > 0 && (
+                {activeSession?.breaks && activeSession.breaks.length > 0 && (
                   <div className="text-sm">
                     <div className="text-muted-foreground">
                       Breaks: {activeSession.breaks.length} ({formatDuration(activeSession.totalBreakMinutes || 0)})
                     </div>
+                  </div>
+                )}
+
+                {hasLegacyClockIn && (
+                  <div className="text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                    ⚠️ Legacy clock-in detected. Please clock out and use the new session system for better tracking.
                   </div>
                 )}
               </div>

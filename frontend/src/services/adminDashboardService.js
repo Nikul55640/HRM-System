@@ -13,7 +13,7 @@ const adminDashboardService = {
       // Fetch all data in parallel for better performance
       const [employeesRes, attendanceRes, leavesRes] = await Promise.allSettled([
         api.get('/employees', { params: { limit: 100 } }),  // Max limit is 100 per validation
-        api.get('/admin/attendance', { params: { limit: 1 } }), // Just for stats
+        api.get('/admin/attendance'), // Just for stats
         api.get('/admin/leave/leave-requests'),  // Correct route: /admin/leave/leave-requests
       ]);
 

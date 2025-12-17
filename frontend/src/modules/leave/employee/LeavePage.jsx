@@ -10,42 +10,53 @@ import {
   AlertCircle,
   TrendingUp,
   Download,
+  RefreshCw,
 } from "lucide-react";
 import employeeSelfService from "../../../services/employeeSelfService";
 import LeaveRequestModal from "./LeaveRequestModal";
-import LeaveBalanceCard from "./LeaveBalanceCard";
+import LeaveBalanceCards from "../components/LeaveBalanceCards";
+import useLeaveBalance from "../hooks/useLeaveBalance";
 
 const LeavePage = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
-  const [leaveBalance, setLeaveBalance] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
+
+  // Use the custom hook for leave balance
+  const { 
+    leaveBalance, 
+    loading: balanceLoading, 
+    refreshBalance,
+    lastFetched 
+  } = useLeaveBalance();
 
   const hasFetched = useRef(false);
 
   useEffect(() => {
     if (!hasFetched.current) {
-      fetchData();
+      fetchLeaveHistory();
       hasFetched.current = true;
     }
   }, []);
 
-  const fetchData = async () => {
+  const fetchLeaveHistory = async () => {
     try {
-      setLoading(true);
-      const [balanceRes, historyRes] = await Promise.all([
-        employeeSelfService.leave.getBalance(),
-        employeeSelfService.leave.getHistory(),
-      ]);
-
-      setLeaveBalance(balanceRes.data);
+      setHistoryLoading(true);
+      const historyRes = await employeeSelfService.leave.getHistory();
       setLeaveRequests(historyRes.data || []);
     } catch (error) {
-      toast.error(error.message || "Failed to load leave data");
+      toast.error(error.message || "Failed to load leave history");
     } finally {
-      setLoading(false);
+      setHistoryLoading(false);
     }
+  };
+
+  const fetchData = async () => {
+    await Promise.all([
+      refreshBalance(),
+      fetchLeaveHistory(),
+    ]);
   };
 
   const handleApplyLeave = async (leaveData) => {
@@ -104,6 +115,8 @@ const LeavePage = () => {
     }
   };
 
+  const loading = balanceLoading && historyLoading;
+
   if (loading) {
     return <LoadingSpinner size="lg" message="Loading leave information..." />;
   }
@@ -119,6 +132,15 @@ const LeavePage = () => {
           </p>
         </div>
         <div className="flex gap-3">
+          <button
+            onClick={refreshBalance}
+            disabled={balanceLoading}
+            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2 disabled:opacity-50"
+            title={lastFetched ? `Last updated: ${lastFetched.toLocaleTimeString()}` : 'Refresh balance'}
+          >
+            <RefreshCw className={`h-4 w-4 ${balanceLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
           <button
             onClick={handleExport}
             className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2"
@@ -137,31 +159,9 @@ const LeavePage = () => {
       </div>
 
       {/* Leave Balance Cards */}
-      {leaveBalance && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <LeaveBalanceCard
-            title="Annual Leave"
-            available={leaveBalance.annual?.available || 0}
-            total={leaveBalance.annual?.total || 0}
-            used={leaveBalance.annual?.used || 0}
-            color="blue"
-          />
-          <LeaveBalanceCard
-            title="Sick Leave"
-            available={leaveBalance.sick?.available || 0}
-            total={leaveBalance.sick?.total || 0}
-            used={leaveBalance.sick?.used || 0}
-            color="green"
-          />
-          <LeaveBalanceCard
-            title="Casual Leave"
-            available={leaveBalance.casual?.available || 0}
-            total={leaveBalance.casual?.total || 0}
-            used={leaveBalance.casual?.used || 0}
-            color="purple"
-          />
-        </div>
-      )}
+      <div className="mb-6">
+        <LeaveBalanceCards balances={leaveBalance} />
+      </div>
 
       {/* Leave Requests List */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">

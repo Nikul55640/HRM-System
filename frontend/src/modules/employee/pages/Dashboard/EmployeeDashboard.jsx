@@ -14,6 +14,7 @@ import {
 // Data is fetched via services instead
 import employeeDashboardService from "../../../../services/employeeDashboardService";
 import attendanceService from "../../../attendance/services/attendanceService";
+import LeaveBalanceWidget from "../../../leave/components/LeaveBalanceWidget";
 import {
   LogOut,
   CalendarDays,
@@ -53,7 +54,7 @@ const fetchDashboardData = async () => {
     if (res.success) {
       console.log("Personal Info:", res.data.personalInfo);
       console.log("Job Info:", res.data.jobInfo);
-      console.log("Employee ID:", res.data.employeeId);
+      
 
       setDashboardData(res.data);
     } else {
@@ -323,6 +324,11 @@ const fetchDashboardData = async () => {
               value={dashboardData.stats?.leaveRequests || 0}
               bg="bg-purple-50"
             />
+          </div>
+
+          {/* Leave Balance Widget */}
+          <div className="mt-6">
+            <LeaveBalanceWidget />
           </div>
 
           {/* People & Events Section */}

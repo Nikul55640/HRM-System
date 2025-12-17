@@ -54,6 +54,7 @@ const Sidebar = () => {
       showIf: () => !!user?.employeeId, // Only show if user has employeeId
       items: [
         { name: "My Profile", path: "/profile", icon: "User", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
+        { name: "Settings", path: "/settings", icon: "Settings", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
         { name: "Bank Details", path: "/bank-details", icon: "Banknote", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
         { name: "My Payslips", path: "/payslips", icon: "Receipt", showIf: () => can.do(MODULES.PAYROLL.VIEW_OWN) },
         { name: "Leave", path: "/leave", icon: "CalendarDays", showIf: () => can.do(MODULES.LEAVE.VIEW_OWN) },

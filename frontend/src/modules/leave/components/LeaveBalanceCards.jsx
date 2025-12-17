@@ -1,3 +1,4 @@
+import PropTypes from 'prop-types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
@@ -96,6 +97,25 @@ const LeaveBalanceCards = ({ balances }) => {
       </Card>
     </div>
   );
+};
+
+LeaveBalanceCards.propTypes = {
+  balances: PropTypes.shape({
+    leaveTypes: PropTypes.arrayOf(PropTypes.shape({
+      type: PropTypes.string.isRequired,
+      allocated: PropTypes.number.isRequired,
+      used: PropTypes.number.isRequired,
+      pending: PropTypes.number.isRequired,
+      available: PropTypes.number.isRequired,
+    })),
+    total: PropTypes.number,
+    available: PropTypes.number,
+    used: PropTypes.number,
+  }),
+};
+
+LeaveBalanceCards.defaultProps = {
+  balances: null,
 };
 
 export default LeaveBalanceCards;

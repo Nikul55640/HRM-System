@@ -1,0 +1,412 @@
+================================================================================
+                    BACKEND STRUCTURE DOCUMENTATION (UPDATED)
+================================================================================
+
+PROJECT: Employee Management System Backend
+TECHNOLOGY STACK: Node.js + Express.js + Sequelize ORM + MySQL
+ARCHITECTURE: MVC Pattern with Service Layer
+AUTHENTICATION: JWT with Role-Based Access Control (RBAC)
+DATABASE: MySQL with Sequelize ORM (Migrated from MongoDB/Mongoose)
+
+================================================================================
+                              DIRECTORY STRUCTURE
+================================================================================
+
+backend/src/
+├── app.js                          # Express application setup and middleware
+├── server.js                       # Server entry point and startup
+├── backend_structure.txt           # Legacy structure documentation
+│
+├── config/                         # Configuration Files
+│   ├── index.js                    # Main configuration exports
+│   ├── rolePermissions.js          # RBAC permissions and role definitions
+│   └── sequelize.js                # Sequelize database connection config
+│
+├── controllers/                    # Request Handlers & API Endpoints
+│   ├── auth.controller.js          # Authentication controller (updated)
+│   ├── companyCalendar.controller.js # Company calendar management
+│   ├── config.controller.js        # System configuration management
+│   ├── document.controller.js      # Document management controller
+│   │
+│   ├── admin/                      # Admin-Specific Controllers
+│   │   ├── adminDashboard.controller.js  # Admin dashboard operations
+│   │   ├── auditLog.controller.js        # Audit log management
+│   │   ├── department.controller.js      # Department CRUD operations
+│   │   ├── employee.controller.js        # Employee management for admins
+│   │   ├── leaveBalance.controller.js    # Leave balance management
+│   │   ├── leaveRequest.controller.js    # Leave request approval/management
+│   │   ├── liveAttendance.controller.js  # Real-time attendance monitoring
+│   │   ├── payroll.controller.js         # Payroll processing and management
+│   │   ├── salaryStructure.controller.js # Salary structure management
+│   │   └── user.controller.js            # User account management
+│   │
+│   ├── calendar/                   # Calendar-Related Controllers
+│   │   └── calendarView.controller.js    # Calendar view and events
+│   │
+│   ├── employee/                   # Employee-Facing Controllers
+│   │   ├── attendance.controller.js      # Employee attendance operations
+│   │   ├── bankDetails.controller.js     # Employee bank details management
+│   │   ├── break.controller.js           # Break time management
+│   │   ├── dashboard.controller.js       # Employee dashboard data
+│   │   ├── employeeCalendar.controller.js # Employee calendar views
+│   │   ├── leave.controller.js           # Employee leave operations
+│   │   ├── leaveRequest.controller.js    # Employee leave requests
+│   │   ├── notifications.controller.js   # Employee notifications
+│   │   ├── payslips.controller.js        # Employee payslip access
+│   │   ├── profile.controller.js         # Employee profile management
+│   │   ├── requests.controller.js        # Employee service requests
+│   │   └── session.controller.js         # Attendance session management
+│   │
+│   └── sequelize/                  # Sequelize-Specific Controllers
+│       └── auth.controller.js            # Authentication with Sequelize models
+│
+├── jobs/                           # Background Jobs & Scheduled Tasks
+│   └── notificationCleanup.js            # Cleanup old notifications job
+│
+├── middleware/                     # Express Middleware Functions
+│   ├── attendanceValidation.js          # Attendance data validation
+│   ├── authenticate.js                  # JWT authentication middleware
+│   ├── authorize.js                     # Authorization middleware
+│   ├── checkPermission.js               # Permission-based access control
+│   ├── employeeAuth.js                  # Employee-specific authentication
+│   ├── errorHandler.js                  # Global error handling middleware
+│   ├── requireRoles.js                  # Role-based access middleware
+│   └── upload.js                        # File upload handling middleware
+│
+├── models/                         # Database Models & ORM Definitions
+│   ├── index.js                          # Main model exports and associations
+│   └── sequelize/                        # Sequelize Model Definitions
+│       ├── index.js                      # Sequelize models index and associations
+│       ├── AttendanceRecord.js           # Employee attendance records
+│       ├── AuditLog.js                   # System audit logging
+│       ├── CompanyEvent.js               # Company events and holidays
+│       ├── Config.js                     # System configuration settings
+│       ├── Department.js                 # Organizational departments
+│       ├── Document.js                   # Document management
+│       ├── Employee.js                   # Employee master data
+│       ├── EmployeeProfile.js            # Extended employee profile information
+│       ├── LeaveBalance.js               # Employee leave balances
+│       ├── LeaveRequest.js               # Leave applications and approvals
+│       ├── Notification.js               # System notifications
+│       ├── Payslip.js                    # Employee payslips
+│       ├── Request.js                    # Employee service requests
+│       ├── SalaryStructure.js            # Employee salary structures
+│       └── User.js                       # User authentication and authorization
+│
+├── routes/                         # API Route Definitions
+│   ├── attendance.routes.js              # Attendance-related routes
+│   ├── auth.routes.js                    # Authentication routes
+│   ├── companyCalendar.routes.js         # Company calendar routes
+│   ├── config.routes.js                  # Configuration routes
+│   ├── dashboard.routes.js               # Dashboard routes
+│   ├── document.routes.js                # Document management routes
+│   ├── manager.routes.js                 # Manager-specific routes
+│   ├── user.routes.js                    # User management routes
+│   │
+│   ├── admin/                            # Admin-Specific Routes
+│   │   ├── adminAttendance.routes.js     # Admin attendance management
+│   │   ├── adminDashboard.routes.js      # Admin dashboard routes
+│   │   ├── adminPayroll.routes.js        # Admin payroll management
+│   │   ├── auditLog.routes.js            # Audit log routes
+│   │   ├── department.routes.js          # Department management routes
+│   │   ├── employee.routes.js            # Employee management routes
+│   │   ├── leaveRequest.routes.js        # Leave request management routes
+│   │   └── salaryStructure.routes.js     # Salary structure routes
+│   │
+│   ├── calendar/                         # Calendar-Specific Routes
+│   │   └── calendarView.routes.js        # Calendar view routes
+│   │
+│   └── employee/                         # Employee-Specific Routes
+│       ├── index.js                      # Employee routes index
+│       ├── attendance.routes.js          # Employee attendance routes
+│       ├── bankDetails.routes.js         # Bank details routes
+│       ├── employeeCalendar.routes.js    # Employee calendar routes
+│       ├── leave.routes.js               # Employee leave routes
+│       ├── notifications.routes.js       # Employee notification routes
+│       ├── payslips.routes.js            # Employee payslip routes
+│       ├── profile.routes.js             # Employee profile routes
+│       └── requests.routes.js            # Employee request routes
+│
+├── scripts/                        # Database Migration & Utility Scripts
+│   ├── add-user-columns.js              # Add user table columns
+│   ├── fix-audit-log.js                 # Fix audit log issues
+│   ├── fix-config-json.js               # Fix configuration JSON
+│   ├── fix-document-column.js           # Fix document table columns
+│   ├── migrate-to-mysql.js              # Migration to MySQL
+│   ├── mysql-migration.js               # MySQL migration script
+│   ├── simple-migrate.js                # Simple migration utility
+│   ├── simple-mysql-migration.js        # Simple MySQL migration
+│   ├── test-connection.js               # Test database connection
+│   └── test-migration.js                # Test migration scripts
+│
+├── services/                       # Business Logic & Service Layer
+│   ├── config.service.js                # Configuration management service
+│   ├── dashboard.service.js             # Dashboard data service
+│   ├── document.service.js              # Document management service
+│   ├── IP.service.js                    # IP address management service
+│   ├── notification.service.js          # Notification management service
+│   ├── user.service.js                  # User management service
+│   │
+│   ├── admin/                           # Admin-Specific Services
+│   │   ├── adminDashboard.service.js    # Admin dashboard business logic
+│   │   ├── auditLog.service.js          # Audit log service
+│   │   ├── department.service.js        # Department management service
+│   │   └── employee.service.js          # Employee management service
+│   │
+│   ├── audit/                           # Audit-Specific Services
+│   │   └── audit.service.js             # Audit logging service
+│   │
+│   └── email/                           # Email-Specific Services
+│       └── email.service.js             # Email notification service
+│
+├── utils/                          # Utility Functions & Helpers
+│   ├── debug.js                         # Debug utilities
+│   ├── employeeHelper.js                # Employee-related helper functions
+│   ├── encryption.js                    # Data encryption utilities
+│   ├── essHelpers.js                    # Employee Self Service helpers
+│   ├── generatePayslipPDF.js            # PDF generation for payslips
+│   ├── jwt.js                           # JWT token utilities
+│   ├── logger.js                        # Application logging utility
+│   └── malwareScanner.js                # File malware scanning
+│
+└── validators/                     # Input Validation Schemas
+    ├── authValidator.js                 # Authentication validation
+    ├── bankDetailsValidator.js          # Bank details validation
+    ├── documentValidator.js             # Document validation
+    └── employeeValidator.js             # Employee data validation
+
+================================================================================
+                                KEY FEATURES
+================================================================================
+
+AUTHENTICATION & AUTHORIZATION:
+├── JWT-based authentication with refresh tokens
+├── Role-Based Access Control (RBAC)
+├── Roles: Admin, HR, Manager, Employee
+├── Module and action-based permissions
+├── Password reset functionality
+└── Session management
+
+EMPLOYEE MANAGEMENT:
+├── Employee CRUD operations
+├── Profile management with document upload
+├── Department assignment and hierarchy
+├── Employee directory with search/filter
+├── Employee self-service portal
+└── Bulk employee operations
+
+ATTENDANCE SYSTEM:
+├── Clock in/out with location tracking
+├── Break time management
+├── Attendance session tracking
+├── Real-time attendance monitoring
+├── Attendance reports and analytics
+└── Attendance policy enforcement
+
+LEAVE MANAGEMENT:
+├── Leave application workflow
+├── Multi-level leave approvals
+├── Leave balance tracking and accrual
+├── Leave calendar integration
+├── Leave reports and analytics
+└── Leave policy configuration
+
+PAYROLL SYSTEM:
+├── Salary structure management
+├── Automated payslip generation
+├── Payroll processing workflows
+├── Tax calculations and deductions
+├── Payroll reports and compliance
+└── Bank details management
+
+CALENDAR & EVENTS:
+├── Company-wide event management
+├── Holiday calendar
+├── Employee personal calendar
+├── Event notifications
+└── Calendar integrations
+
+NOTIFICATION SYSTEM:
+├── Real-time notifications
+├── Email notification service
+├── Notification preferences
+├── Bulk notification capabilities
+└── Notification cleanup jobs
+
+AUDIT & COMPLIANCE:
+├── Comprehensive audit logging
+├── Activity tracking
+├── System monitoring
+├── Compliance reporting
+└── Data integrity checks
+
+DOCUMENT MANAGEMENT:
+├── Employee document upload/storage
+├── Document categorization
+├── Access control and permissions
+├── Document versioning
+└── Secure file handling with malware scanning
+
+================================================================================
+                              DATABASE MODELS
+================================================================================
+
+CORE MODELS (16 Total):
+├── User                    # Authentication and user accounts
+├── Employee                # Employee master data and profiles
+├── EmployeeProfile         # Extended employee information
+├── Department              # Organizational structure and hierarchy
+├── AttendanceRecord        # Daily attendance tracking
+├── LeaveRequest            # Leave applications and approvals
+├── LeaveBalance            # Employee leave entitlements and balances
+├── Payslip                 # Monthly payslip records
+├── SalaryStructure         # Employee compensation structure
+├── Document                # Employee document management
+├── Notification            # System notifications
+├── AuditLog                # System activity logging
+├── CompanyEvent            # Company events and holidays
+├── Config                  # System configuration settings
+└── Request                 # Employee service requests
+
+MODEL ASSOCIATIONS:
+├── User ↔ Employee (One-to-One)
+├── Employee ↔ Department (Many-to-One)
+├── Employee ↔ AttendanceRecord (One-to-Many)
+├── Employee ↔ LeaveRequest (One-to-Many)
+├── Employee ↔ LeaveBalance (One-to-Many)
+├── Employee ↔ Payslip (One-to-Many)
+├── Employee ↔ Document (One-to-Many)
+├── User ↔ Notification (One-to-Many)
+├── User ↔ AuditLog (One-to-Many)
+└── Department ↔ Department (Self-referencing hierarchy)
+
+================================================================================
+                                API STRUCTURE
+================================================================================
+
+BASE URL: /api
+
+AUTHENTICATION ENDPOINTS:
+├── POST   /api/auth/login           # User login
+├── POST   /api/auth/logout          # User logout
+├── POST   /api/auth/refresh         # Refresh JWT token
+├── POST   /api/auth/forgot-password # Password reset request
+└── POST   /api/auth/reset-password  # Password reset confirmation
+
+EMPLOYEE ENDPOINTS:
+├── GET    /api/employees            # List employees (with filters)
+├── POST   /api/employees            # Create new employee
+├── GET    /api/employees/:id        # Get employee details
+├── PUT    /api/employees/:id        # Update employee
+├── DELETE /api/employees/:id        # Delete employee
+├── GET    /api/employees/search     # Search employees
+└── GET    /api/employees/directory  # Employee directory
+
+ATTENDANCE ENDPOINTS:
+├── POST   /api/attendance/clock-in  # Clock in
+├── POST   /api/attendance/clock-out # Clock out
+├── GET    /api/attendance/status    # Current attendance status
+├── GET    /api/attendance/records   # Attendance records
+└── GET    /api/attendance/reports   # Attendance reports
+
+LEAVE ENDPOINTS:
+├── POST   /api/leave/request        # Submit leave request
+├── GET    /api/leave/requests       # List leave requests
+├── PUT    /api/leave/approve/:id    # Approve leave request
+├── PUT    /api/leave/reject/:id     # Reject leave request
+├── GET    /api/leave/balance        # Leave balance
+└── GET    /api/leave/calendar       # Leave calendar
+
+ADMIN ENDPOINTS:
+├── GET    /api/admin/dashboard      # Admin dashboard data
+├── GET    /api/admin/users          # User management
+├── GET    /api/admin/audit-logs     # Audit logs
+├── GET    /api/admin/reports        # System reports
+└── POST   /api/admin/bulk-actions   # Bulk operations
+
+PAYROLL ENDPOINTS:
+├── GET    /api/payroll/payslips     # Employee payslips
+├── POST   /api/payroll/generate     # Generate payslips
+├── GET    /api/payroll/reports      # Payroll reports
+└── PUT    /api/payroll/salary/:id   # Update salary structure
+
+================================================================================
+                              MIGRATION STATUS
+================================================================================
+
+DATABASE MIGRATION: ✅ COMPLETED
+├── Successfully migrated from MongoDB to MySQL
+├── All data preserved and validated
+├── Performance improvements achieved
+└── Backup and rollback procedures in place
+
+ORM MIGRATION: ✅ COMPLETED
+├── Migrated from Mongoose to Sequelize
+├── All 16 models converted to Sequelize
+├── Model associations properly defined
+└── Database relationships maintained
+
+CODE MIGRATION: ⚠️ IN PROGRESS
+├── ✅ Models: Fully migrated to Sequelize
+├── ✅ Routes: Updated with new naming convention
+├── ✅ Controllers: Partially updated (some still use Mongoose syntax)
+├── ✅ Services: Partially updated (some still use Mongoose syntax)
+└── ⚠️ Pending: Complete Mongoose to Sequelize syntax conversion
+
+NAMING CONVENTION UPDATES: ✅ COMPLETED
+├── Controllers: Updated to .controller.js format
+├── Services: Updated to .service.js format
+├── Routes: Updated to .routes.js format
+└── Organized services into domain-specific folders
+
+PENDING TASKS:
+├── Convert remaining Mongoose query syntax to Sequelize
+├── Update .find() calls to .findAll()
+├── Replace .populate() with include syntax
+├── Convert MongoDB operators ($gte, $lte, $in) to Sequelize operators
+├── Remove .lean() calls (not needed in Sequelize)
+└── Update error handling for Sequelize-specific errors
+
+================================================================================
+                              DEPLOYMENT NOTES
+================================================================================
+
+ENVIRONMENT REQUIREMENTS:
+├── Node.js 18+ 
+├── MySQL 8.0+
+├── Redis (for session management)
+└── File storage (local or cloud)
+
+ENVIRONMENT VARIABLES:
+├── DATABASE_URL          # MySQL connection string
+├── JWT_SECRET           # JWT signing secret
+├── JWT_REFRESH_SECRET   # JWT refresh token secret
+├── REDIS_URL            # Redis connection string
+├── EMAIL_SERVICE_*      # Email service configuration
+├── FILE_UPLOAD_PATH     # File upload directory
+└── LOG_LEVEL            # Application log level
+
+SECURITY CONSIDERATIONS:
+├── JWT token expiration and refresh
+├── Password hashing with bcrypt
+├── File upload validation and malware scanning
+├── SQL injection prevention with Sequelize
+├── CORS configuration
+├── Rate limiting implementation
+└── Input validation and sanitization
+
+PERFORMANCE OPTIMIZATIONS:
+├── Database indexing strategy
+├── Query optimization with Sequelize
+├── Caching implementation with Redis
+├── File compression and optimization
+├── API response pagination
+└── Background job processing
+
+================================================================================
+                                END OF DOCUMENT
+================================================================================
+
+Last Updated: December 2024
+Version: 2.0 (Post-Migration)
+Maintainer: Development Team

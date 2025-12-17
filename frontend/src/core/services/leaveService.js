@@ -65,7 +65,7 @@ const leaveService = {
   rejectLeaveRequest: async (requestId, rejectionData) => {
     const response = await api.put(
       `/admin/leave/leave-requests/${requestId}/reject`,
-      rejectionData
+      { reason: rejectionData.comments || rejectionData.reason }
     );
     return response.data;
   },

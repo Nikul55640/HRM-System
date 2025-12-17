@@ -123,25 +123,58 @@ const employeeSelfService = {
   // Leave Balance
   leave: {
     getBalance: async () => {
-      const response = await api.get('/employee/leave-balance');
-      return response.data;
+      try {
+        console.log('🍃 [ESS] Fetching leave balance');
+        const response = await api.get('/employee/leave-balance');
+        console.log('✅ [ESS] Leave balance fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch leave balance:', error);
+        toast.error(error.response?.data?.message || error.message || 'Failed to load leave balance');
+        throw error;
+      }
     },
     
     getHistory: async (params = {}) => {
-      const response = await api.get('/employee/leave-history', { params });
-      return response.data;
+      try {
+        console.log('📋 [ESS] Fetching leave history:', params);
+        const response = await api.get('/employee/leave-requests', { params });
+        console.log('✅ [ESS] Leave history fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch leave history:', error);
+        toast.error(error.response?.data?.message || error.message || 'Failed to load leave history');
+        throw error;
+      }
     },
 
     apply: async (leaveData) => {
-      const response = await api.post('/employee/leave-request', leaveData);
-      return response.data;
+      try {
+        console.log('📝 [ESS] Applying for leave:', leaveData);
+        const response = await api.post('/employee/leave-requests', leaveData);
+        console.log('✅ [ESS] Leave application submitted:', response.data);
+        toast.success('Leave request submitted successfully');
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to apply for leave:', error);
+        toast.error(error.response?.data?.message || error.message || 'Failed to submit leave request');
+        throw error;
+      }
     },
     
     exportSummary: async () => {
-      const response = await api.get('/employee/leave-balance/export', {
-        responseType: 'blob',
-      });
-      return response.data;
+      try {
+        console.log('📄 [ESS] Exporting leave summary');
+        const response = await api.get('/employee/leave-balance/export', {
+          responseType: 'blob',
+        });
+        console.log('✅ [ESS] Leave summary exported');
+        return response.data;
+      } catch (error) {
+        
+        toast.error(error.response?.data?.message || 'Failed to export leave summary');
+        throw error;
+      }
     },
   },
 

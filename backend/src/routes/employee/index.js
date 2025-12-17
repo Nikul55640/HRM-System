@@ -1,13 +1,13 @@
 import express from 'express';
 
 // Import all employee routes
-import profileRoutes from './profile.js';
-import bankDetailsRoutes from './bankDetails.js';
-import payslipsRoutes from './payslips.js';
-import leaveRoutes from './leave.js';
-import attendanceRoutes from './attendance.js';
-import requestsRoutes from './requests.js';
-import notificationsRoutes from './notifications.js';
+import profileRoutes from './profile.routes.js';
+import bankDetailsRoutes from './bankDetails.routes.js';
+import payslipsRoutes from './payslips.routes.js';
+import leaveRoutes from './leave.routes.js';
+import attendanceRoutes from './attendance.routes.js';
+import requestsRoutes from './requests.routes.js';
+import notificationsRoutes from './notifications.routes.js';
 
 const router = express.Router();
 

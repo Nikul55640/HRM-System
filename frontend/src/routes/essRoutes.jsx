@@ -3,6 +3,9 @@ import { lazy } from "react";
 const ProfilePage = lazy(() =>
   import("../modules/employee/profile/ProfilePage")
 );
+const SettingsPage = lazy(() =>
+  import("../modules/employee/pages/Settings/SettingsPage")
+);
 const BankDetailsPage = lazy(() =>
   import("../modules/ess/bank/BankDetailsPage")
 );
@@ -22,11 +25,11 @@ const RequestsPage = lazy(() =>
 
 export const essRoutes = [
   { path: "profile", element: <ProfilePage /> },
+  { path: "settings", element: <SettingsPage /> },
   { path: "bank-details", element: <BankDetailsPage /> },
   { path: "payslips", element: <PayslipsPage /> },
   { path: "leave", element: <LeavePage /> },
   { path: "attendance", element: <AttendancePage /> },
   { path: "documents", element: <DocumentsPage /> },
   { path: "requests", element: <RequestsPage /> },
-  { }
 ];
