@@ -15,9 +15,17 @@ const LeaveRequest = sequelize.define('LeaveRequest', {
       key: 'id',
     },
   },
+  leaveTypeId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'leave_types',
+      key: 'id',
+    },
+  },
   leaveType: {
     type: DataTypes.ENUM('annual', 'sick', 'maternity', 'paternity', 'emergency', 'unpaid'),
-    allowNull: false,
+    allowNull: true, // Made nullable since we now use leaveTypeId
   },
   startDate: {
     type: DataTypes.DATEONLY,
@@ -84,6 +92,7 @@ const LeaveRequest = sequelize.define('LeaveRequest', {
     { fields: ['employeeId'] },
     { fields: ['status'] },
     { fields: ['leaveType'] },
+    { fields: ['leaveTypeId'] },
     { fields: ['startDate', 'endDate'] },
   ],
 });

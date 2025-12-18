@@ -14,6 +14,7 @@ const LiveAttendanceDashboard = lazy(() =>
 );
 const UserManagement = lazy(() => import("../modules/organization/admin/UserManagement"));
 const SystemConfig = lazy(() => import("../modules/organization/admin/SystemConfig"));
+const LeaveTypesPage = lazy(() => import("../modules/admin/pages/LeaveTypes/LeaveTypesPage"));
 
 export const adminRoutes = [
   { path: "announcements", element: <AnnouncementsPage />, roles: ["SuperAdmin"] },
@@ -30,4 +31,5 @@ export const adminRoutes = [
   },
   { path: "users", element: <UserManagement />, roles: ["SuperAdmin"] },
   { path: "settings", element: <SystemConfig />, roles: ["SuperAdmin"] },
+  { path: "leave-types", element: <LeaveTypesPage />, roles: ["SuperAdmin", "Admin", "HR", "HR Manager"] },
 ];

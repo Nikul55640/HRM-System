@@ -6,13 +6,14 @@
 import { v4 as uuidv4 } from 'uuid';
 import AttendanceRecord from '../../models/sequelize/AttendanceRecord.js';
 import AuditLog from '../../models/sequelize/AuditLog.js';
-import IPService from '../../services/IPService.js';
-import NotificationService from '../../services/notificationService.js';
+import IPService from '../../services/IP.service.js';
+import NotificationService from '../../services/notification.service.js';
 
 // Helper: get user ID
 const getUserId = (user) => user.id || user._id;
 
-// Helper: get device type
+// Helper: get device type (currently unused but kept for future use)
+// eslint-disable-next-line no-unused-vars
 const getDeviceType = (userAgent = '') => {
   const ua = userAgent.toLowerCase();
   if (ua.includes('android') || ua.includes('iphone') || ua.includes('ipad')) {
@@ -227,7 +228,12 @@ export const endSession = async (req, res) => {
     activeSession.status = 'completed';
 
     // Calculate worked minutes
-    const diffMs = now.getTime() - activeSession.checkIn.getTime();
+    // Convert checkIn to Date object if it's a string (from JSON storage)
+    const checkInTime = activeSession.checkIn instanceof Date 
+      ? activeSession.checkIn 
+      : new Date(activeSession.checkIn);
+    
+    const diffMs = now.getTime() - checkInTime.getTime();
     const totalMinutes = diffMs / (1000 * 60);
     activeSession.workedMinutes = Math.max(
       0,

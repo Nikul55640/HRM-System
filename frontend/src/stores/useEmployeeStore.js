@@ -231,10 +231,14 @@ const useEmployeeStore = create(
       fetchDepartments: async () => {
         try {
           const response = await departmentService.getDepartments();
-          set({ departments: response.data || [] });
-          return response.data;
+          // departmentService.getDepartments() already returns response.data
+          const departments = Array.isArray(response.data) ? response.data : [];
+          set({ departments });
+          return departments;
         } catch (error) {
-          // Error handled by service
+          
+          set({ departments: [] });
+          return [];
         }
       },
 

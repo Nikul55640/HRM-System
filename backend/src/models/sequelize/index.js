@@ -6,6 +6,7 @@ import EmployeeProfile from './EmployeeProfile.js';
 import AttendanceRecord from './AttendanceRecord.js';
 import LeaveRequest from './LeaveRequest.js';
 import LeaveBalance from './LeaveBalance.js';
+import LeaveType from './LeaveType.js';
 import AuditLog from './AuditLog.js';
 import Config from './Config.js';
 import Notification from './Notification.js';
@@ -47,6 +48,16 @@ LeaveBalance.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
 Employee.hasMany(LeaveBalance, { foreignKey: 'employeeId', as: 'leaveBalances' });
 LeaveBalance.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 LeaveBalance.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
+
+LeaveType.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+LeaveType.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
+
+// Leave Type associations
+LeaveRequest.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+LeaveType.hasMany(LeaveRequest, { foreignKey: 'leaveTypeId', as: 'leaveRequests' });
+
+LeaveBalance.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+LeaveType.hasMany(LeaveBalance, { foreignKey: 'leaveTypeId', as: 'leaveBalances' });
 
 AuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user', constraints: false });
 
@@ -93,6 +104,7 @@ export {
   AttendanceRecord,
   LeaveRequest,
   LeaveBalance,
+  LeaveType,
   AuditLog,
   Config,
   Notification,
@@ -112,6 +124,7 @@ export default {
   AttendanceRecord,
   LeaveRequest,
   LeaveBalance,
+  LeaveType,
   AuditLog,
   Config,
   Notification,

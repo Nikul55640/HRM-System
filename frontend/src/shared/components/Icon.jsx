@@ -1,4 +1,5 @@
-// Optimized icon component - only imports icons that are actually used
+// Optimized icon component using Lucide React
+import PropTypes from 'prop-types';
 import {
   LayoutDashboard,
   Users,
@@ -84,7 +85,12 @@ import {
   Layers,
   FileSpreadsheet,
   ListChecks,
+  Timer,
+  Coffee,
+  Play,
 } from 'lucide-react';
+
+
 
 const iconMap = {
   LayoutDashboard,
@@ -171,17 +177,24 @@ const iconMap = {
   Layers,
   FileSpreadsheet,
   ListChecks,
+  Timer,
+  Coffee,
+  Play,
 };
 
 const Icon = ({ name, className = "w-5 h-5", ...props }) => {
   const LucideIcon = iconMap[name];
   
   if (!LucideIcon) {
-    console.warn(`Icon "${name}" not found in iconMap`);
     return null;
   }
   
   return <LucideIcon className={className} {...props} />;
+};
+
+Icon.propTypes = {
+  name: PropTypes.string.isRequired,
+  className: PropTypes.string,
 };
 
 export default Icon;

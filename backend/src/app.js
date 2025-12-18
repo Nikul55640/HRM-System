@@ -23,6 +23,7 @@ import employeeSelfServiceRoutes from "./routes/employee/index.js";
 
 // Admin modules
 import adminLeaveRoutes from "./routes/admin/leaveRequest.routes.js";
+import adminLeaveTypeRoutes from "./routes/admin/leaveType.routes.js";
 import adminDashboardRoutes from "./routes/admin/adminDashboard.routes.js";
 import adminAttendanceRoutes from "./routes/admin/attendance.routes.js";
 import departmentRoutes from "./routes/admin/department.routes.js";
@@ -122,6 +123,7 @@ app.get("/health", (req, res) => {
 // ADMIN SECTION
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/leave", adminLeaveRoutes);
+app.use("/api/admin/leave-types", adminLeaveTypeRoutes);
 app.use("/api/admin/departments", departmentRoutes);
 app.use("/api/admin/payroll", adminPayrollRoutes);
 app.use("/api/admin/attendance", adminAttendanceRoutes);

@@ -19,9 +19,17 @@ const LeaveBalance = sequelize.define('LeaveBalance', {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  leaveTypeId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'leave_types',
+      key: 'id',
+    },
+  },
   leaveType: {
     type: DataTypes.ENUM('annual', 'sick', 'maternity', 'paternity', 'emergency', 'unpaid'),
-    allowNull: false,
+    allowNull: true, // Made nullable since we now use leaveTypeId
   },
   allocated: {
     type: DataTypes.INTEGER,
@@ -61,7 +69,8 @@ const LeaveBalance = sequelize.define('LeaveBalance', {
   tableName: 'leave_balances',
   timestamps: true,
   indexes: [
-    { fields: ['employeeId', 'year', 'leaveType'], unique: true },
+    { fields: ['employeeId', 'year', 'leaveTypeId'], unique: true },
+    { fields: ['employeeId', 'year', 'leaveType'], unique: false },
     { fields: ['employeeId'] },
     { fields: ['year'] },
   ],

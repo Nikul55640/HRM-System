@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { DollarSign, Users, TrendingUp, Calendar } from "lucide-react";
 import { toast } from "react-toastify";
 import usePayrollStore from "../../../stores/usePayrollStore";
-import { PermissionGate } from "../../../shared/components";
+import { PermissionGate } from "../../../core/guards";
 import { usePermissions } from "../../../core/hooks";
 import { MODULES } from "../../../core/utils/rolePermissions";
 

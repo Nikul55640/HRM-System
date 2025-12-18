@@ -1,58 +1,76 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../shared/ui/table';
+import { Badge } from '../../../shared/ui/badge';
 import { ApprovalStatusBadge } from '../../../shared/components';
-import { formatDate } from '../../../core/utils/essHelpers';
+import { formatDate, getStatusBadgeVariant } from '../../../core/utils/essHelpers';
+import { Calendar, Clock, FileText } from 'lucide-react';
 
 const LeaveHistoryTable = ({ history }) => {
   if (!history || history.length === 0) {
     return (
-      <Card>
-        <CardContent className="p-6 text-center text-muted-foreground">
-          No leave history available.
-        </CardContent>
-      </Card>
+      <div className="text-center py-10 text-muted-foreground">
+        No leave history available.
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Leave History</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>From</TableHead>
-                <TableHead>To</TableHead>
-                <TableHead>Days</TableHead>
-                <TableHead>Reason</TableHead>
-                <TableHead>Status</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {history.map((item) => (
-                <TableRow key={item.id || item._id}>
-                  <TableCell className="font-medium">{item.leaveType}</TableCell>
-                  <TableCell>{formatDate(item.startDate)}</TableCell>
-                  <TableCell>{formatDate(item.endDate)}</TableCell>
-                  <TableCell>{item.days}</TableCell>
-                  <TableCell className="max-w-[200px] truncate" title={item.reason}>
+    <div className="space-y-4">
+      {history.map((item) => (
+        <Card
+          key={item.id || item._id}
+          className="hover:shadow-md transition-shadow"
+        >
+          <CardHeader className="pb-2">
+            <div className="flex justify-between items-center">
+              <CardTitle className="flex items-center gap-2 capitalize text-lg">
+                <FileText className="h-5 w-5 text-primary" />
+                {item.leaveType}
+              </CardTitle>
+              <ApprovalStatusBadge status={item.status} />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  From:
+                </span>
+                <span>{formatDate(item.startDate)}</span>
+              </div>
+
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Calendar className="h-4 w-4" />
+                  To:
+                </span>
+                <span>{formatDate(item.endDate)}</span>
+              </div>
+
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  Duration:
+                </span>
+                <span className="font-medium">
+                  {item.days} {item.days === 1 ? 'day' : 'days'}
+                </span>
+              </div>
+
+              {item.reason && (
+                <div className="space-y-1">
+                  <span className="text-muted-foreground text-sm">Reason:</span>
+                  <p className="text-sm bg-muted/50 p-2 rounded-md">
                     {item.reason}
-                  </TableCell>
-                  <TableCell>
-                    <ApprovalStatusBadge status={item.status} />
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      </CardContent>
-    </Card>
+                  </p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   );
 };
 

@@ -94,7 +94,7 @@ const EmployeeForm = () => {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [departments, setDepartments] = useState([]);
-  const [managers] = useState([]); // Keep for future use
+  const [managers, setManagers] = useState([]); // Keep for future use
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   const isEditMode = Boolean(id);
@@ -106,7 +106,10 @@ const EmployeeForm = () => {
 
       // Load departments
       const deptResponse = await fetchDepartments();
-      setDepartments(deptResponse || []);
+      setDepartments(Array.isArray(deptResponse) ? deptResponse : []);
+      
+      // Load managers (for future use)
+      setManagers([]);
 
       // Load potential managers (employees who can be managers)
       // For now, we'll load this from employees endpoint

@@ -1,6 +1,6 @@
 import { Field, ErrorMessage } from 'formik';
 
-const JobDetailsStep = ({ values, errors, touched, departments, managers }) => {
+const JobDetailsStep = ({ values, errors, touched, departments = [], managers = [] }) => {
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Job Details</h2>
@@ -41,7 +41,7 @@ const JobDetailsStep = ({ values, errors, touched, departments, managers }) => {
             }`}
           >
             <option value="">Select department</option>
-            {departments.map((dept) => (
+            {departments && Array.isArray(departments) && departments.map((dept) => (
               <option key={dept._id} value={dept._id}>
                 {dept.name}
               </option>
@@ -66,7 +66,7 @@ const JobDetailsStep = ({ values, errors, touched, departments, managers }) => {
             }`}
           >
             <option value="">Select manager (optional)</option>
-            {managers.map((manager) => (
+            {managers && Array.isArray(managers) && managers.map((manager) => (
               <option key={manager._id} value={manager._id}>
                 {manager.personalInfo?.firstName} {manager.personalInfo?.lastName}
               </option>

@@ -171,7 +171,13 @@ export const endBreak = async (req, res) => {
 
     // Update break
     activeBreak.endTime = now;
-    const diffMs = now.getTime() - activeBreak.startTime.getTime();
+    
+    // Convert startTime to Date object if it's a string (from JSON storage)
+    const startTime = activeBreak.startTime instanceof Date 
+      ? activeBreak.startTime 
+      : new Date(activeBreak.startTime);
+    
+    const diffMs = now.getTime() - startTime.getTime();
     activeBreak.durationMinutes = Math.round(diffMs / (1000 * 60));
 
     // Update session status and total break time
