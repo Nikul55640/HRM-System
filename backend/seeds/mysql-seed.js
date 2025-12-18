@@ -5,6 +5,7 @@ import {
   Employee,
   EmployeeProfile,
   LeaveBalance,
+  LeaveType,
   Config,
   SalaryStructure
 } from '../src/models/sequelize/index.js';
@@ -474,7 +475,7 @@ const seedDatabase = async () => {
     // 4. Create Leave Balances for all employees
     console.log('🏖️ Creating leave balances...');
     const leaveBalances = [];
-    const leaveTypes = [
+    const leaveTypesList = [
       { type: 'Annual Leave', balance: 25, used: 0 },
       { type: 'Sick Leave', balance: 12, used: 0 },
       { type: 'Personal Leave', balance: 5, used: 0 },
@@ -482,7 +483,7 @@ const seedDatabase = async () => {
     ];
 
     for (const employee of employees) {
-      for (const leave of leaveTypes) {
+      for (const leave of leaveTypesList) {
         leaveBalances.push({
           employeeId: employee.id,
           leaveType: leave.type,
@@ -584,12 +585,137 @@ const seedDatabase = async () => {
 
     await SalaryStructure.bulkCreate(salaryStructures);
 
+    // 7. Create Leave Types
+    console.log('🏖️ Creating leave types...');
+    const leaveTypes = await LeaveType.bulkCreate([
+      {
+        name: 'Annual Leave',
+        code: 'AL',
+        description: 'Yearly vacation leave for rest and recreation',
+        maxDaysPerYear: 21,
+        maxConsecutiveDays: 15,
+        carryForward: true,
+        carryForwardLimit: 5,
+        isPaid: true,
+        requiresApproval: true,
+        advanceNoticeRequired: 7,
+        applicableGender: 'all',
+        minServiceMonths: 6,
+        isActive: true,
+        color: '#3B82F6',
+        createdBy: 1
+      },
+      {
+        name: 'Sick Leave',
+        code: 'SL',
+        description: 'Leave for medical reasons and health issues',
+        maxDaysPerYear: 12,
+        maxConsecutiveDays: 7,
+        carryForward: false,
+        carryForwardLimit: null,
+        isPaid: true,
+        requiresApproval: false,
+        advanceNoticeRequired: 0,
+        applicableGender: 'all',
+        minServiceMonths: 0,
+        isActive: true,
+        color: '#EF4444',
+        createdBy: 1
+      },
+      {
+        name: 'Maternity Leave',
+        code: 'ML',
+        description: 'Leave for new mothers before and after childbirth',
+        maxDaysPerYear: 90,
+        maxConsecutiveDays: 90,
+        carryForward: false,
+        carryForwardLimit: null,
+        isPaid: true,
+        requiresApproval: true,
+        advanceNoticeRequired: 30,
+        applicableGender: 'female',
+        minServiceMonths: 12,
+        isActive: true,
+        color: '#EC4899',
+        createdBy: 1
+      },
+      {
+        name: 'Paternity Leave',
+        code: 'PL',
+        description: 'Leave for new fathers to support family',
+        maxDaysPerYear: 15,
+        maxConsecutiveDays: 15,
+        carryForward: false,
+        carryForwardLimit: null,
+        isPaid: true,
+        requiresApproval: true,
+        advanceNoticeRequired: 15,
+        applicableGender: 'male',
+        minServiceMonths: 12,
+        isActive: true,
+        color: '#10B981',
+        createdBy: 1
+      },
+      {
+        name: 'Emergency Leave',
+        code: 'EL',
+        description: 'Urgent leave for unforeseen circumstances',
+        maxDaysPerYear: 5,
+        maxConsecutiveDays: 3,
+        carryForward: false,
+        carryForwardLimit: null,
+        isPaid: true,
+        requiresApproval: true,
+        advanceNoticeRequired: 0,
+        applicableGender: 'all',
+        minServiceMonths: 3,
+        isActive: true,
+        color: '#F59E0B',
+        createdBy: 1
+      },
+      {
+        name: 'Unpaid Leave',
+        code: 'UL',
+        description: 'Leave without pay for personal reasons',
+        maxDaysPerYear: 30,
+        maxConsecutiveDays: 15,
+        carryForward: false,
+        carryForwardLimit: null,
+        isPaid: false,
+        requiresApproval: true,
+        advanceNoticeRequired: 14,
+        applicableGender: 'all',
+        minServiceMonths: 12,
+        isActive: true,
+        color: '#6B7280',
+        createdBy: 1
+      },
+      {
+        name: 'Bereavement Leave',
+        code: 'BL',
+        description: 'Leave for mourning the loss of family members',
+        maxDaysPerYear: 7,
+        maxConsecutiveDays: 7,
+        carryForward: false,
+        carryForwardLimit: null,
+        isPaid: true,
+        requiresApproval: true,
+        advanceNoticeRequired: 0,
+        applicableGender: 'all',
+        minServiceMonths: 0,
+        isActive: true,
+        color: '#374151',
+        createdBy: 1
+      }
+    ]);
+
     console.log('✅ Database seeding completed successfully!');
     console.log('\n📊 Seeded Data Summary:');
     console.log(`- Departments: ${departments.length}`);
     console.log(`- Employees: ${employees.length}`);
     console.log(`- Users: ${users.length}`);
     console.log(`- Leave Balances: ${leaveBalances.length}`);
+    console.log(`- Leave Types: ${leaveTypes.length}`);
     console.log(`- System Configs: 8`);
     console.log(`- Salary Structures: ${salaryStructures.length}`);
     

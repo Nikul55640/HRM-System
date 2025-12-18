@@ -3,7 +3,7 @@ import auditService from "../../services/audit/audit.service.js";
 const auditLogController = {
   getAuditLogs: async (req, res) => {
     try {
-      const result = await auditLogService.getAuditLogs(req.query);
+      const result = await auditService.getAuditLogs(req.query);
 
       res.status(200).json({
         success: true,
@@ -26,7 +26,7 @@ const auditLogController = {
 
   getAuditLogById: async (req, res) => {
     try {
-      const log = await auditLogService.getAuditLogById(req.params.id);
+      const log = await auditService.getAuditLogById(req.params.id);
       if (!log) {
         return res.status(404).json({ success: false, message: "Not found" });
       }
@@ -38,7 +38,7 @@ const auditLogController = {
 
   cleanupAuditLogs: async (req, res) => {
     try {
-      const deleted = await auditLogService.cleanupAuditLogs(
+      const deleted = await auditService.cleanupAuditLogs(
         Number(req.body.olderThanDays || 90)
       );
 

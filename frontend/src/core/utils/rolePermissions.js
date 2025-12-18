@@ -152,6 +152,28 @@ export const MODULES = {
     TRACK: 'asset.track',
     MANAGE: 'asset.manage',
   },
+
+  LEAD: {
+    VIEW: 'lead.view',
+    CREATE: 'lead.create',
+    UPDATE: 'lead.update',
+    DELETE: 'lead.delete',
+    ASSIGN: 'lead.assign',
+    CONVERT: 'lead.convert',
+    MANAGE_ALL: 'lead.manage.all',
+  },
+
+  CALENDAR: {
+    VIEW: 'calendar.view',
+    MANAGE: 'calendar.manage',
+    CREATE_EVENT: 'calendar.event.create',
+    UPDATE_EVENT: 'calendar.event.update',
+    DELETE_EVENT: 'calendar.event.delete',
+    CREATE_HOLIDAY: 'calendar.holiday.create',
+    UPDATE_HOLIDAY: 'calendar.holiday.update',
+    DELETE_HOLIDAY: 'calendar.holiday.delete',
+    SYNC_EMPLOYEE_EVENTS: 'calendar.employee.sync',
+  },
 };
 
 // ===================================================
@@ -177,6 +199,7 @@ const EMPLOYEE_PERMISSIONS = [
   MODULES.EXPENSE.SUBMIT_OWN,
   MODULES.EXPENSE.VIEW_OWN,
   MODULES.ASSET.VIEW_OWN,
+  MODULES.CALENDAR.VIEW,
 ];
 
 const MANAGER_PERMISSIONS = [
@@ -230,6 +253,10 @@ const HR_MANAGER_PERMISSIONS = [
   MODULES.EXPENSE.APPROVE_TEAM,
   MODULES.ASSET.VIEW_ALL,
   MODULES.ASSET.ASSIGN,
+  MODULES.LEAD.VIEW,
+  MODULES.LEAD.CREATE,
+  MODULES.LEAD.UPDATE,
+  MODULES.LEAD.ASSIGN,
 ];
 
 const HR_ADMIN_PERMISSIONS = [
@@ -251,6 +278,17 @@ const HR_ADMIN_PERMISSIONS = [
   MODULES.TRAINING.TRACK_CERTIFICATIONS,
   MODULES.ASSET.MANAGE,
   MODULES.ASSET.TRACK,
+  MODULES.LEAD.DELETE,
+  MODULES.LEAD.CONVERT,
+  MODULES.LEAD.MANAGE_ALL,
+  MODULES.CALENDAR.MANAGE,
+  MODULES.CALENDAR.CREATE_EVENT,
+  MODULES.CALENDAR.UPDATE_EVENT,
+  MODULES.CALENDAR.DELETE_EVENT,
+  MODULES.CALENDAR.CREATE_HOLIDAY,
+  MODULES.CALENDAR.UPDATE_HOLIDAY,
+  MODULES.CALENDAR.DELETE_HOLIDAY,
+  MODULES.CALENDAR.SYNC_EMPLOYEE_EVENTS,
 ];
 
 const PAYROLL_OFFICER_PERMISSIONS = [

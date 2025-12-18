@@ -1,4 +1,4 @@
-import { CompanyEvent, Employee, LeaveRequest, AttendanceRecord, AuditLog } from "../models/sequelize/index.js";
+import { CompanyEvent, Employee, LeaveRequest, AttendanceRecord, AuditLog, Holiday } from "../models/sequelize/index.js";
 import logger from "../utils/logger.js";
 
 /**
@@ -368,11 +368,207 @@ const syncEmployeeEvents = async (req, res) => {
   }
 };
 
+/**
+ * -----------------------------------------------------
+ * GET HOLIDAYS
+ * -----------------------------------------------------
+ */
+const getHolidays = async (req, res) => {
+  try {
+    const { year } = req.query;
+    
+    const filters = {};
+    if (year) {
+      const startDate = new Date(year, 0, 1);
+      const endDate = new Date(year, 11, 31, 23, 59, 59);
+      filters.date = {
+        [Holiday.sequelize.Sequelize.Op.between]: [startDate, endDate]
+      };
+    }
+
+    const holidays = await Holiday.findAll({
+      where: filters,
+      order: [['date', 'ASC']]
+    });
+
+    res.json({
+      success: true,
+      data: holidays
+    });
+  } catch (error) {
+    logger.error("Error fetching holidays:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching holidays",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * -----------------------------------------------------
+ * CREATE HOLIDAY
+ * -----------------------------------------------------
+ */
+const createHoliday = async (req, res) => {
+  try {
+    const holidayData = {
+      ...req.body,
+      createdBy: req.user._id || req.user.id
+    };
+
+    const holiday = await Holiday.create(holidayData);
+
+    await AuditLog.create({
+      action: "CREATE",
+      entityType: "Holiday",
+      entityId: holiday.id.toString(),
+      userId: req.user._id || req.user.id,
+      userRole: req.user.role,
+      performedByName: req.user.fullName,
+      performedByEmail: req.user.email,
+      meta: {
+        name: holiday.name,
+        date: holiday.date,
+        type: holiday.type
+      },
+      ipAddress: req.ip,
+      userAgent: req.get("User-Agent"),
+    });
+
+    res.status(201).json({
+      success: true,
+      data: holiday,
+      message: "Holiday created successfully",
+    });
+  } catch (error) {
+    logger.error("Error creating holiday:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error creating holiday",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * -----------------------------------------------------
+ * UPDATE HOLIDAY
+ * -----------------------------------------------------
+ */
+const updateHoliday = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = {
+      ...req.body,
+      updatedBy: req.user._id || req.user.id,
+    };
+
+    const [updatedRows] = await Holiday.update(updateData, {
+      where: { id },
+      returning: true
+    });
+
+    if (updatedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Holiday not found",
+      });
+    }
+
+    const holiday = await Holiday.findByPk(id);
+
+    await AuditLog.create({
+      action: "UPDATE",
+      entityType: "Holiday",
+      entityId: holiday.id.toString(),
+      userId: req.user._id || req.user.id,
+      userRole: req.user.role,
+      performedByName: req.user.fullName,
+      performedByEmail: req.user.email,
+      meta: {
+        name: holiday.name,
+        date: holiday.date,
+        type: holiday.type
+      },
+      ipAddress: req.ip,
+      userAgent: req.get("User-Agent"),
+    });
+
+    res.json({
+      success: true,
+      data: holiday,
+      message: "Holiday updated successfully",
+    });
+  } catch (error) {
+    logger.error("Error updating holiday:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating holiday",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * -----------------------------------------------------
+ * DELETE HOLIDAY
+ * -----------------------------------------------------
+ */
+const deleteHoliday = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const holiday = await Holiday.findByPk(id);
+    if (!holiday) {
+      return res.status(404).json({
+        success: false,
+        message: "Holiday not found",
+      });
+    }
+
+    await Holiday.destroy({ where: { id } });
+
+    await AuditLog.create({
+      action: "DELETE",
+      entityType: "Holiday",
+      entityId: id,
+      userId: req.user._id || req.user.id,
+      userRole: req.user.role,
+      performedByName: req.user.fullName,
+      performedByEmail: req.user.email,
+      meta: {
+        name: holiday.name,
+        date: holiday.date,
+        type: holiday.type
+      },
+      ipAddress: req.ip,
+      userAgent: req.get("User-Agent"),
+    });
+
+    res.json({
+      success: true,
+      message: "Holiday deleted successfully",
+    });
+  } catch (error) {
+    logger.error("Error deleting holiday:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error deleting holiday",
+      error: error.message,
+    });
+  }
+};
+
 export default {
   getEvents,
   getUpcomingEvents,
   syncEmployeeEvents,
-deleteEvent,
+  deleteEvent,
   createEvent,
   updateEvent,
+  getHolidays,
+  createHoliday,
+  updateHoliday,
+  deleteHoliday,
 };

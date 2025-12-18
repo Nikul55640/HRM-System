@@ -27,7 +27,7 @@ import { Calendar as ShadCalendar } from "../../../shared/ui/calendar";
 
 import useOrganizationStore from "../../../stores/useOrganizationStore";
 
-const HolidayModal = ({ open, holiday, onClose }) => {
+const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
   const { createHoliday, updateHoliday, fetchHolidays } = useOrganizationStore();
 
   /** ⬇ Validation Schema */
@@ -64,6 +64,7 @@ const HolidayModal = ({ open, holiday, onClose }) => {
         }
 
         fetchHolidays();
+        if (onSuccess) onSuccess();
         onClose();
       } catch (error) {
         console.error("Failed to save holiday:", error);

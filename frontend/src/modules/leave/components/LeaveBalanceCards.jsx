@@ -19,32 +19,49 @@ const LeaveBalanceCards = ({ balances }) => {
 
   // If leaveTypes array exists, show individual leave type cards
   if (balances.leaveTypes && balances.leaveTypes.length > 0) {
+    // Filter out any leave types with null type values
+    const validLeaveTypes = balances.leaveTypes.filter(lt => lt && lt.type);
+    
+    if (validLeaveTypes.length === 0) {
+      return (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-yellow-600" />
+            <p className="text-yellow-800 font-medium">No valid leave types found</p>
+          </div>
+          <p className="text-sm text-yellow-700 mt-1">
+            Please contact HR to configure your leave balance.
+          </p>
+        </div>
+      );
+    }
+    
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {balances.leaveTypes.map((leaveType) => (
+        {validLeaveTypes.map((leaveType) => (
           <Card key={leaveType.type} className="border-gray-200">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 capitalize">
-                {leaveType.type} Leave
+                {leaveType.type || 'Unknown'} Leave
               </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-500">Allocated:</span>
-                  <span className="text-sm font-semibold text-gray-800">{leaveType.allocated}</span>
+                  <span className="text-sm font-semibold text-gray-800">{leaveType.allocated || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-500">Used:</span>
-                  <span className="text-sm font-semibold text-blue-600">{leaveType.used}</span>
+                  <span className="text-sm font-semibold text-blue-600">{leaveType.used || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-gray-500">Pending:</span>
-                  <span className="text-sm font-semibold text-orange-600">{leaveType.pending}</span>
+                  <span className="text-sm font-semibold text-orange-600">{leaveType.pending || 0}</span>
                 </div>
                 <div className="flex justify-between items-center pt-2 border-t border-gray-200">
                   <span className="text-xs font-medium text-gray-600">Available:</span>
-                  <span className="text-lg font-bold text-green-600">{leaveType.available}</span>
+                  <span className="text-lg font-bold text-green-600">{leaveType.available || 0}</span>
                 </div>
               </div>
             </CardContent>

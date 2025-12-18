@@ -278,6 +278,36 @@ const deleteDepartment = async (departmentId, user, metadata = {}) => {
 };
 
 /**
+ * Get department hierarchy
+ */
+const getDepartmentHierarchy = async (rootId = null) => {
+  try {
+    const buildHierarchy = async (parentId = null) => {
+      const departments = await Department.findAll({
+        where: {
+          parentDepartment: parentId,
+          isActive: true,
+        },
+        order: [["name", "ASC"]],
+      });
+
+      const result = [];
+      for (const dept of departments) {
+        const deptData = dept.toJSON();
+        deptData.children = await buildHierarchy(dept.id);
+        result.push(deptData);
+      }
+      return result;
+    };
+
+    return await buildHierarchy(rootId);
+  } catch (error) {
+    logger.error("Error fetching department hierarchy:", error);
+    throw error;
+  }
+};
+
+/**
  * Search departments
  */
 const searchDepartments = async (searchTerm) => {
@@ -297,6 +327,7 @@ export default {
   updateDepartment,
   getDepartments,
   getDepartmentById,
+  getDepartmentHierarchy,
   deleteDepartment,
   searchDepartments,
 };

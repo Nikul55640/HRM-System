@@ -255,7 +255,7 @@ const EmployeeList = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {employees.map((emp) => (
                 <EmployeeCard
-                  key={emp._id}
+                  key={emp.id || emp._id}
                   employee={emp}
                   onView={handleView}
                   onEdit={handleEdit}

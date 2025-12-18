@@ -4,74 +4,56 @@ import { toast } from 'react-toastify';
 const adminDashboardService = {
   /**
    * Get complete admin dashboard data
-   * Aggregates data from multiple endpoints
+   * Uses the dedicated admin dashboard endpoint
    */
   getAdminDashboard: async () => {
     try {
       console.log('📊 [ADMIN DASHBOARD SERVICE] Fetching admin dashboard data...');
 
-      // Fetch all data in parallel for better performance
-      const [employeesRes, attendanceRes, leavesRes] = await Promise.allSettled([
-        api.get('/employees', { params: { limit: 100 } }),  // Max limit is 100 per validation
-        api.get('/admin/attendance'), // Just for stats
-        api.get('/admin/leave/leave-requests'),  // Correct route: /admin/leave/leave-requests
-      ]);
-
-      // Debug: Log full responses
-      console.log('🔍 [DEBUG] Employees Response:', {
-        status: employeesRes.status,
-        fullData: employeesRes.status === 'fulfilled' ? employeesRes.value.data : employeesRes.reason,
-      });
-      console.log('🔍 [DEBUG] Attendance Response:', {
-        status: attendanceRes.status,
-        fullData: attendanceRes.status === 'fulfilled' ? attendanceRes.value.data : attendanceRes.reason,
-      });
-      console.log('🔍 [DEBUG] Leaves Response:', {
-        status: leavesRes.status,
-        fullData: leavesRes.status === 'fulfilled' ? leavesRes.value.data : leavesRes.reason,
+      // Call the dedicated admin dashboard endpoint
+      const response = await api.get('/admin/dashboard');
+      
+      console.log('🔍 [DEBUG] Admin Dashboard Response:', {
+        status: response.status,
+        data: response.data,
       });
 
-      // Extract data safely - backend returns { success, data: { employees: [...] } }
-      const employeesData = employeesRes.status === 'fulfilled' ? employeesRes.value.data?.data?.employees : null;
-      const attendanceData = attendanceRes.status === 'fulfilled' ? attendanceRes.value.data?.data : null;
-      const leavesData = leavesRes.status === 'fulfilled' ? leavesRes.value.data?.data : null;
+      // Extract data from backend response
+      const backendData = response.data?.data || {};
+      
+      console.log('📊 [ADMIN DASHBOARD SERVICE] Backend data:', backendData);
 
-      console.log('📊 [ADMIN DASHBOARD SERVICE] Extracted data:', {
-        employeesData: employeesData,
-        employeesLength: employeesData?.length || 0,
-        attendanceData: attendanceData,
-        leavesData: leavesData,
-      });
-
-      // Calculate stats from real data
+      // Transform backend data to match frontend expectations
       const stats = {
-        totalEmployees: employeesData?.length || 0,
-        activeEmployees: employeesData?.filter(emp => emp.status === 'active').length || 0,
-        onLeaveToday: leavesData?.filter(leave => {
-          const today = new Date().toISOString().split('T')[0];
-          return leave.status === 'approved' && 
-                 leave.startDate <= today && 
-                 leave.endDate >= today;
-        }).length || 0,
-        pendingApprovals: leavesData?.filter(leave => leave.status === 'pending').length || 0,
-        totalPayroll: 0, // TODO: Add payroll endpoint
-        departmentCount: [...new Set(employeesData?.map(emp => emp.department).filter(Boolean))].length || 0,
-        newHiresThisMonth: employeesData?.filter(emp => {
-          if (!emp.hireDate) return false;
-          const hireDate = new Date(emp.hireDate);
-          const now = new Date();
-          return hireDate.getMonth() === now.getMonth() && 
-                 hireDate.getFullYear() === now.getFullYear();
-        }).length || 0,
-        pendingDocuments: 0, // TODO: Add documents endpoint
+        totalEmployees: backendData.totalEmployees || 0,
+        activeEmployees: backendData.activeEmployees || 0,
+        onLeaveToday: 0, // TODO: Add to backend
+        pendingApprovals: backendData.pendingLeaves || 0,
+        totalPayroll: 0, // TODO: Add to backend
+        departmentCount: backendData.totalDepartments || 0,
+        newHiresThisMonth: 0, // TODO: Add to backend
+        pendingDocuments: 0, // TODO: Add to backend
       };
 
       console.log('✅ [ADMIN DASHBOARD SERVICE] Stats calculated:', stats);
 
-      // Get recent activities (mock for now - TODO: implement audit log endpoint)
-      const recentActivities = [
-        { id: 1, action: 'Dashboard data loaded', user: 'System', time: 'Just now' },
-      ];
+      // Transform recent employees to recent activities
+      const recentActivities = (backendData.recentEmployees || []).map((emp, index) => ({
+        id: index + 1,
+        action: `New employee ${emp.fullName} joined as ${emp.jobTitle}`,
+        user: 'HR System',
+        time: new Date(emp.createdAt).toLocaleDateString(),
+      }));
+
+      // Add default activity if no recent employees
+      if (recentActivities.length === 0) {
+        recentActivities.push({
+          id: 1,
+          action: 'Dashboard data loaded successfully',
+          user: 'System',
+          time: 'Just now',
+        });
+      }
 
       // Get pending tasks
       const pendingTasks = [
@@ -90,8 +72,29 @@ const adminDashboardService = {
       };
     } catch (error) {
       console.error('❌ [ADMIN DASHBOARD SERVICE] Failed to fetch dashboard:', error);
+      
+      // Provide fallback data if API fails
+      const fallbackData = {
+        stats: {
+          totalEmployees: 0,
+          activeEmployees: 0,
+          onLeaveToday: 0,
+          pendingApprovals: 0,
+          totalPayroll: 0,
+          departmentCount: 0,
+          newHiresThisMonth: 0,
+          pendingDocuments: 0,
+        },
+        recentActivities: [
+          { id: 1, action: 'Failed to load dashboard data', user: 'System', time: 'Just now' },
+        ],
+        pendingTasks: [
+          { id: 1, task: 'Check API connection', count: 1, priority: 'high' },
+        ],
+      };
+      
       toast.error(error.message || 'Failed to load admin dashboard');
-      throw error;
+      return fallbackData;
     }
   },
 

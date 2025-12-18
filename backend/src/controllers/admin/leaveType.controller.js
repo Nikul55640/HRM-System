@@ -28,12 +28,12 @@ export const getLeaveTypes = async (req, res) => {
         {
           model: User,
           as: 'creator',
-          attributes: ['id', 'firstName', 'lastName', 'email']
+          attributes: ['id', 'name', 'email']
         },
         {
           model: User,
           as: 'updater',
-          attributes: ['id', 'firstName', 'lastName', 'email']
+          attributes: ['id', 'name', 'email']
         }
       ],
       limit: parseInt(limit),
@@ -73,12 +73,12 @@ export const getLeaveTypeById = async (req, res) => {
         {
           model: User,
           as: 'creator',
-          attributes: ['id', 'firstName', 'lastName', 'email']
+          attributes: ['id', 'name', 'email']
         },
         {
           model: User,
           as: 'updater',
-          attributes: ['id', 'firstName', 'lastName', 'email']
+          attributes: ['id', 'name', 'email']
         }
       ]
     });
@@ -162,7 +162,7 @@ export const createLeaveType = async (req, res) => {
         {
           model: User,
           as: 'creator',
-          attributes: ['id', 'firstName', 'lastName', 'email']
+          attributes: ['id', 'name', 'email']
         }
       ]
     });
@@ -253,12 +253,12 @@ export const updateLeaveType = async (req, res) => {
         {
           model: User,
           as: 'creator',
-          attributes: ['id', 'firstName', 'lastName', 'email']
+          attributes: ['id', 'name', 'email']
         },
         {
           model: User,
           as: 'updater',
-          attributes: ['id', 'firstName', 'lastName', 'email']
+          attributes: ['id', 'name', 'email']
         }
       ]
     });

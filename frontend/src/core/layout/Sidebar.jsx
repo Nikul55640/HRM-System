@@ -131,6 +131,12 @@ const Sidebar = () => {
           showIf: () => can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
         },
         {
+          name: "Leave Types",
+          path: "/admin/leave-types",
+          icon: "ListChecks",
+          showIf: () => can.doAny([MODULES.LEAVE.MANAGE_POLICIES, MODULES.SYSTEM.MANAGE_CONFIG]),
+        },
+        {
           name: "Departments",
           path: "/hr/departments",
           icon: "Building2",
@@ -143,6 +149,12 @@ const Sidebar = () => {
           showIf: () => can.do(MODULES.EMPLOYEE.VIEW_ALL),
         },
         {
+          name: "Calendar Management",
+          path: "/admin/calendar",
+          icon: "Calendar",
+          showIf: () => can.do(MODULES.CALENDAR.MANAGE),
+        },
+        {
           name: "Policies",
           path: "/hr/policies",
           icon: "ScrollText",
@@ -153,6 +165,12 @@ const Sidebar = () => {
           path: "/hr/holidays",
           icon: "PartyPopper",
           showIf: () => can.do(MODULES.LEAVE.MANAGE_POLICIES),
+        },
+        {
+          name: "Leads",
+          path: "/admin/leads",
+          icon: "Target",
+          showIf: () => can.doAny([MODULES.LEAD.VIEW, MODULES.LEAD.MANAGE_ALL]),
         },
         {
           name: "Company Docs",

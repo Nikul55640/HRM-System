@@ -12,26 +12,26 @@ const leaveService = {
 
   // Get logged-in employee leave balance
   getMyLeaveBalance: async () => {
-    const response = await api.get("/employee/leave/balance");
+    const response = await api.get("/employee/leave-balance");
     return response.data;
   },
 
   // Get logged-in employee leave history
   getMyLeaveHistory: async (params = {}) => {
-    const response = await api.get("/employee/leave/requests", { params });
+    const response = await api.get("/employee/leave-requests", { params });
     return response.data;
   },
 
   // Create leave request (Employee)
   createLeaveRequest: async (requestData) => {
-    const response = await api.post("/employee/leave/requests", requestData);
+    const response = await api.post("/employee/leave-requests", requestData);
     return response.data;
   },
 
   // Cancel leave request (Employee)
   cancelLeaveRequest: async (requestId) => {
     const response = await api.put(
-      `/employee/leave/requests/${requestId}/cancel`
+      `/employee/leave-requests/${requestId}/cancel`
     );
     return response.data;
   },

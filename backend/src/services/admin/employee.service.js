@@ -351,7 +351,25 @@ const getEmployeeById = async (employeeId, user) => {
       };
     }
 
-    return employee;
+    // Populate department information
+    const empData = employee.toJSON();
+    if (empData.jobInfo?.department) {
+      try {
+        const { Department } = await import("../../models/sequelize/index.js");
+        const department = await Department.findByPk(empData.jobInfo.department);
+        if (department) {
+          empData.jobInfo.departmentInfo = {
+            id: department.id,
+            name: department.name,
+            code: department.code
+          };
+        }
+      } catch (error) {
+        logger.error("Error fetching department info:", error);
+      }
+    }
+
+    return empData;
   } catch (error) {
     logger.error("Error getting employee by ID:", error);
     throw error;
@@ -451,8 +469,34 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
       offset: parseInt(offset),
     });
 
+    // Populate department information for each employee
+    const employeesWithDepartments = await Promise.all(
+      employees.map(async (employee) => {
+        const empData = employee.toJSON();
+        
+        // Get department info if department ID exists
+        if (empData.jobInfo?.department) {
+          try {
+            const { Department } = await import("../../models/sequelize/index.js");
+            const department = await Department.findByPk(empData.jobInfo.department);
+            if (department) {
+              empData.jobInfo.departmentInfo = {
+                id: department.id,
+                name: department.name,
+                code: department.code
+              };
+            }
+          } catch (error) {
+            logger.error("Error fetching department info:", error);
+          }
+        }
+        
+        return empData;
+      })
+    );
+
     return {
-      employees,
+      employees: employeesWithDepartments,
       pagination: {
         total,
         page: parseInt(page),

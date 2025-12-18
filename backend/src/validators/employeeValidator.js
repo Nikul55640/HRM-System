@@ -585,9 +585,10 @@ const validateParams = (schema) => (req, res, next) => {
 
 /**
  * Schema for validating employee ID parameter
+ * Uses integer ID validator since the system uses auto-increment integer IDs
  */
 const employeeIdParamSchema = Joi.object({
-  id: objectIdValidator.required().messages({
+  id: idValidator.required().messages({
     'any.required': 'Employee ID is required',
   }),
 });

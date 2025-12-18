@@ -17,11 +17,7 @@ const LeaveRequest = sequelize.define('LeaveRequest', {
   },
   leaveTypeId: {
     type: DataTypes.INTEGER,
-    allowNull: false,
-    references: {
-      model: 'leave_types',
-      key: 'id',
-    },
+    allowNull: true, // Make nullable initially to avoid foreign key issues
   },
   leaveType: {
     type: DataTypes.ENUM('annual', 'sick', 'maternity', 'paternity', 'emergency', 'unpaid'),

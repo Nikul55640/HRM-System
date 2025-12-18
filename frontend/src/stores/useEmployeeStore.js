@@ -183,10 +183,10 @@ const useEmployeeStore = create(
 
           set((state) => ({
             employees: state.employees.map((emp) =>
-              emp._id === id ? response.data : emp
+              (emp.id || emp._id) === id ? response.data : emp
             ),
             currentEmployee:
-              state.currentEmployee?._id === id
+              (state.currentEmployee?.id || state.currentEmployee?._id) === id
                 ? response.data
                 : state.currentEmployee,
             loading: false,
@@ -211,9 +211,9 @@ const useEmployeeStore = create(
           await employeeService.deleteEmployee(id);
 
           set((state) => ({
-            employees: state.employees.filter((emp) => emp._id !== id),
+            employees: state.employees.filter((emp) => (emp.id || emp._id) !== id),
             currentEmployee:
-              state.currentEmployee?._id === id ? null : state.currentEmployee,
+              (state.currentEmployee?.id || state.currentEmployee?._id) === id ? null : state.currentEmployee,
             loading: false,
           }));
 

@@ -2,10 +2,12 @@ import { Employee } from '../models/sequelize/index.js';
 
 /**
  * Role-based access control middleware
- * @param {...String} allowedRoles - Roles that are allowed to access the route
+ * @param {String[]|String} allowedRoles - Roles that are allowed to access the route
  * @returns {Function} Express middleware function
  */
-const authorize = (...allowedRoles) => (req, res, next) => {
+const authorize = (allowedRoles) => (req, res, next) => {
+  // Handle both array and spread arguments
+  const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
   // Check if user is authenticated
   if (!req.user) {
     return res.status(401).json({
@@ -19,14 +21,14 @@ const authorize = (...allowedRoles) => (req, res, next) => {
   }
 
   // Check if user has required role
-  if (!allowedRoles.includes(req.user.role)) {
+  if (!roles.includes(req.user.role)) {
     return res.status(403).json({
       success: false,
       error: {
         code: 'FORBIDDEN',
         message: 'You do not have permission to access this resource.',
         details: {
-          requiredRoles: allowedRoles,
+          requiredRoles: roles,
           userRole: req.user.role,
         },
         timestamp: new Date().toISOString(),

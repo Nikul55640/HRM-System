@@ -1,163 +1,132 @@
 import api from '../core/api/api';
-import { toast } from 'react-toastify';
 
 const calendarService = {
-  getEvents: async (params) => {
+  // =========================================================
+  // CALENDAR EVENTS
+  // =========================================================
+
+  // Get all calendar events (holidays, company events, leaves, etc.)
+  getCalendarEvents: async (params = {}) => {
     try {
-      console.log('📅 [CALENDAR] Fetching events:', params);
       const response = await api.get('/calendar/events', { params });
-      console.log('✅ [CALENDAR] Events fetched:', response.data);
       return response.data;
     } catch (error) {
-      console.error('❌ [CALENDAR] Failed to fetch events:', error);
-      toast.error(error.message || 'Failed to load events');
+      console.error('Error fetching calendar events:', error);
       throw error;
     }
   },
 
-  getEventsByDateRange: async (startDate, endDate) => {
+  // Get upcoming events
+  getUpcomingEvents: async (limit = 10) => {
     try {
-      console.log('📅 [CALENDAR] Fetching events by date range:', { startDate, endDate });
-      const response = await api.get('/calendar/events', { params: { startDate, endDate } });
-      console.log('✅ [CALENDAR] Events fetched:', response.data);
+      const response = await api.get('/calendar/upcoming', { 
+        params: { limit } 
+      });
       return response.data;
     } catch (error) {
-      console.error('❌ [CALENDAR] Failed to fetch events:', error);
-      toast.error(error.message || 'Failed to load events');
+      console.error('Error fetching upcoming events:', error);
       throw error;
     }
   },
 
-  getEventById: async (id) => {
-    try {
-      console.log('📅 [CALENDAR] Fetching event:', id);
-      const response = await api.get(`/calendar/events/${id}`);
-      console.log('✅ [CALENDAR] Event fetched:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('❌ [CALENDAR] Failed to fetch event:', error);
-      toast.error(error.message || 'Failed to load event');
-      throw error;
-    }
-  },
+  // =========================================================
+  // COMPANY EVENTS (Admin/HR Only)
+  // =========================================================
 
+  // Create company event
   createEvent: async (eventData) => {
     try {
-      console.log('➕ [CALENDAR] Creating event:', eventData);
       const response = await api.post('/calendar/events', eventData);
-      console.log('✅ [CALENDAR] Event created:', response.data);
-      toast.success('Event created successfully');
       return response.data;
     } catch (error) {
-      console.error('❌ [CALENDAR] Failed to create event:', error);
-      toast.error(error.message || 'Failed to create event');
+      console.error('Error creating event:', error);
       throw error;
     }
   },
 
-  updateEvent: async (id, eventData) => {
+  // Update company event
+  updateEvent: async (eventId, eventData) => {
     try {
-      console.log('✏️ [CALENDAR] Updating event:', id, eventData);
-      const response = await api.put(`/calendar/events/${id}`, eventData);
-      console.log('✅ [CALENDAR] Event updated:', response.data);
-      toast.success('Event updated successfully');
+      const response = await api.put(`/calendar/events/${eventId}`, eventData);
       return response.data;
     } catch (error) {
-      console.error('❌ [CALENDAR] Failed to update event:', error);
-      toast.error(error.message || 'Failed to update event');
+      console.error('Error updating event:', error);
       throw error;
     }
   },
 
-  deleteEvent: async (id) => {
+  // Delete company event
+  deleteEvent: async (eventId) => {
     try {
-      console.log('🗑️ [CALENDAR] Deleting event:', id);
-      const response = await api.delete(`/calendar/events/${id}`);
-      console.log('✅ [CALENDAR] Event deleted:', response.data);
-      toast.success('Event deleted successfully');
+      const response = await api.delete(`/calendar/events/${eventId}`);
       return response.data;
     } catch (error) {
-      console.error('❌ [CALENDAR] Failed to delete event:', error);
-      toast.error(error.message || 'Failed to delete event');
+      console.error('Error deleting event:', error);
       throw error;
     }
   },
 
-  syncCalendar: async () => {
-    try {
-      console.log('🔄 [CALENDAR] Syncing calendar');
-      const response = await api.post('/calendar/sync');
-      console.log('✅ [CALENDAR] Calendar synced:', response.data);
-      toast.success('Calendar synced successfully');
-      return response.data;
-    } catch (error) {
-      console.error('❌ [CALENDAR] Sync failed:', error);
-      toast.error(error.message || 'Failed to sync calendar');
-      throw error;
-    }
-  },
+  // =========================================================
+  // HOLIDAYS (Admin/HR Only)
+  // =========================================================
 
-  getEmployeeCalendar: async (params) => {
-    try {
-      console.log('📅 [CALENDAR] Fetching employee calendar:', params);
-      const response = await api.get('/employee/calendar', { params });
-      console.log('✅ [CALENDAR] Employee calendar fetched:', response.data);
-      return response.data;
-    } catch (error) {
-      console.error('❌ [CALENDAR] Failed to fetch calendar:', error);
-      toast.error(error.message || 'Failed to load calendar');
-      throw error;
-    }
-  },
-
+  // Get all holidays
   getHolidays: async (year) => {
     try {
-      console.log('🎉 [CALENDAR] Fetching holidays:', year);
-      const response = await api.get('/calendar/holidays', { params: { year } });
-      console.log('✅ [CALENDAR] Holidays fetched:', response.data);
+      const response = await api.get('/calendar/holidays', {
+        params: year ? { year } : {}
+      });
       return response.data;
     } catch (error) {
-      console.error('❌ [CALENDAR] Failed to fetch holidays:', error);
-      toast.error(error.message || 'Failed to load holidays');
+      console.error('Error fetching holidays:', error);
       throw error;
     }
   },
 
-  getBirthdays: async (month) => {
+  // Create holiday
+  createHoliday: async (holidayData) => {
     try {
-      console.log('🎂 [CALENDAR] Fetching birthdays:', month);
-      const response = await api.get('/calendar/birthdays', { params: { month } });
-      console.log('✅ [CALENDAR] Birthdays fetched:', response.data);
+      const response = await api.post('/calendar/holidays', holidayData);
       return response.data;
     } catch (error) {
-      console.error('❌ [CALENDAR] Failed to fetch birthdays:', error);
-      toast.error(error.message || 'Failed to load birthdays');
+      console.error('Error creating holiday:', error);
       throw error;
     }
   },
 
-  getAnniversaries: async (month) => {
+  // Update holiday
+  updateHoliday: async (holidayId, holidayData) => {
     try {
-      console.log('🎊 [CALENDAR] Fetching anniversaries:', month);
-      const response = await api.get('/calendar/anniversaries', { params: { month } });
-      console.log('✅ [CALENDAR] Anniversaries fetched:', response.data);
+      const response = await api.put(`/calendar/holidays/${holidayId}`, holidayData);
       return response.data;
     } catch (error) {
-      console.error('❌ [CALENDAR] Failed to fetch anniversaries:', error);
-      toast.error(error.message || 'Failed to load anniversaries');
+      console.error('Error updating holiday:', error);
       throw error;
     }
   },
 
-  getUpcomingEvents: async (days = 7) => {
+  // Delete holiday
+  deleteHoliday: async (holidayId) => {
     try {
-      console.log('📅 [CALENDAR] Fetching upcoming events:', days);
-      const response = await api.get('/calendar/upcoming', { params: { days } });
-      console.log('✅ [CALENDAR] Upcoming events fetched:', response.data);
+      const response = await api.delete(`/calendar/holidays/${holidayId}`);
       return response.data;
     } catch (error) {
-      console.error('❌ [CALENDAR] Failed to fetch upcoming events:', error);
-      toast.error(error.message || 'Failed to load upcoming events');
+      console.error('Error deleting holiday:', error);
+      throw error;
+    }
+  },
+
+  // =========================================================
+  // EMPLOYEE SYNC (Admin Only)
+  // =========================================================
+
+  // Sync employee birthdays and anniversaries
+  syncEmployeeEvents: async () => {
+    try {
+      const response = await api.post('/calendar/sync-employee-events');
+      return response.data;
+    } catch (error) {
+      console.error('Error syncing employee events:', error);
       throw error;
     }
   },

@@ -7,6 +7,7 @@ import AttendanceRecord from './AttendanceRecord.js';
 import LeaveRequest from './LeaveRequest.js';
 import LeaveBalance from './LeaveBalance.js';
 import LeaveType from './LeaveType.js';
+import Holiday from './Holiday.js';
 import AuditLog from './AuditLog.js';
 import Config from './Config.js';
 import Notification from './Notification.js';
@@ -15,6 +16,9 @@ import CompanyEvent from './CompanyEvent.js';
 import Payslip from './Payslip.js';
 import Request from './Request.js';
 import SalaryStructure from './SalaryStructure.js';
+import Lead from './Lead.js';
+import LeadActivity from './LeadActivity.js';
+import LeadNote from './LeadNote.js';
 
 // Define associations
 User.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
@@ -53,11 +57,15 @@ LeaveType.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 LeaveType.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 
 // Leave Type associations
-LeaveRequest.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+LeaveRequest.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveTypeInfo' });
 LeaveType.hasMany(LeaveRequest, { foreignKey: 'leaveTypeId', as: 'leaveRequests' });
 
-LeaveBalance.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveType' });
+LeaveBalance.belongsTo(LeaveType, { foreignKey: 'leaveTypeId', as: 'leaveTypeInfo' });
 LeaveType.hasMany(LeaveBalance, { foreignKey: 'leaveTypeId', as: 'leaveBalances' });
+
+// Holiday associations
+Holiday.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+Holiday.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 
 AuditLog.belongsTo(User, { foreignKey: 'userId', as: 'user', constraints: false });
 
@@ -95,6 +103,22 @@ SalaryStructure.belongsTo(User, { foreignKey: 'approvedBy', as: 'approver' });
 SalaryStructure.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 SalaryStructure.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 
+// Lead associations
+Lead.belongsTo(Employee, { foreignKey: 'assignedTo', as: 'assignedEmployee' });
+Lead.belongsTo(Employee, { foreignKey: 'createdBy', as: 'creatorEmployee' });
+Employee.hasMany(Lead, { foreignKey: 'assignedTo', as: 'assignedLeads' });
+Employee.hasMany(Lead, { foreignKey: 'createdBy', as: 'createdLeads' });
+
+Lead.hasMany(LeadActivity, { foreignKey: 'leadId', as: 'activities' });
+Lead.hasMany(LeadNote, { foreignKey: 'leadId', as: 'notes' });
+
+LeadActivity.belongsTo(Lead, { foreignKey: 'leadId', as: 'lead' });
+LeadActivity.belongsTo(Employee, { foreignKey: 'assignedTo', as: 'assignedEmployee' });
+LeadActivity.belongsTo(Employee, { foreignKey: 'createdBy', as: 'creatorEmployee' });
+
+LeadNote.belongsTo(Lead, { foreignKey: 'leadId', as: 'lead' });
+LeadNote.belongsTo(Employee, { foreignKey: 'createdBy', as: 'creatorEmployee' });
+
 export {
   sequelize,
   User,
@@ -105,6 +129,7 @@ export {
   LeaveRequest,
   LeaveBalance,
   LeaveType,
+  Holiday,
   AuditLog,
   Config,
   Notification,
@@ -113,6 +138,9 @@ export {
   Payslip,
   Request,
   SalaryStructure,
+  Lead,
+  LeadActivity,
+  LeadNote,
 };
 
 export default {
@@ -125,6 +153,7 @@ export default {
   LeaveRequest,
   LeaveBalance,
   LeaveType,
+  Holiday,
   AuditLog,
   Config,
   Notification,
@@ -133,4 +162,8 @@ export default {
   Payslip,
   Request,
   SalaryStructure,
+  Lead,
+  LeadActivity,
+  LeadNote,
+  
 };

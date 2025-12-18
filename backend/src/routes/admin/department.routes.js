@@ -43,6 +43,18 @@ router.delete(
 );
 
 // --------------------------------------
+// GET DEPARTMENT HIERARCHY (TREE)
+// Permission: DEPARTMENT.VIEW
+// Roles: All authenticated users
+// --------------------------------------
+router.get(
+  "/hierarchy",
+  authenticate,
+  checkPermission(MODULES.DEPARTMENT.VIEW),
+  departmentController.getDepartmentHierarchy
+);
+
+// --------------------------------------
 // GET ALL DEPARTMENTS (LIST)
 // Permission: DEPARTMENT.VIEW
 // Roles: All authenticated users

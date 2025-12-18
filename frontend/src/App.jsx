@@ -25,7 +25,8 @@ import {
   calendarRoutes,
   adminRoutes,
   dashboardRoutes,
-  generalRoutes
+  generalRoutes,
+  leadRoutes
 } from "./routes";
 
 function App() {
@@ -85,6 +86,7 @@ function App() {
             {applyRoutes(adminRoutes)}
             {applyRoutes(dashboardRoutes)}
             {applyRoutes(generalRoutes)}
+            {applyRoutes(leadRoutes)}
           </Route>
 
           <Route path="*" element={<NotFound />} />

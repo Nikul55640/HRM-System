@@ -40,7 +40,7 @@ const EmployeeTable = ({ employees, onView, onEdit, onDelete, canManage }) => {
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {employees.map((employee) => (
-              <tr key={employee._id} className="hover:bg-gray-50">
+              <tr key={employee.id || employee._id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="flex items-center">
                     {employee.personalInfo?.profilePhoto ? (
@@ -68,7 +68,7 @@ const EmployeeTable = ({ employees, onView, onEdit, onDelete, canManage }) => {
                   <div className="text-sm text-gray-900">{employee.jobInfo?.jobTitle || 'N/A'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{employee.jobInfo?.department?.name || 'N/A'}</div>
+                  <div className="text-sm text-gray-900">{employee.jobInfo?.departmentInfo?.name || employee.jobInfo?.department?.name || 'N/A'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(employee.status)}`}>
@@ -82,7 +82,7 @@ const EmployeeTable = ({ employees, onView, onEdit, onDelete, canManage }) => {
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <div className="flex justify-end gap-2">
                     <button
-                      onClick={() => onView(employee._id)}
+                      onClick={() => onView(employee.id || employee._id)}
                       className="text-blue-600 hover:text-blue-900"
                       title="View"
                     >
@@ -95,7 +95,7 @@ const EmployeeTable = ({ employees, onView, onEdit, onDelete, canManage }) => {
                     {canManage && (
                       <>
                         <button
-                          onClick={() => onEdit(employee._id)}
+                          onClick={() => onEdit(employee.id || employee._id)}
                           className="text-gray-600 hover:text-gray-900"
                           title="Edit"
                         >

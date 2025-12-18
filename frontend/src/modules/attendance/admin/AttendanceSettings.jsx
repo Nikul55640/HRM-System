@@ -180,7 +180,7 @@ const AttendanceSettings = () => {
                 onChange={(e) => handleChange('fullDayHours', parseFloat(e.target.value) || 8)}
               />
               <p className="text-xs text-gray-500">
-                Minimum hours to mark as "Present"
+                Minimum hours to mark as Present
               </p>
             </div>
 

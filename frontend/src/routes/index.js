@@ -12,6 +12,7 @@ import { organizationRoutes as organizationRoutesConfig } from './organizationRo
 import { payrollRoutes as payrollRoutesConfig } from './payrollRoutes';
 import { calendarRoutes as calendarRoutesConfig } from './calendarRoutes';
 import { generalRoutes as generalRoutesConfig } from './generalRoutes';
+import { leadRoutes as leadRoutesConfig } from './leadRoutes';
 
 // Route configuration object
 export const routeConfig = {
@@ -252,5 +253,6 @@ export const organizationRoutes = organizationRoutesConfig;
 export const payrollRoutes = payrollRoutesConfig;
 export const calendarRoutes = calendarRoutesConfig;
 export const generalRoutes = generalRoutesConfig;
+export const leadRoutes = leadRoutesConfig;
 
 export default routeConfig;

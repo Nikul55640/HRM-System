@@ -9,7 +9,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Restrict to SuperAdmin only
-router.use(authorize("superadmin"));
+router.use(authorize(["SuperAdmin"]));
 
 // Get all audit logs with filters + pagination
 router.get("/", auditLogController.getAuditLogs);

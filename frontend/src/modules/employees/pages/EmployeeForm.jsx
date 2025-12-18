@@ -116,7 +116,7 @@ const EmployeeForm = () => {
       // In production, you might want a specific endpoint for this
 
       // If editing, load employee data
-      if (id) {
+      if (id && id !== 'undefined') {
         await fetchEmployeeById(id);
       }
     } catch (error) {

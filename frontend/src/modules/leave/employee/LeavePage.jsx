@@ -8,11 +8,12 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  TrendingUp,
   Download,
   RefreshCw,
+  X,
 } from "lucide-react";
 import employeeSelfService from "../../../services/employeeSelfService";
+import leaveService from "../../../core/services/leaveService";
 import LeaveRequestModal from "./LeaveRequestModal";
 import LeaveBalanceCards from "../components/LeaveBalanceCards";
 import useLeaveBalance from "../hooks/useLeaveBalance";
@@ -21,7 +22,7 @@ const LeavePage = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [cancellingId, setCancellingId] = useState(null);
 
   // Use the custom hook for leave balance
   const { 
@@ -67,6 +68,26 @@ const LeavePage = () => {
       fetchData();
     } catch (error) {
       toast.error(error.message || "Failed to submit leave request");
+    }
+  };
+
+  const handleCancelRequest = async (requestId, event) => {
+    event.stopPropagation(); // Prevent triggering the card click
+    
+    if (!window.confirm('Are you sure you want to cancel this leave request?')) {
+      return;
+    }
+
+    try {
+      setCancellingId(requestId);
+      await leaveService.cancelLeaveRequest(requestId);
+      toast.success('Leave request cancelled successfully');
+      fetchData();
+    } catch (error) {
+      
+      toast.error(error.response?.data?.message || 'Failed to cancel leave request');
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -199,7 +220,6 @@ const LeavePage = () => {
                 <div
                   key={request._id}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
-                  onClick={() => setSelectedRequest(request)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -207,14 +227,36 @@ const LeavePage = () => {
                         <h3 className="font-semibold text-gray-900">
                           {request.leaveType || "Leave Request"}
                         </h3>
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(
-                            request.status
-                          )}`}
-                        >
-                          {getStatusIcon(request.status)}
-                          {request.status}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(
+                              request.status
+                            )}`}
+                          >
+                            {getStatusIcon(request.status)}
+                            {request.status}
+                          </span>
+                          {request.status === 'pending' && (
+                            <button
+                              onClick={(e) => handleCancelRequest(request._id || request.id, e)}
+                              disabled={cancellingId === (request._id || request.id)}
+                              className="px-2 py-1 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 border border-red-200 rounded-md transition-colors flex items-center gap-1 disabled:opacity-50"
+                              title="Cancel this leave request"
+                            >
+                              {cancellingId === (request._id || request.id) ? (
+                                <>
+                                  <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
+                                  Cancelling...
+                                </>
+                              ) : (
+                                <>
+                                  <X className="w-3 h-3" />
+                                  Cancel
+                                </>
+                              )}
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">

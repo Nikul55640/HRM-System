@@ -29,17 +29,39 @@ const DEFAULT_ALLOCATIONS = {
    Helper: Create default LeaveBalance when missing
 ---------------------------------------------------------- */
 const createDefaultBalance = async (employeeId, year) => {
+  const { LeaveType } = await import("../../models/sequelize/index.js");
+  
+  // Get all active leave types
+  const leaveTypes = await LeaveType.findAll({
+    where: { isActive: true },
+    attributes: ['id', 'name', 'code']
+  });
+  
   const balances = [];
   
-  for (const type of VALID_LEAVE_TYPES) {
+  for (const leaveType of leaveTypes) {
+    // Map leave type names to default allocations
+    const typeName = leaveType.name.toLowerCase().replace(/\s+/g, '');
+    let allocated = 20; // Default allocation
+    
+    // Set specific allocations based on leave type name
+    if (typeName.includes('annual')) allocated = 20;
+    else if (typeName.includes('sick')) allocated = 10;
+    else if (typeName.includes('maternity')) allocated = 90;
+    else if (typeName.includes('paternity')) allocated = 15;
+    else if (typeName.includes('casual')) allocated = 12;
+    else if (typeName.includes('emergency')) allocated = 3;
+    else if (typeName.includes('unpaid')) allocated = 9999;
+    
     const balance = await LeaveBalance.create({
       employeeId,
       year,
-      leaveType: type,
-      allocated: DEFAULT_ALLOCATIONS[type],
+      leaveTypeId: leaveType.id,
+      leaveType: null, // Don't use the enum field
+      allocated,
       used: 0,
       pending: 0,
-      remaining: DEFAULT_ALLOCATIONS[type],
+      remaining: allocated,
     });
     balances.push(balance);
   }
@@ -67,6 +89,12 @@ const getLeaveBalance = async (req, res) => {
         employeeId,
         year,
       },
+      include: [
+        {
+          association: 'leaveTypeInfo',
+          attributes: ['id', 'name', 'code']
+        }
+      ]
     });
 
     // Auto-create default balance if not exists
@@ -78,7 +106,7 @@ const getLeaveBalance = async (req, res) => {
     const transformedBalance = {
       year,
       leaveTypes: leaveBalances.map(balance => ({
-        type: balance.leaveType,
+        type: balance.leaveTypeInfo?.name?.toLowerCase().replace(/\s+/g, '') || balance.leaveType || 'unknown',
         allocated: balance.allocated,
         used: balance.used,
         pending: balance.pending,

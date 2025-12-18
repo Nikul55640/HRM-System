@@ -14,7 +14,7 @@ const config = {
     // MySQL Configuration
     host: process.env.DB_HOST || 'localhost',
     port: Number(process.env.DB_PORT) || 3306,
-    database: process.env.DB_NAME || 'hrms',
+    database: process.env.DB_NAME || 'hrm',
     username: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     dialect: 'mysql',

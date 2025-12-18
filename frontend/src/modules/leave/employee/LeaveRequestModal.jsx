@@ -62,7 +62,7 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
   const watchLeaveType = watch('leaveType');
 
   // Get available leave types from balance
-  const availableLeaveTypes = leaveBalance?.leaveTypes?.filter(lt => lt.available > 0) || [];
+  const availableLeaveTypes = leaveBalance?.leaveTypes?.filter(lt => lt && lt.type && lt.available > 0) || [];
 
   const handleFormSubmit = async (data) => {
     try {
@@ -112,7 +112,7 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
 
   const getAvailableBalance = () => {
     if (!watchLeaveType || !leaveBalance?.leaveTypes) return 0;
-    const leaveType = leaveBalance.leaveTypes.find(lt => lt.type === watchLeaveType);
+    const leaveType = leaveBalance.leaveTypes.find(lt => lt && lt.type === watchLeaveType);
     return leaveType?.available || 0;
   };
 
@@ -152,8 +152,8 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
                 ) : (
                   availableLeaveTypes.map((leaveType) => (
                     <SelectItem key={leaveType.type} value={leaveType.type}>
-                      {leaveType.type.charAt(0).toUpperCase() + leaveType.type.slice(1)} Leave 
-                      ({leaveType.available} days available)
+                      {(leaveType.type || 'Unknown').charAt(0).toUpperCase() + (leaveType.type || 'unknown').slice(1)} Leave 
+                      ({leaveType.available || 0} days available)
                     </SelectItem>
                   ))
                 )}

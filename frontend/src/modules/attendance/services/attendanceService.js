@@ -34,7 +34,7 @@ const attendanceService = {
   clockIn: async (data) => {
     try {
       console.log(' [ATTENDANCE] Clocking in:', data);
-      const response = await api.post('/employee/attendance/clock-in', data);
+      const response = await api.post('/employee/attendance/check-in', data);
       console.log(' [ATTENDANCE] Clock-in successful:', response.data);
       toast.success('Clocked in successfully!');
       return response.data;
@@ -54,7 +54,7 @@ const attendanceService = {
   clockOut: async (data = {}) => {
     try {
       console.log(' [ATTENDANCE] Clocking out:', data);
-      const response = await api.post('/employee/attendance/clock-out', data);
+      const response = await api.post('/employee/attendance/check-out', data);
       console.log(' [ATTENDANCE] Clock-out successful:', response.data);
       toast.success('Clocked out successfully!');
       return response.data;

@@ -9,11 +9,15 @@ const DepartmentPage = () => {
   const {
     departments,
     loading,
+    error,
     fetchDepartments,
     createDepartment,
     updateDepartment,
     deleteDepartment
   } = useOrganizationStore();
+
+  // Ensure departments is always an array
+  const safeDepartments = Array.isArray(departments) ? departments : [];
 
   const [showModal, setShowModal] = useState(false);
   const [editingDepartment, setEditingDepartment] = useState(null);
@@ -24,7 +28,10 @@ const DepartmentPage = () => {
   });
 
   useEffect(() => {
-    fetchDepartments();
+    fetchDepartments().catch(error => {
+      console.error('Failed to fetch departments:', error);
+      toast.error('Failed to load departments');
+    });
   }, [fetchDepartments]);
 
   const handleSubmit = async (e) => {
@@ -96,9 +103,35 @@ const DepartmentPage = () => {
         </Button>
       </div>
 
+      {/* Error Display */}
+      {error?.departments && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-red-600">Error loading departments: {error.departments}</p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => fetchDepartments()}
+            className="mt-2"
+          >
+            Retry
+          </Button>
+        </div>
+      )}
+
       {/* Departments Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(departments || []).map((department) => (
+        {safeDepartments.length === 0 && !loading?.departments && !error?.departments ? (
+          <div className="col-span-full text-center py-12">
+            <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg mb-2">No departments found</p>
+            <p className="text-gray-400 text-sm mb-4">Get started by creating your first department</p>
+            <Button onClick={() => setShowModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add Department
+            </Button>
+          </div>
+        ) : (
+          safeDepartments.map((department) => (
           <Card key={department._id} className="border-gray-200">
             <CardContent className="p-6">
               <div className="flex items-start justify-between mb-4">
@@ -142,7 +175,8 @@ const DepartmentPage = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Modal */}

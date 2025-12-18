@@ -4,12 +4,18 @@ import logger from "../../utils/logger.js";
 /**
  * Wrapper for consistent API responses
  */
-const sendResponse = (res, success, message, data = null, statusCode = 200) => {
-  return res.status(statusCode).json({
+const sendResponse = (res, success, message, data = null, statusCode = 200, pagination = null) => {
+  const response = {
     success,
     message,
     data,
-  });
+  };
+  
+  if (pagination) {
+    response.pagination = pagination;
+  }
+  
+  return res.status(statusCode).json(response);
 };
 
 const departmentController = {
@@ -81,8 +87,8 @@ const departmentController = {
 
   getDepartments: async (req, res, next) => {
     try {
-      const data = await departmentService.getDepartments({}, req.query);
-      return sendResponse(res, true, "Departments fetched successfully", data);
+      const result = await departmentService.getDepartments({}, req.query);
+      return sendResponse(res, true, "Departments fetched successfully", result.departments, 200, result.pagination);
     } catch (error) {
       logger.error("Controller: Get Departments Error", error);
       return sendResponse(res, false, error.message || "Failed", {}, 500);
@@ -114,7 +120,8 @@ const departmentController = {
       const tree = await departmentService.getDepartmentHierarchy(root);
       return sendResponse(res, true, "Hierarchy fetched successfully", tree);
     } catch (error) {
-      return sendResponse(res, false, error.message || "Failed", {}, 500);
+      logger.error("Controller: Get Department Hierarchy Error", error);
+      return sendResponse(res, false, error.message || "Failed to fetch hierarchy", {}, error.statusCode || 500);
     }
   },
 

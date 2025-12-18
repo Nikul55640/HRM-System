@@ -24,16 +24,23 @@ import employeeSelfServiceRoutes from "./routes/employee/index.js";
 // Admin modules
 import adminLeaveRoutes from "./routes/admin/leaveRequest.routes.js";
 import adminLeaveTypeRoutes from "./routes/admin/leaveType.routes.js";
+import adminHolidayRoutes from "./routes/admin/holiday.routes.js";
 import adminDashboardRoutes from "./routes/admin/adminDashboard.routes.js";
 import adminAttendanceRoutes from "./routes/admin/attendance.routes.js";
+import attendanceCorrectionRoutes from "./routes/admin/attendanceCorrection.routes.js";
+import leadRoutes from "./routes/admin/lead.routes.js";
 import departmentRoutes from "./routes/admin/department.routes.js";
+import auditLogRoutes from "./routes/admin/auditLog.routes.js";
+
+// Manager routes
+import managerRoutes from "./routes/manager.routes.js";
 
 // Payroll (Admin + Employee)
 import adminPayrollRoutes from "./routes/admin/adminPayroll.routes.js";
 import employeePayslipRoutes from "./routes/employee/payslips.routes.js";
 
 // HRM Modules
-import calendarRoutes from "./routes/companyCalendar.routes.js";
+import calendarRoutes from "./routes/calendar.routes.js";
 import documentRoutes from "./routes/document.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import configRoutes from "./routes/config.routes.js";
@@ -124,12 +131,19 @@ app.get("/health", (req, res) => {
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/leave", adminLeaveRoutes);
 app.use("/api/admin/leave-types", adminLeaveTypeRoutes);
+app.use("/api/admin/holidays", adminHolidayRoutes);
 app.use("/api/admin/departments", departmentRoutes);
 app.use("/api/admin/payroll", adminPayrollRoutes);
 app.use("/api/admin/attendance", adminAttendanceRoutes);
+app.use("/api/admin/attendance-corrections", attendanceCorrectionRoutes);
+app.use("/api/admin/leads", leadRoutes);
+app.use("/api/admin/audit-logs", auditLogRoutes);
 
 // AUTH SECTION
 app.use("/api/auth", authRoutes);
+
+// MANAGER SECTION
+app.use("/api/manager", managerRoutes);
 
 // EMPLOYEE ADMIN ROUTES
 app.use("/api/employees", employeeRoutes);
