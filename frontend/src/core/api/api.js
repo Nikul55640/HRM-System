@@ -53,6 +53,8 @@ api.interceptors.request.use(
 // Response interceptor for error handling and token refresh
 let isRefreshing = false;
 let failedQueue = [];
+let lastLogoutTime = 0;
+const LOGOUT_DEBOUNCE_MS = 1000; // Prevent logout calls within 1 second of each other
 
 const processQueue = (error, token = null) => {
   failedQueue.forEach((prom) => {
@@ -138,11 +140,18 @@ api.interceptors.response.use(
         }
       } catch (refreshError) {
         processQueue(refreshError, null);
-        useAuthStore.getState().logout();
-        // Redirect to login page
-        if (window.location.pathname !== "/login") {
-          window.location.href = "/login";
+        
+        // Debounce logout calls to prevent spam
+        const now = Date.now();
+        if (now - lastLogoutTime > LOGOUT_DEBOUNCE_MS) {
+          lastLogoutTime = now;
+          useAuthStore.getState().logout();
+          // Redirect to login page
+          if (window.location.pathname !== "/login") {
+            window.location.href = "/login";
+          }
         }
+        
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

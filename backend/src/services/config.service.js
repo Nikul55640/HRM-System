@@ -33,7 +33,10 @@ const getAllConfigs = async (filters = {}) => {
 
     const configs = category
       ? await Config.getByCategory(category)
-      : await Config.find().sort({ category: 1, key: 1 });
+      : await Config.findAll({
+          where: { isActive: true },
+          order: [['category', 'ASC'], ['key', 'ASC']],
+        });
 
     logger.info(`Retrieved ${configs.length} configurations`);
     return configs;
@@ -56,7 +59,7 @@ const setConfig = async (key, value, user, metadata = {}, description = null) =>
     await AuditLog.create({
       action: existing ? 'UPDATE' : 'CREATE',
       entityType: 'Config',
-      entityId: config._id,
+      entityId: config.id,
       userId: user.id,
       userRole: user.role,
       changes: [
@@ -112,7 +115,7 @@ const deleteConfig = async (key, user, metadata = {}) => {
     await AuditLog.create({
       action: 'DELETE',
       entityType: 'Config',
-      entityId: config._id,
+      entityId: config.id,
       userId: user.id,
       userRole: user.role,
       changes: [

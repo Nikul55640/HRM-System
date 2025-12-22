@@ -17,20 +17,7 @@ const getEmployeeProfileSummary = async (user) => {
       };
     }
 
-    const employee = await Employee.findByPk(user.employeeId, {
-      include: [
-        { 
-          model: Employee.associations.department?.target,
-          as: 'department',
-          attributes: ['name', 'code', 'location']
-        },
-        {
-          model: Employee.associations.manager?.target,
-          as: 'manager',
-          attributes: ['employeeId', 'firstName', 'lastName', 'email']
-        }
-      ]
-    });
+    const employee = await Employee.findByPk(user.employeeId);
 
     if (!employee) {
       throw {
@@ -40,25 +27,24 @@ const getEmployeeProfileSummary = async (user) => {
       };
     }
 
+    // Extract data from JSON fields
+    const personalInfo = employee.personalInfo || {};
+    const jobInfo = employee.jobInfo || {};
+    const contactInfo = employee.contactInfo || {};
+
     return {
       employeeId: employee.employeeId,
-      fullName: `${employee.firstName} ${employee.lastName}`,
-      profilePhoto: employee.profilePhoto,
-      email: employee.email,
-      phoneNumber: employee.phoneNumber,
-      jobTitle: employee.jobTitle,
-      department: employee.department,
-      manager: employee.manager
-        ? {
-            name: `${employee.manager.firstName} ${employee.manager.lastName}`,
-            employeeId: employee.manager.employeeId,
-            email: employee.manager.email,
-          }
-        : null,
-      hireDate: employee.hireDate,
-      employmentType: employee.employmentType,
-      workLocation: employee.workLocation,
-      status: employee.status,
+      fullName: `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() || 'Unknown',
+      profilePhoto: personalInfo.profilePhoto || null,
+      email: contactInfo.email || personalInfo.email || '',
+      phoneNumber: contactInfo.phone || personalInfo.phone || '',
+      jobTitle: jobInfo.designation || jobInfo.jobTitle || '',
+      department: jobInfo.department || '',
+      manager: jobInfo.manager || null,
+      hireDate: jobInfo.joiningDate || jobInfo.hireDate || null,
+      employmentType: jobInfo.employeeType || jobInfo.employmentType || '',
+      workLocation: jobInfo.workLocation || 'Office',
+      status: employee.status || 'Active',
     };
   } catch (error) {
     logger.error('Error getting employee profile summary:', error);
@@ -158,14 +144,7 @@ const getRecentActivity = async (user, options = {}) => {
 
     const { rows: logs, count: total } = await AuditLog.findAndCountAll({
       where: whereClause,
-      include: [
-        {
-          model: AuditLog.associations.user?.target,
-          as: 'user',
-          attributes: ['email', 'role']
-        }
-      ],
-      order: [['timestamp', 'DESC']],
+      order: [['createdAt', 'DESC']],
       limit,
       offset
     });
@@ -173,12 +152,13 @@ const getRecentActivity = async (user, options = {}) => {
     const activities = logs.map((log) => ({
       id: log.id,
       action: log.action,
-      timestamp: log.timestamp,
-      performedBy: log.user
-        ? { email: log.user.email, role: log.user.role }
-        : null,
+      timestamp: log.createdAt,
+      performedBy: {
+        email: log.performedByEmail || 'System',
+        role: log.userRole || 'System'
+      },
       description: formatActivityDescription(log),
-      changes: log.changes,
+      changes: log.meta?.changes || [],
     }));
 
     return {

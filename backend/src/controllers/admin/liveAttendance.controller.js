@@ -31,7 +31,7 @@ export const getLiveAttendance = async (req, res) => {
       include: [{
         model: Employee,
         as: 'employee',
-        attributes: ['id', 'firstName', 'lastName', 'email', 'department', 'position'],
+        attributes: ['id', 'employeeId', 'personalInfo', 'jobInfo', 'contactInfo', 'status'],
       }],
     });
 
@@ -53,7 +53,13 @@ export const getLiveAttendance = async (req, res) => {
       if (!activeSession) return;
 
       // Apply filters
-      if (department && record.employee.department !== department) return;
+      const personalInfo = record.employee.personalInfo || {};
+      const jobInfo = record.employee.jobInfo || {};
+      const contactInfo = record.employee.contactInfo || {};
+      
+      const employeeDepartment = jobInfo.department || '';
+      
+      if (department && department !== 'all' && employeeDepartment !== department) return;
       if (workLocation && activeSession.workLocation !== workLocation) return;
 
       // Calculate current worked duration
@@ -84,10 +90,10 @@ export const getLiveAttendance = async (req, res) => {
 
       liveAttendance.push({
         employeeId: record.employee.id,
-        fullName: `${record.employee.firstName} ${record.employee.lastName}`,
-        email: record.employee.email,
-        department: record.employee.department,
-        position: record.employee.position,
+        fullName: `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() || 'Unknown',
+        email: contactInfo.email || '',
+        department: employeeDepartment,
+        position: jobInfo.position || '',
         currentSession: {
           sessionId: activeSession.sessionId,
           checkInTime: activeSession.checkIn,
@@ -286,7 +292,7 @@ export const getEmployeeLiveStatus = async (req, res) => {
       include: [{
         model: Employee,
         as: 'employee',
-        attributes: ['id', 'firstName', 'lastName', 'email', 'department', 'position'],
+        attributes: ['id', 'employeeId', 'personalInfo', 'jobInfo', 'contactInfo', 'status'],
       }],
     });
 
@@ -297,6 +303,10 @@ export const getEmployeeLiveStatus = async (req, res) => {
         message: 'Employee not clocked in today',
       });
     }
+
+    const personalInfo = record.employee.personalInfo || {};
+    const jobInfo = record.employee.jobInfo || {};
+    const contactInfo = record.employee.contactInfo || {};
 
     // Find active session
     const sessions = record.sessions || [];
@@ -309,7 +319,7 @@ export const getEmployeeLiveStatus = async (req, res) => {
         success: true,
         data: {
           employeeId: record.employee.id,
-          fullName: `${record.employee.firstName} ${record.employee.lastName}`,
+          fullName: `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() || 'Unknown',
           status: 'clocked_out',
           sessions: sessions,
         },
@@ -344,10 +354,10 @@ export const getEmployeeLiveStatus = async (req, res) => {
 
     const liveStatus = {
       employeeId: record.employee.id,
-      fullName: `${record.employee.firstName} ${record.employee.lastName}`,
-      email: record.employee.email,
-      department: record.employee.department,
-      position: record.employee.position,
+      fullName: `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() || 'Unknown',
+      email: contactInfo.email || '',
+      department: jobInfo.department || '',
+      position: jobInfo.position || '',
       currentSession: {
         sessionId: activeSession.sessionId,
         checkInTime: activeSession.checkIn,

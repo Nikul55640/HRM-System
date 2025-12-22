@@ -1,6 +1,7 @@
 import express from 'express';
 import authController from '../controllers/auth.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
+import { logoutRateLimit, authRateLimit } from '../middleware/rateLimiter.js';
 import {
   validate,
   registerSchema,
@@ -25,7 +26,7 @@ router.post('/register', validate(registerSchema), authController.register);
  * @desc    Login user
  * @access  Public
  */
-router.post('/login', validate(loginSchema), authController.login);
+router.post('/login', authRateLimit, validate(loginSchema), authController.login);
 
 /**
  * @route   POST /api/auth/refresh
@@ -39,7 +40,7 @@ router.post('/refresh', validate(refreshSchema), authController.refresh);
  * @desc    Logout user
  * @access  Private
  */
-router.post('/logout', authenticate, authController.logout);
+router.post('/logout', logoutRateLimit, authenticate, authController.logout);
 
 /**
  * @route   POST /api/auth/forgot-password

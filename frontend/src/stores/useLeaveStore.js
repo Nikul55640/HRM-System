@@ -115,13 +115,22 @@ const useLeaveStore = create(
             loading: false,
           }));
 
-          toast.success("Leave request approved");
+          toast.success("Leave request approved successfully");
         } catch (error) {
-          const message =
-            error.response?.data?.error?.message ||
-            "Failed to approve leave request";
+          let message = "Failed to approve leave request";
+          
+          if (error.response?.status === 400) {
+            // Handle specific business logic errors
+            message = error.response.data?.message || "This leave request cannot be approved";
+          } else if (error.response?.data?.error?.message) {
+            message = error.response.data.error.message;
+          } else if (error.response?.data?.message) {
+            message = error.response.data.message;
+          }
+          
           toast.error(message);
           set({ loading: false, error: message });
+          throw error; // Re-throw so component can handle if needed
         }
       },
 
@@ -143,14 +152,22 @@ const useLeaveStore = create(
             loading: false,
           }));
 
-          toast.success("Leave request rejected");
+          toast.success("Leave request rejected successfully");
         } catch (error) {
-          const message =
-            error.response?.data?.message ||
-            error.response?.data?.error?.message ||
-            "Failed to reject leave request";
+          let message = "Failed to reject leave request";
+          
+          if (error.response?.status === 400) {
+            // Handle specific business logic errors
+            message = error.response.data?.message || "This leave request cannot be rejected";
+          } else if (error.response?.data?.error?.message) {
+            message = error.response.data.error.message;
+          } else if (error.response?.data?.message) {
+            message = error.response.data.message;
+          }
+          
           toast.error(message);
           set({ loading: false, error: message });
+          throw error; // Re-throw so component can handle if needed
         }
       },
 

@@ -72,7 +72,10 @@ const LeaveManagement = () => {
     try {
       await approveLeaveRequest(requestId, comments);
       setSelectedRequest(null);
-      await loadLeaveRequests(); // FIX
+      // No need to reload - store already updates the local state
+    } catch (error) {
+      // Error is already handled in the store with toast
+      console.error('Approval failed:', error);
     } finally {
       setActionLoading(false);
     }
@@ -91,7 +94,10 @@ const LeaveManagement = () => {
     try {
       await rejectLeaveRequest(requestId, comments);
       setSelectedRequest(null);
-      await loadLeaveRequests(); // FIX
+      // No need to reload - store already updates the local state
+    } catch (error) {
+      // Error is already handled in the store with toast
+      
     } finally {
       setActionLoading(false);
     }
@@ -323,23 +329,41 @@ const LeaveManagement = () => {
                       <Button
                         onClick={() => handleApprove(request._id || request.id)}
                         disabled={actionLoading}
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                         size="sm"
                       >
                         <CheckCircle className="w-4 h-4 mr-1" />
-                        Approve
+                        {actionLoading ? 'Approving...' : 'Approve'}
                       </Button>
 
                       <Button
                         onClick={() => setSelectedRequest(request)}
                         disabled={actionLoading}
                         variant="outline"
-                        className="border-red-300 text-red-600 hover:bg-red-50"
+                        className="border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
                         size="sm"
                       >
                         <XCircle className="w-4 h-4 mr-1" />
                         Reject
                       </Button>
+                    </div>
+                  )}
+
+                  {/* Status indicator for non-pending requests */}
+                  {request.status !== 'pending' && (
+                    <div className="ml-4 text-sm text-gray-500">
+                      {request.status === 'approved' && (
+                        <div className="flex items-center gap-1 text-green-600">
+                          <CheckCircle className="w-4 h-4" />
+                          Approved
+                        </div>
+                      )}
+                      {request.status === 'rejected' && (
+                        <div className="flex items-center gap-1 text-red-600">
+                          <XCircle className="w-4 h-4" />
+                          Rejected
+                        </div>
+                      )}
                     </div>
                   )}
 

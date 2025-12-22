@@ -2,7 +2,7 @@ import PropTypes from 'prop-types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Calendar, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
-const LeaveBalanceCards = ({ balances }) => {
+const LeaveBalanceCards = ({ balances = null }) => {
   if (!balances) {
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
@@ -38,8 +38,8 @@ const LeaveBalanceCards = ({ balances }) => {
     
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {validLeaveTypes.map((leaveType) => (
-          <Card key={leaveType.type} className="border-gray-200">
+        {validLeaveTypes.map((leaveType, index) => (
+          <Card key={`${leaveType.type}-${index}`} className="border-gray-200">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-gray-600 capitalize">
                 {leaveType.type || 'Unknown'} Leave
@@ -129,10 +129,6 @@ LeaveBalanceCards.propTypes = {
     available: PropTypes.number,
     used: PropTypes.number,
   }),
-};
-
-LeaveBalanceCards.defaultProps = {
-  balances: null,
 };
 
 export default LeaveBalanceCards;

@@ -1,7 +1,9 @@
 import { formatDate, calculateWorkHours } from '../../../core/utils/essHelpers';
+import PropTypes from 'prop-types';
 
 const AttendanceCalendar = ({ records }) => {
-  const recordsArray = Array.isArray(records) ? records : (records?.data || []);
+  // records should now always be an array from the hook
+  const recordsArray = Array.isArray(records) ? records : [];
   
   const getStatusColor = (status) => {
     switch (status) {
@@ -34,6 +36,7 @@ const AttendanceCalendar = ({ records }) => {
       
       <div className="overflow-x-auto">
         <table className="w-full">
+          
           <thead className="border-b border-gray-200 bg-gray-50">
             <tr>
               <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase">Date</th>
@@ -80,6 +83,14 @@ const AttendanceCalendar = ({ records }) => {
       </div>
     </div>
   );
+};
+
+AttendanceCalendar.propTypes = {
+  records: PropTypes.array,
+};
+
+AttendanceCalendar.defaultProps = {
+  records: [],
 };
 
 export default AttendanceCalendar;

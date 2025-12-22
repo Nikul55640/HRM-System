@@ -182,7 +182,7 @@ export const usePayslips = () => {
     setPayslipsError(null);
     try {
       const result = await employeeSelfService.payslips.list(params);
-      console.log("📄 Payslips fetched:", result);
+      
 
       // ✅ Your backend returns { success, count, data: [...] }
       const list = Array.isArray(result?.data) ? result.data : [];
@@ -305,8 +305,10 @@ export const useAttendance = () => {
     setAttendanceError(null);
     try {
       const result = await employeeSelfService.attendance.getRecords(params);
-      setAttendanceRecords(result);
-      return result;
+      // Extract the data array from the response
+      const records = Array.isArray(result?.data) ? result.data : [];
+      setAttendanceRecords(records);
+      return records;
     } catch (error) {
       setAttendanceError(error.message);
       throw error;
@@ -323,8 +325,10 @@ export const useAttendance = () => {
         month,
         year
       );
-      setAttendanceSummary(result);
-      return result;
+      // Extract the data from the response
+      const summary = result?.data || result;
+      setAttendanceSummary(summary);
+      return summary;
     } catch (error) {
       setAttendanceError(error.message);
       throw error;
@@ -341,10 +345,10 @@ export const useAttendance = () => {
         month,
         year
       );
-      return result;
+      return { meta: { requestStatus: 'fulfilled' }, payload: result };
     } catch (error) {
       setAttendanceError(error.message);
-      throw error;
+      return { meta: { requestStatus: 'rejected' }, payload: error.message };
     } finally {
       setAttendanceLoading(false);
     }

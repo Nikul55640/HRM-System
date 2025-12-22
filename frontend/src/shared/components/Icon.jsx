@@ -87,7 +87,7 @@ import {
   ListChecks,
   Timer,
   Coffee,
-  Play,
+  Play
 } from 'lucide-react';
 
 

@@ -48,19 +48,20 @@ const Sidebar = () => {
         },
       ],
     },
+    // Employee Self-Service Section (only for users with employeeId)
     {
       section: "My Self Service",
       icon: "User",
-      showIf: () => !!user?.employeeId, // Only show if user has employeeId
+      showIf: () => !!user?.employeeId && !can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.SYSTEM.MANAGE_CONFIG]), // Only show for employees, not admins
       items: [
-        { name: "My Profile", path: "/profile", icon: "User", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
-        { name: "Settings", path: "/settings", icon: "Settings", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
-        { name: "Bank Details", path: "/bank-details", icon: "Banknote", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
-        { name: "My Payslips", path: "/payslips", icon: "Receipt", showIf: () => can.do(MODULES.PAYROLL.VIEW_OWN) },
-        { name: "Leave", path: "/leave", icon: "CalendarDays", showIf: () => can.do(MODULES.LEAVE.VIEW_OWN) },
-        { name: "Attendance", path: "/attendance", icon: "Clock", showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN) },
-        { name: "My Documents", path: "/documents", icon: "FileText", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_DOCUMENTS) },
-        { name: "My Requests", path: "/requests", icon: "FileSignature", showIf: () => can.do(MODULES.LEAVE.VIEW_OWN) },
+        { name: "My Profile", path: "/employee/profile", icon: "User", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
+        { name: "Settings", path: "/employee/settings", icon: "Settings", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
+        { name: "Bank Details", path: "/employee/bank-details", icon: "Banknote", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
+        { name: "My Payslips", path: "/employee/payslips", icon: "Receipt", showIf: () => can.do(MODULES.PAYROLL.VIEW_OWN) },
+        { name: "Leave", path: "/employee/leave", icon: "CalendarDays", showIf: () => can.do(MODULES.LEAVE.VIEW_OWN) },
+        { name: "Attendance", path: "/employee/attendance", icon: "Clock", showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN) },
+        { name: "My Documents", path: "/employee/documents", icon: "FileText", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_DOCUMENTS) },
+        { name: "My Requests", path: "/employee/requests", icon: "FileSignature", showIf: () => can.do(MODULES.LEAVE.VIEW_OWN) },
       ],
     },
     {
@@ -188,45 +189,39 @@ const Sidebar = () => {
       items: [
         {
           name: "Payroll Dashboard",
-          path: "/payroll",
+          path: "/admin/payroll",
           icon: "Wallet",
           showIf: () => can.do(MODULES.PAYROLL.VIEW_ALL),
         },
         {
           name: "Employees",
-          path: "/payroll/employees",
+          path: "/admin/payroll/employees",
           icon: "UserCheck",
           showIf: () => can.do(MODULES.PAYROLL.VIEW_ALL),
         },
         {
           name: "Structures",
-          path: "/payroll/structures",
+          path: "/admin/payroll/structures",
           icon: "Layers",
           showIf: () => can.do(MODULES.PAYROLL.MANAGE_STRUCTURE),
-        },
-        {
-          name: "Payslips",
-          path: "/payroll/payslips",
-          icon: "FileSpreadsheet",
-          showIf: () => can.do(MODULES.PAYROLL.VIEW_ALL),
         },
       ],
     },
     {
-      section: "Admin Panel",
+      section: "System Administration",
       icon: "Shield",
       collapsible: true,
       showIf: () => can.doAny([MODULES.USER.VIEW, MODULES.SYSTEM.VIEW_CONFIG]),
       items: [
         {
           name: "User Management",
-          path: "/users",
+          path: "/admin/users",
           icon: "UserCog",
           showIf: () => can.do(MODULES.USER.VIEW),
         },
         {
           name: "System Settings",
-          path: "/settings",
+          path: "/admin/settings",
           icon: "Settings",
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
         },

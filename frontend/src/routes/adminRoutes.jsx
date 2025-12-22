@@ -49,8 +49,8 @@ export const adminRoutes = [
     element: <LeaveApprovalsPage />,
     roles: ["SuperAdmin", "Admin", "HR", "HR Manager"],
   },
-  { path: "users", element: <UserManagement />, roles: ["SuperAdmin"] },
-  { path: "settings", element: <SystemConfig />, roles: ["SuperAdmin"] },
+  { path: "admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },
+  { path: "admin/settings", element: <SystemConfig />, roles: ["SuperAdmin"] },
   { path: "admin/leave-types", element: <LeaveTypesPage />, roles: ["SuperAdmin", "Admin", "HR", "HR Manager"] },
   {
     path: "admin/calendar",

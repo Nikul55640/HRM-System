@@ -7,7 +7,7 @@ import { Op } from 'sequelize';
  */
 const createRequest = async (req, res) => {
   try {
-    const { employeeId, _id: userId } = req.user;
+    const { employeeId, id: userId } = req.user;
 
     if (!employeeId) {
       return res.status(400).json({
@@ -89,7 +89,7 @@ const createRequest = async (req, res) => {
  */
  const getRequests = async (req, res) => {
   try {
-    const { employeeId, _id: userId } = req.user;
+    const { employeeId, id: userId } = req.user;
 
     if (!employeeId) {
       return res.status(400).json({
@@ -169,7 +169,7 @@ const createRequest = async (req, res) => {
  */
 const getRequestById = async (req, res) => {
   try {
-    const { employeeId, _id: userId } = req.user;
+    const { employeeId, id: userId } = req.user;
 
     if (!employeeId) {
       return res.status(400).json({
@@ -223,7 +223,7 @@ const getRequestById = async (req, res) => {
  */
  const cancelRequest = async (req, res) => {
   try {
-    const { employeeId, _id: userId } = req.user;
+    const { employeeId, id: userId } = req.user;
 
     if (!employeeId) {
       return res.status(400).json({
@@ -409,7 +409,7 @@ const validateRequestData = (requestType, data) => {
   try {
     const { id } = req.params;
     const { action, comments } = req.body;
-    const { _id: userId, role } = req.user;
+    const { id: userId, role } = req.user;
 
     if (!['approve', 'reject'].includes(action)) {
       return res.status(400).json({
@@ -488,7 +488,7 @@ const validateRequestData = (requestType, data) => {
  */
 const getPendingApprovals = async (req, res) => {
   try {
-    const { _id: userId, role } = req.user;
+    const { id: userId, role } = req.user;
     const { page = 1, limit = 10 } = req.query;
 
     const where = {

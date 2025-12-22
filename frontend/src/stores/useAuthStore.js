@@ -15,6 +15,7 @@ const useAuthStore = create(
         loading: false,
         error: null,
         permissions: [],
+        isLoggingOut: false, // Add logout guard
         
         // Actions
         login: async (credentials) => {
@@ -62,12 +63,19 @@ const useAuthStore = create(
         },
         
         logout: async () => {
-          set({ loading: true });
+          // Prevent multiple simultaneous logout calls
+          const { isLoggingOut } = get();
+          if (isLoggingOut) {
+            console.log('🔐 [AUTH STORE] Logout already in progress, skipping...');
+            return;
+          }
+          
+          set({ loading: true, isLoggingOut: true });
           
           try {
             await api.post('/auth/logout');
           } catch (error) {
-            console.warn('Logout API call failed:', error);
+            console.warn('🔐 [AUTH STORE] Logout API call failed:', error);
           } finally {
             // Clear auth data regardless of API call success
             delete api.defaults.headers.common['Authorization'];
@@ -79,7 +87,8 @@ const useAuthStore = create(
               permissions: [],
               isAuthenticated: false,
               loading: false,
-              error: null
+              error: null,
+              isLoggingOut: false
             });
             
             toast.info('You have been logged out');

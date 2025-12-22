@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
 import { Input } from '../../../shared/ui/input';
@@ -14,8 +14,7 @@ import {
   Users,
   Gift,
   Award,
-  Sync,
-  Download
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format, parseISO } from 'date-fns';
@@ -40,11 +39,7 @@ const CalendarManagement = () => {
   const [editingEvent, setEditingEvent] = useState(null);
   const [editingHoliday, setEditingHoliday] = useState(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedYear]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const [eventsRes, holidaysRes] = await Promise.all([
@@ -67,7 +62,11 @@ const CalendarManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedYear]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const handleCreateEvent = () => {
     setEditingEvent(null);
@@ -114,7 +113,7 @@ const CalendarManagement = () => {
       toast.success('Holiday deleted successfully');
       fetchData();
     } catch (error) {
-      console.error('Error deleting holiday:', error);
+      
       toast.error('Failed to delete holiday');
     }
   };
@@ -127,7 +126,7 @@ const CalendarManagement = () => {
         fetchData();
       }
     } catch (error) {
-      console.error('Error syncing employee events:', error);
+      
       toast.error('Failed to sync employee events');
     }
   };
@@ -158,7 +157,7 @@ const CalendarManagement = () => {
     }
   };
 
-  if (!can(MODULES.CALENDAR, 'manage')) {
+  if (!can.do(MODULES.CALENDAR.MANAGE)) {
     return (
       <div className="p-6">
         <Card>
@@ -193,7 +192,7 @@ const CalendarManagement = () => {
             })}
           </select>
           <Button onClick={handleSyncEmployeeEvents} variant="outline">
-            <Sync className="w-4 h-4 mr-2" />
+            <RefreshCw className="w-4 h-4 mr-2" />
             Sync Employee Events
           </Button>
         </div>

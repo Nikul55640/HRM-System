@@ -55,7 +55,7 @@ const createDefaultLeaveBalance = async (employeeId, year) => {
 ---------------------------------------------- */
 const createLeaveRequest = async (req, res) => {
   try {
-    const { employeeId, _id: userId, fullName, email, role } = req.user;
+    const { employeeId, id: userId, fullName, email, role } = req.user;
     const {
       type,
       startDate,

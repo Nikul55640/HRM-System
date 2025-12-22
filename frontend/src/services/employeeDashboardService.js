@@ -80,12 +80,12 @@ const employeeDashboardService = {
       // Build dashboard data structure
       const dashboardData = {
         personalInfo: {
-          firstName: profileData?.firstName || '',
-          lastName: profileData?.lastName || '',
+          firstName: profileData?.personalInfo?.firstName || '',
+          lastName: profileData?.personalInfo?.lastName || '',
         },
-        employeeId: profileData?.employeeId || profileData?.id || '--',
+        employeeId: profileData?.employeeId || '--',
         jobInfo: {
-          jobTitle: profileData?.jobTitle || profileData?.position || 'Employee',
+          jobTitle: profileData?.jobInfo?.jobTitle || 'Employee',
         },
         stats: {
           attendanceRate: Math.round(attendanceRate),
@@ -161,7 +161,7 @@ const employeeDashboardService = {
         data: response.data?.data,
       };
     } catch (error) {
-      console.error('❌ [EMPLOYEE DASHBOARD SERVICE] Failed to fetch leave balance:', error);
+      
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to load leave balance',

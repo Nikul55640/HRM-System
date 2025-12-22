@@ -3,14 +3,23 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/car
 import { Button } from '../../../shared/ui/button';
 import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users } from 'lucide-react';
 import { toast } from 'react-toastify';
-import api from '../../../core/api/api';
 import LocationSelectionModal from './LocationSelectionModal';
+import { useAttendanceContext } from '../../../contexts/AttendanceContext';
 
 const EnhancedClockInOut = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [todayRecord, setTodayRecord] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  
+  // Use shared attendance context
+  const {
+    todayRecord,
+    isLoading,
+    clockIn,
+    clockOut,
+    startBreak,
+    endBreak,
+    getAttendanceStatus
+  } = useAttendanceContext();
 
   // Update clock every second
   useEffect(() => {
@@ -21,159 +30,64 @@ const EnhancedClockInOut = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch today's attendance record
-  useEffect(() => {
-    fetchTodayRecord();
-  }, []);
-
-  const fetchTodayRecord = async () => {
-    try {
-      console.log('📊 [FETCH] Fetching today\'s attendance record...');
-      
-      const today = new Date();
-      const startDate = today.toISOString().split('T')[0];
-      const endDate = startDate;
-      
-      const response = await api.get('/employee/attendance/sessions', {
-        params: {
-          startDate,
-          endDate,
-          limit: 1,
-        },
-      });
-
-      console.log('📊 [FETCH] Sessions response:', response.data);
-
-      if (response.data.success && response.data.data.length > 0) {
-        const record = response.data.data[0];
-        const recordDate = new Date(record.date);
-        const isToday = recordDate.toDateString() === today.toDateString();
-
-        console.log('📊 [FETCH] Record date:', recordDate.toDateString());
-        console.log('📊 [FETCH] Today:', today.toDateString());
-        console.log('📊 [FETCH] Is today?', isToday);
-        console.log('📊 [FETCH] Record sessions:', record.sessions);
-
-        if (isToday) {
-          setTodayRecord(record);
-          console.log('✅ [FETCH] Today\'s record set:', record);
-        } else {
-          console.log('⚠️ [FETCH] Record is not for today');
-          setTodayRecord(null);
-        }
-      } else {
-        console.log('⚠️ [FETCH] No records found');
-        setTodayRecord(null);
-      }
-    } catch (error) {
-      if (error.response?.status === 403 || error.response?.status === 500) {
-        toast.error(error.response?.data?.message || 'Failed to load attendance data');
-      }
-      console.error('❌ [FETCH] Error fetching today record:', error);
-      setTodayRecord(null);
-    }
-  };
-
   const handleClockInClick = () => {
     setShowLocationModal(true);
   };
 
   const handleLocationConfirm = async (locationData) => {
     try {
-      console.log('🔵 [CLOCK-IN] Starting clock-in process...');
-      console.log('🔵 [CLOCK-IN] Location data:', locationData);
+      const result = await clockIn(locationData);
       
-      setLoading(true);
-      const response = await api.post('/employee/attendance/session/start', locationData);
-      
-      console.log('✅ [CLOCK-IN] Response received:', response.data);
-
-      if (response.data.success) {
+      if (result.success) {
         toast.success('Clocked in successfully!');
         setShowLocationModal(false);
-        fetchTodayRecord();
+      } else {
+        toast.error(result.error || 'Failed to clock in');
       }
     } catch (error) {
-      console.error('❌ [CLOCK-IN] Error:', error);
-      console.error('❌ [CLOCK-IN] Error response:', error.response?.data);
-      const message = error.response?.data?.message || 'Failed to clock in';
-      toast.error(message);
-    } finally {
-      setLoading(false);
+      toast.error('Failed to clock in');
     }
   };
 
   const handleClockOut = async () => {
     try {
-      console.log('🔴 [CLOCK-OUT] Starting clock-out process...');
+      const result = await clockOut();
       
-      setLoading(true);
-      
-      // Use different endpoint based on whether it's a legacy record or new session
-      const endpoint = hasLegacyClockIn ? '/employee/attendance/check-out' : '/employee/attendance/session/end';
-      console.log('🔴 [CLOCK-OUT] Using endpoint:', endpoint);
-      
-      const response = await api.post(endpoint);
-      
-      console.log('✅ [CLOCK-OUT] Response received:', response.data);
-
-      if (response.data.success) {
+      if (result.success) {
         toast.success('Clocked out successfully!');
-        fetchTodayRecord();
+      } else {
+        toast.error(result.error || 'Failed to clock out');
       }
     } catch (error) {
-      console.error('❌ [CLOCK-OUT] Error:', error);
-      console.error('❌ [CLOCK-OUT] Error response:', error.response?.data);
-      const message = error.response?.data?.message || 'Failed to clock out';
-      toast.error(message);
-    } finally {
-      setLoading(false);
+      toast.error('Failed to clock out');
     }
   };
 
   const handleStartBreak = async () => {
     try {
-      console.log('☕ [START-BREAK] Starting break...');
+      const result = await startBreak();
       
-      setLoading(true);
-      const response = await api.post('/employee/attendance/break/start');
-      
-      console.log('✅ [START-BREAK] Response received:', response.data);
-
-      if (response.data.success) {
+      if (result.success) {
         toast.success('Break started');
-        fetchTodayRecord();
+      } else {
+        toast.error(result.error || 'Failed to start break');
       }
     } catch (error) {
-      console.error('❌ [START-BREAK] Error:', error);
-      console.error('❌ [START-BREAK] Error response:', error.response?.data);
-      const message = error.response?.data?.message || 'Failed to start break';
-      toast.error(message);
-    } finally {
-      setLoading(false);
+      toast.error('Failed to start break');
     }
   };
 
   const handleEndBreak = async () => {
     try {
-      console.log('☕ [END-BREAK] Ending break...');
+      const result = await endBreak();
       
-      setLoading(true);
-      const response = await api.post('/employee/attendance/break/end');
-      
-      console.log('✅ [END-BREAK] Response received:', response.data);
-
-      if (response.data.success) {
+      if (result.success) {
         toast.success('Break ended');
-        fetchTodayRecord();
+      } else {
+        toast.error(result.error || 'Failed to end break');
       }
     } catch (error) {
-      console.error('❌ [END-BREAK] Error:', error);
-      
-      const message = error.response?.data?.message || 'Failed to end break';
-      toast.error(message);
-    } finally {
-      setLoading(false);
+      toast.error('Failed to end break');
     }
   };
 
@@ -234,24 +148,14 @@ const EnhancedClockInOut = () => {
     }
   };
 
-  // Get active session (handle both new session format and legacy format)
-  const activeSession = todayRecord?.sessions?.find(
-    (s) => s.status === 'active' || s.status === 'on_break'
-  );
-
-  // Handle legacy format (checkIn/checkOut without sessions)
-  const hasLegacyClockIn = todayRecord?.checkIn && !todayRecord?.checkOut && (!todayRecord?.sessions || todayRecord.sessions.length === 0);
-  
-  const isActive = activeSession?.status === 'active' || hasLegacyClockIn;
-  const isOnBreak = activeSession?.status === 'on_break';
-  const hasCompletedSessions = todayRecord?.sessions?.some((s) => s.status === 'completed');
-
-  // Debug logs (only when needed)
-  // console.log('🎯 [RENDER] Today Record:', todayRecord);
-  // console.log('🎯 [RENDER] Active Session:', activeSession);
-  // console.log('🎯 [RENDER] Is Active:', isActive);
-  // console.log('🎯 [RENDER] Is On Break:', isOnBreak);
-  // console.log('🎯 [RENDER] Has Completed Sessions:', hasCompletedSessions);
+  // Get attendance status from context
+  const {
+    isClockedIn: isActive,
+    isOnBreak,
+    hasLegacyClockIn,
+    activeSession,
+    hasCompletedSessions
+  } = getAttendanceStatus();
 
   return (
     <>
@@ -357,12 +261,12 @@ const EnhancedClockInOut = () => {
               {!activeSession && (
                 <Button
                   onClick={handleClockInClick}
-                  disabled={loading}
+                  disabled={isLoading}
                   className="w-full"
                   size="lg"
                 >
                   <LogIn className="mr-2 h-5 w-5" />
-                  {loading ? 'Processing...' : 'Clock In'}
+                  {isLoading ? 'Processing...' : 'Clock In'}
                 </Button>
               )}
 
@@ -371,7 +275,7 @@ const EnhancedClockInOut = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       onClick={handleStartBreak}
-                      disabled={loading}
+                      disabled={isLoading}
                       variant="outline"
                       size="lg"
                     >
@@ -380,7 +284,7 @@ const EnhancedClockInOut = () => {
                     </Button>
                     <Button
                       onClick={handleClockOut}
-                      disabled={loading}
+                      disabled={isLoading}
                       variant="destructive"
                       size="lg"
                     >
@@ -394,13 +298,13 @@ const EnhancedClockInOut = () => {
               {isOnBreak && (
                 <Button
                   onClick={handleEndBreak}
-                  disabled={loading}
+                  disabled={isLoading}
                   variant="default"
                   className="w-full"
                   size="lg"
                 >
                   <Coffee className="mr-2 h-5 w-5" />
-                  {loading ? 'Ending Break...' : 'End Break'}
+                  {isLoading ? 'Ending Break...' : 'End Break'}
                 </Button>
               )}
             </div>
@@ -420,7 +324,7 @@ const EnhancedClockInOut = () => {
         isOpen={showLocationModal}
         onClose={() => setShowLocationModal(false)}
         onConfirm={handleLocationConfirm}
-        loading={loading}
+        loading={isLoading}
       />
     </>
   );

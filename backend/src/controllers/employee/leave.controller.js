@@ -29,41 +29,34 @@ const DEFAULT_ALLOCATIONS = {
    Helper: Create default LeaveBalance when missing
 ---------------------------------------------------------- */
 const createDefaultBalance = async (employeeId, year) => {
-  const { LeaveType } = await import("../../models/sequelize/index.js");
-  
-  // Get all active leave types
-  const leaveTypes = await LeaveType.findAll({
-    where: { isActive: true },
-    attributes: ['id', 'name', 'code']
-  });
-  
   const balances = [];
   
-  for (const leaveType of leaveTypes) {
-    // Map leave type names to default allocations
-    const typeName = leaveType.name.toLowerCase().replace(/\s+/g, '');
-    let allocated = 20; // Default allocation
-    
-    // Set specific allocations based on leave type name
-    if (typeName.includes('annual')) allocated = 20;
-    else if (typeName.includes('sick')) allocated = 10;
-    else if (typeName.includes('maternity')) allocated = 90;
-    else if (typeName.includes('paternity')) allocated = 15;
-    else if (typeName.includes('casual')) allocated = 12;
-    else if (typeName.includes('emergency')) allocated = 3;
-    else if (typeName.includes('unpaid')) allocated = 9999;
-    
-    const balance = await LeaveBalance.create({
-      employeeId,
-      year,
-      leaveTypeId: leaveType.id,
-      leaveType: null, // Don't use the enum field
-      allocated,
-      used: 0,
-      pending: 0,
-      remaining: allocated,
+  // Create default leave types with standard names
+  for (const leaveType of VALID_LEAVE_TYPES) {
+    // Check if this leave type already exists to prevent duplicates
+    const existingBalance = await LeaveBalance.findOne({
+      where: {
+        employeeId,
+        year,
+        leaveType: leaveType,
+      },
     });
-    balances.push(balance);
+
+    if (!existingBalance) {
+      const balance = await LeaveBalance.create({
+        employeeId,
+        year,
+        leaveTypeId: null, // We'll use the enum field instead
+        leaveType: leaveType, // Use the standard leave type
+        allocated: DEFAULT_ALLOCATIONS[leaveType],
+        used: 0,
+        pending: 0,
+        remaining: DEFAULT_ALLOCATIONS[leaveType],
+      });
+      balances.push(balance);
+    } else {
+      balances.push(existingBalance);
+    }
   }
   
   return balances;
@@ -89,12 +82,6 @@ const getLeaveBalance = async (req, res) => {
         employeeId,
         year,
       },
-      include: [
-        {
-          association: 'leaveTypeInfo',
-          attributes: ['id', 'name', 'code']
-        }
-      ]
     });
 
     // Auto-create default balance if not exists
@@ -102,11 +89,22 @@ const getLeaveBalance = async (req, res) => {
       leaveBalances = await createDefaultBalance(employeeId, year);
     }
 
+    // Remove duplicates by grouping by leaveType and keeping the latest one
+    const uniqueBalances = {};
+    leaveBalances.forEach(balance => {
+      const type = balance.leaveType || 'annual';
+      if (!uniqueBalances[type] || balance.updatedAt > uniqueBalances[type].updatedAt) {
+        uniqueBalances[type] = balance;
+      }
+    });
+
+    const filteredBalances = Object.values(uniqueBalances);
+
     // Transform to match frontend expectations
     const transformedBalance = {
       year,
-      leaveTypes: leaveBalances.map(balance => ({
-        type: balance.leaveTypeInfo?.name?.toLowerCase().replace(/\s+/g, '') || balance.leaveType || 'unknown',
+      leaveTypes: filteredBalances.map(balance => ({
+        type: balance.leaveType || 'annual', // Use the enum field directly
         allocated: balance.allocated,
         used: balance.used,
         pending: balance.pending,
@@ -171,7 +169,7 @@ const getLeaveHistory = async (req, res) => {
 ---------------------------------------------------------- */
 const exportLeaveSummary = async (req, res) => {
   try {
-    const { employeeId, _id: userId } = req.user;
+    const { employeeId, id: userId } = req.user;
     const year = parseInt(req.query.year) || new Date().getFullYear();
     const format = req.query.format || "pdf";
 

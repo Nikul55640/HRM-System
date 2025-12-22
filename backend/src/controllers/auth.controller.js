@@ -321,13 +321,26 @@ const refresh = async (req, res) => {
  */
 const logout = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user?.id;
 
-    // Clear refresh token from database
-    await User.update(
-      { refreshToken: null },
-      { where: { id: userId } }
-    );
+    // If no user ID, still return success (already logged out)
+    if (!userId) {
+      return res.status(200).json({
+        success: true,
+        message: "Logout successful.",
+      });
+    }
+
+    // Clear refresh token from database (non-blocking)
+    try {
+      await User.update(
+        { refreshToken: null },
+        { where: { id: userId } }
+      );
+    } catch (dbError) {
+      // Log database error but don't fail the logout
+      console.warn("Failed to clear refresh token from database:", dbError);
+    }
 
     res.status(200).json({
       success: true,
@@ -335,13 +348,13 @@ const logout = async (req, res) => {
     });
   } catch (error) {
     console.error("Logout error:", error);
-    res.status(500).json({
-      success: false,
-      error: {
-        code: "LOGOUT_ERROR",
-        message: "An error occurred during logout.",
-        timestamp: new Date().toISOString(),
-      },
+    
+    // Even if there's an error, return success for logout
+    // The client should clear local tokens regardless
+    res.status(200).json({
+      success: true,
+      message: "Logout completed.",
+      warning: "Some cleanup operations may have failed.",
     });
   }
 };

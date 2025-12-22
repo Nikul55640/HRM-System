@@ -218,7 +218,7 @@ const LeavePage = () => {
             <div className="space-y-4">
               {leaveRequests.map((request) => (
                 <div
-                  key={request._id}
+                  key={request.id || request._id || `request-${Math.random()}`}
                   className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
                 >
                   <div className="flex items-start justify-between">

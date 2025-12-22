@@ -111,7 +111,7 @@ const attendanceService = {
    */
   getAllAttendance: async (params = {}) => {
     try {
-      const response = await api.get('/admin/attendance', { params });
+      const response = await api.get('/admin/attendance/all', { params });
       return response.data;
     } catch (error) {
       console.error(' [ATTENDANCE] Failed to fetch all records:', error);

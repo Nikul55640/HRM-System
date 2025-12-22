@@ -25,14 +25,14 @@ router.get(
 );
 
 /**
- * @route   GET /api/dashboard/profile
+ * @route   GET /api/dashboard/profile-summary
  * @desc    Get employee profile summary
  * @access  All authenticated users
  * @requirements 6.1
  * @permission EMPLOYEE.VIEW_OWN
  */
 router.get(
-  '/profile',
+  '/profile-summary',
   authenticate,
   checkAnyPermission([
     MODULES.EMPLOYEE.VIEW_OWN,

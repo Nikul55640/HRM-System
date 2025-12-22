@@ -24,12 +24,12 @@ const RequestsPage = lazy(() =>
 );
 
 export const essRoutes = [
-  { path: "profile", element: <ProfilePage /> },
-  { path: "settings", element: <SettingsPage /> },
-  { path: "bank-details", element: <BankDetailsPage /> },
-  { path: "payslips", element: <PayslipsPage /> },
-  { path: "leave", element: <LeavePage /> },
-  { path: "attendance", element: <AttendancePage /> },
-  { path: "documents", element: <DocumentsPage /> },
-  { path: "requests", element: <RequestsPage /> },
+  { path: "employee/profile", element: <ProfilePage /> },
+  { path: "employee/settings", element: <SettingsPage /> },
+  { path: "employee/bank-details", element: <BankDetailsPage /> },
+  { path: "employee/payslips", element: <PayslipsPage /> },
+  { path: "employee/leave", element: <LeavePage /> },
+  { path: "employee/attendance", element: <AttendancePage /> },
+  { path: "employee/documents", element: <DocumentsPage /> },
+  { path: "employee/requests", element: <RequestsPage /> },
 ];

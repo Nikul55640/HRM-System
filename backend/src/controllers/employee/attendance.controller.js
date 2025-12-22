@@ -1,7 +1,6 @@
 import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
 import { AttendanceRecord, AuditLog } from "../../models/sequelize/index.js";
-import { requireEmployeeProfile } from "../../utils/essHelpers.js";
 
 // ---------------------------------------------------------
 // Helper: detect device type
@@ -1021,13 +1020,16 @@ const getAllAttendanceRecords = async (req, res) => {
     const includeOptions = [{
       model: AttendanceRecord.sequelize.models.Employee,
       as: 'employee',
-      attributes: ['id', 'firstName', 'lastName', 'email', 'department', 'position', 'employeeId'],
+      attributes: ['id', 'employeeId', 'personalInfo', 'jobInfo', 'contactInfo', 'status'],
+      // Filter by department if specified (using JSON path)
+      ...(department && department !== 'all' ? {
+        where: {
+          [AttendanceRecord.sequelize.Sequelize.Op.and]: [
+            AttendanceRecord.sequelize.Sequelize.literal(`JSON_EXTRACT(jobInfo, '$.department') = '${department}'`)
+          ]
+        }
+      } : {})
     }];
-
-    // Filter by department if specified
-    if (department) {
-      includeOptions[0].where = { department };
-    }
 
     const { count: total, rows: records } = await AttendanceRecord.findAndCountAll({
       where,
@@ -1038,13 +1040,20 @@ const getAllAttendanceRecords = async (req, res) => {
     });
 
     // Format records with employee info
-    const formattedRecords = records.map(record => ({
-      ...record.toJSON(),
-      employeeName: record.employee ? `${record.employee.firstName} ${record.employee.lastName}` : 'Unknown',
-      employeeEmail: record.employee?.email || '',
-      employeeDepartment: record.employee?.department || '',
-      employeePosition: record.employee?.position || '',
-    }));
+    const formattedRecords = records.map(record => {
+      const employee = record.employee;
+      const personalInfo = employee?.personalInfo || {};
+      const jobInfo = employee?.jobInfo || {};
+      const contactInfo = employee?.contactInfo || {};
+      
+      return {
+        ...record.toJSON(),
+        employeeName: employee ? `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() : 'Unknown',
+        employeeEmail: contactInfo.email || '',
+        employeeDepartment: jobInfo.department || '',
+        employeePosition: jobInfo.position || '',
+      };
+    });
 
     // -----------------------
     // AUDIT LOG

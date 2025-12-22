@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from "../../../../shared/ui/card";
 import employeeDashboardService from "../../../../services/employeeDashboardService";
-import attendanceService from "../../../attendance/services/attendanceService";
 import PropTypes from "prop-types";
 import { format } from "date-fns";
 import {
@@ -24,31 +23,47 @@ import {
   Coffee,
   Play,
   Timer,
+  Calendar,
+  Users,
+  TrendingUp,
+  Bell,
+  Palmtree,
+  CreditCard,
+  UserCheck,
+  Activity,
+  Target,
+  Gift,
+  AlertCircle,
 } from "lucide-react";
 import leaveService from "../../../../core/services/leaveService";
+import { useAttendanceContext } from "../../../../contexts/AttendanceContext";
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState(null);
-  const [attendanceStatus, setAttendanceStatus] = useState(null);
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [attendanceSummary, setAttendanceSummary] = useState(null);
   const [todayActivities, setTodayActivities] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [clockingIn, setClockingIn] = useState(false);
-  const [clockingOut, setClockingOut] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Use shared attendance context
+  const {
+    todayRecord,
+    isLoading: attendanceLoading,
+    clockIn,
+    clockOut,
+    getAttendanceStatus
+  } = useAttendanceContext();
 
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
       await Promise.all([
         fetchDashboardData(),
-        fetchAttendanceStatus(),
         fetchLeaveBalance(),
         fetchAttendanceSummary(),
-        fetchTodayActivities(),
         fetchNotifications(),
       ]);
       setLoading(false);
@@ -63,6 +78,15 @@ const EmployeeDashboard = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Update today activities when todayRecord changes
+  useEffect(() => {
+    if (todayRecord) {
+      updateTodayActivities(todayRecord);
+    } else {
+      setTodayActivities([]);
+    }
+  }, [todayRecord]);
 
 
 
@@ -109,22 +133,95 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const fetchAttendanceStatus = async () => {
-    try {
-      const today = format(new Date(), "yyyy-MM-dd");
-      const res = await attendanceService.getMyAttendance({
-        startDate: today,
-        endDate: today,
+  // Helper function to update today's activities based on attendance record
+  const updateTodayActivities = (record) => {
+    const activities = [];
+
+    // Handle both new session format and legacy format
+    if (record.sessions && record.sessions.length > 0) {
+      // New session format
+      record.sessions.forEach(session => {
+        if (session.checkIn) {
+          activities.push({
+            time: format(new Date(session.checkIn), "hh:mm a"),
+            activity: "Clock In",
+            icon: "CheckCircle",
+            status: "completed"
+          });
+        }
+
+        // Add break activities
+        if (session.breaks && Array.isArray(session.breaks)) {
+          session.breaks.forEach(breakItem => {
+            if (breakItem.startTime) {
+              activities.push({
+                time: format(new Date(breakItem.startTime), "hh:mm a"),
+                activity: "Break Start",
+                icon: "Coffee",
+                status: "completed"
+              });
+            }
+            if (breakItem.endTime) {
+              activities.push({
+                time: format(new Date(breakItem.endTime), "hh:mm a"),
+                activity: "Break End",
+                icon: "Play",
+                status: "completed"
+              });
+            }
+          });
+        }
+
+        if (session.checkOut) {
+          activities.push({
+            time: format(new Date(session.checkOut), "hh:mm a"),
+            activity: "Clock Out",
+            icon: "CheckCircle",
+            status: "completed"
+          });
+        } else if (session.status === 'active') {
+          activities.push({
+            time: "--",
+            activity: "Working...",
+            icon: "Timer",
+            status: "current"
+          });
+        } else if (session.status === 'on_break') {
+          activities.push({
+            time: "--",
+            activity: "On Break...",
+            icon: "Coffee",
+            status: "current"
+          });
+        }
+      });
+    } else if (record.checkIn) {
+      // Legacy format
+      activities.push({
+        time: format(new Date(record.checkIn), "hh:mm a"),
+        activity: "Clock In",
+        icon: "CheckCircle",
+        status: "completed"
       });
 
-      if (res.success && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        setAttendanceStatus(res.data[0]);
+      if (record.checkOut) {
+        activities.push({
+          time: format(new Date(record.checkOut), "hh:mm a"),
+          activity: "Clock Out",
+          icon: "CheckCircle",
+          status: "completed"
+        });
       } else {
-        setAttendanceStatus(null);
+        activities.push({
+          time: "--",
+          activity: "Working...",
+          icon: "Timer",
+          status: "current"
+        });
       }
-    } catch (error) {
-      // Silent error handling
     }
+
+    setTodayActivities(activities);
   };
 
   const fetchLeaveBalance = async () => {
@@ -175,92 +272,22 @@ const EmployeeDashboard = () => {
     }
   };
 
-  const fetchTodayActivities = async () => {
-    try {
-      const today = format(new Date(), "yyyy-MM-dd");
-      const res = await attendanceService.getMyAttendance({
-        startDate: today,
-        endDate: today,
-      });
-
-      if (res.success && res.data && Array.isArray(res.data) && res.data.length > 0) {
-        const todayRecord = res.data[0];
-        const activities = [];
-
-        if (todayRecord.checkIn) {
-          activities.push({
-            time: format(new Date(todayRecord.checkIn), "hh:mm a"),
-            activity: "Clock In",
-            icon: "CheckCircle",
-            status: "completed"
-          });
-        }
-
-        // Add break activities if available
-        if (todayRecord.breaks && Array.isArray(todayRecord.breaks)) {
-          todayRecord.breaks.forEach(breakItem => {
-            if (breakItem.startTime) {
-              activities.push({
-                time: format(new Date(breakItem.startTime), "hh:mm a"),
-                activity: "Break Start",
-                icon: "Coffee",
-                status: "completed"
-              });
-            }
-            if (breakItem.endTime) {
-              activities.push({
-                time: format(new Date(breakItem.endTime), "hh:mm a"),
-                activity: "Break End",
-                icon: "Play",
-                status: "completed"
-              });
-            }
-          });
-        }
-
-        if (todayRecord.checkOut) {
-          activities.push({
-            time: format(new Date(todayRecord.checkOut), "hh:mm a"),
-            activity: "Clock Out",
-            icon: "CheckCircle",
-            status: "completed"
-          });
-        } else if (todayRecord.checkIn) {
-          activities.push({
-            time: "--",
-            activity: "Working...",
-            icon: "Timer",
-            status: "current"
-          });
-        }
-
-        setTodayActivities(activities);
-      } else {
-        // Set empty activities if no data
-        setTodayActivities([]);
-      }
-    } catch (error) {
-      // Set empty activities on error
-      setTodayActivities([]);
-    }
-  };
-
   const fetchNotifications = async () => {
     try {
       // Try to fetch real notifications from API
       // For now, using fallback data
       const fallbackNotifications = [
-        { icon: "🎉", message: "Holiday on 26 Jan (Republic Day)" },
-        { icon: "💰", message: "Salary credited for Dec" },
-        { icon: "✅", message: "Leave request approved" },
+        { icon: <Gift className="w-4 h-4 text-red-500" />, message: "Holiday on 26 Jan (Republic Day)" },
+        { icon: <DollarSign className="w-4 h-4 text-green-500" />, message: "Salary credited for Dec" },
+        { icon: <CheckCircle className="w-4 h-4 text-blue-500" />, message: "Leave request approved" },
       ];
       setNotifications(fallbackNotifications);
     } catch (error) {
       // Set fallback notifications on error
       const fallbackNotifications = [
-        { icon: "🎉", message: "Holiday on 26 Jan (Republic Day)" },
-        { icon: "💰", message: "Salary credited for Dec" },
-        { icon: "✅", message: "Leave request approved" },
+        { icon: <Gift className="w-4 h-4 text-red-500" />, message: "Holiday on 26 Jan (Republic Day)" },
+        { icon: <DollarSign className="w-4 h-4 text-green-500" />, message: "Salary credited for Dec" },
+        { icon: <CheckCircle className="w-4 h-4 text-blue-500" />, message: "Leave request approved" },
       ];
       setNotifications(fallbackNotifications);
     }
@@ -268,53 +295,33 @@ const EmployeeDashboard = () => {
 
   const handleClockIn = async () => {
     try {
-      setClockingIn(true);
-      await attendanceService.clockIn({
-        location: { address: "Office" },
-        notes: "Clocked in from dashboard"
+      const result = await clockIn({
+        workLocation: 'office',
+        locationDetails: 'Office',
+        notes: 'Clocked in from dashboard'
       });
-      toast.success("Good morning! Clocked in successfully.");
-      setTimeout(() => {
-        fetchAttendanceStatus();
-        fetchTodayActivities();
-      }, 500);
-    } catch (e) {
-      const errorMessage = e.message || "Clock In failed";
-      if (errorMessage.includes("Already checked in")) {
-        toast.info("You're already clocked in for today!");
-        fetchAttendanceStatus();
+      
+      if (result.success) {
+        toast.success("Good morning! Clocked in successfully.");
       } else {
-        toast.error(errorMessage);
+        toast.error(result.error || "Clock In failed");
       }
-    } finally {
-      setClockingIn(false);
+    } catch (error) {
+      toast.error("Clock In failed");
     }
   };
 
   const handleClockOut = async () => {
     try {
-      setClockingOut(true);
-      await attendanceService.clockOut({
-        location: { address: "Office" },
-        notes: "Clocked out from dashboard"
-      });
-      toast.success("Have a great evening! Clocked out.");
-      setTimeout(() => {
-        fetchAttendanceStatus();
-        fetchTodayActivities();
-      }, 500);
-    } catch (e) {
-      const errorMessage = e.message || "Clock Out failed";
-      if (errorMessage.includes("Already checked out")) {
-        toast.info("You've already clocked out for today!");
-        fetchAttendanceStatus();
-      } else if (errorMessage.includes("No check-in found")) {
-        toast.warning("Please clock in first before clocking out.");
+      const result = await clockOut();
+      
+      if (result.success) {
+        toast.success("Have a great evening! Clocked out.");
       } else {
-        toast.error(errorMessage);
+        toast.error(result.error || "Clock Out failed");
       }
-    } finally {
-      setClockingOut(false);
+    } catch (error) {
+      toast.error("Clock Out failed");
     }
   };
 
@@ -331,7 +338,8 @@ const EmployeeDashboard = () => {
     );
   }
 
-  const isClockedIn = attendanceStatus?.checkIn && !attendanceStatus?.checkOut;
+  // Get attendance status from context
+  const { isClockedIn } = getAttendanceStatus();
   const fullName = `${dashboardData?.personalInfo?.firstName || ""} ${
     dashboardData?.personalInfo?.lastName || ""
   }`.trim();
@@ -368,7 +376,8 @@ const EmployeeDashboard = () => {
               {/* Left side */}
               <div className="space-y-2">
                 <h1 className="text-2xl font-bold text-gray-900">
-                  Hello, {fullName || "Employee"} 👋
+                  Hello, {fullName || "Employee"}
+                  <span className="ml-2 text-yellow-500">👋</span>
                 </h1>
                 <p className="text-sm text-gray-500">
                   Employee ID: {dashboardData.employeeId || "EMP-1023"}
@@ -385,7 +394,7 @@ const EmployeeDashboard = () => {
                   <div className={`w-2 h-2 rounded-full ${
                     isClockedIn ? "bg-green-500" : "bg-red-500"
                   }`} />
-                  {isClockedIn ? "🟢 Clocked In" : "🔴 Clocked Out"}
+                  {isClockedIn ? "Clocked In" : "Clocked Out"}
                 </div>
               </div>
 
@@ -393,27 +402,27 @@ const EmployeeDashboard = () => {
               <div className="text-center space-y-2">
                 <button
                   onClick={isClockedIn ? handleClockOut : handleClockIn}
-                  disabled={clockingIn || clockingOut}
+                  disabled={attendanceLoading}
                   className={`px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 ${
                     isClockedIn
                       ? "bg-red-500 hover:bg-red-600"
                       : "bg-green-500 hover:bg-green-600"
-                  } ${(clockingIn || clockingOut) ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                  } ${attendanceLoading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
                 >
-                  {clockingIn || clockingOut ? (
+                  {attendanceLoading ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Processing...
                     </div>
                   ) : (
                     <>
-                      {isClockedIn ? "🔴 Clock Out" : "🟢 Clock In"}
+                      {isClockedIn ? "Clock Out" : "Clock In"}
                     </>
                   )}
                 </button>
                 <div className="flex items-center gap-1 text-xs text-gray-500">
                   <MapPin className="w-3 h-3" />
-                  📍 Location: Office
+                  Location: Office
                 </div>
               </div>
             </div>
@@ -423,7 +432,12 @@ const EmployeeDashboard = () => {
         {/* 🟢 SECTION 2: STAT CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
-            title="📅 Attendance"
+            title={
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-blue-600" />
+                Attendance
+              </div>
+            }
             content={
               <div className="space-y-1">
                 <div>Present: <span className="font-bold">{attendanceStats.present}</span></div>
@@ -435,7 +449,12 @@ const EmployeeDashboard = () => {
           />
           
           <StatCard
-            title="🌴 Leave Balance"
+            title={
+              <div className="flex items-center gap-2">
+                <Palmtree className="w-4 h-4 text-green-600" />
+                Leave Balance
+              </div>
+            }
             content={
               <div className="space-y-1">
                 <div>Casual: <span className="font-bold">{leaveBalanceData.casual}</span></div>
@@ -446,7 +465,12 @@ const EmployeeDashboard = () => {
           />
           
           <StatCard
-            title="⏱️ This Month"
+            title={
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-orange-600" />
+                This Month
+              </div>
+            }
             content={
               <div className="space-y-2">
                 <div>Worked: <span className="font-bold">{attendanceStats.workedHours} hrs</span></div>
@@ -464,12 +488,17 @@ const EmployeeDashboard = () => {
           />
           
           <StatCard
-            title="💰 Latest Payslip"
+            title={
+              <div className="flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-green-600" />
+                Latest Payslip
+              </div>
+            }
             content={
               <div className="space-y-2">
                 <div className="font-medium">{format(new Date(), "MMMM yyyy")}</div>
                 <button className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm font-medium hover:bg-blue-200 transition-colors">
-                  [ View ]
+                  View
                 </button>
               </div>
             }
@@ -483,7 +512,8 @@ const EmployeeDashboard = () => {
             <Card className="bg-white shadow-sm rounded-xl border-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  📍 Today – {format(new Date(), "dd MMM")}
+                  <Activity className="w-5 h-5 text-blue-600" />
+                  Today – {format(new Date(), "dd MMM")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -548,22 +578,22 @@ const EmployeeDashboard = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <QuickActionButton
                     icon={<FileText className="w-6 h-6" />}
-                    label="📝 Apply Leave"
+                    label="Apply Leave"
                     onClick={() => navigate("/leave")}
                   />
                   <QuickActionButton
                     icon={<BarChart3 className="w-6 h-6" />}
-                    label="📊 Attendance History"
+                    label="Attendance History"
                     onClick={() => navigate("/attendance")}
                   />
                   <QuickActionButton
                     icon={<DollarSign className="w-6 h-6" />}
-                    label="💰 My Payslips"
+                    label="My Payslips"
                     onClick={() => navigate("/payslips")}
                   />
                   <QuickActionButton
                     icon={<User className="w-6 h-6" />}
-                    label="👤 My Profile"
+                    label="My Profile"
                     onClick={() => navigate("/profile")}
                   />
                 </div>
@@ -577,14 +607,15 @@ const EmployeeDashboard = () => {
             <Card className="bg-white shadow-sm rounded-xl border-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  🔔 Notifications
+                  <Bell className="w-5 h-5 text-yellow-600" />
+                  Notifications
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {notifications.map((notification, index) => (
                     <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <span className="text-lg">{notification.icon}</span>
+                      <div className="mt-0.5">{notification.icon}</div>
                       <span className="text-sm text-gray-700 flex-1">{notification.message}</span>
                     </div>
                   ))}
@@ -599,7 +630,8 @@ const EmployeeDashboard = () => {
             <Card className="bg-white shadow-sm rounded-xl border-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  📅 {format(new Date(), "MMMM yyyy")}
+                  <Calendar className="w-5 h-5 text-purple-600" />
+                  {format(new Date(), "MMMM yyyy")}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -631,11 +663,11 @@ const EmployeeDashboard = () => {
                 <div className="mt-3 space-y-1 text-xs">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-red-200 rounded"></div>
-                    <span className="text-gray-600">🟥 Holiday</span>
+                    <span className="text-gray-600">Holiday</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-yellow-200 rounded"></div>
-                    <span className="text-gray-600">🟡 On Leave</span>
+                    <span className="text-gray-600">On Leave</span>
                   </div>
                 </div>
               </CardContent>
@@ -666,7 +698,7 @@ const StatCard = ({ title, content, onClick }) => (
 );
 
 StatCard.propTypes = {
-  title: PropTypes.string.isRequired,
+  title: PropTypes.oneOfType([PropTypes.string, PropTypes.node]).isRequired,
   content: PropTypes.node.isRequired,
   onClick: PropTypes.func.isRequired,
 };

@@ -8,6 +8,7 @@ import {
 import  ProtectedRoute  from "./core/guards/ProtectedRoute";
 import { applyRoutes } from "./routes/applyRoutes";
 import { setupZustandStores } from "./stores/setupStores";
+import { AttendanceProvider } from "./contexts/AttendanceContext";
 
 import Login from "./modules/auth/pages/Login";
 import ForgotPassword from "./modules/auth/pages/ForgotPassword";
@@ -35,63 +36,63 @@ function App() {
     setupZustandStores();
   }, []);
 
-  console.log('🚀 [APP] App component rendered');
-
   return (
     <ErrorBoundary>
-      <Suspense
-        fallback={
-          <LoadingSpinner
-            size="lg"
-            message="Loading application..."
-            fullScreen
+      <AttendanceProvider>
+        <Suspense
+          fallback={
+            <LoadingSpinner
+              size="lg"
+              message="Loading application..."
+              fullScreen
+            />
+          }
+        >
+          <ToastContainer
+            position="top-right"
+            autoClose={3000}
+            hideProgressBar={false}
+            newestOnTop={true}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
           />
-        }
-      >
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={true}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
 
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/unauthorized" element={<Unauthorized />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />  
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />  
 
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }
+            >
+              <Route index element={<Navigate to="/dashboard" replace />} />
 
-            {applyRoutes(employeeRoutes)}
-            {applyRoutes(essRoutes)}
-            {applyRoutes(hrRoutes)}
-            {applyRoutes(managerRoutes)}
-            {applyRoutes(organizationRoutes)}
-            {applyRoutes(payrollRoutes)}
-            {applyRoutes(calendarRoutes)}
-            {applyRoutes(adminRoutes)}
-            {applyRoutes(dashboardRoutes)}
-            {applyRoutes(generalRoutes)}
-            {applyRoutes(leadRoutes)}
-          </Route>
+              {applyRoutes(employeeRoutes)}
+              {applyRoutes(essRoutes)}
+              {applyRoutes(hrRoutes)}
+              {applyRoutes(managerRoutes)}
+              {applyRoutes(organizationRoutes)}
+              {applyRoutes(payrollRoutes)}
+              {applyRoutes(calendarRoutes)}
+              {applyRoutes(adminRoutes)}
+              {applyRoutes(dashboardRoutes)}
+              {applyRoutes(generalRoutes)}
+              {applyRoutes(leadRoutes)}
+            </Route>
 
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Suspense>
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </Suspense>
+      </AttendanceProvider>
     </ErrorBoundary>
   );
 }
