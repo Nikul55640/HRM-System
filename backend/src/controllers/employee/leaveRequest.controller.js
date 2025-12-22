@@ -85,15 +85,8 @@ const createLeaveRequest = async (req, res) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (start < today) {
-      return res.status(400).json({
-        success: false,
-        message: "Leave start date cannot be in the past.",
-      });
-    }
+    // Allow retroactive leave applications - removed past date validation
+    // Companies often need to allow employees to apply for leave they forgot to request
 
     if (end < start) {
       return res.status(400).json({
@@ -147,6 +140,11 @@ const createLeaveRequest = async (req, res) => {
       });
     }
 
+    // Check if this is a retroactive leave application
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isRetroactive = start < today;
+
     // Create Request
     const leaveRequest = await LeaveRequest.create({
       employeeId,
@@ -168,11 +166,12 @@ const createLeaveRequest = async (req, res) => {
     });
 
     // Notify Employee
+    const leaveTypeLabel = isRetroactive ? `${type} (retroactive)` : type;
     await Notification.create({
       userId: userId,
       type: "leave_request",
       title: "Leave Request Submitted",
-      message: `Your ${type} leave (${totalDays} day) request has been submitted.`,
+      message: `Your ${leaveTypeLabel} leave (${totalDays} day) request has been submitted.`,
       priority: "medium",
       relatedEntity: {
         entityType: "LeaveRequest",
@@ -192,9 +191,9 @@ const createLeaveRequest = async (req, res) => {
       await Notification.create({
         userId: hr.id,
         type: "leave_approval_required",
-        title: "Leave Request Pending Approval",
-        message: `${fullName} submitted a ${type} leave (${totalDays} days).`,
-        priority: "high",
+        title: isRetroactive ? "Retroactive Leave Request Pending Approval" : "Leave Request Pending Approval",
+        message: `${fullName} submitted a ${leaveTypeLabel} leave (${totalDays} days).`,
+        priority: isRetroactive ? "high" : "medium", // Higher priority for retroactive requests
         relatedEntity: {
           entityType: "LeaveRequest",
           entityId: leaveRequest.id,
@@ -217,6 +216,7 @@ const createLeaveRequest = async (req, res) => {
         startDate,
         endDate,
         isHalfDay,
+        isRetroactive, // Track retroactive applications
       },
       ipAddress: req.ip,
       userAgent: req.get("User-Agent"),

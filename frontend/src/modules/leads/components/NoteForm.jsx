@@ -4,6 +4,7 @@ import { Textarea } from '../../../shared/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../shared/ui/dialog';
 import { toast } from 'react-hot-toast';
+import api from '../../../core/api/api';
 
 const NoteForm = ({ leadId, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -18,25 +19,11 @@ const NoteForm = ({ leadId, onSuccess, onCancel }) => {
     setLoading(true);
 
     try {
-      const response = await fetch(`/api/admin/leads/${leadId}/notes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (response.ok) {
-        toast.success('Note added successfully');
-        onSuccess();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to add note');
-      }
+      await api.post(`/admin/leads/${leadId}/notes`, formData);
+      toast.success('Note added successfully');
+      onSuccess();
     } catch (error) {
-      console.error('Error submitting form:', error);
-      toast.error('Failed to add note');
+      toast.error(error.message || 'Failed to add note');
     } finally {
       setLoading(false);
     }

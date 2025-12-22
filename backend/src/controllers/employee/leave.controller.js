@@ -7,11 +7,7 @@ import { Op } from "sequelize";
 const VALID_LEAVE_TYPES = [
   "annual",
   "sick",
-  "personal",
-  "maternity",
-  "paternity",
-  "emergency",
-  "unpaid",
+  "personal"
 ];
 
 // Default allocations (same used in Employee Controller)
@@ -19,10 +15,6 @@ const DEFAULT_ALLOCATIONS = {
   annual: 20,
   sick: 10,
   personal: 5,
-  emergency: 3,
-  maternity: 90,
-  paternity: 10,
-  unpaid: 9999,
 };
 
 /* ----------------------------------------------------------

@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'react-toastify';
-import { X, Calendar, Clock, FileText } from 'lucide-react';
+import { X, Calendar, Clock } from 'lucide-react';
 
 import { Button } from '../../../shared/ui/button';
 import { Input } from '../../../shared/ui/input';
@@ -56,6 +56,7 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
       isHalfDay: false,
       halfDayPeriod: 'morning',
     },
+    
   });
 
   const watchIsHalfDay = watch('isHalfDay');
@@ -108,6 +109,20 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
     }
 
     return diffDays;
+  };
+
+  const isRetroactiveLeave = () => {
+    const startDate = watch('startDate');
+    if (!startDate) return false;
+    
+    const today = new Date();
+    const selectedDate = new Date(startDate);
+    
+    // Set both dates to start of day for accurate comparison
+    today.setHours(0, 0, 0, 0);
+    selectedDate.setHours(0, 0, 0, 0);
+    
+    return selectedDate < today;
   };
 
   const getAvailableBalance = () => {
@@ -165,33 +180,42 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
           </div>
 
           {/* Date Range */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date *</Label>
-              <Input
-                id="startDate"
-                type="date"
-                {...register('startDate')}
-                className={errors.startDate ? 'border-red-500' : ''}
-                min={new Date().toISOString().split('T')[0]}
-              />
-              {errors.startDate && (
-                <p className="text-sm text-red-500">{errors.startDate.message}</p>
-              )}
-            </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date *</Label>
+                <Input
+                  id="startDate"
+                  type="date"
+                  {...register('startDate')}
+                  className={errors.startDate ? 'border-red-500' : ''}
+                />
+                {errors.startDate && (
+                  <p className="text-sm text-red-500">{errors.startDate.message}</p>
+                )}
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="endDate">End Date *</Label>
-              <Input
-                id="endDate"
-                type="date"
-                {...register('endDate')}
-                className={errors.endDate ? 'border-red-500' : ''}
-                min={watch('startDate') || new Date().toISOString().split('T')[0]}
-              />
-              {errors.endDate && (
-                <p className="text-sm text-red-500">{errors.endDate.message}</p>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date *</Label>
+                <Input
+                  id="endDate"
+                  type="date"
+                  {...register('endDate')}
+                  className={errors.endDate ? 'border-red-500' : ''}
+                  min={watch('startDate')}
+                />
+                {errors.endDate && (
+                  <p className="text-sm text-red-500">{errors.endDate.message}</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Retroactive Leave Note */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-700">
+                <span className="font-medium">💡 Note:</span> You can apply for past dates if you forgot to submit your leave request earlier. 
+                Retroactive leave applications may require additional approval.
+              </p>
             </div>
           </div>
 
@@ -204,7 +228,6 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
               />
               <Label htmlFor="isHalfDay">Half Day Leave</Label>
             </div>
-
             {watchIsHalfDay && (
               <div className="ml-6 space-y-2">
                 <Label>Half Day Period</Label>
@@ -230,6 +253,11 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
               <div className="flex items-center gap-2 mb-2">
                 <Clock className="h-4 w-4 text-blue-600" />
                 <span className="font-medium text-blue-900">Leave Summary</span>
+                {isRetroactiveLeave() && (
+                  <span className="ml-2 px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full font-medium">
+                    Retroactive
+                  </span>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
@@ -244,6 +272,11 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
               {calculateDuration() > getAvailableBalance() && getAvailableBalance() > 0 && (
                 <p className="text-red-600 text-sm mt-2">
                   ⚠️ Requested duration exceeds available balance
+                </p>
+              )}
+              {isRetroactiveLeave() && (
+                <p className="text-orange-600 text-sm mt-2">
+                  📅 This is a retroactive leave application for past dates. It may require additional approval.
                 </p>
               )}
             </div>

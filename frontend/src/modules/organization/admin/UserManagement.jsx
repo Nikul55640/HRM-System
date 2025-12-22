@@ -71,11 +71,19 @@ const UserManagement = () => {
 
   const handleToggleActive = async (user) => {
     try {
+      // Use 'id' instead of '_id' since we're using Sequelize (MySQL) not MongoDB
+      const userId = user.id || user._id;
+      
+      if (!userId) {
+        toast.error('User ID not found');
+        return;
+      }
+
       if (user.isActive) {
-        await userService.deactivateUser(user._id);
+        await userService.deactivateUser(userId);
         toast.success(`User ${user.email} has been deactivated`);
       } else {
-        await userService.activateUser(user._id);
+        await userService.activateUser(userId);
         toast.success(`User ${user.email} has been activated`);
       }
       loadData();
@@ -88,8 +96,9 @@ const UserManagement = () => {
     setIsSubmitting(true);
     try {
       if (selectedUser) {
-        // Update existing user
-        await userService.updateUser(selectedUser._id, userData);
+        // Update existing user - use 'id' instead of '_id'
+        const userId = selectedUser.id || selectedUser._id;
+        await userService.updateUser(userId, userData);
         toast.success('User updated successfully');
       } else {
         // Create new user
@@ -182,7 +191,7 @@ const UserManagement = () => {
               </tr>
             ) : (
               users.map((user) => (
-                <tr key={user._id} className="hover:bg-gray-50">
+                <tr key={user.id || user._id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm font-medium text-gray-900">{user.email}</div>
                   </td>
@@ -195,7 +204,7 @@ const UserManagement = () => {
                     {user.role === 'HR Manager' && user.assignedDepartments?.length > 0 ? (
                       <div className="text-sm text-gray-900">
                         {user.assignedDepartments.map((dept) => (
-                          <span key={dept._id || dept} className="inline-block bg-gray-100 rounded px-2 py-1 text-xs mr-1 mb-1">
+                          <span key={dept.id || dept._id || dept} className="inline-block bg-gray-100 rounded px-2 py-1 text-xs mr-1 mb-1">
                             {dept.name || dept}
                           </span>
                         ))}

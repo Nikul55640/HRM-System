@@ -31,7 +31,7 @@ const emailValidator = Joi.string()
  * Accepts various international formats with digits, spaces, hyphens, plus signs, and parentheses
  */
 const phoneValidator = Joi.string()
-  .pattern(/^[\d\s\-\+\(\)]{7,20}$/)
+  .pattern(/^[\d\s\-\+\()]{7,20}$/)
   .trim()
   .messages({
     'string.pattern.base': 'Please provide a valid phone number (7-20 characters, digits, spaces, hyphens, +, and parentheses allowed)',
@@ -61,10 +61,10 @@ const dateOfBirthValidator = Joi.date()
 
 /**
  * Custom validator for hire date
- * Hire date cannot be in the future
+ * Hire date cannot be in the future (allow today)
  */
 const hireDateValidator = Joi.date()
-  .max('now')
+  .max(new Date())
   .messages({
     'date.max': 'Hire date cannot be in the future',
   });

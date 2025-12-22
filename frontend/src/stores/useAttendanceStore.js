@@ -39,6 +39,8 @@ const useAttendanceStore = create(
         filters: { ...state.filters, ...filters }
       })),
       
+      setAttendanceRecords: (records) => set({ attendanceRecords: records }),
+      
       setPagination: (pagination) => set((state) => ({
         pagination: { ...state.pagination, ...pagination }
       })),
@@ -49,12 +51,14 @@ const useAttendanceStore = create(
         set({ loading: true, error: null });
         
         try {
-          const response = await attendanceService.getAllAttendance({
+          const requestParams = {
             ...filters,
             ...params,
             page: pagination.page,
             limit: pagination.limit
-          });
+          };
+          
+          const response = await attendanceService.getAllAttendance(requestParams);
           
           set({
             attendanceRecords: response.data || [],
@@ -267,7 +271,7 @@ const useAttendanceStore = create(
           set({ currentRecord: response.data });
           return response.data;
         } catch (error) {
-          console.error('Failed to get current attendance status:', error);
+          
           return null;
         }
       },

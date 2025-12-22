@@ -40,9 +40,10 @@ const getProfile = async (req, res) => {
       });
     }
 
+    // Return the raw employee data for proper extraction
     res.json({
       success: true,
-      data: employee,
+      data: employee.toJSON(), // Ensure we get plain object
     });
   } catch (error) {
     res.status(500).json({

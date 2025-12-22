@@ -223,10 +223,21 @@ const EmployeeForm = () => {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
+      // Transform data to ensure proper types
+      const transformedValues = {
+        ...values,
+        jobInfo: {
+          ...values.jobInfo,
+          // Convert department and manager to integers if they exist
+          department: values.jobInfo.department ? parseInt(values.jobInfo.department, 10) : null,
+          manager: values.jobInfo.manager ? parseInt(values.jobInfo.manager, 10) : null,
+        }
+      };
+
       if (isEditMode) {
-        await updateEmployee(id, values);
+        await updateEmployee(id, transformedValues);
       } else {
-        await createEmployee(values);
+        await createEmployee(transformedValues);
       }
       navigate("/employees");
     } catch (error) {

@@ -10,8 +10,8 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticate);
 
-// Lead management routes (admin, hr, sales roles)
-router.use(authorize(['admin', 'hr', 'sales', 'manager']));
+// Lead management routes (SuperAdmin, admin, hr, sales roles)
+router.use(authorize(['SuperAdmin', 'admin', 'hr', 'sales', 'manager']));
 
 // Lead CRUD operations
 router.get('/', leadController.getLeads);

@@ -104,7 +104,7 @@ const EmployeeList = () => {
     setPagination({ page });
   };
 
-  const handleView = (id) => navigate(`/employees/${id}`);
+  const handleView = (employeeId) => navigate(`/employees/${employeeId}`);
   const handleEdit = (id) => navigate(`/employees/${id}/edit`);
 
   const handleDeleteClick = (emp) => {

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
 import { Input } from '../../../shared/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
 import { Badge } from '../../../shared/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../shared/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../shared/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../shared/ui/dialog';
 import { 
   Users, 
   Plus, 
@@ -16,14 +15,14 @@ import {
   Trash2, 
   Phone, 
   Mail, 
-  Building, 
-  Calendar,
+  Building,
   TrendingUp,
   AlertCircle,
   CheckCircle
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'react-hot-toast';
+import api from '../../../core/api/api';
 import LeadForm from '../components/LeadForm';
 import LeadDetails from '../components/LeadDetails';
 
@@ -50,59 +49,43 @@ const LeadManagement = () => {
     totalPages: 0
   });
 
+   const fetchLeads = useCallback(async () => {
+     setLoading(true);
+     try {
+       const queryParams = new URLSearchParams();
+       queryParams.append("page", pagination.page);
+       queryParams.append("limit", pagination.limit);
+
+       Object.entries(filters).forEach(([key, value]) => {
+         if (value) queryParams.append(key, value);
+       });
+
+       const response = await api.get(`/admin/leads?${queryParams}`);
+       setLeads(response.data.data);
+       setPagination((prev) => ({
+         ...prev,
+         total: response.data.pagination.total,
+         totalPages: response.data.pagination.totalPages,
+       }));
+     } catch (error) {
+       toast.error("Failed to fetch leads");
+     } finally {
+       setLoading(false);
+     }
+   }, [filters, pagination.page, pagination.limit]);
+
   useEffect(() => {
     fetchLeads();
     fetchStats();
-  }, [filters, pagination.page]);
+  }, [fetchLeads]);
 
-  const fetchLeads = async () => {
-    setLoading(true);
-    try {
-      const queryParams = new URLSearchParams();
-      queryParams.append('page', pagination.page);
-      queryParams.append('limit', pagination.limit);
-      
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value) queryParams.append(key, value);
-      });
-
-      const response = await fetch(`/api/admin/leads?${queryParams}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setLeads(data.data);
-        setPagination(prev => ({
-          ...prev,
-          total: data.pagination.total,
-          totalPages: data.pagination.totalPages
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching leads:', error);
-      toast.error('Failed to fetch leads');
-    } finally {
-      setLoading(false);
-    }
-  };
-
+ 
   const fetchStats = async () => {
     try {
-      const response = await fetch('/api/admin/leads/stats', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data.data);
-      }
+      const response = await api.get('/admin/leads/stats');
+      setStats(response.data.data);
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      // Stats are optional, don't show error toast
     }
   };
 
@@ -125,24 +108,12 @@ const LeadManagement = () => {
     if (!confirm('Are you sure you want to delete this lead?')) return;
 
     try {
-      const response = await fetch(`/api/admin/leads/${leadId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        toast.success('Lead deleted successfully');
-        fetchLeads();
-        fetchStats();
-      } else {
-        const error = await response.json();
-        toast.error(error.message || 'Failed to delete lead');
-      }
+      await api.delete(`/admin/leads/${leadId}`);
+      toast.success('Lead deleted successfully');
+      fetchLeads();
+      fetchStats();
     } catch (error) {
-      console.error('Error deleting lead:', error);
-      toast.error('Failed to delete lead');
+      toast.error(error.message || 'Failed to delete lead');
     }
   };
 

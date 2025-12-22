@@ -997,18 +997,31 @@ const getAllAttendanceRecords = async (req, res) => {
       where.employeeId = employeeId;
     }
 
-    // Filter by date range
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      start.setHours(0, 0, 0, 0);
-      const end = new Date(endDate);
-      end.setHours(23, 59, 59, 999);
-      where.date = { [AttendanceRecord.sequelize.Sequelize.Op.between]: [start, end] };
+    // Filter by date range - SIMPLIFIED LOGIC
+    if (startDate && endDate && startDate !== '' && endDate !== '') {
+      console.log('🗓️ [BACKEND] Using date range:', { startDate, endDate });
+      where.date = startDate === endDate ? startDate : { 
+        [AttendanceRecord.sequelize.Sequelize.Op.between]: [startDate, endDate] 
+      };
+    } else if (startDate === '' && endDate === '') {
+      // Show all records when empty strings are passed
+      console.log('🗓️ [BACKEND] Showing all records (empty date filters)');
+      // Don't add any date filter
     } else {
-      const start = new Date(year, month - 1, 1);
-      const end = new Date(year, month, 0);
-      end.setHours(23, 59, 59, 999);
-      where.date = { [AttendanceRecord.sequelize.Sequelize.Op.between]: [start, end] };
+      // Default to current month if no date range specified
+      const now = new Date();
+      const start = new Date(now.getFullYear(), parseInt(month) - 1, 1);
+      const end = new Date(now.getFullYear(), parseInt(month), 0);
+      
+      // Format as YYYY-MM-DD for DATEONLY comparison
+      const startDateStr = start.toISOString().split('T')[0];
+      const endDateStr = end.toISOString().split('T')[0];
+      
+      console.log('🗓️ [BACKEND] Using month range:', { year, month, startDateStr, endDateStr });
+      
+      where.date = { 
+        [AttendanceRecord.sequelize.Sequelize.Op.between]: [startDateStr, endDateStr] 
+      };
     }
 
     // Filter by status
@@ -1020,7 +1033,8 @@ const getAllAttendanceRecords = async (req, res) => {
     const includeOptions = [{
       model: AttendanceRecord.sequelize.models.Employee,
       as: 'employee',
-      attributes: ['id', 'employeeId', 'personalInfo', 'jobInfo', 'contactInfo', 'status'],
+      attributes: ['id', 'employeeId', 'personalInfo', 'jobInfo', 'contactInfo'],
+      required: false, // LEFT JOIN to include records even if employee is missing
       // Filter by department if specified (using JSON path)
       ...(department && department !== 'all' ? {
         where: {
@@ -1031,6 +1045,9 @@ const getAllAttendanceRecords = async (req, res) => {
       } : {})
     }];
 
+    console.log('🔍 [BACKEND] getAllAttendanceRecords called with query params:', req.query);
+    console.log('🔍 [BACKEND] Constructed where clause:', where);
+
     const { count: total, rows: records } = await AttendanceRecord.findAndCountAll({
       where,
       include: includeOptions,
@@ -1039,6 +1056,9 @@ const getAllAttendanceRecords = async (req, res) => {
       offset,
     });
 
+    console.log('📊 [BACKEND] Found records:', records.length);
+    console.log('📊 [BACKEND] Total count:', total);
+
     // Format records with employee info
     const formattedRecords = records.map(record => {
       const employee = record.employee;
@@ -1046,48 +1066,65 @@ const getAllAttendanceRecords = async (req, res) => {
       const jobInfo = employee?.jobInfo || {};
       const contactInfo = employee?.contactInfo || {};
       
-      return {
+      const formatted = {
         ...record.toJSON(),
         employeeName: employee ? `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() : 'Unknown',
         employeeEmail: contactInfo.email || '',
         employeeDepartment: jobInfo.department || '',
         employeePosition: jobInfo.position || '',
       };
+      
+      console.log('📋 [BACKEND] Formatted record:', {
+        id: formatted.id,
+        employeeName: formatted.employeeName,
+        date: formatted.date,
+        checkIn: formatted.checkIn,
+        status: formatted.status
+      });
+      
+      return formatted;
     });
+
+    console.log('📤 [BACKEND] Sending response with', formattedRecords.length, 'records');
 
     // -----------------------
     // AUDIT LOG
     // -----------------------
-    await AuditLog.logAction({
-      action: "VIEW",
-      severity: "info",
-      entityType: "Attendance",
-      entityId: "all-attendance-records",
-      entityDisplayName: "All Attendance Records",
-      userId,
-      userRole: role,
-      performedByName: fullName,
-      performedByEmail: email,
-      meta: {
-        type: "ADMIN_VIEW_ALL",
-        filters: {
-          employeeId,
-          department,
-          startDate,
-          endDate,
-          year: Number(year),
-          month: Number(month),
-          status,
+    try {
+      await AuditLog.logAction({
+        action: "VIEW",
+        severity: "info",
+        entityType: "Attendance",
+        entityId: "all-attendance-records",
+        entityDisplayName: "All Attendance Records",
+        userId,
+        userRole: role,
+        performedByName: fullName,
+        performedByEmail: email,
+        meta: {
+          type: "ADMIN_VIEW_ALL",
+          filters: {
+            employeeId,
+            department,
+            startDate,
+            endDate,
+            year: Number(year),
+            month: Number(month),
+            status,
+          },
+          count: records.length,
+          page: pageNum,
+          limit: limitNum,
         },
-        count: records.length,
-        page: pageNum,
-        limit: limitNum,
-      },
-      ipAddress: req.ip,
-      userAgent: req.get("User-Agent"),
-    });
+        ipAddress: req.ip,
+        userAgent: req.get("User-Agent"),
+      });
+    } catch (auditError) {
+      console.error('⚠️ [BACKEND] Audit log failed:', auditError);
+      // Continue anyway
+    }
 
-    return res.json({
+    const responseData = {
       success: true,
       data: formattedRecords,
       pagination: {
@@ -1096,7 +1133,15 @@ const getAllAttendanceRecords = async (req, res) => {
         count: formattedRecords.length,
         totalRecords: total,
       },
+    };
+
+    console.log('📤 [BACKEND] Final response:', {
+      success: responseData.success,
+      dataLength: responseData.data.length,
+      pagination: responseData.pagination
     });
+
+    return res.json(responseData);
   } catch (error) {
     console.error('Error fetching all attendance records:', error);
     return res.status(500).json({

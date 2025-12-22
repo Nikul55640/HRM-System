@@ -1,55 +1,42 @@
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import api from '../../../core/api/api';
 
 class LeaveTypeService {
   constructor() {
-    this.api = axios.create({
-      baseURL: `${API_BASE_URL}/admin/leave-types`,
-    });
-
-    // Add auth token to requests
-    this.api.interceptors.request.use((config) => {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-      return config;
-    });
+    this.baseURL = '/admin/leave-types';
   }
 
   async getLeaveTypes(params = {}) {
-    const response = await this.api.get('/', { params });
+    const response = await api.get(this.baseURL, { params });
     return response.data;
   }
 
   async getLeaveTypeById(id) {
-    const response = await this.api.get(`/${id}`);
+    const response = await api.get(`${this.baseURL}/${id}`);
     return response.data;
   }
 
   async createLeaveType(data) {
-    const response = await this.api.post('/', data);
+    const response = await api.post(this.baseURL, data);
     return response.data;
   }
 
   async updateLeaveType(id, data) {
-    const response = await this.api.put(`/${id}`, data);
+    const response = await api.put(`${this.baseURL}/${id}`, data);
     return response.data;
   }
 
   async deleteLeaveType(id) {
-    const response = await this.api.delete(`/${id}`);
+    const response = await api.delete(`${this.baseURL}/${id}`);
     return response.data;
   }
 
   async toggleLeaveTypeStatus(id) {
-    const response = await this.api.patch(`/${id}/toggle-status`);
+    const response = await api.patch(`${this.baseURL}/${id}/toggle-status`);
     return response.data;
   }
 
   async getActiveLeaveTypes() {
-    const response = await this.api.get('/active');
+    const response = await api.get(`${this.baseURL}/active`);
     return response.data;
   }
 }

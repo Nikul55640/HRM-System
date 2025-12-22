@@ -42,7 +42,7 @@ const JobDetailsStep = ({ values, errors, touched, departments = [], managers = 
           >
             <option value="">Select department</option>
             {departments && Array.isArray(departments) && departments.map((dept) => (
-              <option key={dept._id} value={dept._id}>
+              <option key={dept.id || dept._id} value={dept.id || dept._id}>
                 {dept.name}
               </option>
             ))}
@@ -67,7 +67,7 @@ const JobDetailsStep = ({ values, errors, touched, departments = [], managers = 
           >
             <option value="">Select manager (optional)</option>
             {managers && Array.isArray(managers) && managers.map((manager) => (
-              <option key={manager._id} value={manager._id}>
+              <option key={manager.id || manager._id} value={manager.id || manager._id}>
                 {manager.personalInfo?.firstName} {manager.personalInfo?.lastName}
               </option>
             ))}

@@ -5,6 +5,7 @@ import { Textarea } from '../../../shared/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../shared/ui/dialog';
 import { toast } from 'react-hot-toast';
+import api from '../../../core/api/api';
 
 const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -38,18 +39,10 @@ const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch('/api/admin/employees?role=sales,manager', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setEmployees(data.data || []);
-      }
+      const response = await api.get('/admin/employees?role=sales,manager');
+      setEmployees(response.data.data || []);
     } catch (error) {
-      console.error('Error fetching employees:', error);
+      // Employees are optional, don't show error toast
     }
   };
 
@@ -58,11 +51,6 @@ const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
     setLoading(true);
 
     try {
-      const url = activity 
-        ? `/api/admin/leads/activities/${activity.id}`
-        : `/api/admin/leads/${leadId}/activities`;
-      const method = activity ? 'PUT' : 'POST';
-
       const submitData = {
         ...formData,
         scheduledDate: formData.scheduledDate || null,
@@ -70,25 +58,16 @@ const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
         duration: formData.duration ? parseInt(formData.duration) : null
       };
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(submitData)
-      });
-
-      if (response.ok) {
-        toast.success(`Activity ${activity ? 'updated' : 'created'} successfully`);
-        onSuccess();
+      if (activity) {
+        await api.put(`/admin/leads/activities/${activity.id}`, submitData);
       } else {
-        const error = await response.json();
-        toast.error(error.message || `Failed to ${activity ? 'update' : 'create'} activity`);
+        await api.post(`/admin/leads/${leadId}/activities`, submitData);
       }
+
+      toast.success(`Activity ${activity ? 'updated' : 'created'} successfully`);
+      onSuccess();
     } catch (error) {
-      console.error('Error submitting form:', error);
-      toast.error(`Failed to ${activity ? 'update' : 'create'} activity`);
+      toast.error(error.message || `Failed to ${activity ? 'update' : 'create'} activity`);
     } finally {
       setLoading(false);
     }

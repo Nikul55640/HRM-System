@@ -4,6 +4,7 @@ import { Input } from '../../../shared/ui/input';
 import { Textarea } from '../../../shared/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
 import { toast } from 'react-hot-toast';
+import api from '../../../core/api/api';
 
 const LeadForm = ({ lead, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -50,18 +51,10 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await fetch('/api/admin/employees?role=sales,manager', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setEmployees(data.data || []);
-      }
+      const response = await api.get('/admin/employees?role=sales,manager');
+      setEmployees(response.data?.data || []);
     } catch (error) {
-      console.error('Error fetching employees:', error);
+      console.log(error) 
     }
   };
 
@@ -115,7 +108,7 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
     setLoading(true);
 
     try {
-      const url = lead ? `/api/admin/leads/${lead.id}` : '/api/admin/leads';
+      const url = lead ? `/admin/leads/${lead.id}` : '/admin/leads';
       const method = lead ? 'PUT' : 'POST';
 
       const submitData = {
@@ -125,21 +118,13 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
         assignedTo: formData.assignedTo || null
       };
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(submitData)
-      });
+      const response = await api[method.toLowerCase()](url, submitData);
 
-      if (response.ok) {
+      if (response.data) {
         toast.success(`Lead ${lead ? 'updated' : 'created'} successfully`);
         onSuccess();
       } else {
-        const error = await response.json();
-        toast.error(error.message || `Failed to ${lead ? 'update' : 'create'} lead`);
+        toast.error(`Failed to ${lead ? 'update' : 'create'} lead`);
       }
     } catch (error) {
       

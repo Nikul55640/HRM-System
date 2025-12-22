@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'react-hot-toast';
+import api from '../../../core/api/api';
 import ActivityForm from './ActivityForm';
 import NoteForm from './NoteForm';
 
@@ -35,20 +36,9 @@ const LeadDetails = ({ leadId, onClose }) => {
 
   const fetchLeadDetails = async () => {
     try {
-      const response = await fetch(`/api/admin/leads/${leadId}`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setLead(data.data);
-      } else {
-        toast.error('Failed to fetch lead details');
-      }
+      const response = await api.get(`/admin/leads/${leadId}`);
+      setLead(response.data.data);
     } catch (error) {
-      console.error('Error fetching lead details:', error);
       toast.error('Failed to fetch lead details');
     } finally {
       setLoading(false);

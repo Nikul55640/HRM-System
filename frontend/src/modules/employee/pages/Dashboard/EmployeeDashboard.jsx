@@ -627,7 +627,7 @@ const EmployeeDashboard = () => {
             </Card>
 
             {/* 🟢 MINI CALENDAR */}
-            <Card className="bg-white shadow-sm rounded-xl border-0">
+            {/* <Card className="bg-white shadow-sm rounded-xl border-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Calendar className="w-5 h-5 text-purple-600" />
@@ -671,7 +671,7 @@ const EmployeeDashboard = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         </div>
       </div>

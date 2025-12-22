@@ -122,6 +122,38 @@ const attendanceService = {
   },
 
   /**
+   * Test endpoint for debugging attendance issues
+   * @returns {Promise<Object>} - Test attendance records
+   */
+  testAttendance: async () => {
+    try {
+      const response = await api.get('/admin/attendance/test');
+      return response.data;
+    } catch (error) {
+      console.error(' [ATTENDANCE] Test endpoint failed:', error);
+      const errorMsg = error.response?.data?.message || 'Test endpoint failed';
+      toast.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+  },
+
+  /**
+   * Force get all attendance records (bypass all filters)
+   * @returns {Promise<Object>} - All attendance records
+   */
+  forceAllAttendance: async () => {
+    try {
+      const response = await api.get('/admin/attendance/force-all');
+      return response.data;
+    } catch (error) {
+      console.error(' [ATTENDANCE] Force all endpoint failed:', error);
+      const errorMsg = error.response?.data?.message || 'Force all endpoint failed';
+      toast.error(errorMsg);
+      throw new Error(errorMsg);
+    }
+  },
+
+  /**
    * Get attendance for a specific employee (admin only)
    * @param {string} employeeId - ID of the employee
    * @param {Object} params - Filter and pagination parameters
@@ -225,7 +257,7 @@ const attendanceService = {
       const response = await api.get('/attendance/statistics', { params });
       return response.data;
     } catch (error) {
-      console.error(' [ATTENDANCE] Failed to fetch statistics:', error);
+      
       const errorMsg = error.response?.data?.message || 'Failed to load attendance statistics';
       toast.error(errorMsg);
       throw new Error(errorMsg);
@@ -245,7 +277,7 @@ const attendanceService = {
       });
       return response.data;
     } catch (error) {
-      console.error(' [ATTENDANCE] Export failed:', error);
+      
       const errorMsg = error.response?.data?.message || 'Failed to export attendance data';
       toast.error(errorMsg);
       throw new Error(errorMsg);

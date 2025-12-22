@@ -266,7 +266,7 @@ const LeavePage = () => {
                         </div>
                         <div>
                           <span className="font-medium">To:</span>{" "}
-                          {new Date(request.endDate).toLocaleDateString()}
+                           {new Date(request.endDate).toLocaleDateString()}
                         </div>
                         <div>
                           <span className="font-medium">Duration:</span>{" "}

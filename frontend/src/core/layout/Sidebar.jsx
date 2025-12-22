@@ -62,45 +62,46 @@ const Sidebar = () => {
         { name: "Attendance", path: "/employee/attendance", icon: "Clock", showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN) },
         { name: "My Documents", path: "/employee/documents", icon: "FileText", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_DOCUMENTS) },
         { name: "My Requests", path: "/employee/requests", icon: "FileSignature", showIf: () => can.do(MODULES.LEAVE.VIEW_OWN) },
+       { name: "Holiday", path: "/calendar", icon: "CalendarRange", showIf: () => can.do(MODULES.LEAVE.VIEW_CALENDAR) }
       ],
     },
-    {
-      section: "Calendar",
-      icon: "Calendar",
-      collapsible: true,
-      showIf: () => can.do(MODULES.LEAVE.VIEW_CALENDAR),
-      items: [
-        { name: "Calendar Overview", path: "/calendar", icon: "CalendarRange", showIf: () => can.do(MODULES.LEAVE.VIEW_CALENDAR) },
-        { name: "Daily View", path: "/calendar/daily", icon: "CalendarCheck", showIf: () => can.do(MODULES.LEAVE.VIEW_CALENDAR) },
-        { name: "Monthly View", path: "/calendar/monthly", icon: "Calendar", showIf: () => can.do(MODULES.LEAVE.VIEW_CALENDAR) },
-      ],
-    },
-    {
-      section: "Manager Tools",
-      icon: "Users",
-      collapsible: true,
-      showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_TEAM, MODULES.LEAVE.APPROVE_TEAM]),
-      items: [
-        {
-          name: "Approvals",
-          path: "/manager/approvals",
-          icon: "CheckSquare",
-          showIf: () => can.doAny([MODULES.LEAVE.APPROVE_TEAM, MODULES.ATTENDANCE.APPROVE_CORRECTION]),
-        },
-        {
-          name: "My Team",
-          path: "/manager/team",
-          icon: "Users",
-          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_TEAM),
-        },
-        {
-          name: "Reports",
-          path: "/manager/reports",
-          icon: "BarChart3",
-          showIf: () => can.do(MODULES.REPORTS.VIEW_TEAM),
-        },
-      ],
-    },
+    // {
+    //   section: "Calendar",
+    //   icon: "Calendar",
+    //   collapsible: true,
+    //   showIf: () => can.do(MODULES.LEAVE.VIEW_CALENDAR),
+    //   items: [
+    //     { name: "Calendar Overview", path: "/calendar", icon: "CalendarRange", showIf: () => can.do(MODULES.LEAVE.VIEW_CALENDAR) },
+    //     { name: "Daily View", path: "/calendar/daily", icon: "CalendarCheck", showIf: () => can.do(MODULES.LEAVE.VIEW_CALENDAR) },
+    //     { name: "Monthly View", path: "/calendar/monthly", icon: "Calendar", showIf: () => can.do(MODULES.LEAVE.VIEW_CALENDAR) },
+    //   ],
+    // },
+    // {
+    //   section: "Manager Tools",
+    //   icon: "Users",
+    //   collapsible: true,
+    //   showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_TEAM, MODULES.LEAVE.APPROVE_TEAM]),
+    //   items: [
+    //     {
+    //       name: "Approvals",
+    //       path: "/manager/approvals",
+    //       icon: "CheckSquare",
+    //       showIf: () => can.doAny([MODULES.LEAVE.APPROVE_TEAM, MODULES.ATTENDANCE.APPROVE_CORRECTION]),
+    //     },
+    //     {
+    //       name: "My Team",
+    //       path: "/manager/team",
+    //       icon: "Users",
+    //       showIf: () => can.do(MODULES.EMPLOYEE.VIEW_TEAM),
+    //     },
+    //     {
+    //       name: "Reports",
+    //       path: "/manager/reports",
+    //       icon: "BarChart3",
+    //       showIf: () => can.do(MODULES.REPORTS.VIEW_TEAM),
+    //     },
+    //   ],
+    // },
     {
       section: "HR Administration",
       icon: "Settings",

@@ -2,7 +2,7 @@ import { Lead, LeadActivity, LeadNote, Employee } from '../../models/index.js';
 import { Op } from 'sequelize';
 import auditService from '../../services/audit/audit.service.js';
 
-class LeadController {
+const LeadController={
   // Get all leads with filtering and pagination
   async getLeads(req, res) {
     try {
@@ -81,7 +81,7 @@ class LeadController {
         message: 'Failed to fetch leads'
       });
     }
-  }
+  },
 
   // Get single lead with activities and notes
   async getLead(req, res) {
@@ -150,14 +150,22 @@ class LeadController {
         message: 'Failed to fetch lead'
       });
     }
-  }
+  },
 
   // Create new lead
   async createLead(req, res) {
     try {
+      // Check if user has employee profile
+      if (!req.user.employeeId) {
+        return res.status(400).json({
+          success: false,
+          message: 'Employee profile not linked to your account. Please contact HR.'
+        });
+      }
+
       const leadData = {
         ...req.body,
-        createdBy: req.user.id
+        createdBy: req.user.employeeId // Use employeeId instead of user id
       };
 
       const lead = await Lead.create(leadData);
@@ -170,7 +178,7 @@ class LeadController {
         description: 'New lead has been created in the system',
         status: 'completed',
         completedDate: new Date(),
-        createdBy: req.user.id
+        createdBy: req.user.employeeId // Use employeeId here too
       });
 
       // Audit log
@@ -209,9 +217,16 @@ class LeadController {
       });
     } catch (error) {
       console.error('Error creating lead:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        userId: req.user.id,
+        employeeId: req.user.employeeId
+      });
       res.status(500).json({
         success: false,
-        message: 'Failed to create lead'
+        message: 'Failed to create lead',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   }
@@ -245,7 +260,7 @@ class LeadController {
           description: `Status changed from ${oldStatus} to ${updateData.status}`,
           status: 'completed',
           completedDate: new Date(),
-          createdBy: req.user.id,
+          createdBy: req.user.employeeId, // Use employeeId
           metadata: {
             oldStatus,
             newStatus: updateData.status
@@ -262,7 +277,7 @@ class LeadController {
           description: 'Lead has been reassigned',
           status: 'completed',
           completedDate: new Date(),
-          createdBy: req.user.id,
+          createdBy: req.user.employeeId, // Use employeeId
           metadata: {
             oldAssignedTo,
             newAssignedTo: updateData.assignedTo
@@ -464,7 +479,7 @@ class LeadController {
           description: `Lead updated via bulk operation: ${JSON.stringify(updateData)}`,
           status: 'completed',
           completedDate: new Date(),
-          createdBy: req.user.id
+          createdBy: req.user.employeeId // Use employeeId
         });
       }
 
@@ -494,3 +509,5 @@ class LeadController {
 }
 
 export default new LeadController();
+
+
