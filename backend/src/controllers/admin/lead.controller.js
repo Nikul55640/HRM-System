@@ -1,4 +1,4 @@
-import { Lead, LeadActivity, LeadNote, Employee } from '../../models/index.js';
+import { Lead, LeadActivity, LeadNote, Employee } from '../../models/sequelize/index.js';
 import { Op } from 'sequelize';
 import auditService from '../../services/audit/audit.service.js';
 
@@ -51,12 +51,12 @@ const LeadController={
           {
             model: Employee,
             as: 'assignedEmployee',
-            attributes: ['id', 'firstName', 'lastName', 'email']
+            attributes: ['id', 'employeeId', 'personalInfo']
           },
           {
             model: Employee,
-            as: 'creator',
-            attributes: ['id', 'firstName', 'lastName']
+            as: 'creatorEmployee',
+            attributes: ['id', 'employeeId', 'personalInfo']
           }
         ],
         order: [[sortBy, sortOrder]],
@@ -93,12 +93,12 @@ const LeadController={
           {
             model: Employee,
             as: 'assignedEmployee',
-            attributes: ['id', 'firstName', 'lastName', 'email']
+            attributes: ['id', 'employeeId', 'personalInfo']
           },
           {
             model: Employee,
-            as: 'creator',
-            attributes: ['id', 'firstName', 'lastName']
+            as: 'creatorEmployee',
+            attributes: ['id', 'employeeId', 'personalInfo']
           },
           {
             model: LeadActivity,
@@ -107,12 +107,12 @@ const LeadController={
               {
                 model: Employee,
                 as: 'assignedEmployee',
-                attributes: ['id', 'firstName', 'lastName']
+                attributes: ['id', 'employeeId', 'personalInfo']
               },
               {
                 model: Employee,
-                as: 'creator',
-                attributes: ['id', 'firstName', 'lastName']
+                as: 'creatorEmployee',
+                attributes: ['id', 'employeeId', 'personalInfo']
               }
             ],
             order: [['createdAt', 'DESC']]
@@ -123,8 +123,8 @@ const LeadController={
             include: [
               {
                 model: Employee,
-                as: 'creator',
-                attributes: ['id', 'firstName', 'lastName']
+                as: 'creatorEmployee',
+                attributes: ['id', 'employeeId', 'personalInfo']
               }
             ],
             order: [['createdAt', 'DESC']]
@@ -163,8 +163,13 @@ const LeadController={
         });
       }
 
+      // Generate leadId
+      const leadCount = await Lead.count({ where: { isActive: true } });
+      const leadId = `LEAD-${String(leadCount + 1).padStart(6, '0')}`;
+
       const leadData = {
         ...req.body,
+        leadId,
         createdBy: req.user.employeeId // Use employeeId instead of user id
       };
 
@@ -200,12 +205,12 @@ const LeadController={
           {
             model: Employee,
             as: 'assignedEmployee',
-            attributes: ['id', 'firstName', 'lastName', 'email']
+            attributes: ['id', 'employeeId', 'personalInfo']
           },
           {
             model: Employee,
-            as: 'creator',
-            attributes: ['id', 'firstName', 'lastName']
+            as: 'creatorEmployee',
+            attributes: ['id', 'employeeId', 'personalInfo']
           }
         ]
       });
@@ -229,7 +234,7 @@ const LeadController={
         error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
-  }
+  },
 
   // Update lead
   async updateLead(req, res) {
@@ -302,12 +307,12 @@ const LeadController={
           {
             model: Employee,
             as: 'assignedEmployee',
-            attributes: ['id', 'firstName', 'lastName', 'email']
+            attributes: ['id', 'employeeId', 'personalInfo']
           },
           {
             model: Employee,
-            as: 'creator',
-            attributes: ['id', 'firstName', 'lastName']
+            as: 'creatorEmployee',
+            attributes: ['id', 'employeeId', 'personalInfo']
           }
         ]
       });
@@ -324,7 +329,7 @@ const LeadController={
         message: 'Failed to update lead'
       });
     }
-  }
+  },
 
   // Delete lead (soft delete)
   async deleteLead(req, res) {
@@ -365,7 +370,7 @@ const LeadController={
         message: 'Failed to delete lead'
       });
     }
-  }
+  },
 
   // Get lead statistics
   async getLeadStats(req, res) {
@@ -422,7 +427,7 @@ const LeadController={
             {
               model: Employee,
               as: 'assignedEmployee',
-              attributes: ['firstName', 'lastName']
+              attributes: ['id', 'employeeId', 'personalInfo']
             }
           ],
           order: [['createdAt', 'DESC']],
@@ -456,7 +461,7 @@ const LeadController={
         message: 'Failed to fetch lead statistics'
       });
     }
-  }
+  },
 
   // Bulk operations
   async bulkUpdate(req, res) {
@@ -506,8 +511,8 @@ const LeadController={
       });
     }
   }
-}
+};
 
-export default new LeadController();
+export default LeadController;
 
 

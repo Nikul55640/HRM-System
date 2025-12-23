@@ -6,7 +6,6 @@ import useDepartmentStore from './useDepartmentStore';
 import useEmployeeStore from './useEmployeeStore';
 import useAttendanceStore from './useAttendanceStore';
 import useLeaveStore from './useLeaveStore';
-import usePayrollStore from './usePayrollStore';
 
 export const initializeStores = () => {
   try {
@@ -32,7 +31,6 @@ export const resetAllStores = () => {
     useEmployeeStore.getState().reset?.();
     useAttendanceStore.getState().reset?.();
     useLeaveStore.getState().reset?.();
-    usePayrollStore.getState().resetPayrollState?.();
   } catch (error) {
     console.error('Error resetting stores:', error);
   }
@@ -53,7 +51,6 @@ export const setupStoreSubscriptions = () => {
           useEmployeeStore.getState().reset?.();
           useAttendanceStore.getState().reset?.();
           useLeaveStore.getState().reset?.();
-          usePayrollStore.getState().resetPayrollState?.();
         }
       }
     );
@@ -64,10 +61,7 @@ export const setupStoreSubscriptions = () => {
         useOrganizationStore.getState().isLoading ||
         useEmployeeStore.getState().loading ||
         useAttendanceStore.getState().loading ||
-        useLeaveStore.getState().loading ||
-        usePayrollStore.getState().dashboard.loading ||
-        usePayrollStore.getState().payslipsLoading ||
-        usePayrollStore.getState().structuresLoading;
+        useLeaveStore.getState().loading;
       
       useUIStore.getState().setGlobalLoading(isLoading);
     };
@@ -77,7 +71,6 @@ export const setupStoreSubscriptions = () => {
     useEmployeeStore.subscribe(updateGlobalLoading);
     useAttendanceStore.subscribe(updateGlobalLoading);
     useLeaveStore.subscribe(updateGlobalLoading);
-    usePayrollStore.subscribe(updateGlobalLoading);
   } catch (error) {
     console.error('Error setting up store subscriptions:', error);
   }

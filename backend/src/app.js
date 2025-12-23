@@ -29,21 +29,15 @@ import adminDashboardRoutes from "./routes/admin/adminDashboard.routes.js";
 import adminAttendanceRoutes from "./routes/admin/attendance.routes.js";
 import attendanceCorrectionRoutes from "./routes/admin/attendanceCorrection.routes.js";
 import leadRoutes from "./routes/admin/lead.routes.js";
+import shiftRoutes from "./routes/admin/shift.routes.js";
 import departmentRoutes from "./routes/admin/department.routes.js";
 import auditLogRoutes from "./routes/admin/auditLog.routes.js";
 
-// Manager routes
-import managerRoutes from "./routes/manager.routes.js";
-
-// Payroll (Admin + Employee)
-import adminPayrollRoutes from "./routes/admin/adminPayroll.routes.js";
-import employeePayslipRoutes from "./routes/employee/payslips.routes.js";
-
 // HRM Modules
 import calendarRoutes from "./routes/calendar.routes.js";
-import documentRoutes from "./routes/document.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import configRoutes from "./routes/config.routes.js";
+import settingsRoutes from "./routes/settings.routes.js";
 
 const app = express();
 
@@ -133,30 +127,26 @@ app.use("/api/admin/leave", adminLeaveRoutes);
 app.use("/api/admin/leave-types", adminLeaveTypeRoutes);
 app.use("/api/admin/holidays", adminHolidayRoutes);
 app.use("/api/admin/departments", departmentRoutes);
-app.use("/api/admin/payroll", adminPayrollRoutes);
 app.use("/api/admin/attendance", adminAttendanceRoutes);
 app.use("/api/admin/attendance-corrections", attendanceCorrectionRoutes);
+app.use("/api/admin/shifts", shiftRoutes);
 app.use("/api/admin/leads", leadRoutes);
 app.use("/api/admin/audit-logs", auditLogRoutes);
 
 // AUTH SECTION
 app.use("/api/auth", authRoutes);
 
-// MANAGER SECTION
-app.use("/api/manager", managerRoutes);
-
 // EMPLOYEE ADMIN ROUTES
 app.use("/api/employees", employeeRoutes);
 
 // EMPLOYEE SELF SERVICE (User side)
 app.use("/api/employee", employeeSelfServiceRoutes);
-app.use("/api/employee", employeePayslipRoutes);
 
 // HRM CORE MODULES
 app.use("/api/calendar", calendarRoutes);
-app.use("/api/document", documentRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/config", configRoutes);
+app.use("/api", settingsRoutes);
 
 // ===================================================
 // 404 HANDLER

@@ -5,7 +5,6 @@ import useEmployeeStore from "../../../stores/useEmployeeStore";
 import { LoadingSpinner } from "../../../shared/components";
 import useAuth from "../../../core/hooks/useAuth";
 import OverviewTab from "../components/OverviewTab";
-import DocumentsTab from "../../documents/components/DocumentsTab";
 import ActivityTab from "../components/ActivityTab";
 
 const EmployeeProfile = () => {
@@ -19,7 +18,6 @@ const EmployeeProfile = () => {
     clearCurrentEmployee 
   } = useEmployeeStore();
   const { user, hasRole, canAccessDepartment, isHRManager } = useAuth();
-
   const [activeTab, setActiveTab] = useState("overview");
   const [accessDenied, setAccessDenied] = useState(false);
 
@@ -37,13 +35,16 @@ const EmployeeProfile = () => {
   }, [error]);
 
   const loadEmployee = async () => {
+    console.log('EmployeeProfile - Loading employee with ID:', id);
     try {
       const employee = await fetchEmployeeById(id);
+      console.log('EmployeeProfile - Employee loaded successfully:', employee);
 
       // Check if HR Manager has access to this employee's department
       if (isHRManager() && employee?.jobInfo?.department) {
         const departmentId =
           employee.jobInfo.department._id || employee.jobInfo.department;
+        console.log('EmployeeProfile - Checking department access for:', departmentId);
         if (!canAccessDepartment(departmentId)) {
           setAccessDenied(true);
           toast.error("You do not have access to this employee");
@@ -52,6 +53,7 @@ const EmployeeProfile = () => {
         }
       }
     } catch (err) {
+      console.error('EmployeeProfile - Error loading employee:', err);
       const errorMsg =
         err.response?.data?.error?.message || "Failed to load employee";
       toast.error(errorMsg);
@@ -252,10 +254,10 @@ const EmployeeProfile = () => {
         {/* Tab Content */}
         <div className="p-6">
           {activeTab === "overview" && (
-            <OverviewTab employee={currentEmployee} />
-          )}
-          {activeTab === "documents" && (
-            <DocumentsTab employeeId={id} canManage={canEdit()} />
+            <>
+              {console.log('EmployeeProfile - Passing currentEmployee to OverviewTab:', currentEmployee)}
+              <OverviewTab employee={currentEmployee} />
+            </>
           )}
           {activeTab === "activity" && <ActivityTab employeeId={id} />}
         </div>

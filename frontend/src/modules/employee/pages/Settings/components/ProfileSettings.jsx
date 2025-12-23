@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useProfile } from "../../../../employees/useEmployeeSelfService";
 import { LoadingSpinner } from "../../../../../shared/components";
-import ProfileSettingsForm from "../../../../ess/components/ProfileSettings";
+import ProfileSettingsForm from "./ProfileSettingsForm";
 
 const ProfileSettings = () => {
   const {

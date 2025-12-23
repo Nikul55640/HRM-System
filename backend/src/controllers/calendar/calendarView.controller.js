@@ -497,7 +497,36 @@ const applyLeaveFromCalendar = async (req, res) => {
 };
 
 export default {
+  // Main calendar views
   getMonthlyCalendarData,
   getDailyCalendarData,
-  applyLeaveFromCalendar
+  applyLeaveFromCalendar,
+  
+  // Route-compatible aliases
+  getEvents: getMonthlyCalendarData,
+  getUpcomingEvents: getDailyCalendarData,
+  createEvent: async (req, res) => {
+    res.status(501).json({ success: false, message: "Not implemented" });
+  },
+  updateEvent: async (req, res) => {
+    res.status(501).json({ success: false, message: "Not implemented" });
+  },
+  deleteEvent: async (req, res) => {
+    res.status(501).json({ success: false, message: "Not implemented" });
+  },
+  getHolidays: async (req, res) => {
+    res.status(501).json({ success: false, message: "Not implemented" });
+  },
+  createHoliday: async (req, res) => {
+    res.status(501).json({ success: false, message: "Not implemented" });
+  },
+  updateHoliday: async (req, res) => {
+    res.status(501).json({ success: false, message: "Not implemented" });
+  },
+  deleteHoliday: async (req, res) => {
+    res.status(501).json({ success: false, message: "Not implemented" });
+  },
+  syncEmployeeEvents: async (req, res) => {
+    res.status(501).json({ success: false, message: "Not implemented" });
+  }
 };

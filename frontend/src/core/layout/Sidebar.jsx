@@ -182,32 +182,32 @@ const Sidebar = () => {
         },
       ],
     },
-    {
-      section: "Payroll",
-      icon: "DollarSign",
-      collapsible: true,
-      showIf: () => can.do(MODULES.PAYROLL.VIEW_ALL),
-      items: [
-        {
-          name: "Payroll Dashboard",
-          path: "/admin/payroll",
-          icon: "Wallet",
-          showIf: () => can.do(MODULES.PAYROLL.VIEW_ALL),
-        },
-        {
-          name: "Employees",
-          path: "/admin/payroll/employees",
-          icon: "UserCheck",
-          showIf: () => can.do(MODULES.PAYROLL.VIEW_ALL),
-        },
-        {
-          name: "Structures",
-          path: "/admin/payroll/structures",
-          icon: "Layers",
-          showIf: () => can.do(MODULES.PAYROLL.MANAGE_STRUCTURE),
-        },
-      ],
-    },
+    // {
+    //   section: "Payroll",
+    //   icon: "DollarSign",
+    //   collapsible: true,
+    //   showIf: () => can.do(MODULES.PAYROLL.VIEW_ALL),
+    //   items: [
+    //     {
+    //       name: "Payroll Dashboard",
+    //       path: "/admin/payroll",
+    //       icon: "Wallet",
+    //       showIf: () => can.do(MODULES.PAYROLL.VIEW_ALL),
+    //     },
+    //     {
+    //       name: "Employees",
+    //       path: "/admin/payroll/employees",
+    //       icon: "UserCheck",
+    //       showIf: () => can.do(MODULES.PAYROLL.VIEW_ALL),
+    //     },
+    //     {
+    //       name: "Structures",
+    //       path: "/admin/payroll/structures",
+    //       icon: "Layers",
+    //       showIf: () => can.do(MODULES.PAYROLL.MANAGE_STRUCTURE),
+    //     },
+    //   ],
+    // },
     {
       section: "System Administration",
       icon: "Shield",

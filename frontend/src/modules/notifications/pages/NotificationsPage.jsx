@@ -60,8 +60,6 @@ const NotificationsPage = () => {
     switch (type) {
       case 'leave':
         return <Calendar {...iconProps} className="w-5 h-5 text-blue-600" />;
-      case 'payroll':
-        return <DollarSign {...iconProps} className="w-5 h-5 text-green-600" />;
       case 'attendance':
         return <CheckCircle {...iconProps} className="w-5 h-5 text-orange-600" />;
       case 'system':
@@ -195,7 +193,6 @@ const NotificationsPage = () => {
             >
               <option value="all">All Types</option>
               <option value="leave">Leave</option>
-              <option value="payroll">Payroll</option>
               <option value="attendance">Attendance</option>
               <option value="system">System</option>
               <option value="announcement">Announcements</option>

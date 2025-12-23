@@ -11,14 +11,12 @@ import Holiday from './Holiday.js';
 import AuditLog from './AuditLog.js';
 import Config from './Config.js';
 import Notification from './Notification.js';
-import Document from './Document.js';
 import CompanyEvent from './CompanyEvent.js';
-import Payslip from './Payslip.js';
-import Request from './Request.js';
-import SalaryStructure from './SalaryStructure.js';
 import Lead from './Lead.js';
 import LeadActivity from './LeadActivity.js';
 import LeadNote from './LeadNote.js';
+import Shift from './Shift.js';
+import EmployeeShift from './EmployeeShift.js';
 
 // Define associations
 User.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
@@ -76,32 +74,9 @@ Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
 Notification.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 
-Document.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
-Employee.hasMany(Document, { foreignKey: 'employeeId', as: 'employeeDocuments' });
-Document.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
-Document.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
-Document.belongsTo(User, { foreignKey: 'uploadedBy', as: 'uploader' });
-
 CompanyEvent.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 CompanyEvent.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 CompanyEvent.belongsTo(User, { foreignKey: 'organizer', as: 'organizerUser' });
-
-Payslip.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
-Employee.hasMany(Payslip, { foreignKey: 'employeeId', as: 'payslips' });
-Payslip.belongsTo(User, { foreignKey: 'generatedBy', as: 'generator' });
-
-Request.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
-Employee.hasMany(Request, { foreignKey: 'employeeId', as: 'requests' });
-Request.belongsTo(User, { foreignKey: 'finalApprover', as: 'approver' });
-Request.belongsTo(User, { foreignKey: 'cancelledBy', as: 'canceller' });
-Request.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
-Request.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
-
-SalaryStructure.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
-Employee.hasMany(SalaryStructure, { foreignKey: 'employeeId', as: 'salaryStructures' });
-SalaryStructure.belongsTo(User, { foreignKey: 'approvedBy', as: 'approver' });
-SalaryStructure.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
-SalaryStructure.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 
 // Lead associations
 Lead.belongsTo(Employee, { foreignKey: 'assignedTo', as: 'assignedEmployee' });
@@ -119,6 +94,22 @@ LeadActivity.belongsTo(Employee, { foreignKey: 'createdBy', as: 'creatorEmployee
 LeadNote.belongsTo(Lead, { foreignKey: 'leadId', as: 'lead' });
 LeadNote.belongsTo(Employee, { foreignKey: 'createdBy', as: 'creatorEmployee' });
 
+// Shift associations
+Shift.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+Shift.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
+
+// Employee Shift associations
+EmployeeShift.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
+EmployeeShift.belongsTo(Shift, { foreignKey: 'shiftId', as: 'shift' });
+EmployeeShift.belongsTo(User, { foreignKey: 'assignedBy', as: 'assignedByUser' });
+
+Employee.hasMany(EmployeeShift, { foreignKey: 'employeeId', as: 'shiftAssignments' });
+Shift.hasMany(EmployeeShift, { foreignKey: 'shiftId', as: 'employeeAssignments' });
+
+// Update AttendanceRecord to include shift reference
+// AttendanceRecord.belongsTo(Shift, { foreignKey: 'shiftId', as: 'shift' });
+// Shift.hasMany(AttendanceRecord, { foreignKey: 'shiftId', as: 'attendanceRecords' });
+
 export {
   sequelize,
   User,
@@ -133,14 +124,12 @@ export {
   AuditLog,
   Config,
   Notification,
-  Document,
   CompanyEvent,
-  Payslip,
-  Request,
-  SalaryStructure,
   Lead,
   LeadActivity,
   LeadNote,
+  Shift,
+  EmployeeShift,
 };
 
 export default {
@@ -157,13 +146,10 @@ export default {
   AuditLog,
   Config,
   Notification,
-  Document,
   CompanyEvent,
-  Payslip,
-  Request,
-  SalaryStructure,
   Lead,
   LeadActivity,
   LeadNote,
-  
+  Shift,
+  EmployeeShift,
 };

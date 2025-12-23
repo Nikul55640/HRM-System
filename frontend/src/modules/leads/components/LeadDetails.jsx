@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
 import { Badge } from '../../../shared/ui/badge';
@@ -23,18 +23,14 @@ import api from '../../../core/api/api';
 import ActivityForm from './ActivityForm';
 import NoteForm from './NoteForm';
 
-const LeadDetails = ({ leadId, onClose }) => {
+const LeadDetails = ({ leadId }) => {
   const [lead, setLead] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showActivityForm, setShowActivityForm] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState(null);
 
-  useEffect(() => {
-    fetchLeadDetails();
-  }, [leadId]);
-
-  const fetchLeadDetails = async () => {
+  const fetchLeadDetails = useCallback(async () => {
     try {
       const response = await api.get(`/admin/leads/${leadId}`);
       setLead(response.data.data);
@@ -43,7 +39,11 @@ const LeadDetails = ({ leadId, onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [leadId]);
+
+  useEffect(() => {
+    fetchLeadDetails();
+  }, [fetchLeadDetails]);
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -140,14 +140,14 @@ const LeadDetails = ({ leadId, onClose }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 max-h-[80vh] overflow-y-auto">
       {/* Lead Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start pb-4 border-b">
         <div>
-          <h2 className="text-2xl font-bold">
+          <h2 className="text-xl font-bold">
             {lead.firstName} {lead.lastName}
           </h2>
-          <p className="text-gray-600">{lead.leadId}</p>
+          <p className="text-gray-600 text-sm">{lead.leadId}</p>
         </div>
         <div className="flex gap-2">
           {getStatusBadge(lead.status)}
@@ -156,154 +156,144 @@ const LeadDetails = ({ leadId, onClose }) => {
       </div>
 
       {/* Lead Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-600">Email</p>
-                <p className="font-medium">{lead.email}</p>
-              </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <Mail className="w-4 h-4 text-gray-400" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-gray-600">Email</p>
+              <p className="font-medium text-sm truncate">{lead.email}</p>
             </div>
-          </CardContent>
+          </div>
         </Card>
         
         {lead.phone && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-600">Phone</p>
-                  <p className="font-medium">{lead.phone}</p>
-                </div>
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4 text-gray-400" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-gray-600">Phone</p>
+                <p className="font-medium text-sm truncate">{lead.phone}</p>
               </div>
-            </CardContent>
+            </div>
           </Card>
         )}
 
         {lead.company && (
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2">
-                <Building className="w-4 h-4 text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-600">Company</p>
-                  <p className="font-medium">{lead.company}</p>
-                </div>
+          <Card className="p-3">
+            <div className="flex items-center gap-2">
+              <Building className="w-4 h-4 text-gray-400" />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-gray-600">Company</p>
+                <p className="font-medium text-sm truncate">{lead.company}</p>
               </div>
-            </CardContent>
+            </div>
           </Card>
         )}
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-gray-400" />
-              <div>
-                <p className="text-sm text-gray-600">Est. Value</p>
-                <p className="font-medium">{formatCurrency(lead.estimatedValue)}</p>
-              </div>
+        <Card className="p-3">
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-gray-400" />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-gray-600">Est. Value</p>
+              <p className="font-medium text-sm">{formatCurrency(lead.estimatedValue)}</p>
             </div>
-          </CardContent>
+          </div>
         </Card>
       </div>
 
       {/* Additional Info */}
       <Card>
-        <CardHeader>
-          <CardTitle>Lead Information</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Lead Information</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
             <div>
-              <p className="text-sm text-gray-600">Source</p>
+              <p className="text-xs text-gray-600">Source</p>
               <p className="font-medium capitalize">{lead.source.replace('_', ' ')}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Position</p>
+              <p className="text-xs text-gray-600">Position</p>
               <p className="font-medium">{lead.position || 'N/A'}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Expected Close Date</p>
+              <p className="text-xs text-gray-600">Expected Close</p>
               <p className="font-medium">{formatDateOnly(lead.expectedCloseDate)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Assigned To</p>
+              <p className="text-xs text-gray-600">Assigned To</p>
               <p className="font-medium">
                 {lead.assignedEmployee 
-                  ? `${lead.assignedEmployee.firstName} ${lead.assignedEmployee.lastName}`
+                  ? `${lead.assignedEmployee.personalInfo?.firstName || ''} ${lead.assignedEmployee.personalInfo?.lastName || ''}`.trim() || lead.assignedEmployee.employeeId
                   : 'Unassigned'
                 }
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Last Contact</p>
+              <p className="text-xs text-gray-600">Last Contact</p>
               <p className="font-medium">{formatDate(lead.lastContactDate)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Created</p>
+              <p className="text-xs text-gray-600">Created</p>
               <p className="font-medium">{formatDate(lead.createdAt)}</p>
             </div>
           </div>
           {lead.description && (
-            <div className="mt-4">
-              <p className="text-sm text-gray-600">Description</p>
-              <p className="font-medium mt-1">{lead.description}</p>
+            <div className="mt-3 pt-3 border-t">
+              <p className="text-xs text-gray-600">Description</p>
+              <p className="font-medium text-sm mt-1">{lead.description}</p>
             </div>
           )}
         </CardContent>
       </Card>
 
       {/* Activities and Notes */}
-      <Tabs defaultValue="activities">
-        <TabsList>
+      <Tabs defaultValue="activities" className="space-y-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="activities">Activities</TabsTrigger>
           <TabsTrigger value="notes">Notes</TabsTrigger>
         </TabsList>
 
         <TabsContent value="activities">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
-                <CardTitle>Activities</CardTitle>
-                <Button onClick={() => setShowActivityForm(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
+                <CardTitle className="text-base">Activities</CardTitle>
+                <Button size="sm" onClick={() => setShowActivityForm(true)}>
+                  <Plus className="w-4 h-4 mr-1" />
                   Add Activity
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0 max-h-60 overflow-y-auto">
               {lead.activities && lead.activities.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {lead.activities.map((activity) => {
                     const Icon = getActivityIcon(activity.type);
                     return (
-                      <div key={activity.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start">
-                          <div className="flex items-start gap-3">
-                            <Icon className="w-5 h-5 text-gray-400 mt-1" />
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h4 className="font-medium">{activity.subject}</h4>
-                                {getActivityStatusBadge(activity.status)}
-                              </div>
-                              {activity.description && (
-                                <p className="text-gray-600 text-sm mb-2">{activity.description}</p>
-                              )}
-                              <div className="text-xs text-gray-500">
-                                {activity.scheduledDate && (
-                                  <span>Scheduled: {formatDate(activity.scheduledDate)} • </span>
-                                )}
-                                Created by {activity.creator?.firstName} {activity.creator?.lastName} on {formatDate(activity.createdAt)}
-                              </div>
-                              {activity.outcome && (
-                                <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                                  <strong>Outcome:</strong> {activity.outcome}
-                                </div>
-                              )}
+                      <div key={activity.id} className="border rounded-lg p-3">
+                        <div className="flex items-start gap-2">
+                          <Icon className="w-4 h-4 text-gray-400 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-sm">{activity.subject}</h4>
+                              {getActivityStatusBadge(activity.status)}
                             </div>
+                            {activity.description && (
+                              <p className="text-gray-600 text-xs mb-2">{activity.description}</p>
+                            )}
+                            <div className="text-xs text-gray-500">
+                              {activity.scheduledDate && (
+                                <span>Scheduled: {formatDate(activity.scheduledDate)} • </span>
+                              )}
+                              Created by {activity.creatorEmployee?.personalInfo?.firstName || ''} {activity.creatorEmployee?.personalInfo?.lastName || ''} on {formatDate(activity.createdAt)}
+                            </div>
+                            {activity.outcome && (
+                              <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                                <strong>Outcome:</strong> {activity.outcome}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -311,7 +301,7 @@ const LeadDetails = ({ leadId, onClose }) => {
                   })}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-6 text-gray-500 text-sm">
                   No activities found
                 </div>
               )}
@@ -321,37 +311,37 @@ const LeadDetails = ({ leadId, onClose }) => {
 
         <TabsContent value="notes">
           <Card>
-            <CardHeader>
+            <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
-                <CardTitle>Notes</CardTitle>
-                <Button onClick={() => setShowNoteForm(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
+                <CardTitle className="text-base">Notes</CardTitle>
+                <Button size="sm" onClick={() => setShowNoteForm(true)}>
+                  <Plus className="w-4 h-4 mr-1" />
                   Add Note
                 </Button>
               </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0 max-h-60 overflow-y-auto">
               {lead.notes && lead.notes.length > 0 ? (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {lead.notes.map((note) => (
-                    <div key={note.id} className="border rounded-lg p-4">
+                    <div key={note.id} className="border rounded-lg p-3">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">
                           <MessageSquare className="w-4 h-4 text-gray-400" />
-                          <Badge variant="outline" className="capitalize">
+                          <Badge variant="outline" className="capitalize text-xs">
                             {note.type.replace('_', ' ')}
                           </Badge>
                         </div>
                         <div className="text-xs text-gray-500">
-                          {note.creator?.firstName} {note.creator?.lastName} • {formatDate(note.createdAt)}
+                          {note.creatorEmployee?.personalInfo?.firstName || ''} {note.creatorEmployee?.personalInfo?.lastName || ''} • {formatDate(note.createdAt)}
                         </div>
                       </div>
-                      <p className="text-gray-700">{note.content}</p>
+                      <p className="text-gray-700 text-sm">{note.content}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">
+                <div className="text-center py-6 text-gray-500 text-sm">
                   No notes found
                 </div>
               )}

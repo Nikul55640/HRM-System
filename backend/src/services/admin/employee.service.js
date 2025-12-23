@@ -1,6 +1,12 @@
-import { Employee, AuditLog, Department } from "../../models/sequelize/index.js";
+import {
+  Employee,
+  AuditLog,
+  Department,
+} from "../../models/sequelize/index.js";
 import logger from "../../utils/logger.js";
 import { ROLES } from "../../config/rolePermissions.js";
+import { Op } from "sequelize";
+
 
 /**
  * Employee Service Layer
@@ -14,105 +20,123 @@ import { ROLES } from "../../config/rolePermissions.js";
  * @param {Object} metadata - Request metadata (IP, user agent)
  * @returns {Promise<Object>} Created employee
  */
+
 const createEmployee = async (employeeData, user, metadata = {}) => {
   try {
-    // -------------------------
-    // 1. BASIC REQUIRED FIELDS
-    // -------------------------
+    // 🔍 DEBUG: Confirm correct file is loaded
+    console.log("🚀 createEmployee SERVICE LOADED FROM:", import.meta.url);
+
+    // 🔍 DEBUG: Incoming payload
+    console.log(
+      "📦 Incoming employeeData:",
+      JSON.stringify(employeeData, null, 2)
+    );
+
+    // 1. BASIC VALIDATION
     if (
       !employeeData.personalInfo?.firstName ||
       !employeeData.personalInfo?.lastName
     ) {
-      throw {
-        code: "MISSING_NAME",
-        message: "First name and last name are required.",
-        statusCode: 400,
-      };
+      throw { message: "First & last name required", statusCode: 400 };
     }
 
     if (!employeeData.contactInfo?.email) {
-      throw {
-        code: "MISSING_EMAIL",
-        message: "Contact email is required.",
-        statusCode: 400,
-      };
+      throw { message: "Email required", statusCode: 400 };
     }
 
     if (!employeeData.jobInfo?.jobTitle) {
-      throw {
-        code: "MISSING_JOB_TITLE",
-        message: "Job title is required.",
-        statusCode: 400,
-      };
+      throw { message: "Job title required", statusCode: 400 };
     }
 
     if (!employeeData.jobInfo?.department) {
-      throw {
-        code: "MISSING_DEPARTMENT",
-        message: "Department is required.",
-        statusCode: 400,
-      };
+      throw { message: "Department required", statusCode: 400 };
     }
 
-    // Set defaults if missing
-    employeeData.jobInfo.hireDate = employeeData.jobInfo.hireDate || new Date();
-    employeeData.jobInfo.employmentType =
-      employeeData.jobInfo.employmentType || "Full-time";
+    employeeData.jobInfo.hireDate ||= new Date();
+    employeeData.jobInfo.employmentType ||= "Full-time";
 
-    // -------------------------
-    // 2. CHECK EMAIL UNIQUE
-    // -------------------------
+    // 2. EMAIL UNIQUE CHECK (🔥 FIXED)
+    const emailLower = employeeData.contactInfo.email.toLowerCase();
+
+    console.log("📧 Checking email uniqueness for:", emailLower);
+
     const existingEmployee = await Employee.findOne({
-      where: Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.email') = '${employeeData.contactInfo.email.toLowerCase()}'`),
+      where: {
+        [Op.and]: [
+          Employee.sequelize.literal(
+            `JSON_EXTRACT(contactInfo, '$.email') = '${emailLower}'`
+          ),
+        ],
+      },
     });
+
+    console.log("📧 Existing employee found:", !!existingEmployee);
 
     if (existingEmployee) {
-      throw {
-        code: "DUPLICATE_EMAIL",
-        message: "Employee email already exists.",
-        statusCode: 409,
-      };
+      throw { message: "Employee email already exists", statusCode: 409 };
     }
 
-    // -------------------------
-    // 3. CREATE EMPLOYEE
-    // -------------------------
-    const employee = await Employee.create({
-      ...employeeData,
-      createdBy: user.id,
-      updatedBy: user.id,
+    // 3. GENERATE EMPLOYEE ID
+    const lastEmployee = await Employee.findOne({
+      order: [["createdAt", "DESC"]],
     });
 
-    // -------------------------
-    // 4. LOG IN AUDIT
-    // -------------------------
+    let nextNumber = 1;
+    if (lastEmployee?.employeeId) {
+      const lastNumber = parseInt(
+        lastEmployee.employeeId.split("-").pop(),
+        10
+      );
+      nextNumber = lastNumber + 1;
+    }
+
+    const employeeId = `EMP-${new Date().getFullYear()}-${String(
+      nextNumber
+    ).padStart(4, "0")}`;
+
+    console.log("🆔 Generated Employee ID:", employeeId);
+
+    // 4. CREATE EMPLOYEE
+    const userId = user.id || user._id;
+
+    console.log("👤 Creating employee by user:", userId);
+
+    const employee = await Employee.create({
+      employeeId,
+      ...employeeData,
+      contactInfo: {
+        ...employeeData.contactInfo,
+        email: emailLower,
+      },
+      createdBy: userId,
+      updatedBy: userId,
+    });
+
+    console.log("✅ Employee CREATED with DB ID:", employee.id);
+
+    // 5. AUDIT LOG
     await AuditLog.logAction({
       action: "CREATE",
       entityType: "Employee",
       entityId: employee.id.toString(),
       userId: user.id,
       userRole: user.role,
-      changes: [
-        {
-          field: "employee",
-          oldValue: null,
-          newValue: employee.toJSON(),
-        },
-      ],
+      changes: [{ field: "employee", newValue: employee.toJSON() }],
       ipAddress: metadata.ipAddress,
       userAgent: metadata.userAgent,
     });
 
-    logger.info(
-      `Employee created: ${employee.employeeId} by user ${user.email}`
-    );
+    console.log("📝 Audit log created");
 
     return employee;
   } catch (error) {
-    logger.error("Error creating employee:", error);
+    console.error("❌ ERROR INSIDE createEmployee SERVICE");
+    console.error(error);
     throw error;
   }
 };
+
+
 
 /**
  * Update an existing employee
@@ -142,9 +166,11 @@ const updateEmployee = async (employeeId, updateData, user, metadata = {}) => {
         const existingEmployee = await Employee.findOne({
           where: {
             [Employee.sequelize.Sequelize.Op.and]: [
-              Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.email') = '${emailLower}'`),
-              { id: { [Employee.sequelize.Sequelize.Op.ne]: employeeId } }
-            ]
+              Employee.sequelize.literal(
+                `JSON_EXTRACT(contactInfo, '$.email') = '${emailLower}'`
+              ),
+              { id: { [Employee.sequelize.Sequelize.Op.ne]: employeeId } },
+            ],
           },
         });
 
@@ -325,8 +351,10 @@ const getEmployeeById = async (employeeId, user) => {
           statusCode: 403,
         };
       }
-      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = {
-        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments
+      where[
+        Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
+      ] = {
+        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments,
       };
     } else if (user.role === ROLES.EMPLOYEE) {
       // Employees can only access their own profile
@@ -356,12 +384,14 @@ const getEmployeeById = async (employeeId, user) => {
     if (empData.jobInfo?.department) {
       try {
         const { Department } = await import("../../models/sequelize/index.js");
-        const department = await Department.findByPk(empData.jobInfo.department);
+        const department = await Department.findByPk(
+          empData.jobInfo.department
+        );
         if (department) {
           empData.jobInfo.departmentInfo = {
             id: department.id,
             name: department.name,
-            code: department.code
+            code: department.code,
           };
         }
       } catch (error) {
@@ -405,8 +435,10 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
           statusCode: 403,
         };
       }
-      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = {
-        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments
+      where[
+        Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
+      ] = {
+        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments,
       };
     } else if (user.role === ROLES.EMPLOYEE) {
       // Employees can only see their own profile in list
@@ -428,7 +460,9 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
 
     // Apply additional filters
     if (filters.department) {
-      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = filters.department;
+      where[
+        Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
+      ] = filters.department;
     }
 
     if (filters.status) {
@@ -436,28 +470,45 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
     }
 
     if (filters.employmentType) {
-      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.employmentType')")] = filters.employmentType;
+      where[
+        Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.employmentType')")
+      ] = filters.employmentType;
     }
 
     if (filters.jobTitle) {
-      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")] = {
-        [Employee.sequelize.Sequelize.Op.like]: `%${filters.jobTitle}%`
-      };
+      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")] =
+        {
+          [Employee.sequelize.Sequelize.Op.like]: `%${filters.jobTitle}%`,
+        };
     }
 
     if (filters.workLocation) {
-      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.workLocation')")] = {
-        [Employee.sequelize.Sequelize.Op.like]: `%${filters.workLocation}%`
+      where[
+        Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.workLocation')")
+      ] = {
+        [Employee.sequelize.Sequelize.Op.like]: `%${filters.workLocation}%`,
       };
     }
 
     if (filters.search) {
       where[Employee.sequelize.Sequelize.Op.or] = [
-        Employee.sequelize.literal(`JSON_EXTRACT(personalInfo, '$.firstName') LIKE '%${filters.search}%'`),
-        Employee.sequelize.literal(`JSON_EXTRACT(personalInfo, '$.lastName') LIKE '%${filters.search}%'`),
-        Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.email') LIKE '%${filters.search}%'`),
-        { employeeId: { [Employee.sequelize.Sequelize.Op.like]: `%${filters.search}%` } },
-        Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.phoneNumber') LIKE '%${filters.search}%'`),
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(personalInfo, '$.firstName') LIKE '%${filters.search}%'`
+        ),
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(personalInfo, '$.lastName') LIKE '%${filters.search}%'`
+        ),
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(contactInfo, '$.email') LIKE '%${filters.search}%'`
+        ),
+        {
+          employeeId: {
+            [Employee.sequelize.Sequelize.Op.like]: `%${filters.search}%`,
+          },
+        },
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(contactInfo, '$.phoneNumber') LIKE '%${filters.search}%'`
+        ),
       ];
     }
 
@@ -473,24 +524,28 @@ const listEmployees = async (filters = {}, user, pagination = {}) => {
     const employeesWithDepartments = await Promise.all(
       employees.map(async (employee) => {
         const empData = employee.toJSON();
-        
+
         // Get department info if department ID exists
         if (empData.jobInfo?.department) {
           try {
-            const { Department } = await import("../../models/sequelize/index.js");
-            const department = await Department.findByPk(empData.jobInfo.department);
+            const { Department } = await import(
+              "../../models/sequelize/index.js"
+            );
+            const department = await Department.findByPk(
+              empData.jobInfo.department
+            );
             if (department) {
               empData.jobInfo.departmentInfo = {
                 id: department.id,
                 name: department.name,
-                code: department.code
+                code: department.code,
               };
             }
           } catch (error) {
             logger.error("Error fetching department info:", error);
           }
         }
-        
+
         return empData;
       })
     );
@@ -592,9 +647,11 @@ const softDeleteEmployee = async (employeeId, user, metadata = {}) => {
 const isEmailUnique = async (email, excludeEmployeeId = null) => {
   try {
     const where = {
-      [Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.email') = '${email.toLowerCase()}'`)]: true
+      [Employee.sequelize.literal(
+        `JSON_EXTRACT(contactInfo, '$.email') = '${email.toLowerCase()}'`
+      )]: true,
     };
-    
+
     if (excludeEmployeeId) {
       where.id = { [Employee.sequelize.Sequelize.Op.ne]: excludeEmployeeId };
     }
@@ -636,8 +693,10 @@ const searchEmployees = async (searchTerm, user, pagination = {}) => {
           statusCode: 403,
         };
       }
-      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = {
-        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments
+      where[
+        Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
+      ] = {
+        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments,
       };
     } else if (user.role === "Employee") {
       // Employees can only search within active employees (directory access)
@@ -647,13 +706,23 @@ const searchEmployees = async (searchTerm, user, pagination = {}) => {
     // Add search criteria
     if (searchTerm && searchTerm.trim()) {
       const searchPattern = `%${searchTerm.trim()}%`;
-      
+
       where[Employee.sequelize.Sequelize.Op.or] = [
-        Employee.sequelize.literal(`JSON_EXTRACT(personalInfo, '$.firstName') LIKE '${searchPattern}'`),
-        Employee.sequelize.literal(`JSON_EXTRACT(personalInfo, '$.lastName') LIKE '${searchPattern}'`),
-        Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.email') LIKE '${searchPattern}'`),
-        { employeeId: { [Employee.sequelize.Sequelize.Op.like]: searchPattern } },
-        Employee.sequelize.literal(`JSON_EXTRACT(contactInfo, '$.phoneNumber') LIKE '${searchPattern}'`),
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(personalInfo, '$.firstName') LIKE '${searchPattern}'`
+        ),
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(personalInfo, '$.lastName') LIKE '${searchPattern}'`
+        ),
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(contactInfo, '$.email') LIKE '${searchPattern}'`
+        ),
+        {
+          employeeId: { [Employee.sequelize.Sequelize.Op.like]: searchPattern },
+        },
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(contactInfo, '$.phoneNumber') LIKE '${searchPattern}'`
+        ),
       ];
     }
 
@@ -714,8 +783,10 @@ const filterEmployees = async (filters = {}, user, pagination = {}) => {
           statusCode: 403,
         };
       }
-      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = {
-        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments
+      where[
+        Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
+      ] = {
+        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments,
       };
     } else if (user.role === "Employee") {
       // Employees can only filter active employees (directory access)
@@ -726,11 +797,15 @@ const filterEmployees = async (filters = {}, user, pagination = {}) => {
     if (filters.department) {
       // Support multiple departments
       if (Array.isArray(filters.department)) {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = {
-          [Employee.sequelize.Sequelize.Op.in]: filters.department
+        where[
+          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
+        ] = {
+          [Employee.sequelize.Sequelize.Op.in]: filters.department,
         };
       } else {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = filters.department;
+        where[
+          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
+        ] = filters.department;
       }
     }
 
@@ -738,12 +813,16 @@ const filterEmployees = async (filters = {}, user, pagination = {}) => {
     if (filters.jobTitle) {
       // Support multiple job titles
       if (Array.isArray(filters.jobTitle)) {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")] = {
-          [Employee.sequelize.Sequelize.Op.in]: filters.jobTitle
+        where[
+          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")
+        ] = {
+          [Employee.sequelize.Sequelize.Op.in]: filters.jobTitle,
         };
       } else {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")] = {
-          [Employee.sequelize.Sequelize.Op.like]: `%${filters.jobTitle}%`
+        where[
+          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")
+        ] = {
+          [Employee.sequelize.Sequelize.Op.like]: `%${filters.jobTitle}%`,
         };
       }
     }
@@ -752,11 +831,19 @@ const filterEmployees = async (filters = {}, user, pagination = {}) => {
     if (filters.employmentType) {
       // Support multiple employment types
       if (Array.isArray(filters.employmentType)) {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.employmentType')")] = {
-          [Employee.sequelize.Sequelize.Op.in]: filters.employmentType
+        where[
+          Employee.sequelize.literal(
+            "JSON_EXTRACT(jobInfo, '$.employmentType')"
+          )
+        ] = {
+          [Employee.sequelize.Sequelize.Op.in]: filters.employmentType,
         };
       } else {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.employmentType')")] = filters.employmentType;
+        where[
+          Employee.sequelize.literal(
+            "JSON_EXTRACT(jobInfo, '$.employmentType')"
+          )
+        ] = filters.employmentType;
       }
     }
 
@@ -764,12 +851,16 @@ const filterEmployees = async (filters = {}, user, pagination = {}) => {
     if (filters.workLocation) {
       // Support multiple work locations
       if (Array.isArray(filters.workLocation)) {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.workLocation')")] = {
-          [Employee.sequelize.Sequelize.Op.in]: filters.workLocation
+        where[
+          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.workLocation')")
+        ] = {
+          [Employee.sequelize.Sequelize.Op.in]: filters.workLocation,
         };
       } else {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.workLocation')")] = {
-          [Employee.sequelize.Sequelize.Op.like]: `%${filters.workLocation}%`
+        where[
+          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.workLocation')")
+        ] = {
+          [Employee.sequelize.Sequelize.Op.like]: `%${filters.workLocation}%`,
         };
       }
     }
@@ -845,34 +936,47 @@ const getEmployeeDirectory = async (filters = {}, user, pagination = {}) => {
           statusCode: 403,
         };
       }
-      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = {
-        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments
+      where[
+        Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
+      ] = {
+        [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments,
       };
     }
 
     // Apply optional filters
     if (filters.department) {
       if (Array.isArray(filters.department)) {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = {
-          [Employee.sequelize.Sequelize.Op.in]: filters.department
+        where[
+          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
+        ] = {
+          [Employee.sequelize.Sequelize.Op.in]: filters.department,
         };
       } else {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")] = filters.department;
+        where[
+          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
+        ] = filters.department;
       }
     }
 
     if (filters.jobTitle) {
-      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")] = {
-        [Employee.sequelize.Sequelize.Op.like]: `%${filters.jobTitle}%`
-      };
+      where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")] =
+        {
+          [Employee.sequelize.Sequelize.Op.like]: `%${filters.jobTitle}%`,
+        };
     }
 
     if (filters.search) {
       const searchPattern = `%${filters.search}%`;
       where[Employee.sequelize.Sequelize.Op.or] = [
-        Employee.sequelize.literal(`JSON_EXTRACT(personalInfo, '$.firstName') LIKE '${searchPattern}'`),
-        Employee.sequelize.literal(`JSON_EXTRACT(personalInfo, '$.lastName') LIKE '${searchPattern}'`),
-        Employee.sequelize.literal(`JSON_EXTRACT(jobInfo, '$.jobTitle') LIKE '${searchPattern}'`),
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(personalInfo, '$.firstName') LIKE '${searchPattern}'`
+        ),
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(personalInfo, '$.lastName') LIKE '${searchPattern}'`
+        ),
+        Employee.sequelize.literal(
+          `JSON_EXTRACT(jobInfo, '$.jobTitle') LIKE '${searchPattern}'`
+        ),
       ];
     }
 
@@ -880,12 +984,12 @@ const getEmployeeDirectory = async (filters = {}, user, pagination = {}) => {
     const { count: total, rows: employees } = await Employee.findAndCountAll({
       where,
       attributes: [
-        'id',
-        'employeeId',
-        'personalInfo',
-        'jobInfo',
-        'contactInfo',
-        'isPrivate'
+        "id",
+        "employeeId",
+        "personalInfo",
+        "jobInfo",
+        "contactInfo",
+        "isPrivate",
       ],
       order: [[sortBy, sortOrder.toUpperCase()]],
       limit: parseInt(limit),

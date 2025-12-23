@@ -1,5 +1,5 @@
 import express from 'express';
-import companyCalendarController from '../controllers/companyCalendar.controller.js';
+import calendarViewController from '../controllers/calendar/calendarView.controller.js';
 import { authenticate, authorize } from '../middleware/authenticate.js';
 
 const router = express.Router();
@@ -9,10 +9,10 @@ const router = express.Router();
 // =========================================================
 
 // Get calendar events (holidays, company events, leaves, etc.)
-router.get('/events',authenticate, companyCalendarController.getEvents);
+router.get('/events',authenticate, calendarViewController.getEvents);
 
 // Get upcoming events
-router.get('/upcoming', authenticate, companyCalendarController.getUpcomingEvents);
+router.get('/upcoming', authenticate, calendarViewController.getUpcomingEvents);
 
 // =========================================================
 // ADMIN/HR ONLY ROUTES
@@ -22,47 +22,47 @@ router.get('/upcoming', authenticate, companyCalendarController.getUpcomingEvent
 router.post('/events', 
   authenticate, 
   authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
-  companyCalendarController.createEvent
+  calendarViewController.createEvent
 );
 
 router.put('/events/:id', 
   authenticate, 
   authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
-  companyCalendarController.updateEvent
+  calendarViewController.updateEvent
 );
 
 router.delete('/events/:id', 
   authenticate, 
   authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
-  companyCalendarController.deleteEvent
+  calendarViewController.deleteEvent
 );
 
 // Holiday Management
-router.get('/holidays', authenticate, companyCalendarController.getHolidays);
+router.get('/holidays', authenticate, calendarViewController.getHolidays);
 
 router.post('/holidays', 
   authenticate, 
   authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
-  companyCalendarController.createHoliday
+  calendarViewController.createHoliday
 );
 
 router.put('/holidays/:id', 
   authenticate, 
   authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
-  companyCalendarController.updateHoliday
+  calendarViewController.updateHoliday
 );
 
 router.delete('/holidays/:id', 
   authenticate, 
   authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
-  companyCalendarController.deleteHoliday
+  calendarViewController.deleteHoliday
 );
 
 // Employee Events Sync (Birthdays & Anniversaries)
 router.post('/sync-employee-events', 
   authenticate, 
   authorize(['SuperAdmin', 'HR Adminiministrator']), 
-  companyCalendarController.syncEmployeeEvents
+  calendarViewController.syncEmployeeEvents
 );
 
 export default router;

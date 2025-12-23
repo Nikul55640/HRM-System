@@ -60,7 +60,7 @@ const LeadManagement = () => {
          if (value) queryParams.append(key, value);
        });
 
-       const response = await api.get(`/admin/leads?${queryParams}`);
+       const response = await api.get(`/admin/leads`);
        setLeads(response.data.data);
        setPagination((prev) => ({
          ...prev,
@@ -362,7 +362,7 @@ const LeadManagement = () => {
                           <span className="text-gray-500">Assigned To:</span>
                           <div>
                             {lead.assignedEmployee 
-                              ? `${lead.assignedEmployee.firstName} ${lead.assignedEmployee.lastName}`
+                              ? `${lead.assignedEmployee.personalInfo?.firstName || ''} ${lead.assignedEmployee.personalInfo?.lastName || ''}`.trim() || lead.assignedEmployee.employeeId
                               : 'Unassigned'
                             }
                           </div>

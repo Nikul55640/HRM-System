@@ -22,7 +22,6 @@ import {
   hrRoutes,
   managerRoutes,
   organizationRoutes,
-  payrollRoutes,
   calendarRoutes,
   adminRoutes,
   dashboardRoutes,
@@ -81,7 +80,6 @@ function App() {
               {applyRoutes(hrRoutes)}
               {applyRoutes(managerRoutes)}
               {applyRoutes(organizationRoutes)}
-              {applyRoutes(payrollRoutes)}
               {applyRoutes(calendarRoutes)}
               {applyRoutes(adminRoutes)}
               {applyRoutes(dashboardRoutes)}

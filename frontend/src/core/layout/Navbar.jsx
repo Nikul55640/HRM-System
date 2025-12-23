@@ -26,14 +26,6 @@ const Navbar = () => {
       read: false,
     },
     {
-      id: 2,
-      type: 'payroll',
-      title: 'Payslip Available',
-      message: 'Your November payslip is now available',
-      time: '1 day ago',
-      read: false,
-    },
-    {
       id: 3,
       type: 'announcement',
       title: 'Company Holiday',
@@ -87,8 +79,6 @@ const Navbar = () => {
     switch (type) {
       case 'leave':
         return <Palmtree className={`${iconClass} text-blue-600`} />;
-      case 'payroll':
-        return <DollarSign className={`${iconClass} text-green-600`} />;
       case 'announcement':
         return <Megaphone className={`${iconClass} text-orange-600`} />;
       default:
@@ -191,17 +181,6 @@ const Navbar = () => {
         { name: 'Policies', path: '/hr/policies', icon: 'ScrollText' },
         { name: 'Holidays', path: '/hr/holidays', icon: 'PartyPopper' },
         { name: 'Company Docs', path: '/hr/documents', icon: 'Folder' },
-      ],
-    },
-    {
-      name: 'Payroll',
-      icon: 'DollarSign',
-      roles: ['SuperAdmin'],
-      dropdown: [
-        { name: 'Payroll Dashboard', path: '/payroll', icon: 'Wallet' },
-        { name: 'Employees', path: '/payroll/employees', icon: 'UserCheck' },
-        { name: 'Structures', path: '/payroll/structures', icon: 'Layers' },
-        { name: 'Payslips', path: '/payroll/payslips', icon: 'FileSpreadsheet' },
       ],
     },
     {

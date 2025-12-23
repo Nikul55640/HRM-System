@@ -12,11 +12,7 @@ import Holiday from './sequelize/Holiday.js';
 import AuditLog from './sequelize/AuditLog.js';
 import Config from './sequelize/Config.js';
 import Notification from './sequelize/Notification.js';
-import Document from './sequelize/Document.js';
 import CompanyEvent from './sequelize/CompanyEvent.js';
-import Payslip from './sequelize/Payslip.js';
-import Request from './sequelize/Request.js';
-import SalaryStructure from './sequelize/SalaryStructure.js';
 import Lead from './sequelize/Lead.js';
 import LeadActivity from './sequelize/LeadActivity.js';
 import LeadNote from './sequelize/LeadNote.js';
@@ -37,11 +33,7 @@ export {
   AuditLog,
   Config,
   Notification,
-  Document,
   CompanyEvent,
-  Payslip,
-  Request,
-  SalaryStructure,
   Lead,
   LeadActivity,
   LeadNote,
@@ -61,11 +53,7 @@ export default {
   AuditLog,
   Config,
   Notification,
-  Document,
   CompanyEvent,
-  Payslip,
-  Request,
-  SalaryStructure,
   Lead,
   LeadActivity,
   LeadNote,

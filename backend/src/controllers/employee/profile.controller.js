@@ -3,7 +3,7 @@ import crypto from "crypto";
 import fs from "fs";
 import { encryptFile } from "../../utils/encryption.js";
 import { decryptFile } from "../../utils/encryption.js";
-import { Employee, EmployeeProfile, Document, Department } from "../../models/sequelize/index.js";
+import { Employee, EmployeeProfile, Department } from "../../models/sequelize/index.js";
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({

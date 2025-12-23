@@ -327,7 +327,7 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
                 <SelectItem value="">Unassigned</SelectItem>
                 {employees.map((employee) => (
                   <SelectItem key={employee.id} value={employee.id.toString()}>
-                    {employee.firstName} {employee.lastName}
+                    {employee.personalInfo?.firstName || ''} {employee.personalInfo?.lastName || ''} ({employee.employeeId})
                   </SelectItem>
                 ))}
               </SelectContent>

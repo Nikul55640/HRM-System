@@ -1,11 +1,10 @@
 import { lazy } from "react";
 
-const ManagerApprovals = lazy(() => import("../modules/manager/pages/Dashboard/ManagerApprovals"));
-const ManagerTeam = lazy(() => import("../modules/manager/pages/Dashboard/ManagerTeam"));
-const ManagerReports = lazy(() => import("../modules/manager/pages/Dashboard/ManagerReports"));
+// Manager routes will be handled through the existing modules
+// Manager can access attendance and leave approval through their respective modules
+const ManagerDashboard = lazy(() => import("../modules/employee/pages/Dashboard/EmployeeDashboard"));
 
 export const managerRoutes = [
-  { path: "manager/approvals", element: <ManagerApprovals />, roles: ["HR Manager", "SuperAdmin"] },
-  { path: "manager/team", element: <ManagerTeam />, roles: ["HR Manager", "SuperAdmin"] },
-  { path: "manager/reports", element: <ManagerReports />, roles: ["HR Manager", "SuperAdmin"] },
+  // Dashboard is the primary manager interface
+  { path: "manager", element: <ManagerDashboard />, roles: ["Manager", "HR Manager", "SuperAdmin"] },
 ];

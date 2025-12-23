@@ -29,6 +29,7 @@ const createUser = async (userData, currentUser, metadata = {}) => {
     }
 
     const user = await User.create({
+      name: userData.name || userData.email.split('@')[0], // Use provided name or extract from email
       email: userData.email,
       password: userData.password,
       role: userData.role,

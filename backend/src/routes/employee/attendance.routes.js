@@ -2,7 +2,6 @@ import express from "express";
 import { authenticate } from "../../middleware/authenticate.js";
 import { requireRoles } from "../../middleware/requireRoles.js";
 import attendanceController from "../../controllers/employee/attendance.controller.js";
-import sessionController from "../../controllers/employee/session.controller.js";
 import breakController from "../../controllers/employee/break.controller.js";
 
 const router = express.Router();
@@ -38,27 +37,27 @@ router.post(
   attendanceController.checkOut
 );
 
-// ⭐ NEW SESSION-BASED ENDPOINTS ⭐
+// ⭐ CLOCK IN/OUT ENDPOINTS ⭐
 
 // Get attendance sessions (with date range support)
 router.get(
   "/attendance/sessions",
   authenticate,
-  sessionController.getSessions
+  attendanceController.getAttendanceRecords
 );
 
 // Start new work session (clock-in with location)
 router.post(
   "/attendance/session/start",
   authenticate,
-  sessionController.startSession
+  attendanceController.checkIn
 );
 
 // End current work session (clock-out)
 router.post(
   "/attendance/session/end",
   authenticate,
-  sessionController.endSession
+  attendanceController.checkOut
 );
 
 // Start break

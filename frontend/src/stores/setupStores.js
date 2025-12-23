@@ -30,7 +30,6 @@ if (process.env.NODE_ENV === 'development') {
     employee: () => import('./useEmployeeStore').then(m => m.default.getState()),
     attendance: () => import('./useAttendanceStore').then(m => m.default.getState()),
     leave: () => import('./useLeaveStore').then(m => m.default.getState()),
-    payroll: () => import('./usePayrollStore').then(m => m.default.getState()),
   };
   
   console.log('🔧 Zustand stores available in console via window.__ZUSTAND_STORES__');

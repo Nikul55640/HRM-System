@@ -53,8 +53,8 @@ const usePermissions = () => {
       accessEmployee: (employeeId) => {
         if (!user) return false;
         
-        // SuperAdmin, HR Admin, Payroll Officer can access all
-        if ([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.PAYROLL_OFFICER].includes(user.role)) {
+        // SuperAdmin, HR Admin can access all
+        if ([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN].includes(user.role)) {
           return true;
         }
 
@@ -79,7 +79,6 @@ const usePermissions = () => {
       superAdmin: () => user?.role === ROLES.SUPER_ADMIN,
       hrAdmin: () => user?.role === ROLES.HR_ADMIN,
       hrManager: () => user?.role === ROLES.HR_MANAGER,
-      payrollOfficer: () => user?.role === ROLES.PAYROLL_OFFICER,
       manager: () => user?.role === ROLES.MANAGER,
       employee: () => user?.role === ROLES.EMPLOYEE,
       adminRole: () =>

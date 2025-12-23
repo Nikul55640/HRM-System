@@ -6,7 +6,6 @@ export { default as useDepartmentStore } from './useDepartmentStore';
 export { default as useEmployeeStore } from './useEmployeeStore';
 export { default as useAttendanceStore } from './useAttendanceStore';
 export { default as useLeaveStore } from './useLeaveStore';
-export { default as usePayrollStore } from './usePayrollStore';
 
 // Re-export initialization functions
 export { initializeStores, resetAllStores, setupStoreSubscriptions } from './storeInitializer';

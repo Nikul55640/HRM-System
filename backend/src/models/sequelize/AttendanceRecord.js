@@ -15,6 +15,11 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
       key: 'id',
     },
   },
+  shiftId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    comment: 'Reference to the shift this attendance record is based on'
+  },
   date: {
     type: DataTypes.DATEONLY,
     allowNull: false,

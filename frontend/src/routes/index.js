@@ -9,7 +9,6 @@ import { dashboardRoutes as dashboardRoutesConfig } from './dashboardRoutes';
 import { essRoutes as essRoutesConfig } from './essRoutes';
 import { hrRoutes as hrRoutesConfig } from './hrRoutes';
 import { organizationRoutes as organizationRoutesConfig } from './organizationRoutes';
-import { payrollRoutes as payrollRoutesConfig } from './payrollRoutes';
 import { calendarRoutes as calendarRoutesConfig } from './calendarRoutes';
 import { generalRoutes as generalRoutesConfig } from './generalRoutes';
 import { leadRoutes as leadRoutesConfig } from './leadRoutes';
@@ -83,8 +82,7 @@ export const moduleRoutes = {
     dashboard: '/hr/dashboard',
     employees: '/hr/employees',
     attendance: '/hr/attendance',
-    leave: '/hr/leave',
-    payroll: '/hr/payroll'
+    leave: '/hr/leave'
   },
 
   // Manager module routes
@@ -145,10 +143,6 @@ export const navigationConfig = {
         {
           title: 'Leave Management',
           path: '/admin/leave'
-        },
-        {
-          title: 'Payroll',
-          path: '/admin/payroll'
         }
       ]
     },
@@ -250,7 +244,6 @@ export const dashboardRoutes = dashboardRoutesConfig;
 export const essRoutes = essRoutesConfig;
 export const hrRoutes = hrRoutesConfig;
 export const organizationRoutes = organizationRoutesConfig;
-export const payrollRoutes = payrollRoutesConfig;
 export const calendarRoutes = calendarRoutesConfig;
 export const generalRoutes = generalRoutesConfig;
 export const leadRoutes = leadRoutesConfig;

@@ -10,7 +10,7 @@ const Lead = sequelize.define('Lead', {
     leadId: {
       type: DataTypes.STRING(20),
       unique: true,
-      allowNull: false
+      allowNull: true // Make it nullable so we can generate it
     },
     firstName: {
       type: DataTypes.STRING(50),
@@ -132,8 +132,14 @@ const Lead = sequelize.define('Lead', {
 // Generate lead ID
 Lead.beforeCreate(async (lead) => {
   if (!lead.leadId) {
-    const count = await Lead.count();
-    lead.leadId = `LEAD-${String(count + 1).padStart(6, '0')}`;
+    try {
+      const count = await Lead.count({ where: { isActive: true } });
+      lead.leadId = `LEAD-${String(count + 1).padStart(6, '0')}`;
+    } catch (error) {
+      // Fallback to timestamp-based ID if count fails
+      const timestamp = Date.now().toString().slice(-6);
+      lead.leadId = `LEAD-${timestamp}`;
+    }
   }
 });
 
