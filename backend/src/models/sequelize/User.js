@@ -23,7 +23,7 @@ const User = sequelize.define('User', {
     allowNull: false,
   },
   role: {
-    type: DataTypes.ENUM('SuperAdmin', 'HR Administrator', 'HR Manager', 'Manager', 'Employee'),
+    type: DataTypes.ENUM('SuperAdmin', 'HR', 'Employee'),
     defaultValue: 'Employee',
   },
   isActive: {
@@ -87,24 +87,24 @@ const User = sequelize.define('User', {
 });
 
 // Instance methods
-User.prototype.comparePassword = async function(candidatePassword) {
+User.prototype.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-User.prototype.generatePasswordResetToken = function() {
+User.prototype.generatePasswordResetToken = function () {
   const resetToken = crypto.randomBytes(32).toString('hex');
-  
+
   this.passwordResetToken = crypto
     .createHash('sha256')
     .update(resetToken)
     .digest('hex');
-  
+
   this.passwordResetExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-  
+
   return resetToken;
 };
 
-User.prototype.toJSON = function() {
+User.prototype.toJSON = function () {
   const values = { ...this.get() };
   delete values.password;
   delete values.refreshToken;

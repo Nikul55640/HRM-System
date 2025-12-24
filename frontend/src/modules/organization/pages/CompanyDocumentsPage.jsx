@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
 import { FileText, Download, Eye, Upload, Trash2 } from 'lucide-react';
-import { documentService } from '../../../services';
 import { toast } from 'react-toastify';
 
 const CompanyDocumentsPage = () => {

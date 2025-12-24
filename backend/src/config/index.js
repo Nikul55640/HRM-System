@@ -56,7 +56,11 @@ const config = {
 
   // Security
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:3000'
+    ],
     credentials: true,
   },
 

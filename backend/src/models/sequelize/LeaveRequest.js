@@ -15,13 +15,9 @@ const LeaveRequest = sequelize.define('LeaveRequest', {
       key: 'id',
     },
   },
-  leaveTypeId: {
-    type: DataTypes.INTEGER,
-    allowNull: true, // Make nullable initially to avoid foreign key issues
-  },
   leaveType: {
-    type: DataTypes.ENUM('annual', 'sick', 'maternity', 'paternity', 'emergency', 'unpaid'),
-    allowNull: true, // Made nullable since we now use leaveTypeId
+    type: DataTypes.ENUM('Casual', 'Sick', 'Paid'),
+    allowNull: false,
   },
   startDate: {
     type: DataTypes.DATEONLY,
@@ -56,10 +52,6 @@ const LeaveRequest = sequelize.define('LeaveRequest', {
   rejectionReason: {
     type: DataTypes.TEXT,
   },
-  documents: {
-    type: DataTypes.JSON,
-    defaultValue: [],
-  },
   isHalfDay: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
@@ -67,6 +59,22 @@ const LeaveRequest = sequelize.define('LeaveRequest', {
   halfDayPeriod: {
     type: DataTypes.ENUM('morning', 'afternoon'),
   },
+  // Leave cancellation fields
+  cancelledAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  cancellationReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  canCancel: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: true,
+    comment: 'Whether this leave can be cancelled by employee'
+  },
+
+  // Audit fields
   createdBy: {
     type: DataTypes.INTEGER,
     references: {
@@ -88,9 +96,44 @@ const LeaveRequest = sequelize.define('LeaveRequest', {
     { fields: ['employeeId'] },
     { fields: ['status'] },
     { fields: ['leaveType'] },
-    { fields: ['leaveTypeId'] },
     { fields: ['startDate', 'endDate'] },
   ],
 });
+
+// Instance methods
+LeaveRequest.prototype.canBeCancelled = function () {
+  return this.status === 'pending' || (this.status === 'approved' && this.canCancel);
+};
+
+LeaveRequest.prototype.cancel = function (reason, userId) {
+  if (!this.canBeCancelled()) {
+    throw new Error('This leave request cannot be cancelled');
+  }
+
+  this.status = 'cancelled';
+  this.cancelledAt = new Date();
+  this.cancellationReason = reason;
+  this.updatedBy = userId;
+
+  return this.save();
+};
+
+// Static methods
+LeaveRequest.getLeaveHistory = async function (employeeId, year = null) {
+  const whereClause = { employeeId };
+
+  if (year) {
+    const startDate = new Date(year, 0, 1);
+    const endDate = new Date(year, 11, 31);
+    whereClause.startDate = {
+      [sequelize.Sequelize.Op.between]: [startDate, endDate],
+    };
+  }
+
+  return await this.findAll({
+    where: whereClause,
+    order: [['startDate', 'DESC']],
+  });
+};
 
 export default LeaveRequest;

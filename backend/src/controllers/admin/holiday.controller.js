@@ -1,68 +1,16 @@
-import { Holiday, User } from '../../models/sequelize/index.js';
-import { Op } from 'sequelize';
+import holidayService from '../../services/admin/holiday.service.js';
 import logger from '../../utils/logger.js';
 
 // Get all holidays
 export const getHolidays = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, type, year, isActive } = req.query;
-    const offset = (page - 1) * limit;
+    const result = await holidayService.getHolidays(req.query, req.query);
 
-    const whereClause = {};
-    
-    if (search) {
-      whereClause[Op.or] = [
-        { name: { [Op.like]: `%${search}%` } },
-        { description: { [Op.like]: `%${search}%` } },
-        { location: { [Op.like]: `%${search}%` } }
-      ];
+    if (!result.success) {
+      return res.status(500).json(result);
     }
 
-    if (type) {
-      whereClause.type = type;
-    }
-
-    if (year) {
-      whereClause.date = {
-        [Op.between]: [`${year}-01-01`, `${year}-12-31`]
-      };
-    }
-
-    if (isActive !== undefined) {
-      whereClause.isActive = isActive === 'true';
-    }
-
-    const { count, rows } = await Holiday.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'name', 'email']
-        },
-        {
-          model: User,
-          as: 'updater',
-          attributes: ['id', 'name', 'email']
-        }
-      ],
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [['date', 'ASC']]
-    });
-
-    res.json({
-      success: true,
-      data: {
-        holidays: rows,
-        pagination: {
-          total: count,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(count / limit)
-        }
-      }
-    });
+    res.json(result);
   } catch (error) {
     logger.error('Error fetching holidays:', error);
     res.status(500).json({
@@ -77,33 +25,13 @@ export const getHolidays = async (req, res) => {
 export const getHolidayById = async (req, res) => {
   try {
     const { id } = req.params;
+    const result = await holidayService.getHolidayById(id);
 
-    const holiday = await Holiday.findByPk(id, {
-      include: [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'name', 'email']
-        },
-        {
-          model: User,
-          as: 'updater',
-          attributes: ['id', 'name', 'email']
-        }
-      ]
-    });
-
-    if (!holiday) {
-      return res.status(404).json({
-        success: false,
-        message: 'Holiday not found'
-      });
+    if (!result.success) {
+      return res.status(404).json(result);
     }
 
-    res.json({
-      success: true,
-      data: holiday
-    });
+    res.json(result);
   } catch (error) {
     logger.error('Error fetching holiday:', error);
     res.status(500).json({
@@ -117,73 +45,18 @@ export const getHolidayById = async (req, res) => {
 // Create new holiday
 export const createHoliday = async (req, res) => {
   try {
-    const {
-      name,
-      description,
-      date,
-      type,
-      isRecurring,
-      recurrenceRule,
-      applicableTo,
-      departments,
-      employees,
-      isOptional,
-      isPaid,
-      color,
-      location,
-      workingHours,
-      compensationRule
-    } = req.body;
+    const metadata = {
+      ipAddress: req.ip,
+      userAgent: req.get('User-Agent')
+    };
 
-    // Check if holiday with same name and date exists
-    const existingHoliday = await Holiday.findOne({
-      where: {
-        name: name,
-        date: date
-      }
-    });
+    const result = await holidayService.createHoliday(req.body, req.user.id, metadata);
 
-    if (existingHoliday) {
-      return res.status(400).json({
-        success: false,
-        message: 'Holiday with this name and date already exists'
-      });
+    if (!result.success) {
+      return res.status(400).json(result);
     }
 
-    const holiday = await Holiday.create({
-      name,
-      description,
-      date,
-      type,
-      isRecurring,
-      recurrenceRule,
-      applicableTo,
-      departments,
-      employees,
-      isOptional,
-      isPaid,
-      color,
-      location,
-      workingHours,
-      compensationRule,
-      createdBy: req.user.id
-    });
-
-    const createdHoliday = await Holiday.findByPk(holiday.id, {
-      include: [
-        {
-          model: User,
-          as: 'creator',
-          attributes: ['id', 'name', 'email']
-        }
-      ]
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Holiday created successfully',
-      data: createdHoliday
-    });
+    res.status(201).json(result);
   } catch (error) {
     logger.error('Error creating holiday:', error);
     res.status(500).json({

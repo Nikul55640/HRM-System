@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../../stores';
-import { api } from '../../../core/api/api';
+import api from '../../../core/api/api';
 import { toast } from 'react-toastify';
 import LoadingSpinner from '../../../shared/components/LoadingSpinner';
 
@@ -25,7 +25,7 @@ const BankDetailsPage = () => {
     try {
       setLoading(true);
       if (!user?.employeeId) return;
-      
+
       const response = await api.get(`/employees/${user.employeeId}/bank-details`);
       if (response.data?.data) {
         setBankDetails(response.data.data);
@@ -49,7 +49,7 @@ const BankDetailsPage = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      
+
       // Validate required fields
       if (!bankDetails.accountHolderName || !bankDetails.accountNumber || !bankDetails.ifscCode) {
         toast.error('Please fill in all required fields');
@@ -86,11 +86,10 @@ const BankDetailsPage = () => {
             <h1 className="text-2xl font-bold text-gray-900">Bank Details</h1>
             <button
               onClick={() => setEditing(!editing)}
-              className={`px-4 py-2 rounded-md text-white ${
-                editing 
-                  ? 'bg-gray-600 hover:bg-gray-700' 
+              className={`px-4 py-2 rounded-md text-white ${editing
+                  ? 'bg-gray-600 hover:bg-gray-700'
                   : 'bg-blue-600 hover:bg-blue-700'
-              }`}
+                }`}
             >
               {editing ? 'Cancel' : 'Edit'}
             </button>
@@ -109,11 +108,10 @@ const BankDetailsPage = () => {
                 value={bankDetails.accountHolderName}
                 onChange={handleInputChange}
                 disabled={!editing}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  editing
+                className={`w-full px-3 py-2 border rounded-md ${editing
                     ? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     : 'border-gray-200 bg-gray-50'
-                }`}
+                  }`}
                 placeholder="Enter account holder name"
               />
             </div>
@@ -129,11 +127,10 @@ const BankDetailsPage = () => {
                 value={bankDetails.accountNumber}
                 onChange={handleInputChange}
                 disabled={!editing}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  editing
+                className={`w-full px-3 py-2 border rounded-md ${editing
                     ? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     : 'border-gray-200 bg-gray-50'
-                }`}
+                  }`}
                 placeholder="Enter account number"
               />
             </div>
@@ -149,11 +146,10 @@ const BankDetailsPage = () => {
                 value={bankDetails.ifscCode}
                 onChange={handleInputChange}
                 disabled={!editing}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  editing
+                className={`w-full px-3 py-2 border rounded-md ${editing
                     ? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     : 'border-gray-200 bg-gray-50'
-                }`}
+                  }`}
                 placeholder="Enter IFSC code"
               />
             </div>
@@ -169,11 +165,10 @@ const BankDetailsPage = () => {
                 value={bankDetails.bankName}
                 onChange={handleInputChange}
                 disabled={!editing}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  editing
+                className={`w-full px-3 py-2 border rounded-md ${editing
                     ? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     : 'border-gray-200 bg-gray-50'
-                }`}
+                  }`}
                 placeholder="Enter bank name"
               />
             </div>
@@ -189,11 +184,10 @@ const BankDetailsPage = () => {
                 value={bankDetails.branchName}
                 onChange={handleInputChange}
                 disabled={!editing}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  editing
+                className={`w-full px-3 py-2 border rounded-md ${editing
                     ? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     : 'border-gray-200 bg-gray-50'
-                }`}
+                  }`}
                 placeholder="Enter branch name"
               />
             </div>
@@ -208,11 +202,10 @@ const BankDetailsPage = () => {
                 value={bankDetails.accountType}
                 onChange={handleInputChange}
                 disabled={!editing}
-                className={`w-full px-3 py-2 border rounded-md ${
-                  editing
+                className={`w-full px-3 py-2 border rounded-md ${editing
                     ? 'border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500'
                     : 'border-gray-200 bg-gray-50'
-                }`}
+                  }`}
               >
                 <option value="savings">Savings</option>
                 <option value="current">Current</option>

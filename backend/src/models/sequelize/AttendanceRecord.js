@@ -11,55 +11,55 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Employees',
+      model: 'employees',
       key: 'id',
     },
   },
   shiftId: {
     type: DataTypes.INTEGER,
     allowNull: true,
-    comment: 'Reference to the shift this attendance record is based on'
+    references: {
+      model: 'shifts',
+      key: 'id',
+    },
   },
   date: {
     type: DataTypes.DATEONLY,
     allowNull: false,
   },
-  checkIn: {
+
+  // Clock In/Out Times
+  clockIn: {
     type: DataTypes.DATE,
     allowNull: true,
   },
-  checkOut: {
+  clockOut: {
     type: DataTypes.DATE,
     allowNull: true,
   },
-  status: {
-    type: DataTypes.ENUM('present', 'absent', 'leave', 'half_day', 'holiday', 'pending_correction', 'corrected'),
-    defaultValue: 'present',
+
+  // Break Management
+  breakSessions: {
+    type: DataTypes.JSON,
+    defaultValue: [],
+    comment: 'Array of break sessions with breakIn and breakOut times'
   },
-  statusReason: {
-    type: DataTypes.STRING,
-    allowNull: true,
+  totalBreakMinutes: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+
+  // Working Hours Calculation
+  totalWorkedMinutes: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
   },
   workHours: {
     type: DataTypes.DECIMAL(4, 2),
     defaultValue: 0,
   },
-  workedMinutes: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-  },
-  overtimeHours: {
-    type: DataTypes.DECIMAL(4, 2),
-    defaultValue: 0,
-  },
-  overtimeMinutes: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-  },
-  breakTime: {
-    type: DataTypes.INTEGER,
-    defaultValue: 0,
-  },
+
+  // Late Arrival & Early Exit Tracking
   lateMinutes: {
     type: DataTypes.INTEGER,
     defaultValue: 0,
@@ -76,72 +76,57 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+
+  // Status
+  status: {
+    type: DataTypes.ENUM('present', 'absent', 'leave', 'half_day', 'holiday'),
+    defaultValue: 'present',
+  },
+  statusReason: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+
+  // Overtime
+  overtimeMinutes: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  overtimeHours: {
+    type: DataTypes.DECIMAL(4, 2),
+    defaultValue: 0,
+  },
+
+  // Location & Device Info
   location: {
     type: DataTypes.JSON,
     allowNull: true,
+    comment: 'GPS coordinates and address for clock in/out'
   },
   deviceInfo: {
     type: DataTypes.JSON,
     allowNull: true,
+    comment: 'Device information for security'
   },
-  remarks: {
-    type: DataTypes.TEXT,
-    allowNull: true,
+
+  // Correction & Approval
+  correctionRequested: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
   },
-  remarksHistory: {
-    type: DataTypes.JSON,
-    defaultValue: [],
-  },
-  sessions: {
-    type: DataTypes.JSON,
-    defaultValue: [],
-  },
-  shiftStart: {
-    type: DataTypes.STRING,
-    defaultValue: '09:00',
-  },
-  shiftEnd: {
-    type: DataTypes.STRING,
-    defaultValue: '17:00',
-  },
-  approvalStatus: {
-    type: DataTypes.ENUM('auto', 'pending', 'approved', 'rejected'),
-    defaultValue: 'auto',
-  },
-  source: {
-    type: DataTypes.ENUM('self', 'admin', 'system', 'manual'),
-    defaultValue: 'self',
-  },
-  createdBy: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'Users',
-      key: 'id',
-    },
-  },
-  updatedBy: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'Users',
-      key: 'id',
-    },
-  },
-  // Correction fields
   correctionReason: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  correctionType: {
-    type: DataTypes.ENUM('manual', 'system_error', 'employee_request', 'manager_approval', 'bulk'),
+  correctionStatus: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
     allowNull: true,
   },
   correctedBy: {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id',
     },
   },
@@ -149,21 +134,29 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     type: DataTypes.DATE,
     allowNull: true,
   },
-  flaggedReason: {
+
+  // Remarks
+  remarks: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  flaggedBy: {
+
+  // Audit fields
+  createdBy: {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id',
     },
   },
-  flaggedAt: {
-    type: DataTypes.DATE,
+  updatedBy: {
+    type: DataTypes.INTEGER,
     allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
   },
 }, {
   tableName: 'attendance_records',
@@ -179,69 +172,60 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     {
       fields: ['status'],
     },
+    {
+      fields: ['correctionStatus'],
+    },
   ],
 });
 
 // Instance methods
-AttendanceRecord.prototype.toSummary = function() {
-  return {
-    id: this.id,
-    employeeId: this.employeeId,
-    date: this.date,
-    checkIn: this.checkIn,
-    checkOut: this.checkOut,
-    status: this.status,
-    statusReason: this.statusReason,
-    workHours: this.workHours,
-    workedMinutes: this.workedMinutes,
-    overtimeHours: this.overtimeHours,
-    overtimeMinutes: this.overtimeMinutes,
-    breakTime: this.breakTime,
-    lateMinutes: this.lateMinutes,
-    earlyExitMinutes: this.earlyExitMinutes,
-    isLate: this.isLate,
-    isEarlyDeparture: this.isEarlyDeparture,
-    sessions: this.sessions || [],
-    approvalStatus: this.approvalStatus,
-    source: this.source,
-  };
+AttendanceRecord.prototype.canClockIn = function () {
+  return !this.clockIn;
 };
 
-// Session management methods
-AttendanceRecord.prototype.canClockIn = function() {
-  const sessions = this.sessions || [];
-  // Can clock in if no active session exists
-  return !sessions.some(session => session.status === 'active' || session.status === 'on_break');
+AttendanceRecord.prototype.canClockOut = function () {
+  return this.clockIn && !this.clockOut;
 };
 
-AttendanceRecord.prototype.canClockOut = function() {
-  const sessions = this.sessions || [];
-  // Can clock out if there's an active session (not on break)
-  return sessions.some(session => session.status === 'active');
+AttendanceRecord.prototype.canStartBreak = function () {
+  if (!this.clockIn || this.clockOut) return false;
+  const breakSessions = this.breakSessions || [];
+  // Can start break if no active break session
+  return !breakSessions.some(session => session.breakIn && !session.breakOut);
 };
 
-AttendanceRecord.prototype.canStartBreak = function() {
-  const sessions = this.sessions || [];
-  // Can start break if there's an active session (not already on break)
-  return sessions.some(session => session.status === 'active');
+AttendanceRecord.prototype.canEndBreak = function () {
+  const breakSessions = this.breakSessions || [];
+  // Can end break if there's an active break session
+  return breakSessions.some(session => session.breakIn && !session.breakOut);
 };
 
-AttendanceRecord.prototype.canEndBreak = function() {
-  const sessions = this.sessions || [];
-  // Can end break if there's a session on break
-  return sessions.some(session => session.status === 'on_break');
+AttendanceRecord.prototype.getCurrentBreakSession = function () {
+  const breakSessions = this.breakSessions || [];
+  return breakSessions.find(session => session.breakIn && !session.breakOut);
 };
 
-AttendanceRecord.prototype.getActiveSession = function() {
-  const sessions = this.sessions || [];
-  return sessions.find(session => session.status === 'active' || session.status === 'on_break');
+AttendanceRecord.prototype.calculateWorkingHours = function () {
+  if (!this.clockIn || !this.clockOut) return 0;
+
+  const clockInTime = new Date(this.clockIn);
+  const clockOutTime = new Date(this.clockOut);
+  const totalMinutes = Math.floor((clockOutTime - clockInTime) / (1000 * 60));
+
+  // Subtract break time
+  const workingMinutes = Math.max(0, totalMinutes - this.totalBreakMinutes);
+
+  this.totalWorkedMinutes = workingMinutes;
+  this.workHours = Math.round((workingMinutes / 60) * 100) / 100;
+
+  return this.workHours;
 };
 
 // Static methods
-AttendanceRecord.getMonthlySummary = async function(employeeId, year, month) {
+AttendanceRecord.getMonthlySummary = async function (employeeId, year, month) {
   const startDate = new Date(year, month - 1, 1);
   const endDate = new Date(year, month, 0);
-  
+
   const records = await this.findAll({
     where: {
       employeeId,
@@ -252,7 +236,7 @@ AttendanceRecord.getMonthlySummary = async function(employeeId, year, month) {
     raw: true,
   });
 
-  const summary = {
+  return {
     totalDays: records.length,
     presentDays: records.filter(r => r.status === 'present').length,
     absentDays: records.filter(r => r.status === 'absent').length,
@@ -261,49 +245,60 @@ AttendanceRecord.getMonthlySummary = async function(employeeId, year, month) {
     holidayDays: records.filter(r => r.status === 'holiday').length,
     totalWorkHours: records.reduce((sum, r) => sum + (parseFloat(r.workHours) || 0), 0),
     totalOvertimeHours: records.reduce((sum, r) => sum + (parseFloat(r.overtimeHours) || 0), 0),
-    totalWorkedMinutes: records.reduce((sum, r) => sum + (r.workedMinutes || 0), 0),
-    totalOvertimeMinutes: records.reduce((sum, r) => sum + (r.overtimeMinutes || 0), 0),
     lateDays: records.filter(r => r.isLate).length,
     earlyDepartures: records.filter(r => r.isEarlyDeparture).length,
     totalLateMinutes: records.reduce((sum, r) => sum + (r.lateMinutes || 0), 0),
     totalEarlyExitMinutes: records.reduce((sum, r) => sum + (r.earlyExitMinutes || 0), 0),
   };
-
-  return [summary];
 };
 
-// Hooks
+// Hooks for automatic calculations
 AttendanceRecord.beforeSave(async (record) => {
-  if (record.checkIn && record.checkOut) {
-    const checkInTime = new Date(record.checkIn);
-    const checkOutTime = new Date(record.checkOut);
-    
-    // Calculate worked minutes
-    const diffMs = checkOutTime - checkInTime;
-    const workedMinutes = Math.floor(diffMs / (1000 * 60));
-    record.workedMinutes = Math.max(0, workedMinutes - (record.breakTime || 0));
-    
-    // Calculate work hours
-    record.workHours = Math.round((record.workedMinutes / 60) * 100) / 100;
-    
-    // Calculate late minutes
-    const shiftStartTime = new Date(record.checkIn);
-    const [shiftHour, shiftMinute] = (record.shiftStart || '09:00').split(':');
-    shiftStartTime.setHours(parseInt(shiftHour), parseInt(shiftMinute), 0, 0);
-    
-    if (checkInTime > shiftStartTime) {
-      record.lateMinutes = Math.floor((checkInTime - shiftStartTime) / (1000 * 60));
-      record.isLate = record.lateMinutes > 0;
-    }
-    
-    // Calculate early exit minutes
-    const shiftEndTime = new Date(record.checkOut);
-    const [endHour, endMinute] = (record.shiftEnd || '17:00').split(':');
-    shiftEndTime.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
-    
-    if (checkOutTime < shiftEndTime) {
-      record.earlyExitMinutes = Math.floor((shiftEndTime - checkOutTime) / (1000 * 60));
-      record.isEarlyDeparture = record.earlyExitMinutes > 0;
+  if (record.clockIn && record.clockOut) {
+    // Calculate working hours
+    record.calculateWorkingHours();
+
+    // Get shift information for late/early calculations
+    if (record.shiftId) {
+      const { Shift } = await import('./index.js');
+      const shift = await Shift.findByPk(record.shiftId);
+
+      if (shift) {
+        // Calculate late minutes
+        const shiftStartTime = new Date(record.clockIn);
+        const [shiftHour, shiftMinute] = shift.shiftStartTime.split(':');
+        shiftStartTime.setHours(parseInt(shiftHour), parseInt(shiftMinute), 0, 0);
+
+        const clockInTime = new Date(record.clockIn);
+        const gracePeriodMs = (shift.gracePeriodMinutes || 0) * 60 * 1000;
+
+        if (clockInTime > new Date(shiftStartTime.getTime() + gracePeriodMs)) {
+          record.lateMinutes = Math.floor((clockInTime - shiftStartTime) / (1000 * 60));
+          record.isLate = true;
+        }
+
+        // Calculate early exit minutes
+        const shiftEndTime = new Date(record.clockOut);
+        const [endHour, endMinute] = shift.shiftEndTime.split(':');
+        shiftEndTime.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
+
+        const clockOutTime = new Date(record.clockOut);
+        const earlyThresholdMs = (shift.earlyDepartureThresholdMinutes || 0) * 60 * 1000;
+
+        if (clockOutTime < new Date(shiftEndTime.getTime() - earlyThresholdMs)) {
+          record.earlyExitMinutes = Math.floor((shiftEndTime - clockOutTime) / (1000 * 60));
+          record.isEarlyDeparture = true;
+        }
+
+        // Calculate overtime
+        if (shift.overtimeEnabled && clockOutTime > shiftEndTime) {
+          const overtimeThresholdMs = (shift.overtimeThresholdMinutes || 0) * 60 * 1000;
+          if (clockOutTime > new Date(shiftEndTime.getTime() + overtimeThresholdMs)) {
+            record.overtimeMinutes = Math.floor((clockOutTime - shiftEndTime) / (1000 * 60));
+            record.overtimeHours = Math.round((record.overtimeMinutes / 60) * 100) / 100;
+          }
+        }
+      }
     }
   }
 });
