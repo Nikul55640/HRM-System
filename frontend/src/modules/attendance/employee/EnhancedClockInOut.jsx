@@ -4,22 +4,24 @@ import { Button } from '../../../shared/ui/button';
 import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LocationSelectionModal from './LocationSelectionModal';
-import { useAttendanceContext } from '../../../contexts/AttendanceContext';
+import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore';
+
+
 
 const EnhancedClockInOut = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showLocationModal, setShowLocationModal] = useState(false);
   
   // Use shared attendance context
-  const {
-    todayRecord,
-    isLoading,
-    clockIn,
-    clockOut,
-    startBreak,
-    endBreak,
-    getAttendanceStatus
-  } = useAttendanceContext();
+ const {
+  todayRecord,
+  isLoading,
+  clockIn,
+  clockOut,
+  startBreak,
+  endBreak,
+  getAttendanceStatus,
+} = useAttendanceSessionStore();
 
   // Update clock every second
   useEffect(() => {

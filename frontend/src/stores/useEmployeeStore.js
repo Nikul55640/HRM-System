@@ -49,42 +49,18 @@ const useEmployeeStore = create(
       // ⭐ FIXED — FETCH EMPLOYEES (NO MORE 400 ERRORS)
       // ---------------------------------------------------------
       fetchEmployees: async (params = {}) => {
-        const { filters, pagination } = get();
+        const { pagination } = get();
         set({ loading: true, error: null });
 
         try {
-          // ⭐ CLEAN FILTERS BEFORE SENDING TO BACKEND
-          const cleanFilters = {};
-
-          if (filters.search?.trim() !== "") {
-            cleanFilters.search = filters.search.trim();
-          }
-
-          if (filters.department !== "all") {
-            cleanFilters.department = filters.department;
-          }
-
-          if (
-            ["Active", "Inactive", "On Leave", "Terminated"].includes(
-              filters.status
-            )
-          ) {
-            cleanFilters.status = filters.status;
-          }
-
-          if (filters.role !== "all") {
-            cleanFilters.role = filters.role;
-          }
-
-          // Combined request params
+          // Combined request params - use params passed from component
           const requestParams = {
-            page: pagination.page,
-            limit: pagination.limit,
-            ...cleanFilters,
+            page: params.page || pagination.page,
+            limit: params.limit || pagination.limit,
             ...params,
           };
 
-
+          console.log("👉 [STORE] Fetching with params:", requestParams);
 
           const response = await employeeService.getEmployees(requestParams);
 
@@ -92,24 +68,30 @@ const useEmployeeStore = create(
           // ⭐ SAFE RESPONSE MAPPING (MATCH ANY BACKEND FORMAT)
           // ---------------------------------------------------------
 
-          const data = response.data || {};
-
+          // Response structure: { data: [...], pagination: {...}, message: "...", success: true }
           const employees =
-            data.employees ||
-            data.docs || // MongoDB paginate
-            data.results ||
+            response.data || // Direct array from API
+            response.employees ||
+            response.docs || // MongoDB paginate
+            response.results ||
             [];
 
-          const paginationData = data.pagination || {
-            page: data.page || pagination.page,
-            totalPages: data.totalPages || pagination.totalPages,
-            total: data.total || employees.length,
-            limit: pagination.limit,
+          console.log("🔍 [STORE] Response structure:", response);
+          console.log("🔍 [STORE] Extracted employees:", employees);
+          console.log("🔍 [STORE] Employees count:", employees.length);
+
+          const paginationData = response.pagination || {
+            page: response.page || params.page || pagination.page,
+            totalPages: response.totalPages || pagination.totalPages,
+            total: response.total || employees.length,
+            limit: params.limit || pagination.limit,
           };
+
+          console.log("🔍 [STORE] Pagination data:", paginationData);
 
           set({
             employees,
-            pagination: { ...pagination, ...paginationData },
+            pagination: paginationData,
             loading: false,
           });
 

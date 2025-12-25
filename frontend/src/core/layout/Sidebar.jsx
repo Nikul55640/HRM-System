@@ -7,7 +7,7 @@ import { usePermissions } from "../hooks";
 import { MODULES } from "../utils/rolePermissions";
 
 const Sidebar = () => {
-  const [openSections, setOpenSections] = useState(["General"]);
+  const [openSections, setOpenSections] = useState(["General", "My Self Service"]);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   const location = useLocation();
@@ -24,8 +24,6 @@ const Sidebar = () => {
         : [...prev, section]
     );
   };
-
-
 
   // Navigation structure based on 8 CORE FEATURES with role-based permissions
   const allNavItems = [
@@ -53,6 +51,7 @@ const Sidebar = () => {
     {
       section: "My Self Service",
       icon: "User",
+      collapsible: true,
       showIf: () => user?.role === 'Employee', // Only show for employees
       items: [
         // FEATURE 1: Profile & Bank Details Management
@@ -146,6 +145,12 @@ const Sidebar = () => {
           icon: "Clock4",
           showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
         },
+        {
+          name: "Attendance Corrections",
+          path: "/admin/attendance/corrections",
+          icon: "ClipboardEdit",
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+        },
 
         // FEATURE 3: Leave Management
         {
@@ -184,6 +189,12 @@ const Sidebar = () => {
           icon: "Calendar",
           showIf: () => can.do(MODULES.CALENDAR.MANAGE),
         },
+        {
+          name: "Holidays",
+          path: "/admin/holidays",
+          icon: "PartyPopper",
+          showIf: () => can.do(MODULES.LEAVE.MANAGE_POLICIES),
+        },
       ],
     },
 
@@ -215,14 +226,6 @@ const Sidebar = () => {
           path: "/admin/system-policies",
           icon: "Settings",
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
-        },
-
-        // FEATURE 7: Holiday Management (Super Admin)
-        {
-          name: "Company Holidays",
-          path: "/admin/holidays",
-          icon: "PartyPopper",
-          showIf: () => can.do(MODULES.LEAVE.MANAGE_POLICIES),
         },
 
         // FEATURE 8: Audit Log Management
@@ -399,3 +402,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+

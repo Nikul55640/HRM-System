@@ -8,9 +8,10 @@ import {
 import  ProtectedRoute  from "./core/guards/ProtectedRoute";
 import { applyRoutes } from "./routes/applyRoutes";
 import { setupZustandStores } from "./stores/setupStores";
-import { AttendanceProvider } from "./contexts/AttendanceContext";
+
 
 import Login from "./modules/auth/pages/Login";
+import AdminLogin from "./modules/auth/pages/AdminLogin";
 import ForgotPassword from "./modules/auth/pages/ForgotPassword";
 import MainLayout from "./core/layout/MainLayout";
 import NotFound from "./pages/NotFound";
@@ -36,7 +37,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <AttendanceProvider>
+
         <Suspense
           fallback={
             <LoadingSpinner
@@ -61,6 +62,7 @@ function App() {
 
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/admin/login" element={<AdminLogin />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />  
 
@@ -88,7 +90,6 @@ function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
-      </AttendanceProvider>
     </ErrorBoundary>
   );
 }

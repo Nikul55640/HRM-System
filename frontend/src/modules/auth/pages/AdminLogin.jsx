@@ -14,7 +14,7 @@ import { Button } from "../../../shared/ui/button";
 import { Card, CardContent } from "../../../shared/ui/card";
 import useAuth from "../../../core/hooks/useAuth";
 
-const Login = () => {
+const AdminLogin = () => {
   const navigate = useNavigate();
   const { login, loading } = useAuth();
 
@@ -45,7 +45,7 @@ const Login = () => {
 
     if (!formData.password) {
       newErrors.password = "Password is required";
-    } else if (formData.password.length < 3) {
+    } else if (formData.password.length < 6) {
       newErrors.password = "Minimum 6 characters required";
     }
 
@@ -59,7 +59,7 @@ const Login = () => {
 
     try {
       await login(formData.email, formData.password);
-      toast.success("Login successful!");
+      toast.success("Admin login successful!");
       navigate("/dashboard");
     } catch (error) {
       toast.error(error.message || "Invalid email or password");
@@ -77,10 +77,10 @@ const Login = () => {
                 <Building2 className="w-6 h-6 text-white" />
               </div>
               <h1 className="text-2xl font-semibold text-gray-900">
-                Welcome Back
+                Admin Login
               </h1>
               <p className="text-sm text-gray-600">
-                Login to continue
+                Login to manage the system
               </p>
             </div>
 
@@ -98,7 +98,7 @@ const Login = () => {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="you@example.com"
+                    placeholder="admin@example.com"
                     disabled={loading}
                     className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none ${
                       errors.email ? "border-red-400" : "border-gray-300"
@@ -175,17 +175,17 @@ const Login = () => {
                 )}
               </Button>
 
-              {/* Admin login */}
-              <div className="text-center ">
+              {/* Back to employee login */}
+              <div className="text-center pt-0">
                 <p className="text-sm text-gray-600">
-                  Are you an admin?
+                  Not an admin?
                 </p>
                 <button
                   type="button"
                   className="text-sm font-medium text-indigo-600 hover:underline"
-                  onClick={() => navigate("/admin/login")}
+                  onClick={() => navigate("/login")}
                 >
-                  Login as Admin
+                  Login as Employee
                 </button>
               </div>
             </form>
@@ -196,4 +196,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default AdminLogin;

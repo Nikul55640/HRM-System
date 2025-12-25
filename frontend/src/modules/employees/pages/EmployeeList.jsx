@@ -46,6 +46,9 @@ const EmployeeList = () => {
     setPagination,
   } = useEmployeeStore();
 
+  console.log("📊 [EmployeeList] Current employees:", employees);
+  console.log("📊 [EmployeeList] Pagination:", pagination);
+
   const { user, isHRManager } = useAuth();
   const { can } = usePermissions();
 
@@ -54,6 +57,9 @@ const EmployeeList = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedJobTitle, setSelectedJobTitle] = useState("all");
 
 
 
@@ -70,12 +76,24 @@ const EmployeeList = () => {
       params.department = selectedDepartment;
     }
 
+    if (searchTerm.trim()) {
+      params.search = searchTerm.trim();
+    }
+
+    if (selectedStatus !== "all") {
+      params.status = selectedStatus;
+    }
+
+    if (selectedJobTitle !== "all") {
+      params.jobTitle = selectedJobTitle;
+    }
+
     try {
       await fetchEmployees(params);
     } catch (error) {
       // handled in store
     }
-  }, [pagination.page, pagination.limit, selectedDepartment, fetchEmployees]);
+  }, [pagination.page, pagination.limit, selectedDepartment, searchTerm, selectedStatus, selectedJobTitle, fetchEmployees]);
 
 
 
@@ -83,6 +101,7 @@ const EmployeeList = () => {
     🚀 Fetch employees whenever filters/pagination change
   ------------------------------------------------------ */
   useEffect(() => {
+    console.log("🔄 [EmployeeList] useEffect triggered, calling loadEmployees");
     loadEmployees();
   }, [loadEmployees]);
 
@@ -171,36 +190,101 @@ const EmployeeList = () => {
         />
       )}
 
-      {/* ---------------- Header ---------------- */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <h1 className="text-3xl font-bold text-gray-800">Employees</h1>
+      {/* Filters Section */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Search */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Search
+            </label>
+            <input
+              type="text"
+              placeholder="Search by name, email..."
+              value={searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPagination({ page: 1 });
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
 
           {/* Department Filter */}
           {isScoped && assignedDepartments.length > 1 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Department
+              </label>
+              <Select
+                value={selectedDepartment}
+                onValueChange={(value) => {
+                  setSelectedDepartment(value);
+                  setPagination({ page: 1 });
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="All Departments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {assignedDepartments.map((dept) => (
+                    <SelectItem key={dept._id || dept} value={dept._id || dept}>
+                      {dept.name || dept}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Employment Type / Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Employment Type
+            </label>
             <Select
-              value={selectedDepartment}
+              value={selectedStatus}
               onValueChange={(value) => {
-                setSelectedDepartment(value);
+                setSelectedStatus(value);
                 setPagination({ page: 1 });
               }}
             >
-              <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="All My Departments" />
+              <SelectTrigger>
+                <SelectValue placeholder="All Types" />
               </SelectTrigger>
-
               <SelectContent>
-                <SelectItem value="all">All My Departments</SelectItem>
-
-                {assignedDepartments.map((dept) => (
-                  <SelectItem key={dept._id || dept} value={dept._id || dept}>
-                    {dept.name || dept}
-                  </SelectItem>
-                ))}
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+                <SelectItem value="On Leave">On Leave</SelectItem>
+                <SelectItem value="Terminated">Terminated</SelectItem>
               </SelectContent>
             </Select>
-          )}
+          </div>
+
+          {/* Job Title */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Job Title
+            </label>
+            <input
+              type="text"
+              placeholder="Filter by job title..."
+              value={selectedJobTitle}
+              onChange={(e) => {
+                setSelectedJobTitle(e.target.value);
+                setPagination({ page: 1 });
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
         </div>
+      </div>
+
+      {/* ---------------- Header ---------------- */}
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-gray-800">Employees</h1>
 
         {/* Buttons */}
         <div className="flex gap-3">

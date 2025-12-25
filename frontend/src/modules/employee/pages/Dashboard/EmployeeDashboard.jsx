@@ -36,7 +36,9 @@ import {
   AlertCircle,
 } from "lucide-react";
 import leaveService from "../../../../core/services/leaveService";
-import { useAttendanceContext } from "../../../../contexts/AttendanceContext";
+import useAttendanceSessionStore from "../../../../stores/useAttendanceSessionStore";
+
+
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
@@ -49,13 +51,16 @@ const EmployeeDashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // Use shared attendance context
-  const {
-    todayRecord,
-    isLoading: attendanceLoading,
-    clockIn,
-    clockOut,
-    getAttendanceStatus
-  } = useAttendanceContext();
+ const {
+   todayRecord,
+   isLoading,
+   clockIn,
+   clockOut,
+   startBreak,
+   endBreak,
+   getAttendanceStatus,
+   fetchTodayRecord,
+ } = useAttendanceSessionStore();
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -65,6 +70,7 @@ const EmployeeDashboard = () => {
         fetchLeaveBalance(),
         fetchAttendanceSummary(),
         fetchNotifications(),
+        fetchTodayRecord(), // Fetch attendance data
       ]);
       setLoading(false);
     };
@@ -76,8 +82,16 @@ const EmployeeDashboard = () => {
       setCurrentTime(new Date());
     }, 60000);
 
-    return () => clearInterval(timer);
-  }, []);
+    // Refresh attendance data every 30 seconds to keep it in sync
+    const attendanceRefreshTimer = setInterval(() => {
+      fetchTodayRecord(true); // Silent refresh
+    }, 30000);
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(attendanceRefreshTimer);
+    };
+  }, [fetchTodayRecord]);
 
   // Update today activities when todayRecord changes
   useEffect(() => {
@@ -402,14 +416,14 @@ const EmployeeDashboard = () => {
               <div className="text-center space-y-2">
                 <button
                   onClick={isClockedIn ? handleClockOut : handleClockIn}
-                  disabled={attendanceLoading}
+                  disabled={isLoading}
                   className={`px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 ${
                     isClockedIn
                       ? "bg-red-500 hover:bg-red-600"
                       : "bg-green-500 hover:bg-green-600"
-                  } ${attendanceLoading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                  } ${isLoading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
                 >
-                  {attendanceLoading ? (
+                  {isLoading ? (
                     <div className="flex items-center gap-2">
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                       Processing...

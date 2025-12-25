@@ -186,9 +186,7 @@ const employeeSelfService = {
     },
     
     getSummary: async (month, year) => {
-      const response = await api.get('/employee/attendance/summary', {
-        params: { month, year },
-      });
+      const response = await api.get(`/employee/attendance/summary/${year}/${month}`);
       return response.data;
     },
     

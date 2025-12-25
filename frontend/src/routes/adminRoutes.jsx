@@ -10,11 +10,11 @@ const AttendanceAdminList = lazy(() => import("../modules/attendance/admin/Atten
 const AttendanceCorrections = lazy(() => import("../modules/attendance/admin/AttendanceCorrections"));
 
 // Feature 3: Leave Management (Admin)
-const LeaveApprovalsPage = lazy(() => import("../modules/admin/pages/LeaveApprovalsPage"));
+const LeaveManagement = lazy(() => import("../modules/leave/hr/LeaveManagement"));
 const LeaveBalancesPage = lazy(() => import("../modules/admin/pages/LeaveBalancesPage"));
 
 // Feature 4: Employee Management (Admin)
-const EmployeeManagementPage = lazy(() => import("../modules/admin/pages/EmployeeManagementPage"));
+const EmployeeList = lazy(() => import("../modules/employees/pages/EmployeeList"));
 const DepartmentsPage = lazy(() => import("../modules/admin/pages/DepartmentsPage"));
 
 // Feature 5: Lead Management (Admin)
@@ -33,7 +33,7 @@ const SystemConfig = lazy(() => import("../modules/organization/admin/SystemConf
 
 export const adminRoutes = [
   // Feature 4: Employee Management
-  { path: "admin/employees", element: <EmployeeManagementPage />, roles: ["SuperAdmin", "HR"] },
+  { path: "admin/employees", element: <EmployeeList />, roles: ["SuperAdmin", "HR"] },
   { path: "admin/departments", element: <DepartmentsPage />, roles: ["SuperAdmin", "HR"] },
   
   // Feature 2: Attendance Management
@@ -41,7 +41,7 @@ export const adminRoutes = [
   { path: "admin/attendance/corrections", element: <AttendanceCorrections />, roles: ["SuperAdmin", "HR"] },
   
   // Feature 3: Leave Management
-  { path: "admin/leave", element: <LeaveApprovalsPage />, roles: ["SuperAdmin", "HR"] },
+  { path: "admin/leave", element: <LeaveManagement />, roles: ["SuperAdmin", "HR"] },
   { path: "admin/leave-balances", element: <LeaveBalancesPage />, roles: ["SuperAdmin", "HR"] },
   
   // Feature 5: Lead Management

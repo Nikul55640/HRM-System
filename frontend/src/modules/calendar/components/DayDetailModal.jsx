@@ -14,7 +14,7 @@ import {
   Edit
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
-import useCalendarStore from '../stores/useCalendarStore';
+import useCalendarStore from '../../../stores/useCalendarStore';
 import LeaveApplicationModal from './LeaveApplicationModal';
 
 const DayDetailModal = ({ 
