@@ -1,16 +1,16 @@
 /**
  * Employee Service Layer
- * Handles all business logic for employee management according to new model structure
+ * Handles all business logic for employee management according to HRM system requirements
  */
 
-import { Employee, AuditLog, User } from "../../models/sequelize/index.js";
+import { Employee, User, Department, AuditLog } from "../../models/sequelize/index.js";
 import { Op } from "sequelize";
 import logger from "../../utils/logger.js";
 import { ROLES } from "../../config/rolePermissions.js";
 
 class EmployeeService {
   /**
-   * Create a new employee
+   * Create a new employee (Super Admin & HR only)
    * @param {Object} employeeData - Employee data
    * @param {Object} user - User creating the employee
    * @param {Object} metadata - Request metadata (IP, user agent)
@@ -18,6 +18,11 @@ class EmployeeService {
    */
   async createEmployee(employeeData, user, metadata = {}) {
     try {
+      // Role-based access control
+      if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+        throw { message: "Unauthorized: Only Super Admin and HR can create employees", statusCode: 403 };
+      }
+
       // Validation
       if (!employeeData.firstName || !employeeData.lastName) {
         throw { message: "First name and last name are required", statusCode: 400 };
@@ -93,6 +98,7 @@ class EmployeeService {
         message: 'Employee created successfully'
       };
     } catch (error) {
+      logger.error('Error creating employee:', error);
       return {
         success: false,
         message: error.message || 'Failed to create employee',
@@ -101,10 +107,8 @@ class EmployeeService {
     }
   }
 
-
-
   /**
-   * Update an existing employee
+   * Update an existing employee (Super Admin & HR only)
    * @param {String} employeeId - Employee ID
    * @param {Object} updateData - Data to update
    * @param {Object} user - User updating the employee
@@ -113,6 +117,11 @@ class EmployeeService {
    */
   async updateEmployee(employeeId, updateData, user, metadata = {}) {
     try {
+      // Role-based access control
+      if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+        throw { message: "Unauthorized: Only Super Admin and HR can update employees", statusCode: 403 };
+      }
+
       const employee = await Employee.findByPk(employeeId);
 
       if (!employee) {
@@ -124,19 +133,15 @@ class EmployeeService {
       }
 
       // Check email uniqueness if email is being updated
-      if (updateData.contactInfo?.email) {
-        const emailLower = updateData.contactInfo.email.toLowerCase();
-        const currentEmail = employee.contactInfo?.email?.toLowerCase();
+      if (updateData.email) {
+        const emailLower = updateData.email.toLowerCase();
+        const currentEmail = employee.email?.toLowerCase();
         if (emailLower !== currentEmail) {
           const existingEmployee = await Employee.findOne({
             where: {
-              [Employee.sequelize.Sequelize.Op.and]: [
-                Employee.sequelize.literal(
-                  `JSON_EXTRACT(contactInfo, '$.email') = '${emailLower}'`
-                ),
-                { id: { [Employee.sequelize.Sequelize.Op.ne]: employeeId } },
-              ],
-            },
+              email: emailLower,
+              id: { [Op.ne]: employeeId }
+            }
           });
 
           if (existingEmployee) {
@@ -150,151 +155,53 @@ class EmployeeService {
       }
 
       // Track changes for audit log
-      const changes = [];
-      const trackFieldChanges = (path, oldVal, newVal, fieldName) => {
-        if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
-          changes.push({
-            field: fieldName || path,
-            oldValue: oldVal,
-            newValue: newVal,
-          });
-        }
+      const oldValues = {
+        firstName: employee.firstName,
+        lastName: employee.lastName,
+        email: employee.email,
+        designation: employee.designation,
+        department: employee.department,
+        status: employee.status
       };
 
-      // Track changes in nested objects
-      if (updateData.personalInfo) {
-        Object.keys(updateData.personalInfo).forEach((key) => {
-          if (employee.personalInfo[key] !== updateData.personalInfo[key]) {
-            trackFieldChanges(
-              `personalInfo.${key}`,
-              employee.personalInfo[key],
-              updateData.personalInfo[key],
-              `Personal Info - ${key}`
-            );
-          }
-        });
-        employee.personalInfo = {
-          ...employee.personalInfo,
-          ...updateData.personalInfo,
-        };
-      }
-
-      if (updateData.contactInfo) {
-        Object.keys(updateData.contactInfo).forEach((key) => {
-          if (key === "currentAddress" && updateData.contactInfo.currentAddress) {
-            const oldAddr = employee.contactInfo.currentAddress || {};
-            const newAddr = updateData.contactInfo.currentAddress;
-            if (JSON.stringify(oldAddr) !== JSON.stringify(newAddr)) {
-              trackFieldChanges(
-                "contactInfo.currentAddress",
-                oldAddr,
-                newAddr,
-                "Current Address"
-              );
-            }
-          } else if (
-            key === "emergencyContacts" &&
-            updateData.contactInfo.emergencyContacts
-          ) {
-            trackFieldChanges(
-              "contactInfo.emergencyContacts",
-              employee.contactInfo.emergencyContacts,
-              updateData.contactInfo.emergencyContacts,
-              "Emergency Contacts"
-            );
-          } else if (employee.contactInfo[key] !== updateData.contactInfo[key]) {
-            trackFieldChanges(
-              `contactInfo.${key}`,
-              employee.contactInfo[key],
-              updateData.contactInfo[key],
-              `Contact Info - ${key}`
-            );
-          }
-        });
-        employee.contactInfo = {
-          ...employee.contactInfo,
-          ...updateData.contactInfo,
-        };
-      }
-
-      if (updateData.jobInfo) {
-        Object.keys(updateData.jobInfo).forEach((key) => {
-          if (
-            employee.jobInfo[key]?.toString() !==
-            updateData.jobInfo[key]?.toString()
-          ) {
-            trackFieldChanges(
-              `jobInfo.${key}`,
-              employee.jobInfo[key],
-              updateData.jobInfo[key],
-              `Job Info - ${key}`
-            );
-          }
-        });
-        employee.jobInfo = {
-          ...employee.jobInfo,
-          ...updateData.jobInfo,
-        };
-      }
-
-      // Update other fields
-      if (updateData.status && employee.status !== updateData.status) {
-        trackFieldChanges("status", employee.status, updateData.status, "Status");
-        employee.status = updateData.status;
-      }
-
-      if (
-        updateData.isPrivate !== undefined &&
-        employee.isPrivate !== updateData.isPrivate
-      ) {
-        trackFieldChanges(
-          "isPrivate",
-          employee.isPrivate,
-          updateData.isPrivate,
-          "Privacy Setting"
-        );
-        employee.isPrivate = updateData.isPrivate;
-      }
-
-      if (updateData.customFields) {
-        trackFieldChanges(
-          "customFields",
-          employee.customFields,
-          updateData.customFields,
-          "Custom Fields"
-        );
-        employee.customFields = updateData.customFields;
-      }
-
-      // Update audit fields
-      employee.updatedBy = user.id;
-
-      await employee.save();
+      // Update employee
+      await employee.update({
+        ...updateData,
+        email: updateData.email ? updateData.email.toLowerCase() : employee.email,
+        updatedBy: user.id
+      });
 
       // Log update in audit log
-      if (changes.length > 0) {
-        await AuditLog.logAction({
-          action: "UPDATE",
-          entityType: "Employee",
-          entityId: employee.id.toString(),
-          userId: user.id,
-          userRole: user.role,
-          changes,
-          ipAddress: metadata.ipAddress,
-          userAgent: metadata.userAgent,
-        });
-      }
+      await AuditLog.logAction({
+        userId: user.id,
+        action: "employee_update",
+        module: "employee",
+        targetType: "Employee",
+        targetId: employee.id,
+        oldValues,
+        newValues: updateData,
+        description: `Updated employee: ${employee.firstName} ${employee.lastName} (${employee.employeeId})`,
+        ipAddress: metadata.ipAddress,
+        userAgent: metadata.userAgent,
+        severity: 'medium'
+      });
 
-      logger.info(
-        `Employee updated: ${employee.employeeId} by user ${user.email}`
-      );
+      logger.info(`Employee updated: ${employee.employeeId} by user ${user.email}`);
 
-      return employee;
+      return {
+        success: true,
+        data: employee,
+        message: 'Employee updated successfully'
+      };
     } catch (error) {
       logger.error("Error updating employee:", error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || 'Failed to update employee',
+        error: error.message
+      };
     }
-  };
+  }
 
   /**
    * Get employee by ID with role-based filtering
@@ -307,8 +214,8 @@ class EmployeeService {
       const where = { id: employeeId };
 
       // Apply role-based filtering
-      if (user.role === ROLES.HR_MANAGER) {
-        // HR Manager can only access employees in their assigned departments
+      if (user.role === ROLES.HR_ADMIN) {
+        // HR can only access employees in their assigned departments
         if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
           throw {
             code: "NO_DEPARTMENTS_ASSIGNED",
@@ -316,10 +223,8 @@ class EmployeeService {
             statusCode: 403,
           };
         }
-        where[
-          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
-        ] = {
-          [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments,
+        where.department = {
+          [Op.in]: user.assignedDepartments,
         };
       } else if (user.role === ROLES.EMPLOYEE) {
         // Employees can only access their own profile
@@ -334,6 +239,20 @@ class EmployeeService {
 
       const employee = await Employee.findOne({
         where,
+        include: [
+          {
+            model: Employee,
+            as: 'manager',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName'],
+            required: false
+          },
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'email', 'role', 'isActive'],
+            required: false
+          }
+        ]
       });
 
       if (!employee) {
@@ -344,35 +263,25 @@ class EmployeeService {
         };
       }
 
-      // Populate department information
-      const empData = employee.toJSON();
-      if (empData.jobInfo?.department) {
-        try {
-          const { Department } = await import("../../models/sequelize/index.js");
-          const department = await Department.findByPk(
-            empData.jobInfo.department
-          );
-          if (department) {
-            empData.jobInfo.departmentInfo = {
-              id: department.id,
-              name: department.name,
-              code: department.code,
-            };
-          }
-        } catch (error) {
-          logger.error("Error fetching department info:", error);
-        }
-      }
+      // Return public JSON for non-admin users to hide sensitive bank details
+      const empData = user.role === ROLES.EMPLOYEE ? employee.toPublicJSON() : employee.toJSON();
 
-      return empData;
+      return {
+        success: true,
+        data: empData
+      };
     } catch (error) {
       logger.error("Error getting employee by ID:", error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || 'Failed to get employee',
+        error: error.message
+      };
     }
-  };
+  }
 
   /**
-   * List employees with pagination and scope filtering
+   * List employees with pagination and role-based filtering
    * @param {Object} filters - Filter criteria
    * @param {Object} user - User requesting the list
    * @param {Object} pagination - Pagination options
@@ -392,7 +301,7 @@ class EmployeeService {
       const where = {};
 
       // Apply role-based scope filtering
-      if (user.role === ROLES.HR_MANAGER) {
+      if (user.role === ROLES.HR_ADMIN) {
         if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
           throw {
             code: "NO_DEPARTMENTS_ASSIGNED",
@@ -400,34 +309,17 @@ class EmployeeService {
             statusCode: 403,
           };
         }
-        where[
-          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
-        ] = {
-          [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments,
+        where.department = {
+          [Op.in]: user.assignedDepartments,
         };
       } else if (user.role === ROLES.EMPLOYEE) {
-        // Employees can only see their own profile in list
-        if (user.employeeId) {
-          where.id = user.employeeId;
-        } else {
-          // No employee profile linked
-          return {
-            employees: [],
-            pagination: {
-              total: 0,
-              page,
-              limit,
-              totalPages: 0,
-            },
-          };
-        }
+        // Employees can only see active employees in directory view
+        where.status = "Active";
       }
 
       // Apply additional filters
       if (filters.department) {
-        where[
-          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
-        ] = filters.department;
+        where.department = filters.department;
       }
 
       if (filters.status) {
@@ -435,110 +327,89 @@ class EmployeeService {
       }
 
       if (filters.employmentType) {
-        where[
-          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.employmentType')")
-        ] = filters.employmentType;
+        where.employmentType = filters.employmentType;
       }
 
-      if (filters.jobTitle) {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")] =
-        {
-          [Employee.sequelize.Sequelize.Op.like]: `%${filters.jobTitle}%`,
-        };
-      }
-
-      if (filters.workLocation) {
-        where[
-          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.workLocation')")
-        ] = {
-          [Employee.sequelize.Sequelize.Op.like]: `%${filters.workLocation}%`,
+      if (filters.designation) {
+        where.designation = {
+          [Op.like]: `%${filters.designation}%`,
         };
       }
 
       if (filters.search) {
-        where[Employee.sequelize.Sequelize.Op.or] = [
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(personalInfo, '$.firstName') LIKE '%${filters.search}%'`
-          ),
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(personalInfo, '$.lastName') LIKE '%${filters.search}%'`
-          ),
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(contactInfo, '$.email') LIKE '%${filters.search}%'`
-          ),
-          {
-            employeeId: {
-              [Employee.sequelize.Sequelize.Op.like]: `%${filters.search}%`,
-            },
-          },
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(contactInfo, '$.phoneNumber') LIKE '%${filters.search}%'`
-          ),
+        where[Op.or] = [
+          { firstName: { [Op.like]: `%${filters.search}%` } },
+          { lastName: { [Op.like]: `%${filters.search}%` } },
+          { email: { [Op.like]: `%${filters.search}%` } },
+          { employeeId: { [Op.like]: `%${filters.search}%` } },
+          { phone: { [Op.like]: `%${filters.search}%` } }
         ];
       }
 
       // Count and fetch employees
       const { count: total, rows: employees } = await Employee.findAndCountAll({
         where,
+        include: [
+          {
+            model: Employee,
+            as: 'manager',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName'],
+            required: false
+          },
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'email', 'role', 'isActive'],
+            required: false
+          }
+        ],
         order: [[sortBy, sortOrder.toUpperCase()]],
         limit: parseInt(limit),
         offset: parseInt(offset),
       });
 
-      // Populate department information for each employee
-      const employeesWithDepartments = await Promise.all(
-        employees.map(async (employee) => {
-          const empData = employee.toJSON();
-
-          // Get department info if department ID exists
-          if (empData.jobInfo?.department) {
-            try {
-              const { Department } = await import(
-                "../../models/sequelize/index.js"
-              );
-              const department = await Department.findByPk(
-                empData.jobInfo.department
-              );
-              if (department) {
-                empData.jobInfo.departmentInfo = {
-                  id: department.id,
-                  name: department.name,
-                  code: department.code,
-                };
-              }
-            } catch (error) {
-              logger.error("Error fetching department info:", error);
-            }
-          }
-
-          return empData;
-        })
+      // Return appropriate data based on user role
+      const employeesData = employees.map(emp =>
+        user.role === ROLES.EMPLOYEE ? emp.toPublicJSON() : emp.toJSON()
       );
 
       return {
-        employees: employeesWithDepartments,
-        pagination: {
-          total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(total / limit),
-        },
+        success: true,
+        data: {
+          employees: employeesData,
+          pagination: {
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / limit),
+          }
+        }
       };
     } catch (error) {
       logger.error("Error listing employees:", error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || 'Failed to list employees',
+        error: error.message
+      };
     }
-  };
+  }
 
   /**
-   * Soft delete an employee
+   * Activate/Deactivate employee (Super Admin only)
    * @param {String} employeeId - Employee ID
-   * @param {Object} user - User deleting the employee
+   * @param {Boolean} isActive - Active status
+   * @param {Object} user - User performing the action
    * @param {Object} metadata - Request metadata
-   * @returns {Promise<Object>} Deleted employee
+   * @returns {Promise<Object>} Updated employee
    */
-  async softDeleteEmployee(employeeId, user, metadata = {}) {
+  async toggleEmployeeStatus(employeeId, isActive, user, metadata = {}) {
     try {
+      // Only Super Admin can activate/deactivate employees
+      if (user.role !== ROLES.SUPER_ADMIN) {
+        throw { message: "Unauthorized: Only Super Admin can change employee status", statusCode: 403 };
+      }
+
       const employee = await Employee.findByPk(employeeId);
 
       if (!employee) {
@@ -549,457 +420,119 @@ class EmployeeService {
         };
       }
 
-      // Check if already deactivated
-      if (employee.status === "Terminated") {
-        throw {
-          code: "ALREADY_TERMINATED",
-          message: "Employee is already terminated.",
-          statusCode: 400,
-        };
+      const oldStatus = employee.status;
+      const newStatus = isActive ? 'Active' : 'Inactive';
+
+      await employee.update({
+        status: newStatus,
+        updatedBy: user.id
+      });
+
+      // Also update associated user account if exists
+      const userAccount = await User.findOne({ where: { employeeId: employee.id } });
+      if (userAccount) {
+        await userAccount.update({ isActive });
       }
 
-      // Store old status for audit
-      const oldStatus = employee.status;
-
-      // Soft delete by updating status and deactivation fields
-      employee.status = "Terminated";
-      employee.deactivatedAt = new Date();
-      employee.deactivatedBy = user.id;
-      employee.updatedBy = user.id;
-
-      await employee.save();
-
-      // Log deletion in audit log
+      // Log status change in audit log
       await AuditLog.logAction({
-        action: "DELETE",
-        entityType: "Employee",
-        entityId: employee.id.toString(),
         userId: user.id,
-        userRole: user.role,
-        changes: [
-          {
-            field: "status",
-            oldValue: oldStatus,
-            newValue: "Terminated",
-          },
-          {
-            field: "deactivatedAt",
-            oldValue: null,
-            newValue: employee.deactivatedAt,
-          },
-        ],
+        action: isActive ? "employee_activate" : "employee_deactivate",
+        module: "employee",
+        targetType: "Employee",
+        targetId: employee.id,
+        oldValues: { status: oldStatus },
+        newValues: { status: newStatus },
+        description: `${isActive ? 'Activated' : 'Deactivated'} employee: ${employee.firstName} ${employee.lastName}`,
         ipAddress: metadata.ipAddress,
         userAgent: metadata.userAgent,
+        severity: 'high'
       });
 
-      logger.info(
-        `Employee soft deleted: ${employee.employeeId} by user ${user.email}`
-      );
-
-      return employee;
-    } catch (error) {
-      logger.error("Error soft deleting employee:", error);
-      throw error;
-    }
-  };
-
-  /**
-   * Check if email is unique
-   * @param {String} email - Email to check
-   * @param {String} excludeEmployeeId - Employee ID to exclude from check (for updates)
-   * @returns {Promise<Boolean>} True if email is unique
-   */
-  async isEmailUnique(email, excludeEmployeeId = null) {
-    try {
-      const where = {
-        [Employee.sequelize.literal(
-          `JSON_EXTRACT(contactInfo, '$.email') = '${email.toLowerCase()}'`
-        )]: true,
-      };
-
-      if (excludeEmployeeId) {
-        where.id = { [Employee.sequelize.Sequelize.Op.ne]: excludeEmployeeId };
-      }
-
-      const existingEmployee = await Employee.findOne({ where });
-      return !existingEmployee;
-    } catch (error) {
-      logger.error("Error checking email uniqueness:", error);
-      throw error;
-    }
-  };
-
-  /**
-   * Search employees with fuzzy matching and role-based filtering
-   * @param {String} searchTerm - Search term (name, email, phone, employee ID)
-   * @param {Object} user - User performing the search
-   * @param {Object} pagination - Pagination options
-   * @returns {Promise<Object>} Search results with pagination
-   */
-  async searchEmployees(searchTerm, user, pagination = {}) {
-    try {
-      const {
-        page = 1,
-        limit = 10,
-        sortBy = "createdAt",
-        sortOrder = "desc",
-      } = pagination;
-      const offset = (page - 1) * limit;
-
-      // Build where clause with role-based filtering
-      const where = {};
-
-      // Apply role-based scope filtering
-      if (user.role === "HR Manager") {
-        if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
-          throw {
-            code: "NO_DEPARTMENTS_ASSIGNED",
-            message: "You do not have any departments assigned.",
-            statusCode: 403,
-          };
-        }
-        where[
-          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
-        ] = {
-          [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments,
-        };
-      } else if (user.role === "Employee") {
-        // Employees can only search within active employees (directory access)
-        where.status = "Active";
-      }
-
-      // Add search criteria
-      if (searchTerm && searchTerm.trim()) {
-        const searchPattern = `%${searchTerm.trim()}%`;
-
-        where[Employee.sequelize.Sequelize.Op.or] = [
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(personalInfo, '$.firstName') LIKE '${searchPattern}'`
-          ),
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(personalInfo, '$.lastName') LIKE '${searchPattern}'`
-          ),
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(contactInfo, '$.email') LIKE '${searchPattern}'`
-          ),
-          {
-            employeeId: { [Employee.sequelize.Sequelize.Op.like]: searchPattern },
-          },
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(contactInfo, '$.phoneNumber') LIKE '${searchPattern}'`
-          ),
-        ];
-      }
-
-      // Count and fetch employees
-      const { count: total, rows: employees } = await Employee.findAndCountAll({
-        where,
-        order: [[sortBy, sortOrder.toUpperCase()]],
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-      });
-
-      logger.info(
-        `Search performed by user ${user.email} with term: ${searchTerm}`
-      );
+      logger.info(`Employee ${isActive ? 'activated' : 'deactivated'}: ${employee.employeeId} by user ${user.email}`);
 
       return {
-        employees,
-        pagination: {
-          total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(total / limit),
-        },
-        searchTerm,
+        success: true,
+        data: employee,
+        message: `Employee ${isActive ? 'activated' : 'deactivated'} successfully`
       };
     } catch (error) {
-      logger.error("Error searching employees:", error);
-      throw error;
+      logger.error("Error toggling employee status:", error);
+      return {
+        success: false,
+        message: error.message || 'Failed to update employee status',
+        error: error.message
+      };
     }
-  };
+  }
 
   /**
-   * Filter employees by multiple criteria
-   * @param {Object} filters - Filter criteria
-   * @param {Object} user - User performing the filter
-   * @param {Object} pagination - Pagination options
-   * @returns {Promise<Object>} Filtered results with pagination
+   * Assign system role to employee (Super Admin only)
+   * @param {String} employeeId - Employee ID
+   * @param {String} role - Role to assign (HR, Employee)
+   * @param {Object} user - User performing the action
+   * @param {Object} metadata - Request metadata
+   * @returns {Promise<Object>} Updated user account
    */
-  async filterEmployees(filters = {}, user, pagination = {}) {
+  async assignRole(employeeId, role, user, metadata = {}) {
     try {
-      const {
-        page = 1,
-        limit = 10,
-        sortBy = "createdAt",
-        sortOrder = "desc",
-      } = pagination;
-      const offset = (page - 1) * limit;
-
-      // Build where clause based on filters
-      const where = {};
-
-      // Apply role-based scope filtering
-      if (user.role === "HR Manager") {
-        if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
-          throw {
-            code: "NO_DEPARTMENTS_ASSIGNED",
-            message: "You do not have any departments assigned.",
-            statusCode: 403,
-          };
-        }
-        where[
-          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
-        ] = {
-          [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments,
-        };
-      } else if (user.role === "Employee") {
-        // Employees can only filter active employees (directory access)
-        where.status = "Active";
+      // Only Super Admin can assign roles
+      if (user.role !== ROLES.SUPER_ADMIN) {
+        throw { message: "Unauthorized: Only Super Admin can assign roles", statusCode: 403 };
       }
 
-      // Apply department filter
-      if (filters.department) {
-        // Support multiple departments
-        if (Array.isArray(filters.department)) {
-          where[
-            Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
-          ] = {
-            [Employee.sequelize.Sequelize.Op.in]: filters.department,
-          };
-        } else {
-          where[
-            Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
-          ] = filters.department;
-        }
+      const employee = await Employee.findByPk(employeeId);
+      if (!employee) {
+        throw { message: "Employee not found", statusCode: 404 };
       }
 
-      // Apply job title filter
-      if (filters.jobTitle) {
-        // Support multiple job titles
-        if (Array.isArray(filters.jobTitle)) {
-          where[
-            Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")
-          ] = {
-            [Employee.sequelize.Sequelize.Op.in]: filters.jobTitle,
-          };
-        } else {
-          where[
-            Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")
-          ] = {
-            [Employee.sequelize.Sequelize.Op.like]: `%${filters.jobTitle}%`,
-          };
-        }
+      // Find or create user account
+      let userAccount = await User.findOne({ where: { employeeId: employee.id } });
+
+      if (!userAccount) {
+        // Create user account if doesn't exist
+        userAccount = await User.create({
+          name: `${employee.firstName} ${employee.lastName}`,
+          email: employee.email,
+          password: 'TempPassword123!', // Should be changed on first login
+          role,
+          employeeId: employee.id,
+          isActive: true
+        });
+      } else {
+        const oldRole = userAccount.role;
+        await userAccount.update({ role });
+
+        // Log role change
+        await AuditLog.logAction({
+          userId: user.id,
+          action: "role_change",
+          module: "employee",
+          targetType: "User",
+          targetId: userAccount.id,
+          oldValues: { role: oldRole },
+          newValues: { role },
+          description: `Changed role from ${oldRole} to ${role} for ${employee.firstName} ${employee.lastName}`,
+          ipAddress: metadata.ipAddress,
+          userAgent: metadata.userAgent,
+          severity: 'high'
+        });
       }
-
-      // Apply employment type filter
-      if (filters.employmentType) {
-        // Support multiple employment types
-        if (Array.isArray(filters.employmentType)) {
-          where[
-            Employee.sequelize.literal(
-              "JSON_EXTRACT(jobInfo, '$.employmentType')"
-            )
-          ] = {
-            [Employee.sequelize.Sequelize.Op.in]: filters.employmentType,
-          };
-        } else {
-          where[
-            Employee.sequelize.literal(
-              "JSON_EXTRACT(jobInfo, '$.employmentType')"
-            )
-          ] = filters.employmentType;
-        }
-      }
-
-      // Apply work location filter
-      if (filters.workLocation) {
-        // Support multiple work locations
-        if (Array.isArray(filters.workLocation)) {
-          where[
-            Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.workLocation')")
-          ] = {
-            [Employee.sequelize.Sequelize.Op.in]: filters.workLocation,
-          };
-        } else {
-          where[
-            Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.workLocation')")
-          ] = {
-            [Employee.sequelize.Sequelize.Op.like]: `%${filters.workLocation}%`,
-          };
-        }
-      }
-
-      // Apply employment status filter
-      if (filters.status) {
-        // Support multiple statuses
-        if (Array.isArray(filters.status)) {
-          where.status = { [Employee.sequelize.Sequelize.Op.in]: filters.status };
-        } else {
-          where.status = filters.status;
-        }
-      }
-
-      // Count and fetch employees
-      const { count: total, rows: employees } = await Employee.findAndCountAll({
-        where,
-        order: [[sortBy, sortOrder.toUpperCase()]],
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-      });
-
-      logger.info(
-        `Filter performed by user ${user.email} with filters: ${JSON.stringify(
-          filters
-        )}`
-      );
 
       return {
-        employees,
-        pagination: {
-          total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(total / limit),
-        },
-        appliedFilters: filters,
+        success: true,
+        data: userAccount,
+        message: 'Role assigned successfully'
       };
     } catch (error) {
-      logger.error("Error filtering employees:", error);
-      throw error;
-    }
-  };
-
-  /**
-   * Get employee directory (public listing for all employees)
-   * @param {Object} filters - Optional filter criteria
-   * @param {Object} user - User requesting the directory
-   * @param {Object} pagination - Pagination options
-   * @returns {Promise<Object>} Directory listing with pagination
-   */
-  async getEmployeeDirectory(filters = {}, user, pagination = {}) {
-    try {
-      const {
-        page = 1,
-        limit = 20,
-        sortBy = "createdAt",
-        sortOrder = "desc",
-      } = pagination;
-      const offset = (page - 1) * limit;
-
-      // Build where clause for directory
-      const where = {
-        status: "Active", // Only show active employees in directory
-      };
-
-      // Apply role-based scope filtering
-      if (user.role === "HR Manager") {
-        if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
-          throw {
-            code: "NO_DEPARTMENTS_ASSIGNED",
-            message: "You do not have any departments assigned.",
-            statusCode: 403,
-          };
-        }
-        where[
-          Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
-        ] = {
-          [Employee.sequelize.Sequelize.Op.in]: user.assignedDepartments,
-        };
-      }
-
-      // Apply optional filters
-      if (filters.department) {
-        if (Array.isArray(filters.department)) {
-          where[
-            Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
-          ] = {
-            [Employee.sequelize.Sequelize.Op.in]: filters.department,
-          };
-        } else {
-          where[
-            Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.department')")
-          ] = filters.department;
-        }
-      }
-
-      if (filters.jobTitle) {
-        where[Employee.sequelize.literal("JSON_EXTRACT(jobInfo, '$.jobTitle')")] =
-        {
-          [Employee.sequelize.Sequelize.Op.like]: `%${filters.jobTitle}%`,
-        };
-      }
-
-      if (filters.search) {
-        const searchPattern = `%${filters.search}%`;
-        where[Employee.sequelize.Sequelize.Op.or] = [
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(personalInfo, '$.firstName') LIKE '${searchPattern}'`
-          ),
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(personalInfo, '$.lastName') LIKE '${searchPattern}'`
-          ),
-          Employee.sequelize.literal(
-            `JSON_EXTRACT(jobInfo, '$.jobTitle') LIKE '${searchPattern}'`
-          ),
-        ];
-      }
-
-      // Count and fetch employees
-      const { count: total, rows: employees } = await Employee.findAndCountAll({
-        where,
-        attributes: [
-          "id",
-          "employeeId",
-          "personalInfo",
-          "jobInfo",
-          "contactInfo",
-          "isPrivate",
-        ],
-        order: [[sortBy, sortOrder.toUpperCase()]],
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-      });
-
-      // Filter out private information for private profiles
-      const directoryEmployees = employees.map((emp) => {
-        const empData = emp.toJSON();
-        if (empData.isPrivate && user.role === "Employee") {
-          // For private profiles, only show basic info to regular employees
-          return {
-            id: empData.id,
-            employeeId: empData.employeeId,
-            personalInfo: {
-              firstName: empData.personalInfo?.firstName,
-              lastName: empData.personalInfo?.lastName,
-              profilePhoto: empData.personalInfo?.profilePhoto,
-            },
-            jobInfo: {
-              jobTitle: empData.jobInfo?.jobTitle,
-              department: empData.department,
-            },
-            isPrivate: true,
-          };
-        }
-        return empData;
-      });
-
-      logger.info(`Directory accessed by user ${user.email}`);
-
+      logger.error("Error assigning role:", error);
       return {
-        employees: directoryEmployees,
-        pagination: {
-          total,
-          page: parseInt(page),
-          limit: parseInt(limit),
-          totalPages: Math.ceil(total / limit),
-        },
+        success: false,
+        message: error.message || 'Failed to assign role',
+        error: error.message
       };
-    } catch (error) {
-      logger.error("Error getting employee directory:", error);
-      throw error;
     }
-  };
+  }
 
   /**
    * Get current employee profile for logged-in user
@@ -1016,7 +549,16 @@ class EmployeeService {
         };
       }
 
-      const employee = await Employee.findByPk(user.employeeId);
+      const employee = await Employee.findByPk(user.employeeId, {
+        include: [
+          {
+            model: Employee,
+            as: 'manager',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName'],
+            required: false
+          }
+        ]
+      });
 
       if (!employee) {
         throw {
@@ -1028,15 +570,22 @@ class EmployeeService {
 
       logger.info(`Current employee profile accessed by user ${user.email}`);
 
-      return employee;
+      return {
+        success: true,
+        data: employee
+      };
     } catch (error) {
       logger.error("Error getting current employee:", error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || 'Failed to get employee profile',
+        error: error.message
+      };
     }
-  };
+  }
 
   /**
-   * Self-update employee profile (limited fields)
+   * Self-update employee profile (limited fields for employees)
    * @param {Object} updateData - Data to update (only allowed fields)
    * @param {Object} user - User updating their own profile
    * @param {Object} metadata - Request metadata
@@ -1062,128 +611,423 @@ class EmployeeService {
         };
       }
 
-      // Define allowed fields for self-update
+      // Define allowed fields for self-update (employees can only update personal info)
       const allowedFields = {
-        "contactInfo.phoneNumber": true,
-        "contactInfo.alternatePhone": true,
-        "contactInfo.personalEmail": true,
-        "contactInfo.currentAddress": true,
-        "contactInfo.emergencyContacts": true,
+        phone: true,
+        address: true,
+        profilePicture: true,
+        emergencyContact: true,
+        bankDetails: true // Employees can update their own bank details
       };
 
-      // Track changes for audit log
-      const changes = [];
-
-      // Update only allowed fields
-      if (updateData.contactInfo) {
-        // Phone number
-        if (updateData.contactInfo.phoneNumber !== undefined) {
-          if (
-            employee.contactInfo.phoneNumber !==
-            updateData.contactInfo.phoneNumber
-          ) {
-            changes.push({
-              field: "Phone Number",
-              oldValue: employee.contactInfo.phoneNumber,
-              newValue: updateData.contactInfo.phoneNumber,
-            });
-            employee.contactInfo.phoneNumber = updateData.contactInfo.phoneNumber;
-          }
+      // Filter update data to only allowed fields
+      const filteredUpdateData = {};
+      Object.keys(updateData).forEach(key => {
+        if (allowedFields[key]) {
+          filteredUpdateData[key] = updateData[key];
         }
+      });
 
-        // Alternate phone
-        if (updateData.contactInfo.alternatePhone !== undefined) {
-          if (
-            employee.contactInfo.alternatePhone !==
-            updateData.contactInfo.alternatePhone
-          ) {
-            changes.push({
-              field: "Alternate Phone",
-              oldValue: employee.contactInfo.alternatePhone,
-              newValue: updateData.contactInfo.alternatePhone,
-            });
-            employee.contactInfo.alternatePhone =
-              updateData.contactInfo.alternatePhone;
-          }
-        }
-
-        // Personal email
-        if (updateData.contactInfo.personalEmail !== undefined) {
-          if (
-            employee.contactInfo.personalEmail !==
-            updateData.contactInfo.personalEmail
-          ) {
-            changes.push({
-              field: "Personal Email",
-              oldValue: employee.contactInfo.personalEmail,
-              newValue: updateData.contactInfo.personalEmail,
-            });
-            employee.contactInfo.personalEmail =
-              updateData.contactInfo.personalEmail;
-          }
-        }
-
-        // Current address
-        if (updateData.contactInfo.currentAddress !== undefined) {
-          const oldAddr = employee.contactInfo.currentAddress || {};
-          const newAddr = updateData.contactInfo.currentAddress;
-          if (JSON.stringify(oldAddr) !== JSON.stringify(newAddr)) {
-            changes.push({
-              field: "Current Address",
-              oldValue: oldAddr,
-              newValue: newAddr,
-            });
-            employee.contactInfo.currentAddress = newAddr;
-          }
-        }
-
-        // Emergency contacts
-        if (updateData.contactInfo.emergencyContacts !== undefined) {
-          if (
-            JSON.stringify(employee.contactInfo.emergencyContacts) !==
-            JSON.stringify(updateData.contactInfo.emergencyContacts)
-          ) {
-            changes.push({
-              field: "Emergency Contacts",
-              oldValue: employee.contactInfo.emergencyContacts,
-              newValue: updateData.contactInfo.emergencyContacts,
-            });
-            employee.contactInfo.emergencyContacts =
-              updateData.contactInfo.emergencyContacts;
-          }
-        }
+      if (Object.keys(filteredUpdateData).length === 0) {
+        throw {
+          code: "NO_VALID_FIELDS",
+          message: "No valid fields provided for update.",
+          statusCode: 400,
+        };
       }
 
-      // Update audit fields
-      employee.updatedBy = user.id;
+      // Track changes for audit log
+      const oldValues = {};
+      Object.keys(filteredUpdateData).forEach(key => {
+        oldValues[key] = employee[key];
+      });
 
-      await employee.save();
+      // Update employee
+      await employee.update({
+        ...filteredUpdateData,
+        updatedBy: user.id
+      });
 
       // Log self-update in audit log
-      if (changes.length > 0) {
-        await AuditLog.logAction({
-          action: "UPDATE",
-          entityType: "Employee",
-          entityId: employee.id.toString(),
-          userId: user.id,
-          userRole: user.role,
-          changes,
-          ipAddress: metadata.ipAddress,
-          userAgent: metadata.userAgent,
-        });
-      }
+      await AuditLog.logAction({
+        userId: user.id,
+        action: "profile_update",
+        module: "profile",
+        targetType: "Employee",
+        targetId: employee.id,
+        oldValues,
+        newValues: filteredUpdateData,
+        description: `Self-updated profile: ${employee.firstName} ${employee.lastName}`,
+        ipAddress: metadata.ipAddress,
+        userAgent: metadata.userAgent,
+        severity: 'low'
+      });
 
-      logger.info(
-        `Employee self-updated: ${employee.employeeId} by user ${user.email}`
-      );
+      logger.info(`Employee self-updated: ${employee.employeeId} by user ${user.email}`);
 
-      return employee;
+      return {
+        success: true,
+        data: employee,
+        message: 'Profile updated successfully'
+      };
     } catch (error) {
       logger.error("Error in self-update employee:", error);
-      throw error;
+      return {
+        success: false,
+        message: error.message || 'Failed to update profile',
+        error: error.message
+      };
     }
-  };
+  }
 
+  /**
+   * Get employee directory (public listing for all employees)
+   * @param {Object} filters - Optional filter criteria
+   * @param {Object} user - User requesting the directory
+   * @param {Object} pagination - Pagination options
+   * @returns {Promise<Object>} Directory listing with pagination
+   */
+  async getEmployeeDirectory(filters = {}, user, pagination = {}) {
+    try {
+      const {
+        page = 1,
+        limit = 20,
+        sortBy = "firstName",
+        sortOrder = "asc",
+      } = pagination;
+      const offset = (page - 1) * limit;
+
+      // Build where clause for directory
+      const where = {
+        status: "Active", // Only show active employees in directory
+      };
+
+      // Apply role-based scope filtering
+      if (user.role === ROLES.HR_ADMIN) {
+        if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
+          throw {
+            code: "NO_DEPARTMENTS_ASSIGNED",
+            message: "You do not have any departments assigned.",
+            statusCode: 403,
+          };
+        }
+        where.department = {
+          [Op.in]: user.assignedDepartments,
+        };
+      }
+
+      // Apply optional filters
+      if (filters.department) {
+        where.department = filters.department;
+      }
+
+      if (filters.designation) {
+        where.designation = {
+          [Op.like]: `%${filters.designation}%`,
+        };
+      }
+
+      if (filters.search) {
+        where[Op.or] = [
+          { firstName: { [Op.like]: `%${filters.search}%` } },
+          { lastName: { [Op.like]: `%${filters.search}%` } },
+          { designation: { [Op.like]: `%${filters.search}%` } }
+        ];
+      }
+
+      // Count and fetch employees
+      const { count: total, rows: employees } = await Employee.findAndCountAll({
+        where,
+        attributes: [
+          "id",
+          "employeeId",
+          "firstName",
+          "lastName",
+          "email",
+          "phone",
+          "designation",
+          "department",
+          "profilePicture"
+        ],
+        order: [[sortBy, sortOrder.toUpperCase()]],
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+      });
+
+      logger.info(`Directory accessed by user ${user.email}`);
+
+      return {
+        success: true,
+        data: {
+          employees,
+          pagination: {
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / limit),
+          }
+        }
+      };
+    } catch (error) {
+      logger.error("Error getting employee directory:", error);
+      return {
+        success: false,
+        message: error.message || 'Failed to get employee directory',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Search employees with fuzzy matching and role-based filtering
+   * @param {String} searchTerm - Search term (name, email, phone, employee ID)
+   * @param {Object} user - User performing the search
+   * @param {Object} pagination - Pagination options
+   * @returns {Promise<Object>} Search results with pagination
+   */
+  async searchEmployees(searchTerm, user, pagination = {}) {
+    try {
+      const {
+        page = 1,
+        limit = 10,
+        sortBy = "firstName",
+        sortOrder = "asc",
+      } = pagination;
+      const offset = (page - 1) * limit;
+
+      // Build where clause with role-based filtering
+      const where = {};
+
+      // Apply role-based scope filtering
+      if (user.role === ROLES.HR_ADMIN) {
+        if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
+          throw {
+            code: "NO_DEPARTMENTS_ASSIGNED",
+            message: "You do not have any departments assigned.",
+            statusCode: 403,
+          };
+        }
+        where.department = {
+          [Op.in]: user.assignedDepartments,
+        };
+      } else if (user.role === ROLES.EMPLOYEE) {
+        // Employees can only search within active employees (directory access)
+        where.status = "Active";
+      }
+
+      // Add search criteria
+      if (searchTerm && searchTerm.trim()) {
+        const searchPattern = `%${searchTerm.trim()}%`;
+
+        where[Op.or] = [
+          { firstName: { [Op.like]: searchPattern } },
+          { lastName: { [Op.like]: searchPattern } },
+          { email: { [Op.like]: searchPattern } },
+          { employeeId: { [Op.like]: searchPattern } },
+          { phone: { [Op.like]: searchPattern } }
+        ];
+      }
+
+      // Count and fetch employees
+      const { count: total, rows: employees } = await Employee.findAndCountAll({
+        where,
+        order: [[sortBy, sortOrder.toUpperCase()]],
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+      });
+
+      logger.info(`Search performed by user ${user.email} with term: ${searchTerm}`);
+
+      return {
+        success: true,
+        data: {
+          employees,
+          pagination: {
+            total,
+            page: parseInt(page),
+            limit: parseInt(limit),
+            totalPages: Math.ceil(total / limit),
+          },
+          searchTerm
+        }
+      };
+    } catch (error) {
+      logger.error("Error searching employees:", error);
+      return {
+        success: false,
+        message: error.message || 'Failed to search employees',
+        error: error.message
+      };
+    }
+  }
+  /**
+   * Get employee full profile with all details including relationships
+   * @param {String} employeeId - Employee ID
+   * @param {Object} user - User requesting the profile
+   * @returns {Promise<Object>} Full employee profile
+   */
+  async getEmployeeFullProfile(employeeId, user) {
+    try {
+      const where = { id: employeeId };
+
+      // Apply role-based filtering
+      if (user.role === ROLES.HR_ADMIN) {
+        if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
+          throw {
+            code: "NO_DEPARTMENTS_ASSIGNED",
+            message: "You do not have any departments assigned.",
+            statusCode: 403,
+          };
+        }
+        where.department = {
+          [Op.in]: user.assignedDepartments,
+        };
+      } else if (user.role === ROLES.EMPLOYEE) {
+        if (!user.employeeId || user.employeeId.toString() !== employeeId) {
+          throw {
+            code: "FORBIDDEN",
+            message: "You can only access your own profile.",
+            statusCode: 403,
+          };
+        }
+      }
+
+      const employee = await Employee.findOne({
+        where,
+        include: [
+          {
+            model: Employee,
+            as: 'manager',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'designation', 'email'],
+            required: false
+          },
+          {
+            model: Employee,
+            as: 'subordinates',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'designation'],
+            required: false
+          },
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'email', 'role', 'isActive', 'lastLogin'],
+            required: false
+          }
+        ]
+      });
+
+      if (!employee) {
+        throw {
+          code: "EMPLOYEE_NOT_FOUND",
+          message: "Employee not found or you do not have access.",
+          statusCode: 404,
+        };
+      }
+
+      // Return appropriate data based on user role
+      const empData = user.role === ROLES.EMPLOYEE ? employee.toPublicJSON() : employee.toJSON();
+
+      return {
+        success: true,
+        data: empData
+      };
+    } catch (error) {
+      logger.error("Error getting employee full profile:", error);
+      return {
+        success: false,
+        message: error.message || 'Failed to get employee profile',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get employee reporting structure (manager and subordinates)
+   * @param {String} employeeId - Employee ID
+   * @param {Object} user - User requesting the structure
+   * @returns {Promise<Object>} Reporting structure
+   */
+  async getReportingStructure(employeeId, user) {
+    try {
+      // Role-based access control
+      if (user.role === ROLES.EMPLOYEE && user.employeeId.toString() !== employeeId) {
+        throw {
+          code: "FORBIDDEN",
+          message: "You can only view your own reporting structure.",
+          statusCode: 403,
+        };
+      }
+
+      const employee = await Employee.findByPk(employeeId, {
+        include: [
+          {
+            model: Employee,
+            as: 'manager',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'designation', 'email', 'profilePicture'],
+            include: [
+              {
+                model: Employee,
+                as: 'manager',
+                attributes: ['id', 'employeeId', 'firstName', 'lastName', 'designation'],
+                required: false
+              }
+            ],
+            required: false
+          },
+          {
+            model: Employee,
+            as: 'subordinates',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'designation', 'email', 'profilePicture'],
+            where: { status: 'Active' },
+            required: false
+          }
+        ]
+      });
+
+      if (!employee) {
+        throw {
+          code: "EMPLOYEE_NOT_FOUND",
+          message: "Employee not found.",
+          statusCode: 404,
+        };
+      }
+
+      const structure = {
+        employee: {
+          id: employee.id,
+          employeeId: employee.employeeId,
+          firstName: employee.firstName,
+          lastName: employee.lastName,
+          designation: employee.designation,
+          department: employee.department
+        },
+        manager: employee.manager,
+        subordinates: employee.subordinates || [],
+        hierarchyLevel: 0
+      };
+
+      // Calculate hierarchy level
+      let currentManager = employee.manager;
+      let level = 0;
+      while (currentManager && level < 10) { // Prevent infinite loops
+        level++;
+        currentManager = currentManager.manager;
+      }
+      structure.hierarchyLevel = level;
+
+      return {
+        success: true,
+        data: structure
+      };
+    } catch (error) {
+      logger.error("Error getting reporting structure:", error);
+      return {
+        success: false,
+        message: error.message || 'Failed to get reporting structure',
+        error: error.message
+      };
+    }
+  }
 }
 
 export default new EmployeeService();

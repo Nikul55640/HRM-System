@@ -3,11 +3,8 @@ import {
   User,
   Department,
   Employee,
-  EmployeeProfile,
   LeaveBalance,
-  LeaveType,
-  Config,
-  SalaryStructure
+  SystemPolicy,
 } from '../src/models/sequelize/index.js';
 
 const seedDatabase = async () => {
@@ -718,7 +715,7 @@ const seedDatabase = async () => {
     console.log(`- Leave Types: ${leaveTypes.length}`);
     console.log(`- System Configs: 8`);
     console.log(`- Salary Structures: ${salaryStructures.length}`);
-    
+
     console.log('\n🔑 Login Credentials:');
     console.log('Super Admin: admin@hrms.com / admin123');
     console.log('HR Admin: hr@hrms.com / hr123');

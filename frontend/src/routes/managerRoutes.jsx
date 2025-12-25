@@ -6,5 +6,5 @@ const ManagerDashboard = lazy(() => import("../modules/employee/pages/Dashboard/
 
 export const managerRoutes = [
   // Dashboard is the primary manager interface
-  { path: "manager", element: <ManagerDashboard />, roles: ["Manager", "HR Manager", "SuperAdmin"] },
+  { path: "manager", element: <ManagerDashboard />, roles: ["HR", "SuperAdmin"] },
 ];

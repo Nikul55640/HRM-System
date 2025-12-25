@@ -5,6 +5,7 @@ import { authenticate } from "../../middleware/authenticate.js";
 import { authorize, checkDepartmentAccess } from "../../middleware/authorize.js";
 import { checkPermission, checkAnyPermission } from "../../middleware/checkPermission.js";
 import { MODULES } from "../../config/rolePermissions.js";
+import { upload } from "../../middleware/upload.js";
 
 import {
   validate,
@@ -21,12 +22,13 @@ const router = express.Router();
 
 /* ============================================================
    EMPLOYEE ROUTES — FULL RBAC + VALIDATION + FILTERS
+   Updated for restructured Employee model
    ============================================================ */
 
 /* -----------------------------------
    CREATE EMPLOYEE
    Permission: EMPLOYEE.CREATE
-   Roles: HR Manager, HR Admin, SuperAdmin
+   Roles: HR, SuperAdmin
 ----------------------------------- */
 router.post(
   "/",
@@ -81,6 +83,26 @@ router.get("/directory", authenticate, employeeController.getEmployeeDirectory);
 router.get("/me", authenticate, employeeController.getCurrentEmployee);
 
 /* -----------------------------------
+   GET EMPLOYEE FULL PROFILE
+----------------------------------- */
+router.get(
+  "/:id/profile",
+  authenticate,
+  validateParams(employeeIdParamSchema),
+  employeeController.getEmployeeFullProfile
+);
+
+/* -----------------------------------
+   GET EMPLOYEE REPORTING STRUCTURE
+----------------------------------- */
+router.get(
+  "/:id/reporting-structure",
+  authenticate,
+  validateParams(employeeIdParamSchema),
+  employeeController.getReportingStructure
+);
+
+/* -----------------------------------
    GET EMPLOYEE BY ID
 ----------------------------------- */
 router.get(
@@ -102,9 +124,53 @@ router.patch(
 );
 
 /* -----------------------------------
+   UPDATE PROFILE PICTURE
+----------------------------------- */
+router.patch(
+  "/:id/profile-picture",
+  authenticate,
+  validateParams(employeeIdParamSchema),
+  upload.single('profilePicture'),
+  employeeController.updateProfilePicture
+);
+
+/* -----------------------------------
+   UPDATE EMERGENCY CONTACT
+----------------------------------- */
+router.patch(
+  "/:id/emergency-contact",
+  authenticate,
+  validateParams(employeeIdParamSchema),
+  employeeController.updateEmergencyContact
+);
+
+/* -----------------------------------
+   UPDATE BANK DETAILS
+----------------------------------- */
+router.patch(
+  "/:id/bank-details",
+  authenticate,
+  validateParams(employeeIdParamSchema),
+  employeeController.updateBankDetails
+);
+
+/* -----------------------------------
+   VERIFY BANK DETAILS (HR & SuperAdmin only)
+----------------------------------- */
+router.patch(
+  "/:id/verify-bank-details",
+  authenticate,
+  checkAnyPermission([
+    MODULES.EMPLOYEE.UPDATE_ANY,
+  ]),
+  validateParams(employeeIdParamSchema),
+  employeeController.verifyBankDetails
+);
+
+/* -----------------------------------
    UPDATE EMPLOYEE
    Permission: UPDATE_ANY or UPDATE_OWN
-   Roles: HR Manager, HR Admin, SuperAdmin, or self
+   Roles: HR, SuperAdmin, or self
 ----------------------------------- */
 router.put(
   "/:id",
@@ -120,17 +186,29 @@ router.put(
 );
 
 /* -----------------------------------
-   DELETE EMPLOYEE (Soft Delete)
+   TOGGLE EMPLOYEE STATUS (SuperAdmin only)
    Permission: EMPLOYEE.DELETE
-   Roles: HR Admin, SuperAdmin only
+   Roles: SuperAdmin only
 ----------------------------------- */
-router.delete(
-  "/:id",
+router.patch(
+  "/:id/status",
   authenticate,
   checkPermission(MODULES.EMPLOYEE.DELETE),
   validateParams(employeeIdParamSchema),
-  checkDepartmentAccess,
-  employeeController.deleteEmployee
+  employeeController.toggleEmployeeStatus
+);
+
+/* -----------------------------------
+   ASSIGN ROLE (SuperAdmin only)
+   Permission: EMPLOYEE.DELETE
+   Roles: SuperAdmin only
+----------------------------------- */
+router.patch(
+  "/:id/role",
+  authenticate,
+  checkPermission(MODULES.EMPLOYEE.DELETE),
+  validateParams(employeeIdParamSchema),
+  employeeController.assignRole
 );
 
 export default router;

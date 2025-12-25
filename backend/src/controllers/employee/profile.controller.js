@@ -3,7 +3,7 @@ import crypto from "crypto";
 import fs from "fs";
 import { encryptFile } from "../../utils/encryption.js";
 import { decryptFile } from "../../utils/encryption.js";
-import { Employee, EmployeeProfile, Department } from "../../models/sequelize/index.js";
+import { Employee, Department } from "../../models/sequelize/index.js";
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -98,7 +98,7 @@ export const updateProfile = async (req, res) => {
 
     // Update metadata
     employee.updatedBy = req.user.id || req.user._id;
-    
+
     await employee.save();
 
     res.json({
@@ -114,7 +114,7 @@ export const updateProfile = async (req, res) => {
       error: error.message,
     });
   }
-}; 
+};
 
 // Get my profile (alias for getProfile)
 export const getMyProfile = async (req, res) => {
@@ -125,7 +125,7 @@ export const getMyProfile = async (req, res) => {
 export const getChangeHistory = async (req, res) => {
   try {
     const { employeeId } = req.user;
-    
+
     if (!employeeId) {
       return res.status(400).json({
         success: false,
@@ -271,9 +271,9 @@ export const downloadDocument = async (req, res) => {
     const { employeeId } = req.user;
 
     const document = await Document.findOne({
-      where: { 
+      where: {
         id,
-        employeeId 
+        employeeId
       }
     });
 

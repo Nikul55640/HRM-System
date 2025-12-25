@@ -23,7 +23,6 @@ import employeeSelfServiceRoutes from "./routes/employee/index.js";
 
 // Admin modules
 import adminLeaveRoutes from "./routes/admin/leaveRequest.routes.js";
-import adminLeaveTypeRoutes from "./routes/admin/leaveType.routes.js";
 import adminHolidayRoutes from "./routes/admin/holiday.routes.js";
 import adminDashboardRoutes from "./routes/admin/adminDashboard.routes.js";
 import adminAttendanceRoutes from "./routes/admin/attendance.routes.js";
@@ -32,6 +31,9 @@ import leadRoutes from "./routes/admin/lead.routes.js";
 import shiftRoutes from "./routes/admin/shift.routes.js";
 import departmentRoutes from "./routes/admin/department.routes.js";
 import auditLogRoutes from "./routes/admin/auditLog.routes.js";
+import systemPolicyRoutes from "./routes/admin/systemPolicy.routes.js";
+import leaveBalanceRoutes from "./routes/admin/leaveBalance.routes.js";
+import companyEventRoutes from "./routes/admin/companyEvent.routes.js";
 
 // HRM Modules
 import calendarRoutes from "./routes/calendar.routes.js";
@@ -124,14 +126,16 @@ app.get("/health", (req, res) => {
 // ADMIN SECTION
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/leave", adminLeaveRoutes);
-app.use("/api/admin/leave-types", adminLeaveTypeRoutes);
+app.use("/api/admin/leave-balances", leaveBalanceRoutes);
 app.use("/api/admin/holidays", adminHolidayRoutes);
+app.use("/api/admin/events", companyEventRoutes);
 app.use("/api/admin/departments", departmentRoutes);
 app.use("/api/admin/attendance", adminAttendanceRoutes);
 app.use("/api/admin/attendance-corrections", attendanceCorrectionRoutes);
 app.use("/api/admin/shifts", shiftRoutes);
 app.use("/api/admin/leads", leadRoutes);
 app.use("/api/admin/audit-logs", auditLogRoutes);
+app.use("/api/admin/system-policies", systemPolicyRoutes);
 
 // AUTH SECTION
 app.use("/api/auth", authRoutes);

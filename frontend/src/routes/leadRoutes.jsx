@@ -8,6 +8,6 @@ export const leadRoutes = [
   {
     path: "admin/leads",
     element: <LeadManagement />,
-    roles: ["SuperAdmin", "Admin", "HR Manager", "Manager"],
+    roles: ["SuperAdmin", "HR"],
   },
 ];

@@ -27,34 +27,34 @@ export const adminRoutes = [
   {
     path: "attendance-settings",
     element: <AttendanceSettings />,
-    roles: ["SuperAdmin", "Admin", "HR", "HR Manager"],
+    roles: ["SuperAdmin", "HR"],
   },
   {
     path: "admin/attendance",
     element: <AttendanceAdminList />,
-    roles: ["SuperAdmin", "Admin", "HR", "HR Manager"],
+    roles: ["SuperAdmin", "HR"],
   },
   {
     path: "admin/attendance/live",
     element: <LiveAttendanceDashboard />,
-    roles: ["SuperAdmin", "Admin", "HR", "HR Manager"],
+    roles: ["SuperAdmin", "HR"],
   },
   {
     path: "admin/attendance/corrections",
     element: <AttendanceCorrections />,
-    roles: ["SuperAdmin", "Admin", "HR", "HR Manager"],
+    roles: ["SuperAdmin", "HR"],
   },
   {
     path: "admin/leave-requests",
     element: <LeaveApprovalsPage />,
-    roles: ["SuperAdmin", "Admin", "HR", "HR Manager"],
+    roles: ["SuperAdmin", "HR"],
   },
   { path: "admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },
   { path: "admin/settings", element: <SystemConfig />, roles: ["SuperAdmin"] },
-  { path: "admin/leave-types", element: <LeaveTypesPage />, roles: ["SuperAdmin", "Admin", "HR", "HR Manager"] },
+  { path: "admin/leave-types", element: <LeaveTypesPage />, roles: ["SuperAdmin", "HR"] },
   {
     path: "admin/calendar",
     element: <CalendarManagement />,
-    roles: ["SuperAdmin", "HR Administrator", "HR Manager"],
+    roles: ["SuperAdmin", "HR"],
   },
 ];

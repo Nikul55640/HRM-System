@@ -164,7 +164,7 @@ const login = async (req, res) => {
     let employeeData = null;
     if (user.employeeId) {
       employeeData = await Employee.findByPk(user.employeeId, {
-        attributes: ['personalInfo', 'jobInfo', 'employeeId'],
+        attributes: ['firstName', 'lastName', 'employeeId', 'designation', 'department'],
       });
     }
 
@@ -179,11 +179,11 @@ const login = async (req, res) => {
           assignedDepartments: user.assignedDepartments,
           employeeId: user.employeeId,
           fullName: employeeData
-            ? `${employeeData.personalInfo?.firstName || ''} ${employeeData.personalInfo?.lastName || ''}`.trim()
+            ? `${employeeData.firstName || ''} ${employeeData.lastName || ''}`.trim()
             : user.name || user.email.split("@")[0], // Fallback to name or email username
           employeeNumber: employeeData?.employeeId,
-          department: employeeData?.jobInfo?.department,
-          position: employeeData?.jobInfo?.jobTitle,
+          department: employeeData?.department,
+          position: employeeData?.designation,
         },
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
@@ -348,7 +348,7 @@ const logout = async (req, res) => {
     });
   } catch (error) {
     console.error("Logout error:", error);
-    
+
     // Even if there's an error, return success for logout
     // The client should clear local tokens regardless
     res.status(200).json({

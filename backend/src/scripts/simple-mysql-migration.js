@@ -2,7 +2,6 @@ import { sequelize } from '../models/sequelize/index.js';
 import User from '../models/sequelize/User.js';
 import Employee from '../models/sequelize/Employee.js';
 import Department from '../models/sequelize/Department.js';
-import EmployeeProfile from '../models/sequelize/EmployeeProfile.js';
 import AttendanceRecord from '../models/sequelize/AttendanceRecord.js';
 import LeaveRequest from '../models/sequelize/LeaveRequest.js';
 import LeaveBalance from '../models/sequelize/LeaveBalance.js';
@@ -18,18 +17,18 @@ import SalaryStructure from '../models/sequelize/SalaryStructure.js';
 const runMigration = async () => {
   try {
     console.log('🔄 Starting MySQL migration...');
-    
+
     // Test connection
     await sequelize.authenticate();
     console.log('✅ Database connection established');
-    
+
     // Sync all models (creates tables without foreign key constraints)
     await sequelize.sync({ force: true });
     console.log('✅ All tables created successfully');
-    
+
     // Create default data
     console.log('📝 Creating default data...');
-    
+
     // Create default department
     const defaultDept = await Department.create({
       name: 'Administration',
@@ -37,7 +36,7 @@ const runMigration = async () => {
       isActive: true,
     });
     console.log('✅ Default department created');
-    
+
     // Create default admin user
     const adminUser = await User.create({
       email: 'admin@hrms.com',
@@ -46,7 +45,7 @@ const runMigration = async () => {
       isActive: true,
     });
     console.log('✅ Default admin user created');
-    
+
     // Create admin employee record
     const adminEmployee = await Employee.create({
       firstName: 'System',
@@ -60,71 +59,69 @@ const runMigration = async () => {
       status: 'Active',
     });
     console.log('✅ Admin employee created');
-    
+
     // Update user with employee reference
     await adminUser.update({ employeeId: adminEmployee.id });
     console.log('✅ User-Employee relationship established');
-    
-    // Create employee profile
-    await EmployeeProfile.create({
-      employeeId: adminEmployee.id,
-      userId: adminUser.id,
-      personalInfo: {},
-      bankDetails: {},
-      documents: [],
+
+    // Employee profile data is now part of Employee model
+    // No separate EmployeeProfile needed
+    personalInfo: { },
+    bankDetails: { },
+    documents: [],
       changeHistory: [],
     });
-    console.log('✅ Admin employee profile created');
-    
-    // Create some sample leave balances
-    const leaveTypes = [
-      { type: 'annual', allocated: 25, used: 0, pending: 0, available: 25 },
-      { type: 'sick', allocated: 10, used: 0, pending: 0, available: 10 },
-      { type: 'personal', allocated: 5, used: 0, pending: 0, available: 5 },
-    ];
-    
-    await LeaveBalance.create({
-      employeeId: adminEmployee.id,
-      year: new Date().getFullYear(),
-      leaveTypes,
-    });
-    console.log('✅ Default leave balances created');
-    
-    // Create default config
-    await Config.create({
-      key: 'company_name',
-      value: 'HRM System',
-      description: 'Company name for the system',
-      category: 'general',
-      dataType: 'string',
-      updatedBy: adminUser.id,
-    });
-    
-    await Config.create({
-      key: 'working_hours_per_day',
-      value: '8',
-      description: 'Standard working hours per day',
-      category: 'attendance',
-      dataType: 'number',
-      updatedBy: adminUser.id,
-    });
-    
-    console.log('✅ Default configuration created');
-    
-    console.log('🎉 Migration completed successfully!');
-    console.log('');
-    console.log('📧 Admin Email: admin@hrms.com');
-    console.log('🔑 Admin Password: admin123');
-    console.log('');
-    console.log('🚀 You can now start the backend server!');
-    
-  } catch (error) {
-    console.error('❌ Migration failed:', error.message);
-    console.error('Stack trace:', error.stack);
-    throw error;
-  } finally {
-    await sequelize.close();
-  }
+  console.log('✅ Admin employee profile created');
+
+  // Create some sample leave balances
+  const leaveTypes = [
+    { type: 'annual', allocated: 25, used: 0, pending: 0, available: 25 },
+    { type: 'sick', allocated: 10, used: 0, pending: 0, available: 10 },
+    { type: 'personal', allocated: 5, used: 0, pending: 0, available: 5 },
+  ];
+
+  await LeaveBalance.create({
+    employeeId: adminEmployee.id,
+    year: new Date().getFullYear(),
+    leaveTypes,
+  });
+  console.log('✅ Default leave balances created');
+
+  // Create default config
+  await Config.create({
+    key: 'company_name',
+    value: 'HRM System',
+    description: 'Company name for the system',
+    category: 'general',
+    dataType: 'string',
+    updatedBy: adminUser.id,
+  });
+
+  await Config.create({
+    key: 'working_hours_per_day',
+    value: '8',
+    description: 'Standard working hours per day',
+    category: 'attendance',
+    dataType: 'number',
+    updatedBy: adminUser.id,
+  });
+
+  console.log('✅ Default configuration created');
+
+  console.log('🎉 Migration completed successfully!');
+  console.log('');
+  console.log('📧 Admin Email: admin@hrms.com');
+  console.log('🔑 Admin Password: admin123');
+  console.log('');
+  console.log('🚀 You can now start the backend server!');
+
+} catch (error) {
+  console.error('❌ Migration failed:', error.message);
+  console.error('Stack trace:', error.stack);
+  throw error;
+} finally {
+  await sequelize.close();
+}
 };
 
 runMigration()

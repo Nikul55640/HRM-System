@@ -7,6 +7,8 @@ import bankDetailsRoutes from './bankDetails.routes.js';
 import leaveRoutes from './leave.routes.js';
 import attendanceRoutes from './attendance.routes.js';
 import notificationsRoutes from './notifications.routes.js';
+import shiftRoutes from './shift.routes.js';
+import calendarRoutes from './employeeCalendar.routes.js';
 
 const router = express.Router();
 
@@ -16,6 +18,8 @@ router.use('/', profileRoutes);
 router.use('/', bankDetailsRoutes);
 router.use('/', leaveRoutes);
 router.use('/', attendanceRoutes);
+router.use('/shifts', shiftRoutes);
+router.use('/calendar', calendarRoutes);
 router.use('/', notificationsRoutes);
 
 export default router;

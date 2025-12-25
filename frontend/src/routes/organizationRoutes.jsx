@@ -20,26 +20,26 @@ export const organizationRoutes = [
   {
     path: "hr/departments",
     element: <DepartmentPage />,
-    roles: ["HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "hr/designations",
     element: <DesignationPage />,
-    roles: ["HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "hr/policies",
     element: <PolicyPage />,
-    roles: ["HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "hr/holidays",
     element: <HolidayPage />,
-    roles: ["HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "hr/documents",
     element: <CompanyDocumentsPage />,
-    roles: ["HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
 ];

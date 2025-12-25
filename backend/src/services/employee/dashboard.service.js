@@ -27,23 +27,18 @@ const getEmployeeProfileSummary = async (user) => {
       };
     }
 
-    // Extract data from JSON fields
-    const personalInfo = employee.personalInfo || {};
-    const jobInfo = employee.jobInfo || {};
-    const contactInfo = employee.contactInfo || {};
-
     return {
       employeeId: employee.employeeId,
-      fullName: `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() || 'Unknown',
-      profilePhoto: personalInfo.profilePhoto || null,
-      email: contactInfo.email || personalInfo.email || '',
-      phoneNumber: contactInfo.phone || personalInfo.phone || '',
-      jobTitle: jobInfo.designation || jobInfo.jobTitle || '',
-      department: jobInfo.department || '',
-      manager: jobInfo.manager || null,
-      hireDate: jobInfo.joiningDate || jobInfo.hireDate || null,
-      employmentType: jobInfo.employeeType || jobInfo.employmentType || '',
-      workLocation: jobInfo.workLocation || 'Office',
+      fullName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Unknown',
+      profilePhoto: employee.profilePicture || null,
+      email: employee.email || '',
+      phoneNumber: employee.phone || '',
+      jobTitle: employee.designation || '',
+      department: employee.department || '',
+      manager: employee.reportingManager || null,
+      hireDate: employee.joiningDate || null,
+      employmentType: employee.employmentType || '',
+      workLocation: 'Office',
       status: employee.status || 'Active',
     };
   } catch (error) {

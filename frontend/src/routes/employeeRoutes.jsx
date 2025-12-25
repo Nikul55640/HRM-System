@@ -18,26 +18,26 @@ export const employeeRoutes = [
   {
     path: "employees",
     element: <EmployeeList />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "employees/new",
     element: <EmployeeForm />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "employees/:id",
     element: <EmployeeProfile />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "employees/:id/edit",
     element: <EmployeeForm />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "directory",
     element: <EmployeeList />, // Using EmployeeList for directory functionality
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
 ];

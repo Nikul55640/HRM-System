@@ -1,9 +1,9 @@
 /**
- * Lead Service Layer
- * Handles all business logic for lead management
+ * Lead Service Layer - Simplified for 8 Core Features
+ * Handles all business logic for lead management using followUpNotes JSON
  */
 
-import { Lead, LeadActivity, LeadNote, Employee, User, AuditLog } from '../../models/sequelize/index.js';
+import { Lead, Employee, User } from '../../models/sequelize/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
 
@@ -28,7 +28,7 @@ class LeadService {
             } = { ...filters, ...pagination };
 
             const offset = (page - 1) * limit;
-            const whereClause = { isActive: true };
+            const whereClause = {};
 
             // Apply filters
             if (status) whereClause.status = status;
@@ -62,9 +62,9 @@ class LeadService {
                         required: false
                     },
                     {
-                        model: User,
-                        as: 'creator',
-                        attributes: ['id', 'name', 'email'],
+                        model: Employee,
+                        as: 'creatorEmployee',
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email'],
                         required: false
                     }
                 ],
@@ -96,11 +96,11 @@ class LeadService {
     }
 
     /**
-     * Get lead by ID
+     * Get lead by ID with follow-up notes
      */
-    async getLeadById(id) {
+    async getLeadById(leadId) {
         try {
-            const lead = await Lead.findByPk(id, {
+            const lead = await Lead.findByPk(leadId, {
                 include: [
                     {
                         model: Employee,
@@ -109,34 +109,10 @@ class LeadService {
                         required: false
                     },
                     {
-                        model: User,
-                        as: 'creator',
-                        attributes: ['id', 'name', 'email'],
+                        model: Employee,
+                        as: 'creatorEmployee',
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email'],
                         required: false
-                    },
-                    {
-                        model: LeadActivity,
-                        as: 'activities',
-                        include: [
-                            {
-                                model: User,
-                                as: 'user',
-                                attributes: ['id', 'name', 'email']
-                            }
-                        ],
-                        order: [['createdAt', 'DESC']]
-                    },
-                    {
-                        model: LeadNote,
-                        as: 'notes',
-                        include: [
-                            {
-                                model: User,
-                                as: 'author',
-                                attributes: ['id', 'name', 'email']
-                            }
-                        ],
-                        order: [['createdAt', 'DESC']]
                     }
                 ]
             });
@@ -150,7 +126,7 @@ class LeadService {
 
             return {
                 success: true,
-                data: lead
+                data: { lead }
             };
         } catch (error) {
             logger.error('Error fetching lead:', error);
@@ -165,113 +141,31 @@ class LeadService {
     /**
      * Create new lead
      */
-    async createLead(leadData, userId, metadata = {}) {
+    async createLead(leadData, createdBy) {
         try {
-            const {
-                firstName,
-                lastName,
-                email,
-                phone,
-                company,
-                jobTitle,
-                source,
-                priority,
-                status,
-                assignedTo,
-                notes,
-                customFields
-            } = leadData;
-
-            // Check if lead with same email exists
-            const existingLead = await Lead.findOne({
-                where: {
-                    email: email.toLowerCase(),
-                    isActive: true
-                }
-            });
-
-            if (existingLead) {
-                return {
-                    success: false,
-                    message: 'Lead with this email already exists'
-                };
+            // Generate lead ID if not provided
+            if (!leadData.leadId) {
+                const leadCount = await Lead.count();
+                leadData.leadId = `LEAD-${String(leadCount + 1).padStart(6, '0')}`;
             }
-
-            // Generate lead ID
-            const lastLead = await Lead.findOne({
-                order: [['createdAt', 'DESC']]
-            });
-
-            let nextNumber = 1;
-            if (lastLead?.leadId) {
-                const lastNumber = parseInt(lastLead.leadId.split('-').pop(), 10);
-                nextNumber = lastNumber + 1;
-            }
-
-            const leadId = `LEAD-${new Date().getFullYear()}-${String(nextNumber).padStart(4, '0')}`;
 
             const lead = await Lead.create({
-                leadId,
-                firstName,
-                lastName,
-                email: email.toLowerCase(),
-                phone,
-                company,
-                jobTitle,
-                source,
-                priority: priority || 'Medium',
-                status: status || 'New',
-                assignedTo,
-                customFields: customFields || {},
-                createdBy: userId
-            });
-
-            // Add initial note if provided
-            if (notes) {
-                await LeadNote.create({
-                    leadId: lead.id,
-                    content: notes,
-                    authorId: userId
-                });
-            }
-
-            // Log activity
-            await LeadActivity.create({
-                leadId: lead.id,
-                activityType: 'created',
-                description: 'Lead created',
-                userId
-            });
-
-            // Log creation in audit log
-            await AuditLog.logAction({
-                userId,
-                action: 'lead_create',
-                module: 'lead',
-                targetType: 'Lead',
-                targetId: lead.id,
-                newValues: leadData,
-                description: `Created new lead: ${lead.firstName} ${lead.lastName} (${lead.leadId})`,
-                ipAddress: metadata.ipAddress,
-                userAgent: metadata.userAgent,
-                severity: 'medium'
-            });
-
-            const createdLead = await Lead.findByPk(lead.id, {
-                include: [
+                ...leadData,
+                createdBy,
+                followUpNotes: leadData.notes ? [
                     {
-                        model: Employee,
-                        as: 'assignedEmployee',
-                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email'],
-                        required: false
+                        content: leadData.notes,
+                        createdBy,
+                        createdAt: new Date(),
+                        type: 'initial_note'
                     }
-                ]
+                ] : []
             });
 
             return {
                 success: true,
-                message: 'Lead created successfully',
-                data: createdLead
+                data: { lead },
+                message: 'Lead created successfully'
             };
         } catch (error) {
             logger.error('Error creating lead:', error);
@@ -286,10 +180,9 @@ class LeadService {
     /**
      * Update lead
      */
-    async updateLead(id, leadData, userId, metadata = {}) {
+    async updateLead(leadId, leadData, updatedBy) {
         try {
-            const lead = await Lead.findByPk(id);
-
+            const lead = await Lead.findByPk(leadId);
             if (!lead) {
                 return {
                     success: false,
@@ -297,87 +190,17 @@ class LeadService {
                 };
             }
 
-            // Check email uniqueness if email is being updated
-            if (leadData.email && leadData.email.toLowerCase() !== lead.email.toLowerCase()) {
-                const existingLead = await Lead.findOne({
-                    where: {
-                        email: leadData.email.toLowerCase(),
-                        isActive: true,
-                        id: { [Op.ne]: id }
-                    }
-                });
+            const oldValues = lead.toJSON();
 
-                if (existingLead) {
-                    return {
-                        success: false,
-                        message: 'Another lead with this email already exists'
-                    };
-                }
-            }
-
-            const oldValues = {
-                status: lead.status,
-                priority: lead.priority,
-                assignedTo: lead.assignedTo
-            };
-
-            // Update lead
             await lead.update({
                 ...leadData,
-                email: leadData.email ? leadData.email.toLowerCase() : lead.email,
-                updatedBy: userId
-            });
-
-            // Log status change activity
-            if (leadData.status && leadData.status !== oldValues.status) {
-                await LeadActivity.create({
-                    leadId: lead.id,
-                    activityType: 'status_changed',
-                    description: `Status changed from ${oldValues.status} to ${leadData.status}`,
-                    userId
-                });
-            }
-
-            // Log assignment change activity
-            if (leadData.assignedTo && leadData.assignedTo !== oldValues.assignedTo) {
-                await LeadActivity.create({
-                    leadId: lead.id,
-                    activityType: 'assigned',
-                    description: `Lead assigned to new employee`,
-                    userId
-                });
-            }
-
-            // Log update in audit log
-            await AuditLog.logAction({
-                userId,
-                action: 'lead_update',
-                module: 'lead',
-                targetType: 'Lead',
-                targetId: lead.id,
-                oldValues,
-                newValues: leadData,
-                description: `Updated lead: ${lead.firstName} ${lead.lastName}`,
-                ipAddress: metadata.ipAddress,
-                userAgent: metadata.userAgent,
-                severity: 'medium'
-            });
-
-            const updatedLead = await Lead.findByPk(id, {
-                include: [
-                    {
-                        model: Employee,
-                        as: 'assignedEmployee',
-                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email'],
-                        required: false
-                    }
-                ]
+                updatedBy
             });
 
             return {
                 success: true,
-                message: 'Lead updated successfully',
-                data: updatedLead
+                data: { lead },
+                message: 'Lead updated successfully'
             };
         } catch (error) {
             logger.error('Error updating lead:', error);
@@ -392,10 +215,9 @@ class LeadService {
     /**
      * Delete lead (soft delete)
      */
-    async deleteLead(id, userId, metadata = {}) {
+    async deleteLead(leadId, deletedBy) {
         try {
-            const lead = await Lead.findByPk(id);
-
+            const lead = await Lead.findByPk(leadId);
             if (!lead) {
                 return {
                     success: false,
@@ -403,31 +225,7 @@ class LeadService {
                 };
             }
 
-            await lead.update({
-                isActive: false,
-                updatedBy: userId
-            });
-
-            // Log activity
-            await LeadActivity.create({
-                leadId: lead.id,
-                activityType: 'deleted',
-                description: 'Lead deleted',
-                userId
-            });
-
-            // Log deletion in audit log
-            await AuditLog.logAction({
-                userId,
-                action: 'lead_delete',
-                module: 'lead',
-                targetType: 'Lead',
-                targetId: lead.id,
-                description: `Deleted lead: ${lead.firstName} ${lead.lastName}`,
-                ipAddress: metadata.ipAddress,
-                userAgent: metadata.userAgent,
-                severity: 'high'
-            });
+            await lead.destroy();
 
             return {
                 success: true,
@@ -444,12 +242,11 @@ class LeadService {
     }
 
     /**
-     * Add note to lead
+     * Add follow-up note to lead
      */
-    async addLeadNote(leadId, content, userId, metadata = {}) {
+    async addFollowUpNote(leadId, content, userId, metadata = {}) {
         try {
             const lead = await Lead.findByPk(leadId);
-
             if (!lead) {
                 return {
                     success: false,
@@ -457,138 +254,41 @@ class LeadService {
                 };
             }
 
-            const note = await LeadNote.create({
-                leadId,
+            const currentNotes = lead.followUpNotes || [];
+            const newNote = {
+                id: Date.now(), // Simple ID for JSON array
                 content,
-                authorId: userId
-            });
+                createdBy: userId,
+                createdAt: new Date(),
+                type: metadata.type || 'follow_up',
+                ...metadata
+            };
 
-            // Log activity
-            await LeadActivity.create({
-                leadId,
-                activityType: 'note_added',
-                description: 'Note added to lead',
-                userId
-            });
-
-            const createdNote = await LeadNote.findByPk(note.id, {
-                include: [
-                    {
-                        model: User,
-                        as: 'author',
-                        attributes: ['id', 'name', 'email']
-                    }
-                ]
+            await lead.update({
+                followUpNotes: [...currentNotes, newNote]
             });
 
             return {
                 success: true,
-                message: 'Note added successfully',
-                data: createdNote
+                data: { note: newNote },
+                message: 'Follow-up note added successfully'
             };
         } catch (error) {
-            logger.error('Error adding lead note:', error);
+            logger.error('Error adding follow-up note:', error);
             return {
                 success: false,
-                message: 'Failed to add note',
+                message: 'Failed to add follow-up note',
                 error: error.message
             };
         }
     }
 
     /**
-     * Get lead statistics
+     * Assign lead to employee
      */
-    async getLeadStats(filters = {}) {
+    async assignLead(leadId, assignedTo, assignedBy) {
         try {
-            const { assignedTo, dateFrom, dateTo } = filters;
-
-            const whereClause = { isActive: true };
-
-            if (assignedTo) {
-                whereClause.assignedTo = assignedTo;
-            }
-
-            if (dateFrom && dateTo) {
-                whereClause.createdAt = {
-                    [Op.between]: [new Date(dateFrom), new Date(dateTo)]
-                };
-            }
-
-            const [
-                totalLeads,
-                newLeads,
-                qualifiedLeads,
-                convertedLeads,
-                lostLeads,
-                statusDistribution,
-                priorityDistribution,
-                sourceDistribution
-            ] = await Promise.all([
-                Lead.count({ where: whereClause }),
-                Lead.count({ where: { ...whereClause, status: 'New' } }),
-                Lead.count({ where: { ...whereClause, status: 'Qualified' } }),
-                Lead.count({ where: { ...whereClause, status: 'Converted' } }),
-                Lead.count({ where: { ...whereClause, status: 'Lost' } }),
-                Lead.findAll({
-                    attributes: [
-                        'status',
-                        [Lead.sequelize.fn('COUNT', Lead.sequelize.col('id')), 'count']
-                    ],
-                    where: whereClause,
-                    group: ['status'],
-                    raw: true
-                }),
-                Lead.findAll({
-                    attributes: [
-                        'priority',
-                        [Lead.sequelize.fn('COUNT', Lead.sequelize.col('id')), 'count']
-                    ],
-                    where: whereClause,
-                    group: ['priority'],
-                    raw: true
-                }),
-                Lead.findAll({
-                    attributes: [
-                        'source',
-                        [Lead.sequelize.fn('COUNT', Lead.sequelize.col('id')), 'count']
-                    ],
-                    where: whereClause,
-                    group: ['source'],
-                    raw: true
-                })
-            ]);
-
-            return {
-                success: true,
-                data: {
-                    totalLeads,
-                    newLeads,
-                    qualifiedLeads,
-                    convertedLeads,
-                    lostLeads,
-                    statusDistribution,
-                    priorityDistribution,
-                    sourceDistribution
-                }
-            };
-        } catch (error) {
-            logger.error('Error fetching lead stats:', error);
-            return {
-                success: false,
-                message: 'Failed to fetch lead statistics',
-                error: error.message
-            };
-        }
-    }
-
-    /**
-     * Convert lead to customer/employee
-     */
-    async convertLead(id, conversionData, userId, metadata = {}) {
-        try {
-            const lead = await Lead.findByPk(id);
-
+            const lead = await Lead.findByPk(leadId);
             if (!lead) {
                 return {
                     success: false,
@@ -596,53 +296,117 @@ class LeadService {
                 };
             }
 
-            if (lead.status === 'Converted') {
+            const employee = await Employee.findByPk(assignedTo);
+            if (!employee) {
                 return {
                     success: false,
-                    message: 'Lead is already converted'
+                    message: 'Employee not found'
                 };
             }
 
-            // Update lead status
             await lead.update({
-                status: 'Converted',
-                convertedAt: new Date(),
-                conversionData,
+                assignedTo,
+                updatedBy: assignedBy
+            });
+
+            // Add assignment note
+            await this.addFollowUpNote(leadId, `Lead assigned to ${employee.firstName} ${employee.lastName}`, assignedBy, {
+                type: 'assignment'
+            });
+
+            return {
+                success: true,
+                data: { lead },
+                message: 'Lead assigned successfully'
+            };
+        } catch (error) {
+            logger.error('Error assigning lead:', error);
+            return {
+                success: false,
+                message: 'Failed to assign lead',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Update lead status
+     */
+    async updateStatus(leadId, status, userId, reason = null) {
+        try {
+            const lead = await Lead.findByPk(leadId);
+            if (!lead) {
+                return {
+                    success: false,
+                    message: 'Lead not found'
+                };
+            }
+
+            const oldStatus = lead.status;
+            await lead.update({
+                status,
                 updatedBy: userId
             });
 
-            // Log activity
-            await LeadActivity.create({
-                leadId: lead.id,
-                activityType: 'converted',
-                description: 'Lead converted successfully',
-                userId
-            });
+            // Add status change note
+            const noteContent = reason
+                ? `Status changed from ${oldStatus} to ${status}. Reason: ${reason}`
+                : `Status changed from ${oldStatus} to ${status}`;
 
-            // Log conversion in audit log
-            await AuditLog.logAction({
-                userId,
-                action: 'lead_convert',
-                module: 'lead',
-                targetType: 'Lead',
-                targetId: lead.id,
-                newValues: { status: 'Converted', conversionData },
-                description: `Converted lead: ${lead.firstName} ${lead.lastName}`,
-                ipAddress: metadata.ipAddress,
-                userAgent: metadata.userAgent,
-                severity: 'high'
+            await this.addFollowUpNote(leadId, noteContent, userId, {
+                type: 'status_change',
+                oldStatus,
+                newStatus: status
             });
 
             return {
                 success: true,
-                message: 'Lead converted successfully',
-                data: lead
+                data: { lead },
+                message: 'Lead status updated successfully'
             };
         } catch (error) {
-            logger.error('Error converting lead:', error);
+            logger.error('Error updating lead status:', error);
             return {
                 success: false,
-                message: 'Failed to convert lead',
+                message: 'Failed to update lead status',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Get leads assigned to specific employee
+     */
+    async getAssignedLeads(employeeId, filters = {}) {
+        try {
+            const whereClause = { assignedTo: employeeId };
+
+            if (filters.status) {
+                whereClause.status = filters.status;
+            }
+
+            const leads = await Lead.findAll({
+                where: whereClause,
+                include: [
+                    {
+                        model: Employee,
+                        as: 'creatorEmployee',
+                        attributes: ['id', 'firstName', 'lastName', 'email'],
+                        required: false
+                    }
+                ],
+                order: [['updatedAt', 'DESC']]
+            });
+
+            return {
+                success: true,
+                data: { leads }
+            };
+        } catch (error) {
+            logger.error('Error fetching assigned leads:', error);
+            return {
+                success: false,
+                message: 'Failed to fetch assigned leads',
                 error: error.message
             };
         }

@@ -9,14 +9,14 @@ const router = express.Router();
 /* ---------------------------------------------------------
    EMPLOYEE LEAVE BALANCE & HISTORY
 --------------------------------------------------------- */
-router.get("/leave-balance", authenticate, leaveController.getLeaveBalance);
+router.get("/leave-balance", authenticate, leaveController.getMyLeaveBalances);
 
-router.get("/leave-history", authenticate, leaveController.getLeaveHistory);
+router.get("/leave-history", authenticate, leaveController.getMyLeaveHistory);
 
 router.get(
-  "/leave-balance/export",
+  "/leave-balance/history",
   authenticate,
-  leaveController.exportLeaveSummary
+  leaveController.getMyLeaveBalanceHistory
 );
 
 /* ---------------------------------------------------------
@@ -31,19 +31,26 @@ router.post(
 router.get(
   "/leave-requests",
   authenticate,
-  leaveRequestController.getLeaveRequests
+  leaveController.getMyLeaveRequests
 );
 
 router.get(
   "/leave-requests/:id",
   authenticate,
-  leaveRequestController.getLeaveRequest
+  leaveController.getLeaveRequestStatus
 );
 
 router.delete(
   "/leave-requests/:id",
   authenticate,
-  leaveRequestController.cancelLeaveRequest
+  leaveController.cancelMyLeaveRequest
 );
+
+/* ---------------------------------------------------------
+   ADDITIONAL EMPLOYEE LEAVE FEATURES
+--------------------------------------------------------- */
+router.get("/eligibility", authenticate, leaveController.checkLeaveEligibility);
+
+router.get("/pending", authenticate, leaveController.getMyPendingLeaveRequests);
 
 export default router;

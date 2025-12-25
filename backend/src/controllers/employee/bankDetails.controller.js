@@ -1,5 +1,4 @@
-import EmployeeProfile from '../../models/sequelize/EmployeeProfile.js';
-import Employee from '../../models/sequelize/Employee.js';
+import { Employee } from '../../models/sequelize/index.js';
 import { validateIFSC } from '../../validators/bankDetailsValidator.js';
 
 /**
@@ -22,12 +21,12 @@ const getBankDetails = async (req, res) => {
 
     console.log('🏦 [BANK DETAILS] Fetching for employeeId:', employeeId);
 
-    const profile = await EmployeeProfile.findOne({ employeeId }).select('bankDetails');
+    const employee = await Employee.findByPk(employeeId);
 
-    console.log('🏦 [BANK DETAILS] Profile found:', !!profile);
-    console.log('🏦 [BANK DETAILS] Bank details exist:', !!profile?.bankDetails);
+    console.log('🏦 [BANK DETAILS] Employee found:', !!employee);
+    console.log('🏦 [BANK DETAILS] Bank details exist:', !!employee?.bankDetails);
 
-    if (!profile || !profile.bankDetails) {
+    if (!employee || !employee.bankDetails || Object.keys(employee.bankDetails).length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Bank details not found',
@@ -36,14 +35,14 @@ const getBankDetails = async (req, res) => {
 
     // Return bank details with masked account number
     const bankDetails = {
-      accountNumber: maskAccountNumber(profile.bankDetails.accountNumber),
-      bankName: profile.bankDetails.bankName,
-      ifscCode: profile.bankDetails.ifscCode,
-      accountHolderName: profile.bankDetails.accountHolderName,
-      accountType: profile.bankDetails.accountType,
-      branchName: profile.bankDetails.branchName,
-      verificationStatus: profile.bankDetails.verificationStatus,
-      verifiedAt: profile.bankDetails.verifiedAt,
+      accountNumber: maskAccountNumber(employee.bankDetails.accountNumber),
+      bankName: employee.bankDetails.bankName,
+      ifscCode: employee.bankDetails.ifscCode,
+      accountHolderName: employee.bankDetails.accountHolderName,
+      accountType: employee.bankDetails.accountType,
+      branchName: employee.bankDetails.branchName,
+      isVerified: employee.bankDetails.isVerified || false,
+      verifiedAt: employee.bankDetails.verifiedAt,
     };
 
     console.log('✅ [BANK DETAILS] Returning masked details');
@@ -66,7 +65,7 @@ const getBankDetails = async (req, res) => {
  * Update bank details for the authenticated employee
  * Requires HR approval before changes are reflected
  */
- const updateBankDetails = async (req, res) => {
+const updateBankDetails = async (req, res) => {
   try {
     const { employeeId, id: userId } = req.user;
     const {
@@ -94,59 +93,45 @@ const getBankDetails = async (req, res) => {
       });
     }
 
-    // Find or create employee profile
-    let profile = await EmployeeProfile.findOne({ employeeId });
+    // Find employee
+    const employee = await Employee.findByPk(employeeId);
 
-    if (!profile) {
-      profile = new EmployeeProfile({
-        employeeId,
-        userId,
-        createdBy: userId,
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found',
       });
     }
 
-    // Store old bank details for change history
-    const oldBankDetails = profile.bankDetails ? { ...profile.bankDetails.toObject() } : null;
-
     // Update bank details
-    profile.bankDetails = {
+    const bankDetails = {
       accountNumber,
       bankName,
       ifscCode: ifscCode.toUpperCase(),
       accountHolderName,
       accountType: accountType || 'Savings',
       branchName,
-      verificationStatus: 'pending', // Reset to pending on update
+      isVerified: false, // Reset to false on update
       verifiedAt: null,
       verifiedBy: null,
     };
 
-    // Log change for approval
-    if (oldBankDetails) {
-      profile.changeHistory.push({
-        field: 'bankDetails',
-        oldValue: oldBankDetails,
-        newValue: profile.bankDetails,
-        changedAt: new Date(),
-        changedBy: userId,
-        approvalStatus: 'pending',
-      });
-    }
-
-    profile.updatedBy = userId;
-    await profile.save();
+    await employee.update({
+      bankDetails,
+      updatedBy: userId
+    });
 
     res.json({
       success: true,
       message: 'Bank details updated successfully. Pending HR verification.',
       data: {
-        accountNumber: maskAccountNumber(profile.bankDetails.accountNumber),
-        bankName: profile.bankDetails.bankName,
-        ifscCode: profile.bankDetails.ifscCode,
-        accountHolderName: profile.bankDetails.accountHolderName,
-        accountType: profile.bankDetails.accountType,
-        branchName: profile.bankDetails.branchName,
-        verificationStatus: profile.bankDetails.verificationStatus,
+        accountNumber: maskAccountNumber(bankDetails.accountNumber),
+        bankName: bankDetails.bankName,
+        ifscCode: bankDetails.ifscCode,
+        accountHolderName: bankDetails.accountHolderName,
+        accountType: bankDetails.accountType,
+        branchName: bankDetails.branchName,
+        isVerified: bankDetails.isVerified,
       },
     });
   } catch (error) {
@@ -162,34 +147,27 @@ const getBankDetails = async (req, res) => {
  * Request verification of bank details
  * Sends notification to HR for approval
  */
- const requestVerification = async (req, res) => {
+const requestVerification = async (req, res) => {
   try {
     const { employeeId } = req.user;
 
-    const profile = await EmployeeProfile.findOne({ employeeId });
+    const employee = await Employee.findByPk(employeeId);
 
-    if (!profile || !profile.bankDetails) {
+    if (!employee || !employee.bankDetails || Object.keys(employee.bankDetails).length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Bank details not found. Please add bank details first.',
       });
     }
 
-    if (profile.bankDetails.verificationStatus === 'verified') {
+    if (employee.bankDetails.isVerified) {
       return res.status(400).json({
         success: false,
         message: 'Bank details are already verified',
       });
     }
 
-    // Update verification status to pending
-    profile.bankDetails.verificationStatus = 'pending';
-    profile.updatedBy = req.user.id;
-    await profile.save();
-
-    // TODO: Send notification to HR for verification
-    // This would typically integrate with a notification service
-
+    // Update verification status to pending (this would be handled by HR)
     res.json({
       success: true,
       message: 'Verification request submitted successfully. HR will review your bank details.',
@@ -209,28 +187,12 @@ const getBankDetails = async (req, res) => {
  */
 const verifyBankDetails = async (req, res) => {
   try {
-    const { profileId } = req.params;
-    const { status, rejectionReason } = req.body;
+    const { employeeId } = req.params;
+    const { isVerified, rejectionReason } = req.body;
 
-    // Validate status
-    if (!['verified', 'rejected'].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Status must be either "verified" or "rejected"',
-      });
-    }
+    const employee = await Employee.findByPk(employeeId);
 
-    // If rejecting, reason is required
-    if (status === 'rejected' && !rejectionReason) {
-      return res.status(400).json({
-        success: false,
-        message: 'Rejection reason is required when rejecting bank details',
-      });
-    }
-
-    const profile = await EmployeeProfile.findById(profileId);
-
-    if (!profile || !profile.bankDetails) {
+    if (!employee || !employee.bankDetails || Object.keys(employee.bankDetails).length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Bank details not found',
@@ -238,31 +200,26 @@ const verifyBankDetails = async (req, res) => {
     }
 
     // Update verification status
-    profile.bankDetails.verificationStatus = status;
+    const updatedBankDetails = {
+      ...employee.bankDetails,
+      isVerified: isVerified,
+      verifiedAt: isVerified ? new Date() : null,
+      verifiedBy: isVerified ? req.user.id : null,
+      rejectionReason: !isVerified ? rejectionReason : null,
+    };
 
-    if (status === 'verified') {
-      profile.bankDetails.verifiedAt = new Date();
-      profile.bankDetails.verifiedBy = req.user.id;
-      profile.bankDetails.rejectionReason = undefined;
-    } else {
-      profile.bankDetails.rejectionReason = rejectionReason;
-      profile.bankDetails.verifiedAt = null;
-      profile.bankDetails.verifiedBy = null;
-    }
-
-    profile.updatedBy = req.user.id;
-    await profile.save();
-
-    // TODO: Send notification to employee about verification status
-    // This would typically integrate with a notification service
+    await employee.update({
+      bankDetails: updatedBankDetails,
+      updatedBy: req.user.id
+    });
 
     res.json({
       success: true,
-      message: `Bank details ${status} successfully`,
+      message: `Bank details ${isVerified ? 'verified' : 'rejected'} successfully`,
       data: {
-        verificationStatus: profile.bankDetails.verificationStatus,
-        verifiedAt: profile.bankDetails.verifiedAt,
-        rejectionReason: profile.bankDetails.rejectionReason,
+        isVerified: updatedBankDetails.isVerified,
+        verifiedAt: updatedBankDetails.verifiedAt,
+        rejectionReason: updatedBankDetails.rejectionReason,
       },
     });
   } catch (error) {
@@ -275,30 +232,30 @@ const verifyBankDetails = async (req, res) => {
 };
 
 /**
- * Get all profiles with pending bank verification (HR/Admin only)
+ * Get all employees with pending bank verification (HR/Admin only)
  */
 const getPendingVerifications = async (req, res) => {
   try {
-    const profiles = await EmployeeProfile.find({
-      'bankDetails.verificationStatus': 'pending',
-    })
-      .populate('employeeId', 'employeeId personalInfo.firstName personalInfo.lastName contactInfo.email')
-      .select('bankDetails employeeId')
-      .sort({ updatedAt: -1 });
+    const employees = await Employee.findAll({
+      where: {
+        '$bankDetails.isVerified$': false,
+      },
+      attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email', 'bankDetails', 'updatedAt']
+    });
 
-    const pendingList = profiles.map((profile) => ({
-      profileId: profile._id,
-      employeeId: profile.employeeId?.employeeId,
-      employeeName: profile.employeeId
-        ? `${profile.employeeId.personalInfo.firstName} ${profile.employeeId.personalInfo.lastName}`
-        : 'Unknown',
-      email: profile.employeeId?.contactInfo?.email,
-      bankName: profile.bankDetails?.bankName,
-      ifscCode: profile.bankDetails?.ifscCode,
-      accountHolderName: profile.bankDetails?.accountHolderName,
-      accountNumber: maskAccountNumber(profile.bankDetails?.accountNumber),
-      updatedAt: profile.updatedAt,
-    }));
+    const pendingList = employees
+      .filter(emp => emp.bankDetails && Object.keys(emp.bankDetails).length > 0)
+      .map((employee) => ({
+        employeeId: employee.id,
+        employeeCode: employee.employeeId,
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        email: employee.email,
+        bankName: employee.bankDetails?.bankName,
+        ifscCode: employee.bankDetails?.ifscCode,
+        accountHolderName: employee.bankDetails?.accountHolderName,
+        accountNumber: maskAccountNumber(employee.bankDetails?.accountNumber),
+        updatedAt: employee.updatedAt,
+      }));
 
     res.json({
       success: true,

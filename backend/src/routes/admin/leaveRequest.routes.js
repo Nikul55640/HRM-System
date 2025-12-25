@@ -20,14 +20,14 @@ router.get("/balances",
     MODULES.LEAVE.VIEW_ALL,
     MODULES.LEAVE.MANAGE_BALANCE,
   ]),
-  leaveBalanceController.getAllLeaveBalances
+  leaveBalanceController.getAllEmployeesLeaveBalances
 );
 
 // Assign/update leave balance for an employee
 // Permission: MANAGE_BALANCE
 router.post("/assign/:employeeId",
   checkPermission(MODULES.LEAVE.MANAGE_BALANCE),
-  leaveBalanceController.assignLeaveBalance
+  leaveBalanceController.assignSingleEmployeeQuota
 );
 
 // ===== LEAVE REQUEST ROUTES =====
@@ -40,7 +40,7 @@ router.get("/leave-requests",
     MODULES.LEAVE.VIEW_TEAM,
     MODULES.LEAVE.VIEW_OWN,
   ]),
-  leaveRequestController.getAllLeaveRequests
+  leaveRequestController.getLeaveRequests
 );
 
 // Get leave statistics
@@ -51,7 +51,7 @@ router.get(
     MODULES.LEAVE.VIEW_ALL,
     MODULES.LEAVE.VIEW_TEAM,
   ]),
-  leaveRequestController.getLeaveStatistics
+  leaveRequestController.getLeaveRequestStats
 );
 
 // Get specific leave request

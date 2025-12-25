@@ -43,7 +43,10 @@ export const MODULES = {
     APPROVE_TEAM: "leave.approve.team",
     APPROVE_ANY: "leave.approve.any",
     MANAGE_POLICIES: "leave.policies.manage",
-    MANAGE_BALANCE: "leave.balance.manage",
+    MANAGE_BALANCES: "leave.balances.manage",
+    ASSIGN_BALANCES: "leave.balances.assign",
+    VIEW_ALL_BALANCES: "leave.balances.view.all",
+    VIEW_OWN_BALANCE: "leave.balances.view.own",
     VIEW_CALENDAR: "leave.calendar.view",
   },
 
@@ -95,6 +98,18 @@ export const MODULES = {
     MANAGE_OFFERS: "recruitment.offers.manage",
   },
 
+  // Lead Management
+  LEAD: {
+    VIEW_OWN: "lead.view.own",
+    VIEW_TEAM: "lead.view.team",
+    VIEW_ALL: "lead.view.all",
+    CREATE: "lead.create",
+    UPDATE_OWN: "lead.update.own",
+    UPDATE_ANY: "lead.update.any",
+    ASSIGN: "lead.assign",
+    MANAGE: "lead.manage",
+  },
+
   // Department Management
   DEPARTMENT: {
     VIEW: "department.view",
@@ -118,6 +133,7 @@ export const MODULES = {
   SYSTEM: {
     VIEW_CONFIG: "system.config.view",
     MANAGE_CONFIG: "system.config.manage",
+    MANAGE_POLICIES: "system.policies.manage",
     VIEW_AUDIT_LOGS: "system.audit.view",
     MANAGE_INTEGRATIONS: "system.integrations.manage",
     BACKUP_DATA: "system.backup",

@@ -3,12 +3,10 @@ import sequelize from '../src/config/sequelize.js';
 import User from '../src/models/sequelize/User.js';
 import Department from '../src/models/sequelize/Department.js';
 import Employee from '../src/models/sequelize/Employee.js';
-import EmployeeProfile from '../src/models/sequelize/EmployeeProfile.js';
-import LeaveType from '../src/models/sequelize/LeaveType.js';
 import Holiday from '../src/models/sequelize/Holiday.js';
 import LeaveBalance from '../src/models/sequelize/LeaveBalance.js';
 import Lead from '../src/models/sequelize/Lead.js';
-import Config from '../src/models/sequelize/Config.js';
+import SystemPolicy from '../src/models/sequelize/SystemPolicy.js';
 
 const seedDatabase = async () => {
   try {
@@ -22,7 +20,7 @@ const seedDatabase = async () => {
     // 1. CREATE DEPARTMENTS
     // ============================================
     console.log('📁 Creating departments...');
-    
+
     const departments = await Department.bulkCreate([
       {
         name: 'Human Resources',
@@ -65,14 +63,14 @@ const seedDatabase = async () => {
         updatedAt: new Date()
       }
     ]);
-    
+
     console.log(`✅ Created ${departments.length} departments`);
 
     // ============================================
     // 2. CREATE EMPLOYEES
     // ============================================
     console.log('👥 Creating employees...');
-    
+
     const employees = await Employee.bulkCreate([
       {
         employeeId: 'EMP001',
@@ -199,16 +197,16 @@ const seedDatabase = async () => {
         updatedAt: new Date()
       }
     ]);
-    
+
     console.log(`✅ Created ${employees.length} employees`);
 
     // ============================================
     // 3. CREATE USERS
     // ============================================
     console.log('🔐 Creating users...');
-    
+
     const hashedPassword = await bcrypt.hash('admin123', 10);
-    
+
     const users = await User.bulkCreate([
       {
         name: 'Admin User',
@@ -251,14 +249,14 @@ const seedDatabase = async () => {
         updatedAt: new Date()
       }
     ]);
-    
+
     console.log(`✅ Created ${users.length} users`);
 
     // ============================================
     // 4. PHASE 2: CREATE LEAVE TYPES
     // ============================================
     console.log('📋 Phase 2: Creating leave types...');
-    
+
     const leaveTypes = await LeaveType.bulkCreate([
       {
         name: 'Annual Leave',
@@ -333,14 +331,14 @@ const seedDatabase = async () => {
         updatedAt: new Date()
       }
     ]);
-    
+
     console.log(`✅ Created ${leaveTypes.length} leave types`);
 
     // ============================================
     // 5. PHASE 2: CREATE HOLIDAYS
     // ============================================
     console.log('🎉 Phase 2: Creating holidays...');
-    
+
     const currentYear = new Date().getFullYear();
     const holidays = await Holiday.bulkCreate([
       {
@@ -389,14 +387,14 @@ const seedDatabase = async () => {
         updatedAt: new Date()
       }
     ]);
-    
+
     console.log(`✅ Created ${holidays.length} holidays`);
 
     // ============================================
     // 6. CREATE LEAVE BALANCES
     // ============================================
     console.log('⚖️ Creating leave balances...');
-    
+
     const leaveBalances = [];
     for (const employee of employees) {
       for (const leaveType of leaveTypes) {
@@ -415,7 +413,7 @@ const seedDatabase = async () => {
         });
       }
     }
-    
+
     await LeaveBalance.bulkCreate(leaveBalances);
     console.log(`✅ Created ${leaveBalances.length} leave balance records`);
 
@@ -423,7 +421,7 @@ const seedDatabase = async () => {
     // 7. PHASE 4: CREATE SAMPLE LEADS
     // ============================================
     console.log('💼 Phase 4: Creating sample leads...');
-    
+
     const leads = await Lead.bulkCreate([
       {
         firstName: 'Alice',
@@ -478,14 +476,14 @@ const seedDatabase = async () => {
         updatedAt: new Date()
       }
     ]);
-    
+
     console.log(`✅ Created ${leads.length} sample leads`);
 
     // ============================================
     // 8. CREATE SYSTEM CONFIGURATION
     // ============================================
     console.log('⚙️ Creating system configuration...');
-    
+
     const configs = await Config.bulkCreate([
       {
         key: 'company_info',
@@ -544,7 +542,7 @@ const seedDatabase = async () => {
         updatedAt: new Date()
       }
     ]);
-    
+
     console.log(`✅ Created ${configs.length} configuration records`);
 
     // ============================================

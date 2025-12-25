@@ -1,14 +1,16 @@
 /**
  * Admin Attendance Routes
  * Routes for admin/HR attendance management
+ * Updated for restructured AttendanceRecord model
  */
 
 import express from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
 import { checkPermission, checkAnyPermission } from '../../middleware/checkPermission.js';
 import { MODULES } from '../../config/rolePermissions.js';
+import attendanceController from '../../controllers/admin/attendance.controller.js';
 import liveAttendanceController from '../../controllers/admin/liveAttendance.controller.js';
-import attendanceController from '../../controllers/employee/attendance.controller.js';
+import employeeAttendanceController from '../../controllers/employee/attendance.controller.js';
 import { AttendanceRecord } from '../../models/sequelize/index.js';
 import {
   preventHistoricalModification,
@@ -19,10 +21,27 @@ import {
 const router = express.Router();
 
 /* ============================================================
-   ADMIN/HR ATTENDANCE ROUTES
+   ADMIN/HR ATTENDANCE ROUTES — UPDATED FOR NEW MODEL
    ============================================================ */
 
-// Get live attendance (currently active sessions)
+/* -----------------------------------
+   GET ATTENDANCE RECORDS WITH FILTERING
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+  '/',
+  authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  attendanceController.getAttendanceRecords
+);
+
+/* -----------------------------------
+   GET LIVE ATTENDANCE (CURRENTLY ACTIVE SESSIONS)
+   Permission: HR & SuperAdmin
+----------------------------------- */
 router.get(
   '/live',
   authenticate,
@@ -33,7 +52,10 @@ router.get(
   liveAttendanceController.getLiveAttendance
 );
 
-// Get live status for specific employee
+/* -----------------------------------
+   GET LIVE STATUS FOR SPECIFIC EMPLOYEE
+   Permission: HR & SuperAdmin
+----------------------------------- */
 router.get(
   '/live/:employeeId',
   authenticate,
@@ -44,6 +66,159 @@ router.get(
   liveAttendanceController.getEmployeeLiveStatus
 );
 
+/* -----------------------------------
+   GET ATTENDANCE ANALYTICS
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+  '/analytics',
+  authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  attendanceController.getAttendanceAnalytics
+);
+
+/* -----------------------------------
+   GET PENDING CORRECTION REQUESTS
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+  '/corrections/pending',
+  authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.APPROVE_CORRECTIONS,
+    MODULES.ATTENDANCE.VIEW_ALL,
+  ]),
+  attendanceController.getPendingCorrections
+);
+
+/* -----------------------------------
+   GET LATE ARRIVALS REPORT
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+  '/reports/late-arrivals',
+  authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  attendanceController.getLateArrivalsReport
+);
+
+/* -----------------------------------
+   GET EARLY DEPARTURES REPORT
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+  '/reports/early-departures',
+  authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  attendanceController.getEarlyDeparturesReport
+);
+
+/* -----------------------------------
+   GET OVERTIME REPORT
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+  '/reports/overtime',
+  authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  attendanceController.getOvertimeReport
+);
+
+/* -----------------------------------
+   GET BREAK VIOLATIONS REPORT
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+  '/reports/break-violations',
+  authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  attendanceController.getBreakViolationsReport
+);
+
+/* -----------------------------------
+   GET MONTHLY ATTENDANCE SUMMARY
+   Permission: HR, SuperAdmin, or own employee
+----------------------------------- */
+router.get(
+  '/summary/:employeeId/:year/:month',
+  authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+    MODULES.ATTENDANCE.VIEW_OWN,
+  ]),
+  attendanceController.getMonthlyAttendanceSummary
+);
+
+/* -----------------------------------
+   PROCESS ATTENDANCE CORRECTION
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.patch(
+  '/corrections/:id/process',
+  authenticate,
+  checkPermission(MODULES.ATTENDANCE.APPROVE_CORRECTIONS),
+  attendanceController.processAttendanceCorrection
+);
+
+/* -----------------------------------
+   BULK APPROVE CORRECTIONS
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.patch(
+  '/corrections/bulk-approve',
+  authenticate,
+  checkPermission(MODULES.ATTENDANCE.APPROVE_CORRECTIONS),
+  attendanceController.bulkApproveCorrections
+);
+
+/* -----------------------------------
+   EDIT ATTENDANCE RECORD (SUPERADMIN ONLY)
+   Permission: SuperAdmin only
+----------------------------------- */
+router.put(
+  '/:id/edit',
+  authenticate,
+  checkPermission(MODULES.ATTENDANCE.EDIT_ANY),
+  preventHistoricalModification,
+  validateTimestamps,
+  checkConsistencyBeforeSave,
+  attendanceController.editAttendanceRecord
+);
+
+/* -----------------------------------
+   EXPORT ATTENDANCE DATA
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+  '/export',
+  authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  attendanceController.exportAttendanceData
+);
+
+/* -----------------------------------
+   LEGACY ENDPOINTS (FOR BACKWARD COMPATIBILITY)
+----------------------------------- */
+
 // Manual update attendance (HR/Admin only)
 router.put(
   '/:recordId',
@@ -52,7 +227,7 @@ router.put(
   preventHistoricalModification,
   validateTimestamps,
   checkConsistencyBeforeSave,
-  attendanceController.manualUpdateAttendance
+  attendanceController.editAttendanceRecord
 );
 
 // Get all employees attendance (admin view)
@@ -60,8 +235,23 @@ router.get(
   '/all',
   authenticate,
   checkPermission(MODULES.ATTENDANCE.VIEW_ALL),
-  attendanceController.getAllAttendanceRecords
+  attendanceController.getAttendanceRecords
 );
+
+// Export attendance reports
+router.get(
+  '/export-legacy',
+  authenticate,
+  checkAnyPermission([
+    MODULES.ATTENDANCE.VIEW_ALL,
+    MODULES.ATTENDANCE.VIEW_TEAM,
+  ]),
+  attendanceController.exportAttendanceData
+);
+
+/* -----------------------------------
+   DEBUG ENDPOINTS (DEVELOPMENT ONLY)
+----------------------------------- */
 
 // DEBUG: Simple test endpoint to check database
 router.get(
@@ -71,41 +261,41 @@ router.get(
   async (req, res) => {
     try {
       console.log('🧪 [DEBUG ENDPOINT] Testing database connection...');
-      
+
       const totalRecords = await AttendanceRecord.count();
       console.log('🧪 [DEBUG ENDPOINT] Total attendance records:', totalRecords);
-      
+
       const recentRecords = await AttendanceRecord.findAll({
         limit: 5,
         order: [['createdAt', 'DESC']],
         include: [{
           model: AttendanceRecord.sequelize.models.Employee,
           as: 'employee',
-          attributes: ['id', 'employeeId', 'personalInfo'],
+          attributes: ['id', 'employeeId', 'firstName', 'lastName'],
         }],
       });
-      
+
       console.log('🧪 [DEBUG ENDPOINT] Recent records:', recentRecords.length);
-      
+
       const debugData = recentRecords.map(record => ({
         id: record.id,
         employeeId: record.employeeId,
         date: record.date,
-        checkIn: record.checkIn,
-        checkOut: record.checkOut,
+        clockIn: record.clockIn,
+        clockOut: record.clockOut,
         status: record.status,
-        employeeName: record.employee ? 
-          `${record.employee.personalInfo?.firstName || ''} ${record.employee.personalInfo?.lastName || ''}`.trim() : 
+        employeeName: record.employee ?
+          `${record.employee.firstName || ''} ${record.employee.lastName || ''}`.trim() :
           'Unknown'
       }));
-      
+
       res.json({
         success: true,
         totalRecords,
         recentRecords: debugData,
         message: 'Debug endpoint working'
       });
-      
+
     } catch (error) {
       console.error('🧪 [DEBUG ENDPOINT] Error:', error);
       res.status(500).json({
@@ -114,127 +304,6 @@ router.get(
       });
     }
   }
-);
-
-// Simple test endpoint without any complex logic
-router.get(
-  '/test',
-  authenticate,
-  async (req, res) => {
-    try {
-      console.log('🧪 [TEST ENDPOINT] Simple test...');
-      
-      const records = await AttendanceRecord.findAll({
-        where: {
-          date: '2025-12-22'
-        },
-        include: [{
-          model: AttendanceRecord.sequelize.models.Employee,
-          as: 'employee',
-          attributes: ['id', 'employeeId', 'personalInfo'],
-          required: false
-        }],
-        limit: 10
-      });
-      
-      console.log('🧪 [TEST ENDPOINT] Found records:', records.length);
-      
-      const formattedRecords = records.map(record => ({
-        id: record.id,
-        employeeId: record.employeeId,
-        date: record.date,
-        checkIn: record.checkIn,
-        checkOut: record.checkOut,
-        status: record.status,
-        employeeName: record.employee ? 
-          `${record.employee.personalInfo?.firstName || ''} ${record.employee.personalInfo?.lastName || ''}`.trim() : 
-          'Unknown'
-      }));
-      
-      res.json({
-        success: true,
-        data: formattedRecords,
-        pagination: {
-          current: 1,
-          total: 1,
-          count: formattedRecords.length,
-          totalRecords: records.length,
-        },
-      });
-      
-    } catch (error) {
-      console.error('🧪 [TEST ENDPOINT] Error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message
-      });
-    }
-  }
-);
-
-// Force bypass all filters endpoint
-router.get(
-  '/force-all',
-  authenticate,
-  async (req, res) => {
-    try {
-      console.log('🔥 [FORCE ALL] Getting all records without any filters...');
-      
-      const records = await AttendanceRecord.findAll({
-        include: [{
-          model: AttendanceRecord.sequelize.models.Employee,
-          as: 'employee',
-          attributes: ['id', 'employeeId', 'personalInfo'],
-          required: false
-        }],
-        limit: 10,
-        order: [['createdAt', 'DESC']]
-      });
-      
-      console.log('🔥 [FORCE ALL] Found records:', records.length);
-      
-      const formattedRecords = records.map(record => ({
-        id: record.id,
-        employeeId: record.employeeId,
-        date: record.date,
-        checkIn: record.checkIn,
-        checkOut: record.checkOut,
-        status: record.status,
-        employeeName: record.employee ? 
-          `${record.employee.personalInfo?.firstName || ''} ${record.employee.personalInfo?.lastName || ''}`.trim() : 
-          'Unknown'
-      }));
-      
-      res.json({
-        success: true,
-        data: formattedRecords,
-        pagination: {
-          current: 1,
-          total: 1,
-          count: formattedRecords.length,
-          totalRecords: records.length,
-        },
-      });
-      
-    } catch (error) {
-      console.error('🔥 [FORCE ALL] Error:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message
-      });
-    }
-  }
-);
-
-// Export attendance reports
-router.get(
-  '/export',
-  authenticate,
-  checkAnyPermission([
-    MODULES.ATTENDANCE.VIEW_ALL,
-    MODULES.ATTENDANCE.VIEW_TEAM,
-  ]),
-  attendanceController.exportAttendanceReport
 );
 
 export default router;

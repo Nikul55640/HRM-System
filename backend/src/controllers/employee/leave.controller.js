@@ -1,372 +1,317 @@
-import PDFDocument from "pdfkit";
-import ExcelJS from "exceljs";
-import { LeaveBalance, AuditLog, Employee, LeaveRequest } from "../../models/sequelize/index.js";
-import { Op } from "sequelize";
+/**
+ * Employee Leave Controller
+ * Handles employee self-service leave operations (Apply, View, Cancel)
+ */
 
-// FINAL valid leave types used in your system
-const VALID_LEAVE_TYPES = [
-  "annual",
-  "sick",
-  "personal"
-];
+import leaveRequestService from '../../services/admin/leaveRequest.service.js';
+import leaveBalanceService from '../../services/admin/leaveBalance.service.js';
+import logger from '../../utils/logger.js';
 
-// Default allocations (same used in Employee Controller)
-const DEFAULT_ALLOCATIONS = {
-  annual: 20,
-  sick: 10,
-  personal: 5,
-};
+/**
+ * Wrapper for consistent API responses
+ */
+const sendResponse = (res, success, message, data = null, statusCode = 200, pagination = null) => {
+  const response = {
+    success,
+    message,
+    data,
+  };
 
-/* ----------------------------------------------------------
-   Helper: Create default LeaveBalance when missing
----------------------------------------------------------- */
-const createDefaultBalance = async (employeeId, year) => {
-  const balances = [];
-  
-  // Create default leave types with standard names
-  for (const leaveType of VALID_LEAVE_TYPES) {
-    // Check if this leave type already exists to prevent duplicates
-    const existingBalance = await LeaveBalance.findOne({
-      where: {
-        employeeId,
-        year,
-        leaveType: leaveType,
-      },
-    });
-
-    if (!existingBalance) {
-      const balance = await LeaveBalance.create({
-        employeeId,
-        year,
-        leaveTypeId: null, // We'll use the enum field instead
-        leaveType: leaveType, // Use the standard leave type
-        allocated: DEFAULT_ALLOCATIONS[leaveType],
-        used: 0,
-        pending: 0,
-        remaining: DEFAULT_ALLOCATIONS[leaveType],
-      });
-      balances.push(balance);
-    } else {
-      balances.push(existingBalance);
-    }
+  if (pagination) {
+    response.pagination = pagination;
   }
-  
-  return balances;
+
+  return res.status(statusCode).json(response);
 };
 
-/* ----------------------------------------------------------
-   1️⃣ GET LEAVE BALANCE (ESS)
----------------------------------------------------------- */
-const getLeaveBalance = async (req, res) => {
-  try {
-    const { employeeId } = req.user;
-    const year = parseInt(req.query.year) || new Date().getFullYear();
+const employeeLeaveController = {
+  /**
+   * Apply for leave
+   */
+  applyForLeave: async (req, res) => {
+    try {
+      const metadata = {
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+      };
 
-    if (!employeeId) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee profile not linked to account.",
-      });
-    }
+      const result = await leaveRequestService.applyForLeave(req.body, req.user, metadata);
 
-    let leaveBalances = await LeaveBalance.findAll({
-      where: {
-        employeeId,
-        year,
-      },
-    });
-
-    // Auto-create default balance if not exists
-    if (!leaveBalances || leaveBalances.length === 0) {
-      leaveBalances = await createDefaultBalance(employeeId, year);
-    }
-
-    // Remove duplicates by grouping by leaveType and keeping the latest one
-    const uniqueBalances = {};
-    leaveBalances.forEach(balance => {
-      const type = balance.leaveType || 'annual';
-      if (!uniqueBalances[type] || balance.updatedAt > uniqueBalances[type].updatedAt) {
-        uniqueBalances[type] = balance;
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
       }
-    });
 
-    const filteredBalances = Object.values(uniqueBalances);
-
-    // Transform to match frontend expectations
-    const transformedBalance = {
-      year,
-      leaveTypes: filteredBalances.map(balance => ({
-        type: balance.leaveType || 'annual', // Use the enum field directly
-        allocated: balance.allocated,
-        used: balance.used,
-        pending: balance.pending,
-        available: balance.remaining,
-      })),
-    };
-
-    return res.json({
-      success: true,
-      data: transformedBalance,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Error fetching leave balance",
-      error: error.message,
-    });
-  }
-};
-
-/* ----------------------------------------------------------
-   2️⃣ GET LEAVE HISTORY (ESS)
----------------------------------------------------------- */
-const getLeaveHistory = async (req, res) => {
-  try {
-    const { employeeId } = req.user;
-    const year = parseInt(req.query.year) || new Date().getFullYear();
-
-    if (!employeeId) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee profile not linked.",
-      });
+      return sendResponse(res, true, result.message, result.data, 201);
+    } catch (error) {
+      logger.error("Controller: Apply For Leave Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
+  },
 
-    const leaveRequests = await LeaveRequest.findAll({
-      where: {
-        employeeId,
-        startDate: {
-          [Op.gte]: new Date(year, 0, 1),
-          [Op.lte]: new Date(year, 11, 31, 23, 59, 59),
-        },
-      },
-      order: [['createdAt', 'DESC']],
-    });
-
-    return res.json({
-      success: true,
-      data: leaveRequests,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Error fetching leave history",
-      error: error.message,
-    });
-  }
-};
-
-/* ----------------------------------------------------------
-   3️⃣ EXPORT LEAVE SUMMARY (ESS)
----------------------------------------------------------- */
-const exportLeaveSummary = async (req, res) => {
-  try {
-    const { employeeId, id: userId } = req.user;
-    const year = parseInt(req.query.year) || new Date().getFullYear();
-    const format = req.query.format || "pdf";
-
-    if (!employeeId) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee profile not linked.",
-      });
-    }
-
-    const leaveBalance = await LeaveBalance.findOne({
-      where: {
-        employeeId,
-        year,
-      },
-      include: [
-        {
-          model: Employee,
-          as: 'employee',
-          attributes: ['employeeId', 'personalInfo'],
-        },
-      ],
-    });
-
-    if (!leaveBalance) {
-      return res.status(404).json({
-        success: false,
-        message: "Leave balance not found",
-      });
-    }
-
-    const employeeName = `${leaveBalance.employee.personalInfo.firstName} ${leaveBalance.employee.personalInfo.lastName}`;
-
-    if (format === "pdf") {
-      await generatePDF(res, leaveBalance, employeeName, year);
-    } else if (format === "excel") {
-      await generateExcel(res, leaveBalance, employeeName, year);
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid format. Use ?format=pdf or ?format=excel",
-      });
-    }
-
-    // Log export in audit
-    await AuditLog.logAction({
-      action: "EXPORT",
-      entityType: "LeaveSummary",
-      entityId: leaveBalance.id.toString(),
-      performedByName: employeeName,
-      userId,
-      userRole: req.user.role,
-      meta: {
-        year,
-        format,
-      },
-      ipAddress: req.ip,
-      userAgent: req.get("User-Agent"),
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Error exporting leave summary",
-      error: error.message,
-    });
-  }
-};
-
-/* ----------------------------------------------------------
-   PDF GENERATION
----------------------------------------------------------- */
-const generatePDF = async (res, balance, employeeName, year) => {
-  const doc = new PDFDocument({ margin: 50 });
-
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename=leave-summary-${year}.pdf`
-  );
-
-  doc.pipe(res);
-
-  doc.fontSize(20).text("Leave Summary Report", { align: "center" });
-  doc.moveDown();
-
-  doc.fontSize(12).text(`Employee: ${employeeName}`);
-  doc.text(`Year: ${year}`);
-  doc.text(`Generated on: ${new Date().toLocaleString()}`);
-  doc.moveDown(2);
-
-  // Balance section
-  doc.fontSize(16).text("Leave Balance");
-  doc.moveDown(1);
-
-  balance.leaveTypes.forEach((lt) => {
-    doc
-      .fontSize(12)
-      .text(
-        `${lt.type.toUpperCase()} → Allocated: ${lt.allocated}, Used: ${
-          lt.used
-        }, Pending: ${lt.pending}, Available: ${
-          lt.allocated - (lt.used + lt.pending)
-        }`
+  /**
+   * Get my leave requests
+   */
+  getMyLeaveRequests: async (req, res) => {
+    try {
+      const result = await leaveRequestService.getEmployeeLeaveRequests(
+        req.user.employeeId,
+        req.query,
+        req.user,
+        req.query
       );
-    doc.moveDown(0.5);
-  });
 
-  doc.addPage();
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
+      }
 
-  // History
-  doc.fontSize(16).text("Leave History");
-  doc.moveDown(1);
+      return sendResponse(res, true, "Your leave requests retrieved successfully", result.data.leaveRequests, 200, result.data.pagination);
+    } catch (error) {
+      logger.error("Controller: Get My Leave Requests Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
 
-  if (balance.history.length === 0) {
-    doc.fontSize(12).text("No leave history available.");
-  } else {
-    balance.history
-      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-      .forEach((leave) => {
-        doc
-          .fontSize(12)
-          .text(
-            `• ${leave.type.toUpperCase()} | ${leave.days} day(s) | ${
-              leave.status
-            }`
-          );
-        doc
-          .fontSize(10)
-          .text(
-            `${leave.startDate.toDateString()} → ${leave.endDate.toDateString()}`
-          );
-        doc.moveDown(1);
+  /**
+   * Get my leave balances
+   */
+  getMyLeaveBalances: async (req, res) => {
+    try {
+      const { year } = req.query;
+      const result = await leaveBalanceService.getEmployeeLeaveBalances(
+        req.user.employeeId,
+        year,
+        req.user
+      );
+
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
+      }
+
+      return sendResponse(res, true, "Your leave balances retrieved successfully", result.data);
+    } catch (error) {
+      logger.error("Controller: Get My Leave Balances Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
+   * Cancel my leave request
+   */
+  cancelMyLeaveRequest: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const metadata = {
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+      };
+
+      const result = await leaveRequestService.cancelLeaveRequest(id, reason, req.user, metadata);
+
+      if (!result.success) {
+        const statusCode = result.message.includes('only cancel your own') ? 403 :
+          result.message.includes('not found') ? 404 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
+
+      return sendResponse(res, true, result.message);
+    } catch (error) {
+      logger.error("Controller: Cancel My Leave Request Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
+   * Get leave request status
+   */
+  getLeaveRequestStatus: async (req, res) => {
+    try {
+      const { id } = req.params;
+
+      // First check if this request belongs to the current user
+      const result = await leaveRequestService.getEmployeeLeaveRequests(
+        req.user.employeeId,
+        { requestId: id },
+        req.user,
+        { limit: 1 }
+      );
+
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
+      }
+
+      const request = result.data.leaveRequests.find(req => req.id.toString() === id);
+
+      if (!request) {
+        return sendResponse(res, false, "Leave request not found or access denied", null, 404);
+      }
+
+      return sendResponse(res, true, "Leave request status retrieved successfully", request);
+    } catch (error) {
+      logger.error("Controller: Get Leave Request Status Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
+   * Get leave history
+   */
+  getMyLeaveHistory: async (req, res) => {
+    try {
+      const { year } = req.query;
+      const filters = year ? { year: parseInt(year) } : {};
+
+      const result = await leaveRequestService.getEmployeeLeaveRequests(
+        req.user.employeeId,
+        filters,
+        req.user,
+        { ...req.query, limit: 100 }
+      );
+
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
+      }
+
+      // Group by year and calculate statistics
+      const history = {};
+      result.data.leaveRequests.forEach(request => {
+        const requestYear = new Date(request.startDate).getFullYear();
+        if (!history[requestYear]) {
+          history[requestYear] = {
+            year: requestYear,
+            requests: [],
+            statistics: {
+              total: 0,
+              approved: 0,
+              rejected: 0,
+              pending: 0,
+              cancelled: 0,
+              totalDays: 0,
+              approvedDays: 0
+            }
+          };
+        }
+
+        history[requestYear].requests.push(request);
+        history[requestYear].statistics.total++;
+        history[requestYear].statistics[request.status]++;
+        history[requestYear].statistics.totalDays += request.totalDays;
+
+        if (request.status === 'approved') {
+          history[requestYear].statistics.approvedDays += request.totalDays;
+        }
       });
+
+      return sendResponse(res, true, "Leave history retrieved successfully", Object.values(history));
+    } catch (error) {
+      logger.error("Controller: Get My Leave History Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
+   * Get leave balance updates/history
+   */
+  getMyLeaveBalanceHistory: async (req, res) => {
+    try {
+      const result = await leaveBalanceService.getLeaveBalanceHistory(
+        req.user.employeeId,
+        req.query,
+        req.user
+      );
+
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
+      }
+
+      return sendResponse(res, true, "Leave balance history retrieved successfully", result.data);
+    } catch (error) {
+      logger.error("Controller: Get My Leave Balance History Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
+   * Check leave eligibility
+   */
+  checkLeaveEligibility: async (req, res) => {
+    try {
+      const { leaveType, startDate, endDate, isHalfDay } = req.query;
+
+      if (!leaveType || !startDate || !endDate) {
+        return sendResponse(res, false, "Leave type, start date, and end date are required", null, 400);
+      }
+
+      // Calculate requested days
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const requestedDays = isHalfDay === 'true' ? 0.5 : Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+      // Get current leave balance
+      const balanceResult = await leaveBalanceService.getEmployeeLeaveBalances(
+        req.user.employeeId,
+        new Date().getFullYear(),
+        req.user
+      );
+
+      if (!balanceResult.success) {
+        return sendResponse(res, false, balanceResult.message, null, 400);
+      }
+
+      const balance = balanceResult.data.find(b => b.leaveType === leaveType);
+
+      if (!balance) {
+        return sendResponse(res, false, `No leave balance found for ${leaveType} leave`, null, 400);
+      }
+
+      const eligibility = {
+        isEligible: balance.remaining >= requestedDays,
+        requestedDays,
+        availableDays: balance.remaining,
+        shortfall: Math.max(0, requestedDays - balance.remaining),
+        leaveType,
+        balance: {
+          allocated: balance.allocated,
+          used: balance.used,
+          pending: balance.pending,
+          remaining: balance.remaining
+        }
+      };
+
+      return sendResponse(res, true, "Leave eligibility checked successfully", eligibility);
+    } catch (error) {
+      logger.error("Controller: Check Leave Eligibility Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
+   * Get pending leave requests (my own)
+   */
+  getMyPendingLeaveRequests: async (req, res) => {
+    try {
+      const filters = {
+        ...req.query,
+        status: 'pending'
+      };
+
+      const result = await leaveRequestService.getEmployeeLeaveRequests(
+        req.user.employeeId,
+        filters,
+        req.user,
+        req.query
+      );
+
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
+      }
+
+      return sendResponse(res, true, "Your pending leave requests retrieved successfully", result.data.leaveRequests, 200, result.data.pagination);
+    } catch (error) {
+      logger.error("Controller: Get My Pending Leave Requests Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
   }
-
-  doc.end();
 };
 
-/* ----------------------------------------------------------
-   EXCEL GENERATION
----------------------------------------------------------- */
-const generateExcel = async (res, balance, employeeName, year) => {
-  const workbook = new ExcelJS.Workbook();
-
-  // Balance sheet
-  const sheet = workbook.addWorksheet("Leave Balance");
-  sheet.addRow(["Leave Summary Report"]);
-  sheet.addRow([`Employee: ${employeeName}`]);
-  sheet.addRow([`Year: ${year}`]);
-  sheet.addRow([`Generated: ${new Date().toLocaleDateString()}`]);
-  sheet.addRow([]);
-
-  sheet.addRow(["Leave Type", "Allocated", "Used", "Pending", "Available"]);
-
-  balance.leaveTypes.forEach((lt) => {
-    sheet.addRow([
-      lt.type,
-      lt.allocated,
-      lt.used,
-      lt.pending,
-      lt.allocated - (lt.used + lt.pending),
-    ]);
-  });
-
-  // History sheet
-  const history = workbook.addWorksheet("Leave History");
-
-  history.addRow([
-    "Type",
-    "Start Date",
-    "End Date",
-    "Days",
-    "Status",
-    "Applied At",
-  ]);
-
-  balance.history.forEach((h) => {
-    history.addRow([
-      h.type,
-      h.startDate.toDateString(),
-      h.endDate.toDateString(),
-      h.days,
-      h.status,
-      h.createdAt?.toDateString() || "",
-    ]);
-  });
-
-  res.setHeader(
-    "Content-Type",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-  );
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename=leave-summary-${year}.xlsx`
-  );
-
-  await workbook.xlsx.write(res);
-  res.end();
-};
-
-/* ----------------------------------------------------------
-   EXPORT
----------------------------------------------------------- */
-export default {
-  getLeaveBalance,
-  getLeaveHistory,
-  exportLeaveSummary,
-};
+export default employeeLeaveController;

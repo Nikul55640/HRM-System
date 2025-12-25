@@ -1,8 +1,6 @@
 import express from "express";
 import { authenticate } from "../../middleware/authenticate.js";
-import { requireRoles } from "../../middleware/requireRoles.js";
 import attendanceController from "../../controllers/employee/attendance.controller.js";
-import breakController from "../../controllers/employee/break.controller.js";
 
 const router = express.Router();
 
@@ -10,76 +8,54 @@ const router = express.Router();
 router.get(
   "/attendance",
   authenticate,
-  attendanceController.getAttendanceRecords
+  attendanceController.getMyAttendanceRecords
+);
+
+// GET today's attendance status
+router.get(
+  "/attendance/today",
+  authenticate,
+  attendanceController.getTodayAttendance
+);
+
+// GET attendance status for specific date
+router.get(
+  "/attendance/status",
+  authenticate,
+  attendanceController.getAttendanceStatus
 );
 
 // GET monthly summary
 router.get(
-  "/attendance/summary",
+  "/attendance/summary/:year/:month",
   authenticate,
-  attendanceController.getMonthlySummary
+  attendanceController.getMyMonthlySummary
 );
 
-// Export attendance (PDF/Excel)
+// GET working hours
 router.get(
-  "/attendance/export",
+  "/attendance/working-hours",
   authenticate,
-  attendanceController.exportAttendanceReport
+  attendanceController.getWorkingHours
 );
 
 // Clock-in
-router.post("/attendance/check-in", authenticate, attendanceController.checkIn);
+router.post("/attendance/clock-in", authenticate, attendanceController.clockIn);
 
 // Clock-out
-router.post(
-  "/attendance/check-out",
-  authenticate,
-  attendanceController.checkOut
-);
-
-// ⭐ CLOCK IN/OUT ENDPOINTS ⭐
-
-// Get attendance sessions (with date range support)
-router.get(
-  "/attendance/sessions",
-  authenticate,
-  attendanceController.getAttendanceRecords
-);
-
-// Start new work session (clock-in with location)
-router.post(
-  "/attendance/session/start",
-  authenticate,
-  attendanceController.checkIn
-);
-
-// End current work session (clock-out)
-router.post(
-  "/attendance/session/end",
-  authenticate,
-  attendanceController.checkOut
-);
+router.post("/attendance/clock-out", authenticate, attendanceController.clockOut);
 
 // Start break
-router.post(
-  "/attendance/break/start",
-  authenticate,
-  breakController.startBreak
-);
+router.post("/attendance/break-in", authenticate, attendanceController.startBreak);
 
 // End break
-router.post(
-  "/attendance/break/end",
-  authenticate,
-  breakController.endBreak
-);
+router.post("/attendance/break-out", authenticate, attendanceController.endBreak);
 
-// ⭐ HR / Admin manual update
-router.patch(
-  "/attendance/manual/:recordId",
+// Request attendance correction
+router.post(
+  "/attendance/correction/:attendanceId",
   authenticate,
-  requireRoles(["HR Manager", "HR Administrator", "SuperAdmin"]),
-  attendanceController.manualUpdateAttendance
+  attendanceController.requestCorrection
 );
 
 export default router;

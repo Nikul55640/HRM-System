@@ -61,7 +61,7 @@ const Navbar = () => {
   };
 
   const markAsRead = (id) => {
-    setNotifications(notifications.map(n => 
+    setNotifications(notifications.map(n =>
       n.id === id ? { ...n, read: true } : n
     ));
   };
@@ -101,10 +101,8 @@ const Navbar = () => {
     switch (role) {
       case 'SuperAdmin':
         return 'bg-purple-600';
-      case 'HR Manager':
+      case 'HR':
         return 'bg-blue-600';
-      case 'HR Administrator':
-        return 'bg-green-600';
       case 'Manager':
         return 'bg-orange-600';
       case 'Employee':
@@ -117,8 +115,7 @@ const Navbar = () => {
   const getRoleBadge = (role) => {
     const badges = {
       'SuperAdmin': 'bg-purple-100 text-purple-700',
-      'HR Manager': 'bg-blue-100 text-blue-700',
-      'HR Administrator': 'bg-green-100 text-green-700',
+      'HR': 'bg-blue-100 text-blue-700',
       'Manager': 'bg-orange-100 text-orange-700',
       'Employee': 'bg-gray-100 text-gray-700',
     };
@@ -133,12 +130,12 @@ const Navbar = () => {
       name: 'Dashboard',
       path: '/dashboard',
       icon: 'LayoutDashboard',
-      roles: ['Employee', 'HR Administrator', 'HR Manager', 'SuperAdmin'],
+      roles: ['Employee', 'HR', 'SuperAdmin'],
     },
     {
       name: 'My Services',
       icon: 'User',
-      roles: ['Employee', 'HR Administrator', 'HR Manager', 'SuperAdmin'],
+      roles: ['Employee', 'HR', 'SuperAdmin'],
       dropdown: [
         { name: 'My Profile', path: '/profile', icon: 'User' },
         { name: 'Bank Details', path: '/bank-details', icon: 'Banknote' },
@@ -152,7 +149,7 @@ const Navbar = () => {
     {
       name: 'Calendar',
       icon: 'Calendar',
-      roles: ['Employee', 'HR Administrator', 'HR Manager', 'SuperAdmin'],
+      roles: ['Employee', 'HR', 'SuperAdmin'],
       dropdown: [
         { name: 'Calendar Overview', path: '/calendar', icon: 'CalendarRange' },
         { name: 'Daily View', path: '/calendar/daily', icon: 'CalendarCheck' },
@@ -162,7 +159,7 @@ const Navbar = () => {
     {
       name: 'Manager',
       icon: 'Users',
-      roles: ['HR Manager', 'SuperAdmin'],
+      roles: ['HR', 'SuperAdmin'],
       dropdown: [
         { name: 'Approvals', path: '/manager/approvals', icon: 'CheckSquare' },
         { name: 'My Team', path: '/manager/team', icon: 'Users' },
@@ -172,7 +169,7 @@ const Navbar = () => {
     {
       name: 'HR Admin',
       icon: 'Settings',
-      roles: ['HR Administrator', 'HR Manager', 'SuperAdmin'],
+      roles: ['HR', 'SuperAdmin'],
       dropdown: [
         { name: 'Attendance Admin', path: '/admin/attendance', icon: 'Clock4' },
         { name: 'Leave Approvals', path: '/admin/leave-requests', icon: 'ClipboardCheck' },
@@ -197,7 +194,7 @@ const Navbar = () => {
 
   // Filter navigation based on user role
   const userRole = user?.role;
-  const navItems = allNavItems.filter(item => 
+  const navItems = allNavItems.filter(item =>
     !item.roles || item.roles.includes(userRole)
   );
 
@@ -230,7 +227,7 @@ const Navbar = () => {
                       <span>{item.name}</span>
                       <ChevronDown className={`w-4 h-4 transition-transform ${openDropdown === item.name ? 'rotate-180' : ''}`} />
                     </button>
-                    
+
                     {openDropdown === item.name && (
                       <>
                         <div className="fixed inset-0 z-10" onClick={() => setOpenDropdown(null)}></div>
@@ -239,9 +236,8 @@ const Navbar = () => {
                             <Link
                               key={subItem.path}
                               to={subItem.path}
-                              className={`flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 ${
-                                isActive(subItem.path) ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
-                              }`}
+                              className={`flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50 ${isActive(subItem.path) ? 'text-blue-600 bg-blue-50' : 'text-gray-700'
+                                }`}
                               onClick={() => setOpenDropdown(null)}
                             >
                               <Icon name={subItem.icon} />
@@ -256,11 +252,10 @@ const Navbar = () => {
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg ${
-                      isActive(item.path)
-                        ? 'bg-blue-50 text-blue-600 font-medium'
-                        : 'text-gray-700 hover:bg-gray-50'
-                    }`}
+                    className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg ${isActive(item.path)
+                      ? 'bg-blue-50 text-blue-600 font-medium'
+                      : 'text-gray-700 hover:bg-gray-50'
+                      }`}
                   >
                     <Icon name={item.icon} />
                     <span>{item.name}</span>
@@ -325,9 +320,8 @@ const Navbar = () => {
                           notifications.map((notification) => (
                             <div
                               key={notification.id}
-                              className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                                !notification.read ? 'bg-blue-50' : ''
-                              }`}
+                              className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!notification.read ? 'bg-blue-50' : ''
+                                }`}
                               onClick={() => markAsRead(notification.id)}
                             >
                               <div className="flex items-start gap-3">
@@ -371,7 +365,7 @@ const Navbar = () => {
               </div>
 
               {/* Settings */}
-              {(user?.role === 'SuperAdmin' || user?.role === 'HR Manager') && (
+              {(user?.role === 'SuperAdmin' || user?.role === 'HR') && (
                 <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
                   <Link to="/settings">
                     <Settings className="w-5 h-5" />
@@ -428,7 +422,7 @@ const Navbar = () => {
                           <User className="w-4 h-4" />
                           <span>My Profile</span>
                         </Link>
-                        {(user?.role === 'SuperAdmin' || user?.role === 'HR Manager') && (
+                        {(user?.role === 'SuperAdmin' || user?.role === 'HR') && (
                           <Link to="/settings" className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50" onClick={() => setShowUserMenu(false)}>
                             <Settings className="w-4 h-4" />
                             <span>Settings</span>
@@ -487,9 +481,8 @@ const Navbar = () => {
                         <Link
                           key={subItem.path}
                           to={subItem.path}
-                          className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg ${
-                            isActive(subItem.path) ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:bg-gray-50'
-                          }`}
+                          className={`flex items-center gap-3 px-3 py-2 text-sm rounded-lg ${isActive(subItem.path) ? 'text-blue-600 bg-blue-50' : 'text-gray-700 hover:bg-gray-50'
+                            }`}
                           onClick={() => {
                             setOpenDropdown(null);
                             setShowMobileMenu(false);
@@ -506,9 +499,8 @@ const Navbar = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg ${
-                    isActive(item.path) ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700 hover:bg-gray-50'
-                  }`}
+                  className={`flex items-center gap-2 px-3 py-2 text-sm rounded-lg ${isActive(item.path) ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-700 hover:bg-gray-50'
+                    }`}
                   onClick={() => setShowMobileMenu(false)}
                 >
                   <Icon name={item.icon} />

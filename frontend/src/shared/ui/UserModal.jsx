@@ -22,7 +22,7 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
     }
   }, [user]);
 
-  const roles = ['SuperAdmin', 'HR Manager', 'HR Administrator', 'Employee'];
+  const roles = ['SuperAdmin', 'HR', 'Employee'];
 
   const validateForm = () => {
     const newErrors = {};
@@ -43,8 +43,8 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
       newErrors.role = 'Role is required';
     }
 
-    if (formData.role === 'HR Manager' && formData.assignedDepartments.length === 0) {
-      newErrors.assignedDepartments = 'HR Managers must have at least one assigned department';
+    if (formData.role === 'HR' && formData.assignedDepartments.length === 0) {
+      newErrors.assignedDepartments = 'HR users must have at least one assigned department';
     }
 
     setErrors(newErrors);
@@ -53,21 +53,21 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
 
     try {
       const submitData = { ...formData };
-      
+
       // Remove password if empty (for updates)
       if (!submitData.password) {
         delete submitData.password;
       }
 
-      // Remove assignedDepartments if not HR Manager
-      if (submitData.role !== 'HR Manager') {
+      // Remove assignedDepartments if not HR
+      if (submitData.role !== 'HR') {
         submitData.assignedDepartments = [];
       }
 
@@ -83,7 +83,7 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
       ...prev,
       [name]: value,
     }));
-    
+
     // Clear error for this field
     if (errors[name]) {
       setErrors(prev => ({
@@ -103,7 +103,7 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
           : [...prev.assignedDepartments, deptId],
       };
     });
-    
+
     // Clear error
     if (errors.assignedDepartments) {
       setErrors(prev => ({
@@ -147,9 +147,8 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
                 value={formData.email}
                 onChange={handleChange}
                 disabled={isSubmitting || !!user}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.email ? 'border-red-500' : 'border-gray-300'
-                } ${user ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'
+                  } ${user ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                 placeholder="user@example.com"
               />
               {errors.email && (
@@ -170,9 +169,8 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
                 value={formData.password}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.password ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : 'border-gray-300'
+                  }`}
                 placeholder="••••••••"
               />
               {errors.password && (
@@ -194,9 +192,8 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
                 value={formData.role}
                 onChange={handleChange}
                 disabled={isSubmitting}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.role ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.role ? 'border-red-500' : 'border-gray-300'
+                  }`}
               >
                 {roles.map(role => (
                   <option key={role} value={role}>
@@ -209,8 +206,8 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
               )}
             </div>
 
-            {/* Department Assignment (only for HR Manager) */}
-            {formData.role === 'HR Manager' && (
+            {/* Department Assignment (only for HR) */}
+            {formData.role === 'HR' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Assigned Departments <span className="text-red-500">*</span>

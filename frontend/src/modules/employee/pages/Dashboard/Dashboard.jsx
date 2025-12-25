@@ -1,10 +1,10 @@
-import EmployeeDashboard  from "./EmployeeDashboard";
+import EmployeeDashboard from "./EmployeeDashboard";
 import AdminDashboard from "../../../admin/pages/Dashboard/AdminDashboard";
 import useAuth from "../../../../core/hooks/useAuth";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  
+
   console.log('📊 [DASHBOARD] Dashboard component rendered');
   console.log('📊 [DASHBOARD] User data:', user);
   console.log('📊 [DASHBOARD] User role:', user?.role);
@@ -12,8 +12,7 @@ const Dashboard = () => {
   // Show admin dashboard for SuperAdmin and HR roles
   if (
     user?.role === "SuperAdmin" ||
-    user?.role === "HR Manager" ||
-    user?.role === "HR Administrator"
+    user?.role === "HR"
   ) {
     console.log('📊 [DASHBOARD] Showing AdminDashboard for role:', user.role);
     return <AdminDashboard />;

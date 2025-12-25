@@ -1,31 +1,19 @@
-import { LeaveRequest, LeaveBalance, AuditLog, Notification, User } from "../../models/sequelize/index.js";
+import { LeaveRequest, LeaveBalance, AuditLog, User } from "../../models/sequelize/index.js";
 import { Op } from "sequelize";
 import logger from "../../utils/logger.js";
 
 /* ----------------------------------------------
-   FINAL VALID LEAVE TYPES (Matches Admin Logic)
+   SIMPLIFIED LEAVE TYPES (Matches Model Enum)
 ---------------------------------------------- */
-const VALID_LEAVE_TYPES = [
-  "annual",
-  "sick",
-  "personal",
-  "maternity",
-  "paternity",
-  "emergency",
-  "unpaid",
-];
+const VALID_LEAVE_TYPES = ['Casual', 'Sick', 'Paid'];
 
 /* ----------------------------------------------
-   Allocate defaults per type (1:1 with real HR)
+   Default allocations per type
 ---------------------------------------------- */
 const DEFAULT_ALLOCATIONS = {
-  annual: 20,
-  sick: 10,
-  personal: 5,
-  emergency: 3,
-  maternity: 90,
-  paternity: 10,
-  unpaid: 9999, // Unlimited
+  Casual: 12,
+  Sick: 10,
+  Paid: 20
 };
 
 /* ----------------------------------------------
@@ -33,7 +21,7 @@ const DEFAULT_ALLOCATIONS = {
 ---------------------------------------------- */
 const createDefaultLeaveBalance = async (employeeId, year) => {
   const balances = [];
-  
+
   for (const type of VALID_LEAVE_TYPES) {
     const balance = await LeaveBalance.create({
       employeeId,
@@ -46,7 +34,7 @@ const createDefaultLeaveBalance = async (employeeId, year) => {
     });
     balances.push(balance);
   }
-  
+
   return balances;
 };
 

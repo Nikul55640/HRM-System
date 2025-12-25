@@ -54,7 +54,7 @@ class ShiftService {
                             {
                                 model: Employee,
                                 as: 'employee',
-                                attributes: ['id', 'employeeId', 'personalInfo']
+                                attributes: ['id', 'employeeId', 'firstName', 'lastName']
                             }
                         ]
                     }
@@ -117,7 +117,7 @@ class ShiftService {
                             {
                                 model: Employee,
                                 as: 'employee',
-                                attributes: ['id', 'employeeId', 'personalInfo']
+                                attributes: ['id', 'employeeId', 'firstName', 'lastName']
                             }
                         ]
                     }

@@ -39,10 +39,12 @@ const adminDashboardService = {
           attributes: [
             "id",
             "employeeId",
+            "firstName",
+            "lastName",
+            "designation",
+            "department",
             "status",
             "createdAt",
-            "personalInfo",
-            "jobInfo",
           ],
         }),
 
@@ -65,15 +67,12 @@ const adminDashboardService = {
 
       // Format recent employees for frontend
       const recentEmployees = recentEmployeesData.map((emp) => {
-        const personalInfo = emp.personalInfo || {};
-        const jobInfo = emp.jobInfo || {};
-        
         return {
           id: emp.id,
           employeeId: emp.employeeId,
-          fullName: `${personalInfo.firstName || ''} ${personalInfo.lastName || ''}`.trim() || 'Unknown',
-          jobTitle: jobInfo.jobTitle || jobInfo.designation || 'N/A',
-          departmentName: jobInfo.department || 'N/A',
+          fullName: `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || 'Unknown',
+          jobTitle: emp.designation || 'N/A',
+          departmentName: emp.department || 'N/A',
           status: emp.status,
           createdAt: emp.createdAt,
         };

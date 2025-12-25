@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 
 // Create axios instance with base configuration
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5000/api",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:5001/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -129,7 +129,7 @@ api.interceptors.response.use(
       // Try to refresh token using the auth store method
       try {
         const refreshSuccess = await useAuthStore.getState().refreshToken();
-        
+
         if (refreshSuccess) {
           const newToken = useAuthStore.getState().token;
           processQueue(null, newToken);
@@ -140,7 +140,7 @@ api.interceptors.response.use(
         }
       } catch (refreshError) {
         processQueue(refreshError, null);
-        
+
         // Debounce logout calls to prevent spam
         const now = Date.now();
         if (now - lastLogoutTime > LOGOUT_DEBOUNCE_MS) {
@@ -151,7 +151,7 @@ api.interceptors.response.use(
             window.location.href = "/login";
           }
         }
-        
+
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -191,8 +191,7 @@ api.interceptors.response.use(
     // Log error
     logError(
       error,
-      `API Error - ${originalRequest.method?.toUpperCase()} ${
-        originalRequest.url
+      `API Error - ${originalRequest.method?.toUpperCase()} ${originalRequest.url
       }`
     );
 

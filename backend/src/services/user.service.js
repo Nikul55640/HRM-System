@@ -6,8 +6,8 @@ import logger from '../utils/logger.js';
  */
 const createUser = async (userData, currentUser, metadata = {}) => {
   try {
-    const existingUser = await User.findOne({ 
-      where: { email: userData.email.toLowerCase() } 
+    const existingUser = await User.findOne({
+      where: { email: userData.email.toLowerCase() }
     });
 
     if (existingUser) {
@@ -105,7 +105,7 @@ const updateUser = async (userId, updateData, currentUser, metadata = {}) => {
     }
 
     if (updateData.role === 'HR Manager' ||
-        (user.role === 'HR Manager' && !updateData.role)) {
+      (user.role === 'HR Manager' && !updateData.role)) {
       const departments = updateData.assignedDepartments ?? user.assignedDepartments;
 
       if (!departments || departments.length === 0) {
@@ -386,7 +386,7 @@ const getUserById = async (userId) => {
         {
           model: Employee,
           as: 'employee',
-          attributes: ['personalInfo', 'employeeId'],
+          attributes: ['firstName', 'lastName', 'employeeId'],
         },
       ],
     });
@@ -431,7 +431,7 @@ const listUsers = async (filters = {}, pagination = {}) => {
         {
           model: Employee,
           as: 'employee',
-          attributes: ['personalInfo', 'employeeId'],
+          attributes: ['firstName', 'lastName', 'employeeId'],
           required: false,
         },
       ],

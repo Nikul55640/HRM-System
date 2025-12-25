@@ -1,592 +1,303 @@
-import logger from "../../utils/logger.js";
-import LeaveRequest from "../../models/sequelize/LeaveRequest.js";
-import { LeaveBalance, Notification, AttendanceRecord, Employee } from "../../models/sequelize/index.js";
-import AuditLog from "../../models/sequelize/AuditLog.js";
-import { Op } from "sequelize";
 /**
- * Admin Leave Request Controller
- * Handles leave request approval/rejection by HR/Managers
+ * Leave Request Controller (Admin)
+ * Handles leave request management for HR and Super Admin
  */
 
-/**
- * Get all leave requests (for admin/HR)
- * GET /api/admin/leave-requests
- */
-const getAllLeaveRequests = async (req, res) => {
-  try {
-    const {
-      status,
-      type,
-      leaveType, // Also accept leaveType from frontend
-      employeeId,
-      startDate,
-      endDate,
-      dateRange, // Handle dateRange from frontend
-      page = 1,
-      limit = 20,
-    } = req.query;
-
-    const where = {};
-
-    if (status && status !== 'all') where.status = status;
-    if ((type && type !== 'all') || (leaveType && leaveType !== 'all')) {
-      where.leaveType = type || leaveType;
-    }
-    if (employeeId) where.employeeId = employeeId;
-
-    // Handle date filtering
-    if (startDate || endDate || (dateRange && dateRange !== 'all')) {
-      where.startDate = {};
-      
-      if (dateRange && dateRange !== 'all') {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        switch (dateRange) {
-          case 'today': {
-            where.startDate[Op.gte] = today;
-            where.startDate[Op.lte] = new Date(today.getTime() + 24 * 60 * 60 * 1000 - 1);
-            break;
-          }
-          case 'week': {
-            const weekStart = new Date(today);
-            weekStart.setDate(today.getDate() - today.getDay());
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 6);
-            where.startDate[Op.gte] = weekStart;
-            where.startDate[Op.lte] = weekEnd;
-            break;
-          }
-          case 'month': {
-            const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-            const monthEnd = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-            where.startDate[Op.gte] = monthStart;
-            where.startDate[Op.lte] = monthEnd;
-            break;
-          }
-        }
-      } else {
-        if (startDate) where.startDate[Op.gte] = new Date(startDate);
-        if (endDate) where.startDate[Op.lte] = new Date(endDate);
-      }
-    }
-
-    const pageNum = parseInt(page);
-    const limitNum = parseInt(limit);
-
-    const offset = (pageNum - 1) * limitNum;
-
-    const { count: total, rows: leaveRequests } = await LeaveRequest.findAndCountAll({
-      where,
-      include: [
-        {
-          model: Employee,
-          as: 'employee',
-          attributes: ['employeeId', 'personalInfo', 'jobInfo'],
-        },
-      ],
-      order: [['createdAt', 'DESC']],
-      limit: limitNum,
-      offset: offset,
-    });
-
-    res.json({
-      success: true,
-      data: leaveRequests,
-      pagination: {
-        total,
-        page: pageNum,
-        limit: limitNum,
-        totalPages: Math.ceil(total / limitNum),
-      },
-    });
-  } catch (error) {
-    logger.error("Error fetching leave requests:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching leave requests",
-      error: error.message,
-    });
-  }
-};
+import leaveRequestService from '../../services/admin/leaveRequest.service.js';
+import logger from '../../utils/logger.js';
 
 /**
- * Get leave request by ID (for admin/HR)
- * GET /api/admin/leave-requests/:id
+ * Wrapper for consistent API responses
  */
-const getLeaveRequestById = async (req, res) => {
-  try {
-    const { id } = req.params;
-
-    const leaveRequest = await LeaveRequest.findByPk(id, {
-      include: [
-        {
-          model: Employee,
-          as: 'employee',
-          attributes: ['employeeId', 'personalInfo', 'jobInfo'],
-        },
-      ],
-    });
-
-    if (!leaveRequest) {
-      return res.status(404).json({
-        success: false,
-        message: "Leave request not found",
-      });
-    }
-
-    res.json({
-      success: true,
-      data: leaveRequest,
-    });
-  } catch (error) {
-    logger.error("Error fetching leave request:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching leave request",
-      error: error.message,
-    });
-  }
-};
-
-/**
- * Helper: build attendance mapping based on leave type + half-day
- */
-const getAttendanceMapping = (leaveRequest) => {
-  const { leaveType: type, isHalfDay, halfDayPeriod } = leaveRequest;
-
-  // Base label by type
-  let label;
-  switch (type) {
-    case "sick":
-      label = "Sick leave";
-      break;
-    case "annual":
-      label = "Annual leave";
-      break;
-    case "personal":
-      label = "Personal leave";
-      break;
-    case "maternity":
-      label = "Maternity leave";
-      break;
-    case "paternity":
-      label = "Paternity leave";
-      break;
-    case "emergency":
-      label = "Emergency leave";
-      break;
-    case "unpaid":
-      label = "Unpaid leave";
-      break;
-    default:
-      label = "Leave";
-  }
-
-  if (isHalfDay) {
-    const periodText =
-      halfDayPeriod === "morning"
-        ? " (morning half)"
-        : halfDayPeriod === "afternoon"
-        ? " (afternoon half)"
-        : "";
-    return {
-      status: "half_day", // from AttendanceRecord enum
-      statusReason: `${label} - Half day${periodText}`,
-    };
-  }
-
-  return {
-    status: "leave",
-    statusReason: label,
+const sendResponse = (res, success, message, data = null, statusCode = 200, pagination = null) => {
+  const response = {
+    success,
+    message,
+    data,
   };
-};
 
-/**
- * Helper: apply approved leave to Attendance for each date in range
- * Option A mapping: different statusReason based on leave type,
- * half_day status for half-day leaves.
- */
-const applyLeaveToAttendance = async (leaveRequest, approverId) => {
-  const employeeId = leaveRequest.employeeId._id || leaveRequest.employeeId;
-  const { status, statusReason } = getAttendanceMapping(leaveRequest);
-
-  const isHalfDay = leaveRequest.isHalfDay && leaveRequest.totalDays === 0.5;
-
-  const start = new Date(leaveRequest.startDate);
-  const end = new Date(leaveRequest.endDate);
-
-  start.setHours(0, 0, 0, 0);
-  end.setHours(0, 0, 0, 0);
-
-  const datesApplied = [];
-  let current = new Date(start);
-
-  while (current <= end) {
-    const dateOnly = new Date(
-      current.getFullYear(),
-      current.getMonth(),
-      current.getDate()
-    );
-
-    // If half-day: only apply to the FIRST date
-    if (isHalfDay && dateOnly.getTime() !== start.getTime()) {
-      current.setDate(current.getDate() + 1);
-      continue;
-    }
-
-    let attendance = await AttendanceRecord.findOne({
-      where: {
-        employeeId,
-        date: dateOnly,
-      },
-    });
-
-    if (!attendance) {
-      attendance = await AttendanceRecord.create({
-        employeeId,
-        date: dateOnly,
-        status,
-        statusReason,
-        source: "system",
-        createdBy: approverId,
-      });
-    } else {
-      await attendance.update({
-        status,
-        statusReason,
-        checkIn: null,
-        checkOut: null,
-        workHours: 0,
-        overtimeHours: 0,
-        breakTime: 0,
-        overtimeMinutes: 0,
-        isLate: false,
-        isEarlyDeparture: false,
-        updatedBy: approverId,
-        source: "system",
-      });
-    }
-    datesApplied.push(dateOnly.toISOString().split("T")[0]);
-
-    current.setDate(current.getDate() + 1);
+  if (pagination) {
+    response.pagination = pagination;
   }
 
-  return datesApplied;
+  return res.status(statusCode).json(response);
 };
 
-/**
- * Approve leave request
- * PUT /api/admin/leave-requests/:id/approve
- */
-const approveLeaveRequest = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { comments } = req.body;
+const leaveRequestController = {
+  /**
+   * Get all leave requests with filtering (Super Admin & HR)
+   */
+  getLeaveRequests: async (req, res) => {
+    try {
+      const result = await leaveRequestService.getLeaveRequests(req.query, req.user, req.query);
 
-    const leaveRequest = await LeaveRequest.findByPk(id, {
-      include: [
-        {
-          model: Employee,
-          as: 'employee',
-          attributes: ['employeeId', 'personalInfo'],
-        },
-      ],
-    });
+      if (!result.success) {
+        const statusCode = result.message.includes('Unauthorized') ? 403 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
 
-    if (!leaveRequest) {
-      return res.status(404).json({
-        success: false,
-        message: "Leave request not found",
-      });
+      return sendResponse(res, true, "Leave requests retrieved successfully", result.data.leaveRequests, 200, result.data.pagination);
+    } catch (error) {
+      logger.error("Controller: Get Leave Requests Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
+  },
 
-    if (leaveRequest.status !== "pending") {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot approve leave request with status: ${leaveRequest.status}`,
-      });
+  /**
+   * Get leave request by ID
+   */
+  getLeaveRequestById: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await leaveRequestService.getLeaveRequestById(id);
+
+      if (!result.success) {
+        const statusCode = result.message.includes('not found') ? 404 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
+
+      return sendResponse(res, true, "Leave request retrieved successfully", result.data);
+    } catch (error) {
+      logger.error("Controller: Get Leave Request By ID Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
+  },
 
-    // Update leave request
-    await leaveRequest.update({
-      status: "approved",
-      reviewedBy: req.user.id,
-      reviewedAt: new Date(),
-      rejectionReason: comments || leaveRequest.rejectionReason,
-    });
+  /**
+   * Approve leave request (HR & Super Admin)
+   */
+  approveLeaveRequest: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { comments } = req.body;
+      const metadata = {
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+      };
 
-    // Update leave balance (use leave's year)
-    const year = leaveRequest.startDate.getFullYear();
-    const leaveBalance = await LeaveBalance.findOne({
-      where: {
-        employeeId: leaveRequest.employeeId,
-        year: year,
-        leaveType: leaveRequest.leaveType,
-      },
-    });
+      const result = await leaveRequestService.processLeaveRequest(id, 'approve', comments, req.user, metadata);
 
-    if (leaveBalance) {
-      await leaveBalance.update({
-        pending: Math.max(0, leaveBalance.pending - leaveRequest.totalDays),
-        used: leaveBalance.used + leaveRequest.totalDays,
-        remaining: Math.max(0, leaveBalance.remaining - leaveRequest.totalDays),
-      });
+      if (!result.success) {
+        const statusCode = result.message.includes('Unauthorized') ? 403 :
+          result.message.includes('not found') ? 404 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
+
+      return sendResponse(res, true, result.message, result.data);
+    } catch (error) {
+      logger.error("Controller: Approve Leave Request Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
+  },
 
-    // Apply leave to attendance
-    const appliedDates = await applyLeaveToAttendance(
-      leaveRequest,
-      req.user.id
-    );
+  /**
+   * Reject leave request (HR & Super Admin)
+   */
+  rejectLeaveRequest: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { comments } = req.body;
+      const metadata = {
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+      };
 
-    // Notification to employee
-    const approverName = `${req.user.firstName || req.user.email} ${req.user.lastName || ''}`;
+      const result = await leaveRequestService.processLeaveRequest(id, 'reject', comments, req.user, metadata);
 
-    await Notification.create({
-      userId: leaveRequest.employee.userId || leaveRequest.employeeId,
-      type: "leave_approved",
-      title: "Leave Request Approved",
-      message: `Your ${leaveRequest.type} leave for ${
-        leaveRequest.days
-      } day(s) from ${leaveRequest.startDate.toLocaleDateString()} to ${leaveRequest.endDate.toLocaleDateString()} has been approved by ${approverName}.${
-        comments ? ` Comment: ${comments}` : ""
-      }`,
-      priority: "high",
-      relatedEntity: {
-        entityType: "LeaveRequest",
-        entityId: leaveRequest.id,
-      },
-    });
+      if (!result.success) {
+        const statusCode = result.message.includes('Unauthorized') ? 403 :
+          result.message.includes('not found') ? 404 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
 
-    // Audit log
-    await AuditLog.logAction({
-      action: "UPDATE",
-      entityType: "LeaveRequest",
-      entityId: leaveRequest.id.toString(),
-      userId: req.user.id,
-      userRole: req.user.role,
-      performedByName: approverName,
-      performedByEmail: req.user.email,
-      meta: {
-        type: "LEAVE_APPROVED",
-        leaveType: leaveRequest.type,
-        days: leaveRequest.days,
-        datesApplied: appliedDates,
-      },
-      ipAddress: req.ip,
-      userAgent: req.get("User-Agent"),
-    });
-
-    logger.info(
-      `Leave request approved: ${leaveRequest.id} by ${req.user.id}`
-    );
-
-    res.json({
-      success: true,
-      data: leaveRequest,
-      message: "Leave request approved successfully",
-    });
-  } catch (error) {
-    logger.error("Error approving leave request:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error approving leave request",
-      error: error.message,
-    });
-  }
-};
-
-/**
- * Reject leave request
- * PUT /api/admin/leave-requests/:id/reject
- */
-const rejectLeaveRequest = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { reason } = req.body;
-
-    if (!reason) {
-      return res.status(400).json({
-        success: false,
-        message: "Rejection reason is required",
-      });
+      return sendResponse(res, true, result.message, result.data);
+    } catch (error) {
+      logger.error("Controller: Reject Leave Request Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
+  },
 
-    const leaveRequest = await LeaveRequest.findByPk(id, {
-      include: [
-        {
-          model: Employee,
-          as: 'employee',
-          attributes: ['employeeId', 'personalInfo'],
-        },
-      ],
-    });
+  /**
+   * Cancel leave request (HR & Super Admin can cancel any, Employee can cancel own)
+   */
+  cancelLeaveRequest: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { reason } = req.body;
+      const metadata = {
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+      };
 
-    if (!leaveRequest) {
-      return res.status(404).json({
-        success: false,
-        message: "Leave request not found",
-      });
+      const result = await leaveRequestService.cancelLeaveRequest(id, reason, req.user, metadata);
+
+      if (!result.success) {
+        const statusCode = result.message.includes('permission') || result.message.includes('only cancel') ? 403 :
+          result.message.includes('not found') ? 404 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
+
+      return sendResponse(res, true, result.message);
+    } catch (error) {
+      logger.error("Controller: Cancel Leave Request Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
+  },
 
-    if (leaveRequest.status !== "pending") {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot reject leave request with status: ${leaveRequest.status}`,
-      });
+  /**
+   * Override leave request decision (Super Admin only)
+   */
+  overrideLeaveRequest: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { action, reason } = req.body; // action: 'approve' or 'reject'
+      const metadata = {
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+      };
+
+      const result = await leaveRequestService.overrideLeaveRequest(id, action, reason, req.user, metadata);
+
+      if (!result.success) {
+        const statusCode = result.message.includes('Unauthorized') ? 403 :
+          result.message.includes('not found') ? 404 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
+
+      return sendResponse(res, true, result.message, result.data);
+    } catch (error) {
+      logger.error("Controller: Override Leave Request Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
+  },
 
-    // Update leave request
-    await leaveRequest.update({
-      status: "rejected",
-      reviewedBy: req.user.id,
-      reviewedAt: new Date(),
-      rejectionReason: reason,
-    });
+  /**
+   * Get leave requests for specific employee
+   */
+  getEmployeeLeaveRequests: async (req, res) => {
+    try {
+      const { employeeId } = req.params;
+      const result = await leaveRequestService.getEmployeeLeaveRequests(employeeId, req.query, req.user, req.query);
 
-    // Restore leave balance
-    const year = leaveRequest.startDate.getFullYear();
-    const leaveBalance = await LeaveBalance.findOne({
-      where: {
-        employeeId: leaveRequest.employeeId,
-        year: year,
-        leaveType: leaveRequest.leaveType,
-      },
-    });
+      if (!result.success) {
+        const statusCode = result.message.includes('access') || result.message.includes('only view your own') ? 403 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
 
-    if (leaveBalance) {
-      await leaveBalance.update({
-        pending: Math.max(0, leaveBalance.pending - leaveRequest.totalDays),
-        remaining: leaveBalance.remaining + leaveRequest.totalDays,
-      });
+      return sendResponse(res, true, "Employee leave requests retrieved successfully", result.data.leaveRequests, 200, result.data.pagination);
+    } catch (error) {
+      logger.error("Controller: Get Employee Leave Requests Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
+  },
 
-    const approverName = `${req.user.firstName || req.user.email} ${req.user.lastName || ''}`;
+  /**
+   * Get leave request statistics
+   */
+  getLeaveRequestStats: async (req, res) => {
+    try {
+      const result = await leaveRequestService.getLeaveRequestStats(req.query, req.user);
 
-    await Notification.create({
-      userId: leaveRequest.employee.userId || leaveRequest.employeeId,
-      type: "leave_rejected",
-      title: "Leave Request Rejected",
-      message: `Your ${
-        leaveRequest.type
-      } leave from ${leaveRequest.startDate.toLocaleDateString()} to ${leaveRequest.endDate.toLocaleDateString()} has been rejected by ${approverName}. Reason: ${reason}`,
-      priority: "high",
-      relatedEntity: {
-        entityType: "LeaveRequest",
-        entityId: leaveRequest.id,
-      },
-    });
+      if (!result.success) {
+        const statusCode = result.message.includes('Unauthorized') ? 403 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
 
-    await AuditLog.logAction({
-      action: "UPDATE",
-      entityType: "LeaveRequest",
-      entityId: leaveRequest.id.toString(),
-      userId: req.user.id,
-      userRole: req.user.role,
-      performedByName: approverName,
-      performedByEmail: req.user.email,
-      meta: {
-        type: "LEAVE_REJECTED",
-        leaveType: leaveRequest.type,
-        days: leaveRequest.days,
-        reason,
-      },
-      ipAddress: req.ip,
-      userAgent: req.get("User-Agent"),
-    });
+      return sendResponse(res, true, "Leave request statistics retrieved successfully", result.data);
+    } catch (error) {
+      logger.error("Controller: Get Leave Request Stats Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
 
-    logger.info(
-      `Leave request rejected: ${leaveRequest.id} by ${req.user.id}`
-    );
+  /**
+   * Get pending leave requests (HR & Super Admin)
+   */
+  getPendingLeaveRequests: async (req, res) => {
+    try {
+      const filters = {
+        ...req.query,
+        status: 'pending'
+      };
 
-    res.json({
-      success: true,
-      data: leaveRequest,
-      message: "Leave request rejected successfully",
-    });
-  } catch (error) {
-    logger.error("Error rejecting leave request:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error rejecting leave request",
-      error: error.message,
-    });
+      const result = await leaveRequestService.getLeaveRequests(filters, req.user, req.query);
+
+      if (!result.success) {
+        const statusCode = result.message.includes('Unauthorized') ? 403 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
+
+      return sendResponse(res, true, "Pending leave requests retrieved successfully", result.data.leaveRequests, 200, result.data.pagination);
+    } catch (error) {
+      logger.error("Controller: Get Pending Leave Requests Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
+   * Get leave usage report
+   */
+  getLeaveUsageReport: async (req, res) => {
+    try {
+      const { year, department, leaveType } = req.query;
+
+      const filters = {
+        year: year || new Date().getFullYear(),
+        department,
+        leaveType,
+        status: 'approved' // Only approved leaves for usage report
+      };
+
+      const result = await leaveRequestService.getLeaveRequests(filters, req.user, { limit: 1000 });
+
+      if (!result.success) {
+        const statusCode = result.message.includes('Unauthorized') ? 403 : 400;
+        return sendResponse(res, false, result.message, null, statusCode);
+      }
+
+      // Calculate usage statistics
+      const usageStats = {
+        totalApprovedRequests: result.data.leaveRequests.length,
+        totalDaysUsed: result.data.leaveRequests.reduce((sum, req) => sum + req.totalDays, 0),
+        byLeaveType: {},
+        byDepartment: {},
+        byMonth: {}
+      };
+
+      // Group by leave type
+      result.data.leaveRequests.forEach(request => {
+        if (!usageStats.byLeaveType[request.leaveType]) {
+          usageStats.byLeaveType[request.leaveType] = { requests: 0, days: 0 };
+        }
+        usageStats.byLeaveType[request.leaveType].requests++;
+        usageStats.byLeaveType[request.leaveType].days += request.totalDays;
+
+        // Group by department
+        const dept = request.employee.department || 'Unknown';
+        if (!usageStats.byDepartment[dept]) {
+          usageStats.byDepartment[dept] = { requests: 0, days: 0 };
+        }
+        usageStats.byDepartment[dept].requests++;
+        usageStats.byDepartment[dept].days += request.totalDays;
+
+        // Group by month
+        const month = new Date(request.startDate).toISOString().substring(0, 7); // YYYY-MM
+        if (!usageStats.byMonth[month]) {
+          usageStats.byMonth[month] = { requests: 0, days: 0 };
+        }
+        usageStats.byMonth[month].requests++;
+        usageStats.byMonth[month].days += request.totalDays;
+      });
+
+      return sendResponse(res, true, "Leave usage report retrieved successfully", {
+        statistics: usageStats,
+        details: result.data.leaveRequests
+      });
+    } catch (error) {
+      logger.error("Controller: Get Leave Usage Report Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
   }
 };
 
-/**
- * Get leave statistics
- * GET /api/admin/leave-requests/statistics
- */
-const getLeaveStatistics = async (req, res) => {
-  try {
-    const { year = new Date().getFullYear() } = req.query;
-
-    const startOfYear = new Date(year, 0, 1);
-    const endOfYear = new Date(year, 11, 31, 23, 59, 59);
-
-    const statistics = await LeaveRequest.findAll({
-      where: {
-        startDate: { 
-          [Op.between]: [startOfYear, endOfYear] 
-        },
-      },
-      attributes: [
-        'status',
-        [LeaveRequest.sequelize.fn('COUNT', LeaveRequest.sequelize.col('status')), 'count'],
-        [LeaveRequest.sequelize.fn('SUM', LeaveRequest.sequelize.col('totalDays')), 'totalDays'],
-      ],
-      group: ['status'],
-      raw: true,
-    });
-
-    const typeStatistics = await LeaveRequest.findAll({
-      where: {
-        startDate: { 
-          [Op.between]: [startOfYear, endOfYear] 
-        },
-        status: "approved",
-      },
-      attributes: [
-        'leaveType',
-        [LeaveRequest.sequelize.fn('COUNT', LeaveRequest.sequelize.col('leaveType')), 'count'],
-        [LeaveRequest.sequelize.fn('SUM', LeaveRequest.sequelize.col('totalDays')), 'totalDays'],
-      ],
-      group: ['leaveType'],
-      raw: true,
-    });
-
-    res.json({
-      success: true,
-      data: {
-        byStatus: statistics.map(stat => ({
-          _id: stat.status,
-          count: parseInt(stat.count),
-          totalDays: parseFloat(stat.totalDays) || 0,
-        })),
-        byType: typeStatistics.map(stat => ({
-          _id: stat.type,
-          count: parseInt(stat.count),
-          totalDays: parseFloat(stat.totalDays) || 0,
-        })),
-        year: parseInt(year, 10),
-      },
-    });
-  } catch (error) {
-    logger.error("Error fetching leave statistics:", error);
-    res.status(500).json({
-      success: false,
-      message: "Error fetching leave statistics",
-      error: error.message,
-    });
-  }
-};
-
-export default {
-  getAllLeaveRequests,
-  getLeaveRequestById,
-  approveLeaveRequest,
-  rejectLeaveRequest,
-  getLeaveStatistics,
-};
+export default leaveRequestController;

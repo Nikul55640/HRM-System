@@ -17,21 +17,21 @@ export const hrRoutes = [
   {
     path: "admin/attendance",
     element: <AttendanceAdminList />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "admin/attendance/:id",
     element: <AttendanceAdminDetail />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "admin/leave-requests",
     element: <LeaveManagement />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
   {
     path: "hr/designations",
     element: <DesignationsPage />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["HR", "SuperAdmin"],
   },
 ];

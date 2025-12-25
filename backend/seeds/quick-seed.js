@@ -69,7 +69,7 @@ const quickSeed = async () => {
             {
                 name: 'Super Admin',
                 email: 'admin@hrm.com',
-                password: await bcrypt.hash('admin123', 12),
+                password: 'admin123', // Let the model hook handle hashing
                 role: 'SuperAdmin',
                 isActive: true,
                 employeeId: createdEmployees[0].id
@@ -77,7 +77,7 @@ const quickSeed = async () => {
             {
                 name: 'HR Manager',
                 email: 'hr@hrm.com',
-                password: await bcrypt.hash('hr123', 12),
+                password: 'hr123', // Let the model hook handle hashing
                 role: 'HR',
                 isActive: true,
                 employeeId: createdEmployees[1].id
@@ -85,7 +85,7 @@ const quickSeed = async () => {
             {
                 name: 'John Employee',
                 email: 'john@hrm.com',
-                password: await bcrypt.hash('john123', 12),
+                password: 'john123', // Let the model hook handle hashing
                 role: 'Employee',
                 isActive: true,
                 employeeId: createdEmployees[2].id

@@ -1,18 +1,18 @@
-import { sequelize, User, Employee, Department, EmployeeProfile } from '../models/sequelize/index.js';
+import { sequelize, User, Employee, Department } from '../models/sequelize/index.js';
 import logger from '../utils/logger.js';
 
 const runMigration = async () => {
   try {
     logger.info('🔄 Starting MySQL migration...');
-    
+
     // Test connection
     await sequelize.authenticate();
     logger.info('✅ Database connection established');
-    
+
     // Sync all models (creates tables)
     await sequelize.sync({ force: false, alter: true });
     logger.info('✅ Database tables synchronized');
-    
+
     // Create default department
     const [defaultDept] = await Department.findOrCreate({
       where: { name: 'Administration' },
@@ -23,7 +23,7 @@ const runMigration = async () => {
       },
     });
     logger.info('✅ Default department created');
-    
+
     // Create default admin user
     const [adminUser] = await User.findOrCreate({
       where: { email: 'admin@hrms.com' },
@@ -35,7 +35,7 @@ const runMigration = async () => {
       },
     });
     logger.info('✅ Default admin user created');
-    
+
     // Create admin employee record if user was created
     if (adminUser && !adminUser.employeeId) {
       const adminEmployee = await Employee.create({
@@ -57,33 +57,31 @@ const runMigration = async () => {
         status: 'Active',
         createdBy: adminUser.id,
       });
-      
+
       // Update user with employee reference
       await adminUser.update({ employeeId: adminEmployee.id });
-      
-      // Create employee profile
-      await EmployeeProfile.create({
-        employeeId: adminEmployee.id,
-        personalInfo: {},
-        bankDetails: {},
-        documentsList: [],
+
+      // Employee profile data is now part of Employee model
+      // No separate EmployeeProfile needed
+      bankDetails: { },
+      documentsList: [],
         changeHistory: [],
-        createdBy: adminUser.id,
+          createdBy: adminUser.id,
       });
-      
-      logger.info('✅ Admin employee and profile created');
-    }
-    
-    logger.info('🎉 Migration completed successfully!');
-    logger.info(`📧 Admin Email: admin@hrms.com`);
-    logger.info(`🔑 Admin Password: admin123`);
-    
-  } catch (error) {
-    logger.error('❌ Migration failed:', error);
-    throw error;
-  } finally {
-    await sequelize.close();
+
+    logger.info('✅ Admin employee and profile created');
   }
+
+    logger.info('🎉 Migration completed successfully!');
+  logger.info(`📧 Admin Email: admin@hrms.com`);
+  logger.info(`🔑 Admin Password: admin123`);
+
+} catch (error) {
+  logger.error('❌ Migration failed:', error);
+  throw error;
+} finally {
+  await sequelize.close();
+}
 };
 
 runMigration()

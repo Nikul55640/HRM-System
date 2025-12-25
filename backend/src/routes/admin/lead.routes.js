@@ -1,39 +1,131 @@
 import express from 'express';
 import leadController from '../../controllers/admin/lead.controller.js';
-import leadActivityController from '../../controllers/admin/leadActivity.controller.js';
-import leadNoteController from '../../controllers/admin/leadNote.controller.js';
 import { authenticate } from '../../middleware/authenticate.js';
-import { authorize } from '../../middleware/authorize.js';
+import { checkPermission, checkAnyPermission } from '../../middleware/checkPermission.js';
+import { MODULES } from '../../config/rolePermissions.js';
 
 const router = express.Router();
 
-// All routes require authentication
-router.use(authenticate);
+/* ============================================================
+   LEAD ROUTES — HR & SUPERADMIN
+   Simplified lead management with JSON-based notes
+   ============================================================ */
 
-// Lead management routes (SuperAdmin, admin, hr, sales roles)
-router.use(authorize(['SuperAdmin', 'admin', 'hr', 'sales', 'manager']));
+/* -----------------------------------
+   GET ALL LEADS
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+    '/',
+    authenticate,
+    checkAnyPermission([
+        MODULES.LEAD.VIEW_ALL,
+        MODULES.LEAD.VIEW_TEAM,
+    ]),
+    leadController.getLeads
+);
 
-// Lead CRUD operations
-router.get('/', leadController.getLeads);
-router.get('/stats', leadController.getLeadStats);
-router.get('/:id', leadController.getLead);
-router.post('/', leadController.createLead);
-router.put('/:id', leadController.updateLead);
-router.delete('/:id', leadController.deleteLead);
-router.put('/bulk/update', leadController.bulkUpdate);
+/* -----------------------------------
+   GET LEAD ANALYTICS
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+    '/analytics',
+    authenticate,
+    checkAnyPermission([
+        MODULES.LEAD.VIEW_ALL,
+        MODULES.LEAD.MANAGE,
+    ]),
+    leadController.getLeadAnalytics
+);
 
-// Lead activities
-router.get('/:leadId/activities', leadActivityController.getActivities);
-router.post('/:leadId/activities', leadActivityController.createActivity);
-router.put('/activities/:id', leadActivityController.updateActivity);
-router.delete('/activities/:id', leadActivityController.deleteActivity);
-router.put('/activities/:id/complete', leadActivityController.completeActivity);
-router.get('/activities/upcoming', leadActivityController.getUpcomingActivities);
+/* -----------------------------------
+   GET MY ASSIGNED LEADS
+   Permission: All authenticated users
+----------------------------------- */
+router.get(
+    '/my-leads',
+    authenticate,
+    leadController.getMyLeads
+);
 
-// Lead notes
-router.get('/:leadId/notes', leadNoteController.getNotes);
-router.post('/:leadId/notes', leadNoteController.createNote);
-router.put('/notes/:id', leadNoteController.updateNote);
-router.delete('/notes/:id', leadNoteController.deleteNote);
+/* -----------------------------------
+   GET LEAD BY ID
+   Permission: HR, SuperAdmin, or assigned employee
+----------------------------------- */
+router.get(
+    '/:id',
+    authenticate,
+    checkAnyPermission([
+        MODULES.LEAD.VIEW_ALL,
+        MODULES.LEAD.VIEW_TEAM,
+        MODULES.LEAD.VIEW_OWN,
+    ]),
+    leadController.getLeadById
+);
+
+/* -----------------------------------
+   CREATE NEW LEAD
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.post(
+    '/',
+    authenticate,
+    checkPermission(MODULES.LEAD.CREATE),
+    leadController.createLead
+);
+
+/* -----------------------------------
+   UPDATE LEAD
+   Permission: HR, SuperAdmin, or assigned employee
+----------------------------------- */
+router.put(
+    '/:id',
+    authenticate,
+    checkAnyPermission([
+        MODULES.LEAD.UPDATE_ANY,
+        MODULES.LEAD.UPDATE_OWN,
+    ]),
+    leadController.updateLead
+);
+
+/* -----------------------------------
+   ASSIGN LEAD TO EMPLOYEE
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.patch(
+    '/:id/assign',
+    authenticate,
+    checkPermission(MODULES.LEAD.ASSIGN),
+    leadController.assignLead
+);
+
+/* -----------------------------------
+   UPDATE LEAD STATUS
+   Permission: HR, SuperAdmin, or assigned employee
+----------------------------------- */
+router.patch(
+    '/:id/status',
+    authenticate,
+    checkAnyPermission([
+        MODULES.LEAD.UPDATE_ANY,
+        MODULES.LEAD.UPDATE_OWN,
+    ]),
+    leadController.updateLeadStatus
+);
+
+/* -----------------------------------
+   ADD FOLLOW-UP NOTE
+   Permission: HR, SuperAdmin, or assigned employee
+----------------------------------- */
+router.post(
+    '/:id/notes',
+    authenticate,
+    checkAnyPermission([
+        MODULES.LEAD.UPDATE_ANY,
+        MODULES.LEAD.UPDATE_OWN,
+    ]),
+    leadController.addFollowUpNote
+);
 
 export default router;

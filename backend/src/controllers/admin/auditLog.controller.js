@@ -1,58 +1,105 @@
-import auditService from "../../services/audit/audit.service.js"; 
+/**
+ * Audit Log Controller
+ * Handles audit log viewing and filtering for Super Admin
+ */
+
+import auditService from "../../services/audit/audit.service.js";
+import { ROLES } from "../../config/rolePermissions.js";
+import logger from "../../utils/logger.js";
+
+/**
+ * Wrapper for consistent API responses
+ */
+const sendResponse = (res, success, message, data = null, statusCode = 200, pagination = null) => {
+  const response = {
+    success,
+    message,
+    data,
+  };
+
+  if (pagination) {
+    response.pagination = pagination;
+  }
+
+  return res.status(statusCode).json(response);
+};
 
 const auditLogController = {
+  /**
+   * Get audit logs with filtering (Super Admin only)
+   */
   getAuditLogs: async (req, res) => {
     try {
+      // Only Super Admin can view audit logs
+      if (req.user.role !== ROLES.SUPER_ADMIN) {
+        return sendResponse(res, false, "Unauthorized: Only Super Admin can view audit logs", null, 403);
+      }
+
       const result = await auditService.getAuditLogs(req.query);
 
-      res.status(200).json({
-        success: true,
-        data: result.logs,
-        pagination: {
-          page: Number(req.query.page || 1),
-          limit: Number(req.query.limit || 50),
-          total: result.total,
-        },
-        summary: result.summary,
-      });
+      const pagination = {
+        currentPage: parseInt(req.query.page) || 1,
+        totalPages: Math.ceil(result.total / (parseInt(req.query.limit) || 50)),
+        totalItems: result.total,
+        itemsPerPage: parseInt(req.query.limit) || 50
+      };
+
+      return sendResponse(res, true, "Audit logs retrieved successfully", {
+        logs: result.logs,
+        summary: result.summary
+      }, 200, pagination);
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: "Error fetching audit logs",
-        error: error.message,
-      });
+      logger.error("Controller: Get Audit Logs Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
   },
 
+  /**
+   * Get audit log by ID (Super Admin only)
+   */
   getAuditLogById: async (req, res) => {
     try {
-      const log = await auditService.getAuditLogById(req.params.id);
-      if (!log) {
-        return res.status(404).json({ success: false, message: "Not found" });
+      // Only Super Admin can view audit logs
+      if (req.user.role !== ROLES.SUPER_ADMIN) {
+        return sendResponse(res, false, "Unauthorized: Only Super Admin can view audit logs", null, 403);
       }
-      res.status(200).json({ success: true, data: log });
+
+      const { id } = req.params;
+      const log = await auditService.getAuditLogById(id);
+
+      if (!log) {
+        return sendResponse(res, false, "Audit log not found", null, 404);
+      }
+
+      return sendResponse(res, true, "Audit log retrieved successfully", log);
     } catch (error) {
-      res.status(500).json({ success: false, message: error.message });
+      logger.error("Controller: Get Audit Log By ID Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
   },
 
+  /**
+   * Cleanup old audit logs (Super Admin only)
+   */
   cleanupAuditLogs: async (req, res) => {
     try {
-      const deleted = await auditService.cleanupAuditLogs(
-        Number(req.body.olderThanDays || 90)
-      );
+      // Only Super Admin can cleanup audit logs
+      if (req.user.role !== ROLES.SUPER_ADMIN) {
+        return sendResponse(res, false, "Unauthorized: Only Super Admin can cleanup audit logs", null, 403);
+      }
 
-      res.status(200).json({
-        success: true,
-        message: `Deleted ${deleted} audit logs`,
+      const { olderThanDays = 90 } = req.body;
+      const deletedCount = await auditService.cleanupAuditLogs(parseInt(olderThanDays));
+
+      return sendResponse(res, true, `Successfully cleaned up ${deletedCount} audit logs older than ${olderThanDays} days`, {
+        deletedCount,
+        olderThanDays: parseInt(olderThanDays)
       });
     } catch (error) {
-      res.status(500).json({
-        success: false,
-        message: error.message,
-      });
+      logger.error("Controller: Cleanup Audit Logs Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
     }
-  },
+  }
 };
 
 export default auditLogController;

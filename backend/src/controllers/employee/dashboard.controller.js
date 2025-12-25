@@ -28,7 +28,7 @@ const getDashboard = async (req, res, next) => {
       return res.status(200).json({
         success: true,
         data: {
-          hasEmployeeProfile: false,
+          hasEmployeeProfile: !!user.employeeId,
           user: {
             email: user.email,
             role: user.role,
@@ -160,4 +160,4 @@ const getRecentActivity = async (req, res, next) => {
   }
 };
 
-export  default { getDashboard , getProfileSummary, getLeaveBalance, getAttendanceRecords, getRecentActivity};
+export default { getDashboard, getProfileSummary, getLeaveBalance, getAttendanceRecords, getRecentActivity };
