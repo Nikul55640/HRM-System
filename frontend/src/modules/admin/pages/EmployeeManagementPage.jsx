@@ -22,6 +22,7 @@ import {
   MenuItem,
 } from '@mui/material';
 import { useSnackbar } from 'notistack';
+import api from '../../../core/services/api';
 
 const EmployeeManagementPage = () => {
   const [employees, setEmployees] = useState([]);
@@ -38,43 +39,22 @@ const EmployeeManagementPage = () => {
   });
   const { enqueueSnackbar } = useSnackbar();
 
-  useEffect(() => {
-    fetchEmployees();
-  }, [fetchEmployees]);
-
   const fetchEmployees = useCallback(async () => {
     try {
       setLoading(true);
-      // Mock data - replace with actual API call
-      const mockEmployees = [
-        {
-          id: 1,
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john@example.com',
-          department: 'Engineering',
-          designation: 'Senior Developer',
-          joinDate: '2022-01-15',
-          status: 'active',
-        },
-        {
-          id: 2,
-          firstName: 'Jane',
-          lastName: 'Smith',
-          email: 'jane@example.com',
-          department: 'HR',
-          designation: 'HR Manager',
-          joinDate: '2021-06-20',
-          status: 'active',
-        },
-      ];
-      setEmployees(mockEmployees);
+      const response = await api.get('/employees');
+      setEmployees(response.data.data || []);
     } catch (error) {
+      console.error('Failed to fetch employees:', error);
       enqueueSnackbar('Failed to load employees', { variant: 'error' });
     } finally {
       setLoading(false);
     }
   }, [enqueueSnackbar]);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
 
   const handleOpenDialog = (employee = null) => {
     if (employee) {
@@ -152,7 +132,7 @@ const EmployeeManagementPage = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {employees.map((emp) => (
+              {(employees || []).map((emp) => (
                 <TableRow key={emp.id}>
                   <TableCell>{emp.firstName} {emp.lastName}</TableCell>
                   <TableCell>{emp.email}</TableCell>

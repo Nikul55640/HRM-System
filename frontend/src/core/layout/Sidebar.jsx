@@ -27,12 +27,15 @@ const Sidebar = () => {
 
 
 
-  // Navigation structure with permission-based access - 8 CORE FEATURES ONLY
+  // Navigation structure based on 8 CORE FEATURES with role-based permissions
   const allNavItems = [
+    // ===================================================
+    // GENERAL SECTION - Always visible
+    // ===================================================
     {
       section: "General",
       icon: "Home",
-      showIf: () => true, // Always show for authenticated users
+      showIf: () => true,
       items: [
         {
           name: "Dashboard",
@@ -42,38 +45,85 @@ const Sidebar = () => {
         },
       ],
     },
-    // Employee Self-Service Section - FEATURES 1, 2, 3, 6, 7
+
+    // ===================================================
+    // EMPLOYEE SELF-SERVICE SECTION
+    // Features: 1, 2, 3, 5, 6, 7 (Employee access only)
+    // ===================================================
     {
       section: "My Self Service",
       icon: "User",
-      showIf: () => !!user?.employeeId && !can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.SYSTEM.MANAGE_CONFIG]), // Only show for employees, not admins
+      showIf: () => user?.role === 'Employee', // Only show for employees
       items: [
         // FEATURE 1: Profile & Bank Details Management
-        { name: "My Profile", path: "/employee/profile", icon: "User", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
-        { name: "Bank Details", path: "/employee/bank-details", icon: "Banknote", showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) },
+        { 
+          name: "My Profile", 
+          path: "/employee/profile", 
+          icon: "User", 
+          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) 
+        },
+        { 
+          name: "Bank Details", 
+          path: "/employee/bank-details", 
+          icon: "Banknote", 
+          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) 
+        },
 
         // FEATURE 2: Attendance Management
-        { name: "Attendance", path: "/employee/attendance", icon: "Clock", showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN) },
+        { 
+          name: "My Attendance", 
+          path: "/employee/attendance", 
+          icon: "Clock", 
+          showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN) 
+        },
 
         // FEATURE 3: Leave Management
-        { name: "Leave", path: "/employee/leave", icon: "CalendarDays", showIf: () => can.do(MODULES.LEAVE.VIEW_OWN) },
+        { 
+          name: "My Leave", 
+          path: "/employee/leave", 
+          icon: "CalendarDays", 
+          showIf: () => can.do(MODULES.LEAVE.VIEW_OWN) 
+        },
+
+        // FEATURE 5: Lead Management (Employee view)
+        { 
+          name: "My Leads", 
+          path: "/employee/leads", 
+          icon: "Target", 
+          showIf: () => can.do(MODULES.LEAD.VIEW) 
+        },
 
         // FEATURE 6: Shift Management
-        { name: "My Shifts", path: "/employee/shifts", icon: "Calendar", showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN) },
+        { 
+          name: "My Shifts", 
+          path: "/employee/shifts", 
+          icon: "Calendar", 
+          showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN) 
+        },
 
         // FEATURE 7: Calendar & Events
-        { name: "Calendar", path: "/employee/calendar", icon: "CalendarRange", showIf: () => can.do(MODULES.LEAVE.VIEW_CALENDAR) },
-
-        // FEATURE 5: Lead Management (for employees)
-        { name: "My Leads", path: "/employee/leads", icon: "Target", showIf: () => can.do(MODULES.LEAD.VIEW) },
+        { 
+          name: "Calendar & Events", 
+          path: "/employee/calendar", 
+          icon: "CalendarRange", 
+          showIf: () => can.do(MODULES.CALENDAR.VIEW) 
+        },
       ],
     },
-    // HR Administration Section - ALL 8 FEATURES
+
+    // ===================================================
+    // HR ADMINISTRATION SECTION
+    // Features: 1, 2, 3, 4, 5, 6, 7 (HR access)
+    // ===================================================
     {
       section: "HR Administration",
       icon: "Settings",
       collapsible: true,
-      showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.LEAVE.VIEW_ALL, MODULES.EMPLOYEE.VIEW_ALL]),
+      showIf: () => (user?.role === 'HR' || user?.role === 'SuperAdmin') && can.doAny([
+        MODULES.EMPLOYEE.VIEW_ALL, 
+        MODULES.ATTENDANCE.VIEW_ALL, 
+        MODULES.LEAVE.VIEW_ALL
+      ]),
       items: [
         // FEATURE 4: Employee Management
         {
@@ -91,7 +141,7 @@ const Sidebar = () => {
 
         // FEATURE 2: Attendance Management
         {
-          name: "Attendance Admin",
+          name: "Attendance Management",
           path: "/admin/attendance",
           icon: "Clock4",
           showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
@@ -108,32 +158,26 @@ const Sidebar = () => {
           name: "Leave Balances",
           path: "/admin/leave-balances",
           icon: "Scale",
-          showIf: () => can.doAny([MODULES.LEAVE.MANAGE_POLICIES, MODULES.SYSTEM.MANAGE_CONFIG]),
+          showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCE),
         },
 
         // FEATURE 5: Lead Management
         {
-          name: "Leads",
+          name: "Lead Management",
           path: "/admin/leads",
           icon: "Target",
-          showIf: () => can.doAny([MODULES.LEAD.VIEW, MODULES.LEAD.MANAGE_ALL]),
+          showIf: () => can.doAny([MODULES.LEAD.CREATE, MODULES.LEAD.MANAGE_ALL]),
         },
 
         // FEATURE 6: Shift Management
         {
-          name: "Shifts",
+          name: "Shift Management",
           path: "/admin/shifts",
           icon: "Clock",
-          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.SYSTEM.MANAGE_CONFIG]),
+          showIf: () => can.do(MODULES.ATTENDANCE.MANAGE_SHIFTS),
         },
 
-        // FEATURE 7: Calendar, Event & Holiday Management
-        {
-          name: "Holidays",
-          path: "/admin/holidays",
-          icon: "PartyPopper",
-          showIf: () => can.do(MODULES.LEAVE.MANAGE_POLICIES),
-        },
+        // FEATURE 7: Calendar, Events & Holidays
         {
           name: "Events",
           path: "/admin/events",
@@ -142,14 +186,22 @@ const Sidebar = () => {
         },
       ],
     },
-    // System Administration Section - FEATURE 8
+
+    // ===================================================
+    // SYSTEM ADMINISTRATION SECTION
+    // Features: 4, 8 + System Config (Super Admin only)
+    // ===================================================
     {
       section: "System Administration",
       icon: "Shield",
       collapsible: true,
-      showIf: () => can.doAny([MODULES.USER.VIEW, MODULES.SYSTEM.VIEW_CONFIG]),
+      showIf: () => user?.role === 'SuperAdmin' && can.doAny([
+        MODULES.USER.VIEW, 
+        MODULES.SYSTEM.VIEW_CONFIG, 
+        MODULES.SYSTEM.VIEW_AUDIT_LOGS
+      ]),
       items: [
-        // FEATURE 4: Employee Management (User roles)
+        // FEATURE 4: Employee Management (System level)
         {
           name: "User Management",
           path: "/admin/users",
@@ -163,6 +215,14 @@ const Sidebar = () => {
           path: "/admin/system-policies",
           icon: "Settings",
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
+        },
+
+        // FEATURE 7: Holiday Management (Super Admin)
+        {
+          name: "Company Holidays",
+          path: "/admin/holidays",
+          icon: "PartyPopper",
+          showIf: () => can.do(MODULES.LEAVE.MANAGE_POLICIES),
         },
 
         // FEATURE 8: Audit Log Management

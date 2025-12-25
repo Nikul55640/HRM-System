@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { cn } from '../../core/utils/utils';
+import { cn } from '../../lib/utils';
 
 const Modal = ({ isOpen, onClose, children, className }) => {
   useEffect(() => {

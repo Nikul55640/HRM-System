@@ -1,5 +1,6 @@
 import { lazy } from "react";
 
+// Feature 4: Employee Management (for HR/Admin access to employee records)
 const EmployeeList = lazy(() =>
   import("../modules/employees/pages/EmployeeList")
 );
@@ -9,12 +10,9 @@ const EmployeeForm = lazy(() =>
 const EmployeeProfile = lazy(() =>
   import("../modules/employees/pages/EmployeeProfile")
 );
-// EmployeeDirectory doesn't exist, using EmployeeList for directory functionality
-// const EmployeeDirectory = lazy(() =>
-//   import("../modules/employees/EmployeeDirectory")
-// );
 
 export const employeeRoutes = [
+  // These routes are for HR/Admin to manage employees, not employee self-service
   {
     path: "employees",
     element: <EmployeeList />,
@@ -33,11 +31,6 @@ export const employeeRoutes = [
   {
     path: "employees/:id/edit",
     element: <EmployeeForm />,
-    roles: ["HR", "SuperAdmin"],
-  },
-  {
-    path: "directory",
-    element: <EmployeeList />, // Using EmployeeList for directory functionality
     roles: ["HR", "SuperAdmin"],
   },
 ];

@@ -6,7 +6,9 @@
 
 import leaveBalanceService from '../../services/admin/leaveBalance.service.js';
 import logger from '../../utils/logger.js';
-import { AuditLog } from '../../models/sequelize/index.js';
+import { AuditLog, Employee, LeaveBalance, User } from '../../models/sequelize/index.js';
+import { Op } from 'sequelize';
+import { ROLES } from '../../config/rolePermissions.js';
 
 /**
  * Wrapper for consistent API responses
@@ -196,53 +198,122 @@ const leaveBalanceController = {
     }
   },
 
-  /**
-   * Get all employees with their leave balances (HR & Super Admin)
-   */
-  getAllEmployeesLeaveBalances: async (req, res) => {
-    try {
-      const { year = new Date().getFullYear(), department } = req.query;
+    /**
+     * Get all employees with their leave balances (HR & Super Admin)
+     */
+    getAllEmployeesLeaveBalances: async (req, res) => {
+        try {
+            const { year = new Date().getFullYear(), department } = req.query;
 
-      const filters = { year };
-      if (department) {
-        filters.department = department;
-      }
+            const filters = { year };
+            if (department) {
+                filters.department = department;
+            }
 
-      const result = await leaveBalanceService.getLeaveUtilizationReport(filters, req.user);
+            // First, get all employees (excluding SuperAdmin users)
+            let employeeFilter = {};
+            if (req.user.role === ROLES.HR_ADMIN && req.user.assignedDepartments?.length > 0) {
+                employeeFilter.department = { [Op.in]: req.user.assignedDepartments };
+            }
 
-      if (!result.success) {
-        const statusCode = result.message.includes('Unauthorized') ? 403 : 400;
-        return sendResponse(res, false, result.message, null, statusCode);
-      }
+            if (department) {
+                employeeFilter.department = department;
+            }
 
-      // Format the data for easier consumption
-      const employeeBalances = {};
-      result.data.details.forEach(balance => {
-        const empId = balance.employee.id;
-        if (!employeeBalances[empId]) {
-          employeeBalances[empId] = {
-            employee: balance.employee,
-            balances: {}
-          };
+            // Get all employees first, excluding those who are SuperAdmin users
+            const allEmployees = await Employee.findAll({
+                where: employeeFilter,
+                attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department', 'designation'],
+                include: [
+                    {
+                        model: User,
+                        as: 'user',
+                        attributes: ['id', 'role'],
+                        where: {
+                            role: { [Op.ne]: 'SuperAdmin' } // Exclude SuperAdmin users
+                        },
+                        required: false // Use LEFT JOIN so employees without users are still included
+                    }
+                ],
+                order: [['department'], ['firstName']]
+            });
+
+            // Filter out employees who have SuperAdmin users
+            const filteredEmployees = allEmployees.filter(employee => {
+                return !employee.user || employee.user.role !== 'SuperAdmin';
+            });
+
+            // Get leave balances for these employees
+            const leaveBalances = await LeaveBalance.findAll({
+                where: {
+                    year: filters.year,
+                    employeeId: { [Op.in]: filteredEmployees.map(emp => emp.id) }
+                },
+                include: [
+                    {
+                        model: Employee,
+                        as: 'employee',
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department', 'designation']
+                    }
+                ],
+                order: [['employee', 'department'], ['employee', 'firstName'], ['leaveType']]
+            });
+
+            // Format the data for easier consumption
+            const employeeBalances = {};
+            
+            // Initialize all employees with empty balances
+            filteredEmployees.forEach(employee => {
+                employeeBalances[employee.id] = {
+                    employee: {
+                        id: employee.id,
+                        employeeId: employee.employeeId,
+                        firstName: employee.firstName,
+                        lastName: employee.lastName,
+                        department: employee.department,
+                        designation: employee.designation
+                    },
+                    balances: {}
+                };
+            });
+
+            // Fill in the leave balances
+            leaveBalances.forEach(balance => {
+                const empId = balance.employee.id;
+                if (employeeBalances[empId]) {
+                    employeeBalances[empId].balances[balance.leaveType.toLowerCase()] = {
+                        allocated: balance.allocated,
+                        used: balance.used,
+                        pending: balance.pending,
+                        remaining: balance.remaining,
+                        carryForward: balance.carryForward
+                    };
+                }
+            });
+
+            // Calculate summary statistics
+            const summary = {
+                totalEmployees: filteredEmployees.length,
+                totalAllocated: leaveBalances.reduce((sum, record) => sum + record.allocated, 0),
+                totalUsed: leaveBalances.reduce((sum, record) => sum + record.used, 0),
+                totalRemaining: leaveBalances.reduce((sum, record) => sum + record.remaining, 0),
+                totalPending: leaveBalances.reduce((sum, record) => sum + record.pending, 0),
+                utilizationRate: 0
+            };
+
+            if (summary.totalAllocated > 0) {
+                summary.utilizationRate = ((summary.totalUsed / summary.totalAllocated) * 100).toFixed(2);
+            }
+
+            return sendResponse(res, true, "All employees leave balances retrieved successfully", {
+                summary: summary,
+                employees: Object.values(employeeBalances)
+            });
+        } catch (error) {
+            logger.error("Controller: Get All Employees Leave Balances Error", error);
+            return sendResponse(res, false, "Internal server error", null, 500);
         }
-        employeeBalances[empId].balances[balance.leaveType] = {
-          allocated: balance.allocated,
-          used: balance.used,
-          pending: balance.pending,
-          remaining: balance.remaining,
-          carryForward: balance.carryForward
-        };
-      });
-
-      return sendResponse(res, true, "All employees leave balances retrieved successfully", {
-        summary: result.data.summary,
-        employees: Object.values(employeeBalances)
-      });
-    } catch (error) {
-      logger.error("Controller: Get All Employees Leave Balances Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
     }
-  }
 };
 
 export default leaveBalanceController;

@@ -1,4 +1,4 @@
-import api from '../core/api/api';
+import api from '../core/services/api';
 import { toast } from 'react-toastify';
 
 /**
@@ -168,7 +168,7 @@ const employeeSelfService = {
         const response = await api.get('/employee/leave-balance/export', {
           responseType: 'blob',
         });
-        console.log('✅ [ESS] Leave summary exported');
+        
         return response.data;
       } catch (error) {
         

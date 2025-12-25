@@ -14,19 +14,9 @@ const quickSeed = async () => {
         console.log('🌱 Starting Quick HRM Seed...');
 
         // 1. Create Employees FIRST (no foreign key dependencies)
+        // Note: SuperAdmin users don't need employee records
         console.log('1. Creating employees...');
         const employees = [
-            {
-                employeeId: 'EMP-001',
-                firstName: 'Super',
-                lastName: 'Admin',
-                email: 'admin@hrm.com',
-                phone: '+1234567890',
-                designation: 'System Administrator',
-                department: 'Information Technology',
-                status: 'Active',
-                isActive: true
-            },
             {
                 employeeId: 'EMP-002',
                 firstName: 'HR',
@@ -63,7 +53,7 @@ const quickSeed = async () => {
             }
         }
 
-        // 2. Create Users (now we have employees)
+        // 2. Create Users (SuperAdmin without employee record, others with employee records)
         console.log('2. Creating users...');
         const users = [
             {
@@ -72,7 +62,7 @@ const quickSeed = async () => {
                 password: 'admin123', // Let the model hook handle hashing
                 role: 'SuperAdmin',
                 isActive: true,
-                employeeId: createdEmployees[0].id
+                employeeId: null // SuperAdmin doesn't have an employee record
             },
             {
                 name: 'HR Manager',
@@ -80,7 +70,7 @@ const quickSeed = async () => {
                 password: 'hr123', // Let the model hook handle hashing
                 role: 'HR',
                 isActive: true,
-                employeeId: createdEmployees[1].id
+                employeeId: createdEmployees[0].id // HR Manager employee
             },
             {
                 name: 'John Employee',
@@ -88,7 +78,7 @@ const quickSeed = async () => {
                 password: 'john123', // Let the model hook handle hashing
                 role: 'Employee',
                 isActive: true,
-                employeeId: createdEmployees[2].id
+                employeeId: createdEmployees[1].id // Regular employee
             }
         ];
 
@@ -191,12 +181,13 @@ const quickSeed = async () => {
             }
         }
 
-        // 6. Create Leave Balances
+        // 6. Create Leave Balances (only for employees, not SuperAdmin)
         console.log('6. Creating leave balances...');
         const currentYear = new Date().getFullYear();
         const leaveTypes = ['Casual', 'Sick', 'Paid'];
         const defaultQuotas = { Casual: 12, Sick: 12, Paid: 21 };
 
+        // Only create leave balances for actual employees (not SuperAdmin)
         for (const employee of createdEmployees) {
             for (const leaveType of leaveTypes) {
                 const [leaveBalance, created] = await LeaveBalance.findOrCreate({
@@ -214,7 +205,7 @@ const quickSeed = async () => {
                         pending: 0,
                         remaining: defaultQuotas[leaveType],
                         carryForward: 0,
-                        createdBy: createdUsers[1].id // HR Manager
+                        createdBy: createdUsers[1].id // HR Manager (index 1 since SuperAdmin is index 0)
                     }
                 });
                 if (created) {
@@ -223,10 +214,11 @@ const quickSeed = async () => {
             }
         }
 
-        // 7. Assign Shifts to Employees
+        // 7. Assign Shifts to Employees (only for employees, not SuperAdmin)
         console.log('7. Assigning shifts...');
         const currentDate = new Date(`${currentYear}-01-01`);
 
+        // Only assign shifts to actual employees (not SuperAdmin)
         for (const employee of createdEmployees) {
             const [shiftAssignment, created] = await EmployeeShift.findOrCreate({
                 where: {
@@ -238,7 +230,7 @@ const quickSeed = async () => {
                     shiftId: createdShifts[0].id,
                     effectiveDate: currentDate,
                     isActive: true,
-                    assignedBy: createdUsers[0].id,
+                    assignedBy: createdUsers[0].id, // SuperAdmin assigns shifts
                     notes: 'Initial shift assignment'
                 }
             });

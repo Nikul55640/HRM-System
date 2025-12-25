@@ -17,7 +17,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import api from '../../../core/api/api';
+import api from '../../../core/services/api';
 
 const DesignationsPage = () => {
   const [designations, setDesignations] = useState([]);

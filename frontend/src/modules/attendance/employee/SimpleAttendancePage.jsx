@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Coffee, Play, Pause, Square, MapPin } from 'lucide-react';
 import { toast } from 'react-toastify';
-import api from '../../../core/api/api';
+import api from '../../../core/services/api';
 
 const SimpleAttendancePage = () => {
   const [loading, setLoading] = useState(false);

@@ -67,42 +67,11 @@ const seedDatabase = async () => {
     console.log(`✅ Created ${departments.length} departments`);
 
     // ============================================
-    // 2. CREATE EMPLOYEES
+    // 2. CREATE EMPLOYEES (excluding SuperAdmin)
     // ============================================
     console.log('👥 Creating employees...');
 
     const employees = await Employee.bulkCreate([
-      {
-        employeeId: 'EMP001',
-        personalInfo: {
-          firstName: 'Admin',
-          lastName: 'User',
-          email: 'admin@hrms.com',
-          phone: '+1234567890',
-          dateOfBirth: '1990-01-01',
-          gender: 'male',
-          maritalStatus: 'single'
-        },
-        contactInfo: {
-          address: '123 Admin Street',
-          city: 'Admin City',
-          state: 'Admin State',
-          zipCode: '12345',
-          country: 'USA'
-        },
-        jobInfo: {
-          designation: 'System Administrator',
-          department: 'Information Technology',
-          employmentType: 'full-time',
-          joiningDate: '2024-01-01',
-          salary: 80000,
-          reportingManager: null
-        },
-        status: 'Active',
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      },
       {
         employeeId: 'EMP002',
         personalInfo: {
@@ -127,7 +96,7 @@ const seedDatabase = async () => {
           employmentType: 'full-time',
           joiningDate: '2024-01-15',
           salary: 70000,
-          reportingManager: 'EMP001'
+          reportingManager: null // Reports to SuperAdmin (but SuperAdmin is not an employee)
         },
         status: 'Active',
         isActive: true,
@@ -158,7 +127,7 @@ const seedDatabase = async () => {
           employmentType: 'full-time',
           joiningDate: '2024-02-01',
           salary: 60000,
-          reportingManager: 'EMP001'
+          reportingManager: 'EMP002' // Reports to HR Manager
         },
         status: 'Active',
         isActive: true,
@@ -189,7 +158,7 @@ const seedDatabase = async () => {
           employmentType: 'full-time',
           joiningDate: '2024-02-15',
           salary: 55000,
-          reportingManager: 'EMP002'
+          reportingManager: 'EMP002' // Reports to HR Manager
         },
         status: 'Active',
         isActive: true,
@@ -201,7 +170,7 @@ const seedDatabase = async () => {
     console.log(`✅ Created ${employees.length} employees`);
 
     // ============================================
-    // 3. CREATE USERS
+    // 3. CREATE USERS (SuperAdmin without employee record)
     // ============================================
     console.log('🔐 Creating users...');
 
@@ -213,7 +182,7 @@ const seedDatabase = async () => {
         email: 'admin@hrms.com',
         password: hashedPassword,
         role: 'SuperAdmin',
-        employeeId: employees[0].id,
+        employeeId: null, // SuperAdmin doesn't have an employee record
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -223,7 +192,7 @@ const seedDatabase = async () => {
         email: 'hr@hrms.com',
         password: hashedPassword,
         role: 'HR Manager',
-        employeeId: employees[1].id,
+        employeeId: employees[0].id,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -233,7 +202,7 @@ const seedDatabase = async () => {
         email: 'john.doe@hrms.com',
         password: hashedPassword,
         role: 'Employee',
-        employeeId: employees[2].id,
+        employeeId: employees[1].id,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -243,7 +212,7 @@ const seedDatabase = async () => {
         email: 'jane.smith@hrms.com',
         password: hashedPassword,
         role: 'Employee',
-        employeeId: employees[3].id,
+        employeeId: employees[2].id,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()

@@ -1,3 +1,4 @@
+// Enhanced Navigation Component - consolidated from Header.jsx and Navbar.jsx
 import { Link, useLocation } from 'react-router-dom';
 import { Bell, Search, Settings, User, LogOut, ChevronDown, HelpCircle, Menu, Palmtree, DollarSign, Megaphone } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';

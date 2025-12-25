@@ -5,7 +5,7 @@ import { Textarea } from '../../../shared/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../shared/ui/dialog';
 import { toast } from 'react-hot-toast';
-import api from '../../../core/api/api';
+import api from '../../../core/services/api';
 
 const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({

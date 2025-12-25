@@ -4,7 +4,7 @@ import { Input } from '../../../shared/ui/input';
 import { Textarea } from '../../../shared/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
 import { toast } from 'react-hot-toast';
-import api from '../../../core/api/api';
+import api from '../../../core/services/api';
 
 const LeadForm = ({ lead, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({

@@ -1,5 +1,5 @@
 import React, { useState, createContext, useContext } from 'react';
-import { cn } from '../../core/utils/utils';
+import { cn } from '../../lib/utils';
 
 const TabsContext = createContext();
 

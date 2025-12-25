@@ -184,6 +184,10 @@ const getDepartments = async (filters = {}, options = {}) => {
   try {
     const { page = 1, limit = 50, search, includeInactive = false } = options;
 
+    // Ensure page and limit are numbers
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 50;
+
     const where = {};
     if (!includeInactive) where.isActive = true;
 
@@ -197,13 +201,13 @@ const getDepartments = async (filters = {}, options = {}) => {
     const { count, rows } = await Department.findAndCountAll({
       where,
       order: [["name", "ASC"]],
-      limit,
-      offset: (page - 1) * limit,
+      limit: limitNum,
+      offset: (pageNum - 1) * limitNum,
     });
 
     return {
       departments: rows,
-      pagination: { page, limit, total: count },
+      pagination: { page: pageNum, limit: limitNum, total: count },
     };
   } catch (error) {
     logger.error("Error fetching departments:", error);

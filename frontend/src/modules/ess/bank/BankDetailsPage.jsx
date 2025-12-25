@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '../../../stores';
-import api from '../../../core/api/api';
+import api from '../../../core/services/api';
 import { toast } from 'react-toastify';
 import LoadingSpinner from '../../../shared/components/LoadingSpinner';
 

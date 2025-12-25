@@ -16,7 +16,7 @@ import {
   Info
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import api from '../../../core/api/api';
+import api from '../../../core/services/api';
 
 const ShiftForm = ({ shift, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);

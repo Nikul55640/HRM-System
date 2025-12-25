@@ -13,7 +13,7 @@ export const initializeStores = () => {
     const authStore = useAuthStore.getState();
     if (authStore.token) {
       // Set up API headers if token exists
-      import('../core/api/api').then(({ default: api }) => {
+      import('../core/services/api').then(({ default: api }) => {
         api.defaults.headers.common['Authorization'] = `Bearer ${authStore.token}`;
       });
     }

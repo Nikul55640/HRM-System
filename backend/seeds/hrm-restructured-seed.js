@@ -202,44 +202,9 @@ const seedData = async () => {
             }
         }
 
-        // 4. Create Sample Employees
+        // 4. Create Sample Employees (excluding SuperAdmin)
         console.log('4. Creating sample employees...');
         const employees = [
-            {
-                employeeId: 'EMP-001',
-                firstName: 'Super',
-                lastName: 'Admin',
-                email: 'admin@hrm.com',
-                phone: '+1234567890',
-                dateOfBirth: '1985-01-15',
-                gender: 'male',
-                address: {
-                    street: '123 Admin Street',
-                    city: 'Admin City',
-                    state: 'Admin State',
-                    country: 'Admin Country',
-                    zipCode: '12345'
-                },
-                designation: 'System Administrator',
-                department: 'Information Technology',
-                joiningDate: '2020-01-01',
-                employmentType: 'full_time',
-                bankDetails: {
-                    accountHolderName: 'Super Admin',
-                    bankName: 'Admin Bank',
-                    accountNumber: '1234567890',
-                    ifscCode: 'ADMIN001',
-                    isVerified: true
-                },
-                emergencyContact: {
-                    name: 'Emergency Contact',
-                    relationship: 'Spouse',
-                    phone: '+1234567891',
-                    email: 'emergency@example.com'
-                },
-                status: 'Active',
-                isActive: true
-            },
             {
                 employeeId: 'EMP-002',
                 firstName: 'HR',
@@ -259,7 +224,7 @@ const seedData = async () => {
                 department: 'Human Resources',
                 joiningDate: '2021-02-15',
                 employmentType: 'full_time',
-                reportingManager: 1, // Reports to Super Admin
+                reportingManager: null, // Reports to SuperAdmin (but SuperAdmin is not an employee)
                 bankDetails: {
                     accountHolderName: 'HR Manager',
                     bankName: 'HR Bank',
@@ -295,7 +260,7 @@ const seedData = async () => {
                 department: 'Information Technology',
                 joiningDate: '2022-06-01',
                 employmentType: 'full_time',
-                reportingManager: 1, // Reports to Super Admin
+                reportingManager: 1, // Reports to HR Manager
                 bankDetails: {
                     accountHolderName: 'John Employee',
                     bankName: 'Employee Bank',
@@ -326,7 +291,7 @@ const seedData = async () => {
             }
         }
 
-        // 5. Create Users
+        // 5. Create Users (SuperAdmin without employee record)
         console.log('5. Creating users...');
         const users = [
             {
@@ -335,7 +300,7 @@ const seedData = async () => {
                 password: 'admin123', // Let the model hook handle hashing
                 role: 'SuperAdmin',
                 isActive: true,
-                employeeId: createdEmployees[0].id
+                employeeId: null // SuperAdmin doesn't have an employee record
             },
             {
                 name: 'HR Manager',
@@ -343,7 +308,7 @@ const seedData = async () => {
                 password: 'hr123', // Let the model hook handle hashing
                 role: 'HR',
                 isActive: true,
-                employeeId: createdEmployees[1].id
+                employeeId: createdEmployees[0].id
             },
             {
                 name: 'John Employee',
@@ -351,7 +316,7 @@ const seedData = async () => {
                 password: 'john123', // Let the model hook handle hashing
                 role: 'Employee',
                 isActive: true,
-                employeeId: createdEmployees[2].id
+                employeeId: createdEmployees[1].id
             }
         ];
 
@@ -383,7 +348,7 @@ const seedData = async () => {
             }
         }
 
-        // 6. Assign Shifts to Employees
+        // 6. Assign Shifts to Employees (only actual employees, not SuperAdmin)
         console.log('6. Assigning shifts to employees...');
         const currentYear = new Date().getFullYear();
         const currentDate = new Date(`${currentYear}-01-01`);
@@ -399,7 +364,7 @@ const seedData = async () => {
                     shiftId: createdShifts[0].id, // Assign default shift
                     effectiveDate: currentDate,
                     isActive: true,
-                    assignedBy: createdUsers[0].id,
+                    assignedBy: createdUsers[0].id, // SuperAdmin assigns shifts
                     notes: 'Initial shift assignment'
                 }
             });
@@ -408,7 +373,7 @@ const seedData = async () => {
             }
         }
 
-        // 7. Create Leave Balances
+        // 7. Create Leave Balances (only for actual employees, not SuperAdmin)
         console.log('7. Creating leave balances...');
         const leaveTypes = ['Casual', 'Sick', 'Paid'];
         const defaultQuotas = { Casual: 12, Sick: 12, Paid: 21 };
@@ -430,7 +395,7 @@ const seedData = async () => {
                         pending: 0,
                         remaining: defaultQuotas[leaveType],
                         carryForward: 0,
-                        createdBy: createdUsers[1].id // HR Manager
+                        createdBy: createdUsers[1].id // HR Manager (index 1 since SuperAdmin is index 0)
                     }
                 });
                 if (created) {

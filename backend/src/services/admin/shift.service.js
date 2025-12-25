@@ -61,7 +61,7 @@ class ShiftService {
                 ],
                 order: [[sortBy, sortOrder]],
                 limit: parseInt(limit),
-                offset,
+                offset: parseInt(offset),
                 distinct: true
             });
 

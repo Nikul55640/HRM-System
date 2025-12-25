@@ -18,7 +18,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import api from '../../../core/api/api';
+import api from '../../../core/services/api';
 
 const LiveAttendanceDashboard = () => {
   const [liveData, setLiveData] = useState([]);

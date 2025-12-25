@@ -3,7 +3,7 @@ import PropTypes from 'prop-types';
 import { Card, CardContent } from '../../../shared/ui/card';
 import { Clock, CalendarCheck, AlertCircle, LogOut } from 'lucide-react';
 
-const AttendanceSummary = ({ summary }) => {
+const AttendanceSummary = ({ summary = null }) => {
   if (!summary) return null;
 
   // Handle both direct summary object and nested data structure
@@ -84,10 +84,6 @@ AttendanceSummary.propTypes = {
       averageWorkHours: PropTypes.number,
     }),
   ]),
-};
-
-AttendanceSummary.defaultProps = {
-  summary: null,
 };
 
 export default AttendanceSummary;

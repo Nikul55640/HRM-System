@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { toast } from 'react-hot-toast';
-import api from '../../../core/api/api';
+import api from '../../../core/services/api';
 import LeadForm from '../components/LeadForm';
 import LeadDetails from '../components/LeadDetails';
 

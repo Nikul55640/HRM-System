@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { cn } from '../../core/utils/utils';
+import { cn } from '../../lib/utils';
 
 const Tooltip = ({ children, content, position = 'top', className }) => {
   const [isVisible, setIsVisible] = useState(false);

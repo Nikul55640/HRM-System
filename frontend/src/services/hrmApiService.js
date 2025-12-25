@@ -1,4 +1,4 @@
-import api from '../core/api/api.js';
+import api from '../core/services/api';
 
 /**
  * HRM API Service - 8 Core Features

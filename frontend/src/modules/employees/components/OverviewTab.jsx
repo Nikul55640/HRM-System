@@ -2,13 +2,6 @@ const OverviewTab = ({ employee }) => {
   // Unwrap nested employee object if it exists
   const emp = employee?.employee ?? employee ?? {};
 
-  // Console logs to debug data fetching
-  console.log('OverviewTab - Raw employee prop:', employee);
-  console.log('OverviewTab - Unwrapped emp:', emp);
-  console.log('OverviewTab - Personal Info:', emp?.personalInfo);
-  console.log('OverviewTab - Contact Info:', emp?.contactInfo);
-  console.log('OverviewTab - Job Info:', emp?.jobInfo);
-
   // Extract normalized sections
   const personal = emp?.personalInfo || {};
   const contact = emp?.contactInfo || {};
@@ -43,10 +36,9 @@ const OverviewTab = ({ employee }) => {
 
   return (
     <div className="space-y-6">
-      {/* Debug info - remove in production */}
       {!emp || Object.keys(emp).length === 0 && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          <strong>Debug:</strong> No employee data received
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+          <strong>Notice:</strong> Employee data is loading...
         </div>
       )}
 

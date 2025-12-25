@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import api from '../core/api/api';
+import api from '../core/services/api';
 
 const AttendanceContext = createContext();
 
@@ -30,7 +30,7 @@ export const AttendanceProvider = ({ children }) => {
       const startDate = today.toISOString().split('T')[0];
       const endDate = startDate;
       
-      const response = await api.get('/employee/attendance/sessions', {
+      const response = await api.get('/employee/attendance', {
         params: {
           startDate,
           endDate,

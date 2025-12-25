@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../core/utils/utils';
+import { cn } from '../../lib/utils';
 
 const Alert = React.forwardRef(({ className, variant = 'default', ...props }, ref) => (
   <div

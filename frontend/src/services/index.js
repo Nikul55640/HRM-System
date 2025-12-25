@@ -1,5 +1,5 @@
 // Core API
-export { default as api } from "../core/api/api";
+export { default as api } from "../core/services/api";
 
 // Core services (shared across modules)
 export { default as configService } from "../core/services/configService";
@@ -16,3 +16,7 @@ export { default as dashboardService } from "../modules/employee/services/dashbo
 export { default as userService } from "./userService";
 export { default as employeeSelfService } from "./employeeSelfService";
 export { default as calendarService } from "./calendarService";
+
+// Feature-specific services (8 Core Features)
+export { default as shiftService } from "./shiftService"; // Feature 6: Shift Management
+export { default as auditLogService } from "./auditLogService"; // Feature 8: Audit Logs

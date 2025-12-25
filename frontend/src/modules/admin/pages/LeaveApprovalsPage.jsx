@@ -23,7 +23,7 @@ import {
 import { useSnackbar } from 'notistack';
 import leaveService from '../../admin/services/adminLeaveService';
 
-const AdminLeaveApprovalsPage = () => {
+const LeaveApprovalsPage = () => {
   const [pendingLeaves, setPendingLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
@@ -31,10 +31,6 @@ const AdminLeaveApprovalsPage = () => {
   const [action, setAction] = useState('approve');
   const [remarks, setRemarks] = useState('');
   const { enqueueSnackbar } = useSnackbar();
-
-  useEffect(() => {
-    fetchPendingLeaves();
-  }, [fetchPendingLeaves]);
 
   const fetchPendingLeaves = useCallback(async () => {
     try {
@@ -47,6 +43,10 @@ const AdminLeaveApprovalsPage = () => {
       setLoading(false);
     }
   }, [enqueueSnackbar]);
+
+  useEffect(() => {
+    fetchPendingLeaves();
+  }, [fetchPendingLeaves]);
 
   const handleOpenDialog = (leave, act) => {
     setSelectedLeave(leave);
@@ -63,10 +63,15 @@ const AdminLeaveApprovalsPage = () => {
 
   const handleApproveOrReject = async () => {
     try {
-      await leaveService.approveLeaveRequest(selectedLeave.id, {
-        action,
-        remarks,
-      });
+      if (action === 'approve') {
+        await leaveService.approveLeaveRequest(selectedLeave.id, {
+          remarks,
+        });
+      } else {
+        await leaveService.rejectLeaveRequest(selectedLeave.id, {
+          remarks,
+        });
+      }
       enqueueSnackbar(`Leave ${action}ed successfully`, { variant: 'success' });
       handleCloseDialog();
       fetchPendingLeaves();
@@ -85,7 +90,7 @@ const AdminLeaveApprovalsPage = () => {
         Leave Request Approvals
       </Typography>
 
-      {pendingLeaves.length === 0 ? (
+      {(pendingLeaves || []).length === 0 ? (
         <Card>
           <CardContent>
             <Typography align="center" color="textSecondary">
@@ -108,7 +113,7 @@ const AdminLeaveApprovalsPage = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {pendingLeaves.map((leave) => (
+              {(pendingLeaves || []).map((leave) => (
                 <TableRow key={leave.id}>
                   <TableCell>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -188,4 +193,4 @@ const AdminLeaveApprovalsPage = () => {
   );
 };
 
-export default AdminLeaveApprovalsPage;
+export default LeaveApprovalsPage;

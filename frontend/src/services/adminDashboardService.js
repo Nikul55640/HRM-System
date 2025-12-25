@@ -1,4 +1,4 @@
-import api from '../core/api/api';
+import api from '../core/services/api';
 import { toast } from 'react-toastify';
 
 const adminDashboardService = {
@@ -12,11 +12,6 @@ const adminDashboardService = {
 
       // Call the dedicated admin dashboard endpoint
       const response = await api.get('/admin/dashboard');
-      
-      console.log('🔍 [DEBUG] Admin Dashboard Response:', {
-        status: response.status,
-        data: response.data,
-      });
 
       // Extract data from backend response
       const backendData = response.data?.data || {};

@@ -20,7 +20,6 @@ import {
   employeeRoutes,
   essRoutes,
   hrRoutes,
-  managerRoutes,
   organizationRoutes,
   calendarRoutes,
   adminRoutes,
@@ -78,7 +77,6 @@ function App() {
               {applyRoutes(employeeRoutes)}
               {applyRoutes(essRoutes)}
               {applyRoutes(hrRoutes)}
-              {applyRoutes(managerRoutes)}
               {applyRoutes(organizationRoutes)}
               {applyRoutes(calendarRoutes)}
               {applyRoutes(adminRoutes)}

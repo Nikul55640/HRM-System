@@ -1,4 +1,5 @@
-import api from "../../../core/api/api";
+// Employee Management Service - for HR/Admin employee operations
+import api from "../../../core/services/api";
 import { toast } from "react-toastify";
 
 const employeeService = {

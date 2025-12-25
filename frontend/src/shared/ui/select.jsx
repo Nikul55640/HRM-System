@@ -1,5 +1,5 @@
 import React, { useState, useContext, createContext, useEffect, useRef } from 'react';
-import { cn } from '../../core/utils/utils';
+import { cn } from '../../lib/utils';
 
 // Create context for Select state
 const SelectContext = createContext();

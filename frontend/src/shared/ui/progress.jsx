@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from '../../core/utils/utils';
+import { cn } from '../../lib/utils';
 
 const Progress = React.forwardRef(({ className, value = 0, max = 100, ...props }, ref) => (
   <div

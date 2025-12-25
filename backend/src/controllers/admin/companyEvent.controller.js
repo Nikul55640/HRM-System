@@ -21,13 +21,13 @@ export const getAllEvents = async (req, res) => {
 
         // Date range filter
         if (startDate && endDate) {
-            whereClause.date = {
+            whereClause.startDate = {
                 [Op.between]: [startDate, endDate]
             };
         } else if (startDate) {
-            whereClause.date = { [Op.gte]: startDate };
+            whereClause.startDate = { [Op.gte]: startDate };
         } else if (endDate) {
-            whereClause.date = { [Op.lte]: endDate };
+            whereClause.startDate = { [Op.lte]: endDate };
         }
 
         // Type filter
@@ -49,7 +49,7 @@ export const getAllEvents = async (req, res) => {
                     attributes: ['id', 'email']
                 }
             ],
-            order: [['date', 'ASC']],
+            order: [['startDate', 'ASC']],
             limit: parseInt(limit),
             offset: parseInt(offset)
         });
@@ -87,7 +87,7 @@ export const getUpcomingEvents = async (req, res) => {
 
         const events = await CompanyEvent.findAll({
             where: {
-                date: {
+                startDate: {
                     [Op.between]: [today, thirtyDaysFromNow]
                 }
             },
@@ -98,7 +98,7 @@ export const getUpcomingEvents = async (req, res) => {
                     attributes: ['id', 'email']
                 }
             ],
-            order: [['date', 'ASC']],
+            order: [['startDate', 'ASC']],
             limit: 10
         });
 
