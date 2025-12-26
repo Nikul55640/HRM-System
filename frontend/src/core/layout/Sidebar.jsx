@@ -151,6 +151,30 @@ const Sidebar = () => {
           icon: "ClipboardEdit",
           showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
         },
+        {
+          name: "Live Attendance",
+          path: "/admin/attendance/live",
+          icon: "Activity",
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+        },
+        {
+          name: "Attendance Summary",
+          path: "/admin/attendance/summary",
+          icon: "BarChart3",
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+        },
+        {
+          name: "Attendance Dashboard",
+          path: "/admin/attendance/dashboard",
+          icon: "LayoutDashboard",
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+        },
+        {
+          name: "Attendance Insights",
+          path: "/admin/attendance/insights",
+          icon: "TrendingUp",
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+        },
 
         // FEATURE 3: Leave Management
         {
@@ -164,6 +188,12 @@ const Sidebar = () => {
           path: "/admin/leave-balances",
           icon: "Scale",
           showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCE),
+        },
+        {
+          name: "Leave Approvals",
+          path: "/admin/leave/approvals",
+          icon: "CheckCircle2",
+          showIf: () => can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
         },
 
         // FEATURE 5: Lead Management
@@ -194,6 +224,12 @@ const Sidebar = () => {
           path: "/admin/holidays",
           icon: "PartyPopper",
           showIf: () => can.do(MODULES.LEAVE.MANAGE_POLICIES),
+        },
+        {
+          name: "Calendar Management",
+          path: "/admin/calendar/management",
+          icon: "CalendarCog",
+          showIf: () => can.do(MODULES.CALENDAR.MANAGE),
         },
       ],
     },

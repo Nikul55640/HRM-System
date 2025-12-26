@@ -87,7 +87,9 @@ import {
   ListChecks,
   Timer,
   Coffee,
-  Play
+  Play,
+  ClipboardEdit,
+  Scale
 } from 'lucide-react';
 
 
@@ -180,13 +182,17 @@ const iconMap = {
   Timer,
   Coffee,
   Play,
+  ClipboardEdit,
+  Scale,
 };
 
 const Icon = ({ name, className = "w-5 h-5", ...props }) => {
   const LucideIcon = iconMap[name];
   
   if (!LucideIcon) {
-    return null;
+    console.warn(`Icon "${name}" not found in iconMap. Available icons:`, Object.keys(iconMap));
+    // Return a fallback icon instead of null
+    return <AlertCircle className={className} {...props} />;
   }
   
   return <LucideIcon className={className} {...props} />;

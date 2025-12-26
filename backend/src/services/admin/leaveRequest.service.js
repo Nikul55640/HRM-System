@@ -153,8 +153,11 @@ class LeaveRequestService {
      */
     async getLeaveRequests(filters = {}, user, pagination = {}) {
         try {
+            logger.info(`[LeaveRequest.getLeaveRequests] User: ${user.role}, Filters:`, filters);
+            
             // Role-based access control
             if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+                logger.warn(`[LeaveRequest.getLeaveRequests] Unauthorized access attempt by ${user.role}`);
                 throw { message: "Unauthorized: Only Super Admin and HR can view all leave requests", statusCode: 403 };
             }
 
@@ -173,10 +176,10 @@ class LeaveRequestService {
             const offset = (page - 1) * limit;
             const whereClause = {};
 
-            // Apply filters
-            if (status) whereClause.status = status;
-            if (employeeId) whereClause.employeeId = employeeId;
-            if (leaveType) whereClause.leaveType = leaveType;
+            // Apply filters - only add to whereClause if not 'all'
+            if (status && status !== 'all') whereClause.status = status;
+            if (employeeId && employeeId !== 'all') whereClause.employeeId = employeeId;
+            if (leaveType && leaveType !== 'all') whereClause.leaveType = leaveType;
 
             if (dateFrom && dateTo) {
                 whereClause[Op.or] = [
@@ -203,7 +206,11 @@ class LeaveRequestService {
             let employeeFilter = {};
             if (user.role === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
                 employeeFilter.department = { [Op.in]: user.assignedDepartments };
+                logger.info(`[LeaveRequest.getLeaveRequests] HR filter by departments:`, user.assignedDepartments);
             }
+
+            logger.info(`[LeaveRequest.getLeaveRequests] Query whereClause:`, whereClause);
+            logger.info(`[LeaveRequest.getLeaveRequests] Employee filter:`, employeeFilter);
 
             const { count, rows } = await LeaveRequest.findAndCountAll({
                 where: whereClause,
@@ -213,7 +220,7 @@ class LeaveRequestService {
                         as: 'employee',
                         attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email', 'department'],
                         where: employeeFilter,
-                        required: true
+                        required: Object.keys(employeeFilter).length > 0 // Only require if filtering
                     },
                     {
                         model: User,
@@ -226,6 +233,8 @@ class LeaveRequestService {
                 offset: parseInt(offset),
                 order: [[sortBy, sortOrder]]
             });
+
+            logger.info(`[LeaveRequest.getLeaveRequests] Found ${count} leave requests`);
 
             return {
                 success: true,

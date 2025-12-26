@@ -8,10 +8,15 @@ const AuditLogsPage = lazy(() =>
 // Feature 2: Attendance Management (Admin)
 const AttendanceAdminList = lazy(() => import("../modules/attendance/admin/AttendanceAdminList"));
 const AttendanceCorrections = lazy(() => import("../modules/attendance/admin/AttendanceCorrections"));
+const LiveAttendanceDashboard = lazy(() => import("../modules/attendance/admin/LiveAttendanceDashboard"));
+const AttendanceSummaryPage = lazy(() => import("../modules/attendance/pages/AttendanceSummaryPage"));
+const AttendanceDashboard = lazy(() => import("../modules/attendance/employee/AttendanceDashboard"));
+const AttendanceInsights = lazy(() => import("../modules/attendance/employee/AttendanceInsights"));
 
 // Feature 3: Leave Management (Admin)
 const LeaveManagement = lazy(() => import("../modules/leave/hr/LeaveManagement"));
 const LeaveBalancesPage = lazy(() => import("../modules/admin/pages/LeaveBalancesPage"));
+const HRLeaveApprovals = lazy(() => import("../modules/leave/hr/HRLeaveApprovals"));
 
 // Feature 4: Employee Management (Admin)
 const EmployeeList = lazy(() => import("../modules/employees/pages/EmployeeList"));
@@ -27,6 +32,7 @@ const ShiftManagement = lazy(() => import("../modules/attendance/admin/ShiftMana
 // Feature 7: Calendar & Events (Admin)
 const HolidaysPage = lazy(() => import("../modules/admin/pages/Holidays/HolidaysPage"));
 const EventsPage = lazy(() => import("../modules/admin/pages/EventsPage"));
+const CalendarManagement = lazy(() => import("../modules/calendar/admin/CalendarManagement"))
 
 // System Configuration
 const UserManagement = lazy(() => import("../modules/organization/admin/UserManagement"));
@@ -41,10 +47,15 @@ export const adminRoutes = [
   // Feature 2: Attendance Management
   { path: "admin/attendance", element: <AttendanceAdminList />, roles: ["SuperAdmin", "HR"] },
   { path: "admin/attendance/corrections", element: <AttendanceCorrections />, roles: ["SuperAdmin", "HR"] },
+  { path: "admin/attendance/live", element: <LiveAttendanceDashboard />, roles: ["SuperAdmin", "HR"] },
+  { path: "admin/attendance/summary", element: <AttendanceSummaryPage />, roles: ["SuperAdmin", "HR"] },
+  { path: "admin/attendance/dashboard", element: <AttendanceDashboard />, roles: ["SuperAdmin", "HR"] },
+  { path: "admin/attendance/insights", element: <AttendanceInsights />, roles: ["SuperAdmin", "HR"] },
   
   // Feature 3: Leave Management
   { path: "admin/leave", element: <LeaveManagement />, roles: ["SuperAdmin", "HR"] },
   { path: "admin/leave-balances", element: <LeaveBalancesPage />, roles: ["SuperAdmin", "HR"] },
+  { path: "admin/leave/approvals", element: <HRLeaveApprovals />, roles: ["SuperAdmin", "HR"] },
   
   // Feature 5: Lead Management
   { path: "admin/leads", element: <LeadManagement />, roles: ["SuperAdmin", "HR"] },
@@ -55,6 +66,7 @@ export const adminRoutes = [
   // Feature 7: Calendar & Events
   { path: "admin/holidays", element: <HolidaysPage />, roles: ["SuperAdmin", "HR"] },
   { path: "admin/events", element: <EventsPage />, roles: ["SuperAdmin", "HR"] },
+  { path: "admin/calendar/management", element: <CalendarManagement />, roles: ["SuperAdmin", "HR"] },
   
   // System Administration
   { path: "admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },

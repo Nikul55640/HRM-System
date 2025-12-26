@@ -50,8 +50,10 @@ const LeaveManagement = () => {
   // ---------------------------------------------------------
   const loadLeaveRequests = useCallback(async () => {
     try {
+      console.log('📋 [LeaveManagement] Loading leave requests with filters:', filters);
       await fetchLeaveRequests(filters);
     } catch (error) {
+      console.error('❌ [LeaveManagement] Error loading leave requests:', error);
       // Errors handled inside store
     }
   }, [filters, fetchLeaveRequests]);
@@ -60,6 +62,7 @@ const LeaveManagement = () => {
   // Load leave requests when filters change
   // ---------------------------------------------------------
   useEffect(() => {
+    console.log('🔄 [LeaveManagement] useEffect triggered, loading requests...');
     loadLeaveRequests();
   }, [loadLeaveRequests]);
 
@@ -144,6 +147,8 @@ const LeaveManagement = () => {
       </div>
     );
   }
+
+  console.log('📊 [LeaveManagement] Rendering with leaveRequests:', leaveRequests);
 
   return (
     <div className="container mx-auto px-4 py-6">
@@ -256,7 +261,7 @@ const LeaveManagement = () => {
                       <div className="flex items-center gap-2">
                         <User className="w-5 h-5 text-gray-500" />
                         <span className="font-medium text-gray-800">
-                          {request.employee?.personalInfo?.firstName} {request.employee?.personalInfo?.lastName}
+                          {request.employee?.firstName} {request.employee?.lastName}
                         </span>
                       </div>
 
@@ -390,7 +395,7 @@ const LeaveManagement = () => {
               {/* Employee Info */}
               <div className="mb-4">
                 <p className="text-sm text-gray-600 mb-2">
-                  Employee: {selectedRequest.employee?.personalInfo?.firstName} {selectedRequest.employee?.personalInfo?.lastName}
+                  Employee: {selectedRequest.employee?.firstName} {selectedRequest.employee?.lastName}
                 </p>
                 <p className="text-sm text-gray-600">
                   Leave: {formatDate(selectedRequest.startDate)} - {formatDate(selectedRequest.endDate)}
