@@ -153,41 +153,12 @@ const createLeaveRequest = async (req, res) => {
       remaining: leaveBalance.remaining - totalDays,
     });
 
-    // Notify Employee
-    const leaveTypeLabel = isRetroactive ? `${type} (retroactive)` : type;
-    await Notification.create({
-      userId: userId,
-      type: "leave_request",
-      title: "Leave Request Submitted",
-      message: `Your ${leaveTypeLabel} leave (${totalDays} day) request has been submitted.`,
-      priority: "medium",
-      relatedEntity: {
-        entityType: "LeaveRequest",
-        entityId: leaveRequest.id,
-      },
-    });
-
-    // Notify HR
-    const hrUsers = await User.findAll({
-      where: {
-        role: ["HRManager", "HRAdmin", "SuperAdmin"],
-        isActive: true,
-      },
-    });
-
-    for (const hr of hrUsers) {
-      await Notification.create({
-        userId: hr.id,
-        type: "leave_approval_required",
-        title: isRetroactive ? "Retroactive Leave Request Pending Approval" : "Leave Request Pending Approval",
-        message: `${fullName} submitted a ${leaveTypeLabel} leave (${totalDays} days).`,
-        priority: isRetroactive ? "high" : "medium", // Higher priority for retroactive requests
-        relatedEntity: {
-          entityType: "LeaveRequest",
-          entityId: leaveRequest.id,
-        },
-      });
-    }
+    // TODO: Implement notification system
+    // Notifications temporarily disabled until Notification model is created
+    logger.info(`Leave request created for employee ${employeeId}: ${type} leave for ${totalDays} days`);
+    
+    // Log for HR notification (temporary)
+    logger.info(`HR notification needed: ${fullName} submitted ${type} leave request for ${totalDays} days`);
 
     // Audit Log
     await AuditLog.create({

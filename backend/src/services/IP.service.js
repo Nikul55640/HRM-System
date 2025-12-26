@@ -1,9 +1,11 @@
 /**
  * IP Service
  * Handles IP address capture and encryption for privacy protection
+ * Used for audit logging and security tracking
  */
 
 import crypto from "crypto";
+import logger from "../utils/logger.js";
 
 class IPService {
   constructor() {

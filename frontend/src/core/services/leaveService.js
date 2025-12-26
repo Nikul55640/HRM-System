@@ -30,9 +30,7 @@ const leaveService = {
 
   // Cancel leave request (Employee)
   cancelLeaveRequest: async (requestId) => {
-    const response = await api.put(
-      `/employee/leave-requests/${requestId}/cancel`
-    );
+    const response = await api.delete(`/employee/leave-requests/${requestId}`);
     return response.data;
   },
 

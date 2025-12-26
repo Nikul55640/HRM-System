@@ -13,6 +13,28 @@ const router = express.Router();
 router.use(authenticate);
 router.use(authorize(['Employee', 'HR', 'SuperAdmin']));
 
+// Root shifts endpoint for API testing
+router.get('/', async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      message: "Employee shifts API is available",
+      endpoints: [
+        "GET /employee/shifts/my-shifts - Get my shift assignments",
+        "GET /employee/shifts/current - Get current active shift",
+        "GET /employee/shifts/schedule - Get shift schedule",
+        "POST /employee/shifts/change-request - Request shift change"
+      ]
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Shifts API error",
+      error: error.message
+    });
+  }
+});
+
 // Get my shift assignments
 router.get('/my-shifts', getMyShifts);
 

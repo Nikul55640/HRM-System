@@ -485,8 +485,12 @@ class LeaveRequestService {
      */
     async getEmployeeLeaveRequests(employeeId, filters = {}, user, pagination = {}) {
         try {
+            // Convert both to strings for comparison to avoid type mismatch
+            const requestedEmployeeId = employeeId?.toString();
+            const userEmployeeId = user.employeeId?.toString();
+
             // Permission check
-            if (user.role === ROLES.EMPLOYEE && user.employeeId.toString() !== employeeId) {
+            if (user.role === ROLES.EMPLOYEE && userEmployeeId !== requestedEmployeeId) {
                 throw { message: "You can only view your own leave requests", statusCode: 403 };
             }
 

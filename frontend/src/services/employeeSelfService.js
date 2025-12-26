@@ -180,6 +180,32 @@ const employeeSelfService = {
 
   // Attendance
   attendance: {
+    list: async (params = {}) => {
+      try {
+        console.log('⏰ [ESS] Fetching attendance records:', params);
+        const response = await api.get('/employee/attendance', { params });
+        console.log('✅ [ESS] Attendance records fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch attendance:', error);
+        toast.error(error.message || 'Failed to load attendance records');
+        throw error;
+      }
+    },
+
+    getToday: async () => {
+      try {
+        console.log('📅 [ESS] Fetching today\'s attendance');
+        const response = await api.get('/employee/attendance/today');
+        console.log('✅ [ESS] Today\'s attendance fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch today\'s attendance:', error);
+        toast.error(error.message || 'Failed to load today\'s attendance');
+        throw error;
+      }
+    },
+    
     getRecords: async (params = {}) => {
       const response = await api.get('/employee/attendance', { params });
       return response.data;
@@ -225,8 +251,29 @@ const employeeSelfService = {
   // Notifications
   notifications: {
     list: async (params = {}) => {
-      const response = await api.get('/employee/notifications', { params });
-      return response.data;
+      try {
+        console.log('🔔 [ESS] Fetching notifications:', params);
+        const response = await api.get('/employee/notifications', { params });
+        console.log('✅ [ESS] Notifications fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch notifications:', error);
+        toast.error(error.message || 'Failed to load notifications');
+        throw error;
+      }
+    },
+
+    getUnreadCount: async () => {
+      try {
+        console.log('🔔 [ESS] Fetching unread count');
+        const response = await api.get('/employee/notifications/unread-count');
+        console.log('✅ [ESS] Unread count fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch unread count:', error);
+        toast.error(error.message || 'Failed to load unread count');
+        throw error;
+      }
     },
     
     markAsRead: async (id) => {

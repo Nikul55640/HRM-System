@@ -21,7 +21,13 @@ const EnhancedClockInOut = () => {
   startBreak,
   endBreak,
   getAttendanceStatus,
+  fetchTodayRecord,
 } = useAttendanceSessionStore();
+
+  // Initialize attendance data on mount
+  useEffect(() => {
+    fetchTodayRecord(true);
+  }, [fetchTodayRecord]);
 
   // Update clock every second
   useEffect(() => {
@@ -38,13 +44,28 @@ const EnhancedClockInOut = () => {
 
   const handleLocationConfirm = async (locationData) => {
     try {
+      // Check current status first
+      const { isClockedIn } = getAttendanceStatus();
+      
+      if (isClockedIn) {
+        toast.info("You are already clocked in for today");
+        setShowLocationModal(false);
+        return;
+      }
+
       const result = await clockIn(locationData);
       
       if (result.success) {
         toast.success('Clocked in successfully!');
         setShowLocationModal(false);
       } else {
-        toast.error(result.error || 'Failed to clock in');
+        // If already clocked in, just close modal and show info
+        if (result.error?.includes('already clocked in')) {
+          toast.info("You are already clocked in for today");
+          setShowLocationModal(false);
+        } else {
+          toast.error(result.error || 'Failed to clock in');
+        }
       }
     } catch (error) {
       toast.error('Failed to clock in');

@@ -1,6 +1,5 @@
 import api from '../core/services/api';
-import { API_ENDPOINTS } from '../core/api/apiEndpoints';
-import { format, addDays, startOfWeek, endOfWeek,parseISO } from 'date-fns';
+import { format, addDays, startOfWeek, endOfWeek, parseISO } from 'date-fns';
 
 const employeeDashboardService = {
   /**
@@ -13,10 +12,10 @@ const employeeDashboardService = {
 
       // Fetch all data in parallel for better performance
       const [profileRes, attendanceRes, leaveBalanceRes, leaveHistoryRes] = await Promise.allSettled([
-        api.get(API_ENDPOINTS.EMPLOYEE.PROFILE),
-        api.get(API_ENDPOINTS.EMPLOYEE.ATTENDANCE_SUMMARY),
-        api.get(API_ENDPOINTS.EMPLOYEE.LEAVE_BALANCE),
-        api.get(API_ENDPOINTS.EMPLOYEE.LEAVE_HISTORY),
+        api.get('/employee/profile'),
+        api.get('/employee/attendance/summary'),
+        api.get('/employee/leave-balance'),
+        api.get('/employee/leave-history'),
       ]);
 
       // Extract data safely
@@ -117,7 +116,7 @@ const employeeDashboardService = {
    */
   getProfileSummary: async () => {
     try {
-      const response = await api.get(API_ENDPOINTS.EMPLOYEE.PROFILE);
+      const response = await api.get('/employee/profile');
       return {
         success: true,
         data: response.data?.data,
@@ -136,7 +135,7 @@ const employeeDashboardService = {
    */
   getAttendanceSummary: async () => {
     try {
-      const response = await api.get(API_ENDPOINTS.EMPLOYEE.ATTENDANCE_SUMMARY);
+      const response = await api.get('/employee/attendance/summary');
       return {
         success: true,
         data: response.data?.data,
@@ -155,13 +154,12 @@ const employeeDashboardService = {
    */
   getLeaveBalance: async () => {
     try {
-      const response = await api.get(API_ENDPOINTS.EMPLOYEE.LEAVE_BALANCE);
+      const response = await api.get('/employee/leave-balance');
       return {
         success: true,
         data: response.data?.data,
       };
     } catch (error) {
-      
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to load leave balance',

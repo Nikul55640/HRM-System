@@ -107,15 +107,19 @@ class LeaveBalanceService {
 
     /**
      * Get leave balances for an employee
-     * @param {String} employeeId - Employee ID
+     * @param {String|Number} employeeId - Employee ID
      * @param {Number} year - Year (optional, defaults to current year)
      * @param {Object} user - User requesting balances
      * @returns {Promise<Object>} Employee's leave balances
      */
     async getEmployeeLeaveBalances(employeeId, year, user) {
         try {
+            // Convert both to strings for comparison to avoid type mismatch
+            const requestedEmployeeId = employeeId?.toString();
+            const userEmployeeId = user.employeeId?.toString();
+
             // Permission check
-            if (user.role === ROLES.EMPLOYEE && user.employeeId.toString() !== employeeId) {
+            if (user.role === ROLES.EMPLOYEE && userEmployeeId !== requestedEmployeeId) {
                 throw { message: "You can only view your own leave balances", statusCode: 403 };
             }
 
@@ -131,9 +135,22 @@ class LeaveBalanceService {
                 year || new Date().getFullYear()
             );
 
+            // Transform the data to match frontend expectations
+            const formattedData = {
+                leaveTypes: balances.map(balance => ({
+                    type: balance.leaveType,
+                    allocated: balance.allocated,
+                    used: balance.used,
+                    pending: balance.pending,
+                    remaining: balance.remaining,
+                    available: balance.remaining, // available is same as remaining
+                    carryForward: balance.carryForward
+                }))
+            };
+
             return {
                 success: true,
-                data: balances
+                data: formattedData
             };
         } catch (error) {
             logger.error('Error getting employee leave balances:', error);

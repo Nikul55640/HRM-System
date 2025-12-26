@@ -10,6 +10,7 @@ export * from './select';
 export * from './textarea';
 export * from './checkbox';
 export * from './radio';
+export * from './switch';
 export * from './modal';
 export * from './tooltip';
 export * from './tabs';

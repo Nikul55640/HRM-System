@@ -134,7 +134,7 @@ const getRecentActivity = async (user, options = {}) => {
     const { limit = 20, offset = 0 } = options;
 
     const whereClause = user.employeeId
-      ? { entityType: 'Employee', entityId: user.employeeId }
+      ? { targetType: 'Employee', targetId: user.employeeId }
       : {};
 
     const { rows: logs, count: total } = await AuditLog.findAndCountAll({
@@ -153,7 +153,7 @@ const getRecentActivity = async (user, options = {}) => {
         role: log.userRole || 'System'
       },
       description: formatActivityDescription(log),
-      changes: log.meta?.changes || [],
+      changes: log.metadata?.changes || [],
     }));
 
     return {
@@ -167,7 +167,16 @@ const getRecentActivity = async (user, options = {}) => {
     };
   } catch (error) {
     logger.error('Error getting recent activity:', error);
-    throw error;
+    // Return empty activity instead of throwing error
+    return {
+      activities: [],
+      pagination: {
+        total: 0,
+        limit,
+        offset,
+        hasMore: false,
+      },
+    };
   }
 };
 

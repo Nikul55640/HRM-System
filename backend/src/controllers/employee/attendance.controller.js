@@ -165,17 +165,16 @@ const employeeAttendanceController = {
   getMyAttendanceRecords: async (req, res) => {
     try {
       const filters = {
-        ...req.query,
-        employeeId: req.user.employeeId
+        ...req.query
       };
 
-      const result = await attendanceService.getAttendanceRecords(filters, req.user, req.query);
+      const result = await attendanceService.getEmployeeOwnAttendanceRecords(filters, req.user, req.query);
 
       if (!result.success) {
         return sendResponse(res, false, result.message, null, 400);
       }
 
-      return sendResponse(res, true, "Your attendance records retrieved successfully", result.data.records, 200);
+      return sendResponse(res, true, result.message, result.data.records, 200, result.data.pagination);
     } catch (error) {
       logger.error("Controller: Get My Attendance Records Error", error);
       return sendResponse(res, false, "Internal server error", null, 500);

@@ -75,7 +75,13 @@ const EmployeeDashboard = () => {
       setLoading(false);
     };
 
+    // Initialize attendance store
+    const initializeStore = async () => {
+      await fetchTodayRecord(true); // Initialize attendance data
+    };
+
     fetchAllData();
+    initializeStore();
     
     // Update time every minute
     const timer = setInterval(() => {
@@ -309,6 +315,14 @@ const EmployeeDashboard = () => {
 
   const handleClockIn = async () => {
     try {
+      // Check current status first
+      const { isClockedIn } = getAttendanceStatus();
+      
+      if (isClockedIn) {
+        toast.info("You are already clocked in for today");
+        return;
+      }
+
       const result = await clockIn({
         workLocation: 'office',
         locationDetails: 'Office',
@@ -318,7 +332,13 @@ const EmployeeDashboard = () => {
       if (result.success) {
         toast.success("Good morning! Clocked in successfully.");
       } else {
-        toast.error(result.error || "Clock In failed");
+        // If already clocked in, just refresh the data
+        if (result.error?.includes('already clocked in')) {
+          await fetchTodayRecord(true);
+          toast.info("You are already clocked in for today");
+        } else {
+          toast.error(result.error || "Clock In failed");
+        }
       }
     } catch (error) {
       toast.error("Clock In failed");
@@ -609,6 +629,11 @@ const EmployeeDashboard = () => {
                     icon={<User className="w-6 h-6" />}
                     label="My Profile"
                     onClick={() => navigate("/profile")}
+                  />
+                  <QuickActionButton
+                    icon={<AlertCircle className="w-6 h-6" />}
+                    label="API Test"
+                    onClick={() => navigate("/api-test")}
                   />
                 </div>
               </CardContent>

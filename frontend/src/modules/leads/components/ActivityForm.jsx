@@ -39,7 +39,7 @@ const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await api.get('/admin/employees?role=sales,manager');
+      const response = await api.get('/employees', { params: { limit: 1000 } });
       setEmployees(response.data.data || []);
     } catch (error) {
       // Employees are optional, don't show error toast

@@ -3,7 +3,7 @@
  * Handles all business logic for attendance management with break and late tracking
  */
 
-import { AttendanceRecord, Employee, Shift, User, AuditLog, Holiday } from '../../models/sequelize/index.js';
+import { AttendanceRecord, Employee, Shift, EmployeeShift, User, AuditLog, Holiday } from '../../models/sequelize/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
 import { ROLES } from '../../config/rolePermissions.js';
@@ -39,15 +39,20 @@ class AttendanceService {
             // Get employee's assigned shift
             const employee = await Employee.findByPk(user.employeeId, {
                 include: [{
-                    model: Shift,
-                    through: { where: { isActive: true } },
-                    required: false
+                    model: EmployeeShift,
+                    as: 'shiftAssignments',
+                    where: { isActive: true },
+                    required: false,
+                    include: [{
+                        model: Shift,
+                        as: 'shift'
+                    }]
                 }]
             });
 
             let assignedShift = null;
             if (employee.shiftAssignments && employee.shiftAssignments.length > 0) {
-                assignedShift = employee.shiftAssignments[0];
+                assignedShift = employee.shiftAssignments[0].shift;
             } else {
                 // Get default shift if no specific assignment
                 assignedShift = await Shift.findOne({ where: { isDefault: true } });
@@ -357,6 +362,92 @@ class AttendanceService {
             return {
                 success: false,
                 message: error.message || 'Failed to get attendance status',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Get employee's own attendance records (Employee Self-Service)
+     * @param {Object} filters - Filter criteria
+     * @param {Object} user - User requesting records
+     * @param {Object} pagination - Pagination options
+     * @returns {Promise<Object>} Employee's own attendance records
+     */
+    async getEmployeeOwnAttendanceRecords(filters = {}, user, pagination = {}) {
+        try {
+            if (!user.employeeId) {
+                throw { message: "No employee profile linked to this user", statusCode: 404 };
+            }
+
+            const {
+                page = 1,
+                limit = 20,
+                sortBy = 'date',
+                sortOrder = 'DESC'
+            } = pagination;
+            const offset = (page - 1) * limit;
+
+            const whereClause = {
+                employeeId: user.employeeId // Only allow viewing own records
+            };
+
+            // Apply additional filters
+            if (filters.startDate && filters.endDate) {
+                whereClause.date = {
+                    [Op.between]: [filters.startDate, filters.endDate]
+                };
+            } else if (filters.date) {
+                whereClause.date = filters.date;
+            }
+
+            if (filters.status) {
+                whereClause.status = filters.status;
+            }
+
+            if (filters.isLate !== undefined) {
+                whereClause.isLate = filters.isLate;
+            }
+
+            const { count, rows } = await AttendanceRecord.findAndCountAll({
+                where: whereClause,
+                include: [
+                    {
+                        model: Employee,
+                        as: 'employee',
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department'],
+                        required: true
+                    },
+                    {
+                        model: Shift,
+                        as: 'shift',
+                        attributes: ['shiftName', 'shiftStartTime', 'shiftEndTime'],
+                        required: false
+                    }
+                ],
+                order: [[sortBy, sortOrder]],
+                limit: parseInt(limit),
+                offset: parseInt(offset)
+            });
+
+            return {
+                success: true,
+                data: {
+                    records: rows,
+                    pagination: {
+                        total: count,
+                        page: parseInt(page),
+                        limit: parseInt(limit),
+                        totalPages: Math.ceil(count / limit)
+                    }
+                },
+                message: 'Your attendance records retrieved successfully'
+            };
+        } catch (error) {
+            logger.error('Error getting employee own attendance records:', error);
+            return {
+                success: false,
+                message: error.message || 'Failed to get attendance records',
                 error: error.message
             };
         }

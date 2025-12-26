@@ -6,15 +6,7 @@ import { Label } from '../../../shared/ui/label';
 import { Textarea } from '../../../shared/ui/textarea';
 import { Switch } from '../../../shared/ui/switch';
 import { Badge } from '../../../shared/ui/badge';
-import { 
-  Save, 
-  X, 
-  Clock, 
-  Settings, 
-  Users, 
-  AlertCircle,
-  Info
-} from 'lucide-react';
+import { Save, X, Clock, Settings } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../../core/services/api';
 
@@ -34,7 +26,7 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
     maxBreakMinutes: 120,
     overtimeEnabled: true,
     overtimeThresholdMinutes: 30,
-    weeklyOffDays: [0, 6], // Sunday and Saturday
+    weeklyOffDays: [0, 6],
     isActive: true,
     isDefault: false,
     description: ''
@@ -141,7 +133,6 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
 
       onSuccess();
     } catch (error) {
-      console.error('Error saving shift:', error);
       toast.error(error.response?.data?.message || 'Failed to save shift');
     } finally {
       setLoading(false);
@@ -164,13 +155,13 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
   };
 
   const weekDays = [
-    { value: 0, label: 'Sunday' },
-    { value: 1, label: 'Monday' },
-    { value: 2, label: 'Tuesday' },
-    { value: 3, label: 'Wednesday' },
-    { value: 4, label: 'Thursday' },
-    { value: 5, label: 'Friday' },
-    { value: 6, label: 'Saturday' }
+    { value: 0, label: 'Sun' },
+    { value: 1, label: 'Mon' },
+    { value: 2, label: 'Tue' },
+    { value: 3, label: 'Wed' },
+    { value: 4, label: 'Thu' },
+    { value: 5, label: 'Fri' },
+    { value: 6, label: 'Sat' }
   ];
 
   const getShiftDuration = () => {
@@ -180,7 +171,7 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
     const end = new Date(`2000-01-01T${formData.shiftEndTime}`);
     
     if (end < start) {
-      end.setDate(end.getDate() + 1); // Next day
+      end.setDate(end.getDate() + 1);
     }
     
     const diffMs = end - start;
@@ -191,54 +182,51 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {/* Basic Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Settings className="w-4 h-4" />
             Basic Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="shiftName">Shift Name *</Label>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="shiftName" className="text-sm">Shift Name *</Label>
               <Input
                 id="shiftName"
                 value={formData.shiftName}
                 onChange={(e) => handleChange('shiftName', e.target.value)}
                 placeholder="e.g., Morning Shift"
-                className={errors.shiftName ? 'border-red-500' : ''}
+                className={`text-sm ${errors.shiftName ? 'border-red-500' : ''}`}
               />
-              {errors.shiftName && (
-                <p className="text-sm text-red-600">{errors.shiftName}</p>
-              )}
+              {errors.shiftName && <p className="text-xs text-red-600">{errors.shiftName}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="shiftCode">Shift Code *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="shiftCode" className="text-sm">Shift Code *</Label>
               <Input
                 id="shiftCode"
                 value={formData.shiftCode}
                 onChange={(e) => handleChange('shiftCode', e.target.value.toUpperCase())}
                 placeholder="e.g., MS-001"
-                className={errors.shiftCode ? 'border-red-500' : ''}
+                className={`text-sm ${errors.shiftCode ? 'border-red-500' : ''}`}
               />
-              {errors.shiftCode && (
-                <p className="text-sm text-red-600">{errors.shiftCode}</p>
-              )}
+              {errors.shiftCode && <p className="text-xs text-red-600">{errors.shiftCode}</p>}
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+          <div className="space-y-1">
+            <Label htmlFor="description" className="text-sm">Description</Label>
             <Textarea
               id="description"
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
-              placeholder="Optional description for this shift"
-              rows={3}
+              placeholder="Optional description"
+              rows={2}
+              className="text-sm"
             />
           </div>
 
@@ -249,7 +237,7 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
                 checked={formData.isActive}
                 onCheckedChange={(checked) => handleChange('isActive', checked)}
               />
-              <Label htmlFor="isActive">Active</Label>
+              <Label htmlFor="isActive" className="text-sm">Active</Label>
             </div>
 
             <div className="flex items-center gap-2">
@@ -258,7 +246,7 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
                 checked={formData.isDefault}
                 onCheckedChange={(checked) => handleChange('isDefault', checked)}
               />
-              <Label htmlFor="isDefault">Set as Default Shift</Label>
+              <Label htmlFor="isDefault" className="text-sm">Default Shift</Label>
             </div>
           </div>
         </CardContent>
@@ -267,44 +255,40 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
       {/* Shift Timing */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Clock className="w-4 h-4" />
             Shift Timing
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="shiftStartTime">Start Time *</Label>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="shiftStartTime" className="text-sm">Start Time *</Label>
               <Input
                 id="shiftStartTime"
                 type="time"
                 value={formData.shiftStartTime}
                 onChange={(e) => handleChange('shiftStartTime', e.target.value)}
-                className={errors.shiftStartTime ? 'border-red-500' : ''}
+                className={`text-sm ${errors.shiftStartTime ? 'border-red-500' : ''}`}
               />
-              {errors.shiftStartTime && (
-                <p className="text-sm text-red-600">{errors.shiftStartTime}</p>
-              )}
+              {errors.shiftStartTime && <p className="text-xs text-red-600">{errors.shiftStartTime}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="shiftEndTime">End Time *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="shiftEndTime" className="text-sm">End Time *</Label>
               <Input
                 id="shiftEndTime"
                 type="time"
                 value={formData.shiftEndTime}
                 onChange={(e) => handleChange('shiftEndTime', e.target.value)}
-                className={errors.shiftEndTime ? 'border-red-500' : ''}
+                className={`text-sm ${errors.shiftEndTime ? 'border-red-500' : ''}`}
               />
-              {errors.shiftEndTime && (
-                <p className="text-sm text-red-600">{errors.shiftEndTime}</p>
-              )}
+              {errors.shiftEndTime && <p className="text-xs text-red-600">{errors.shiftEndTime}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label>Duration</Label>
-              <div className="h-10 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 flex items-center">
+            <div className="space-y-1">
+              <Label className="text-sm">Duration</Label>
+              <div className="h-9 px-3 py-1 border border-gray-300 rounded-md bg-gray-50 flex items-center">
                 <span className="text-sm font-medium">{getShiftDuration()}</span>
               </div>
             </div>
@@ -312,38 +296,32 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
 
           {/* Weekly Off Days */}
           <div className="space-y-2">
-            <Label>Weekly Off Days</Label>
+            <Label className="text-sm">Weekly Off Days</Label>
             <div className="flex flex-wrap gap-2">
               {weekDays.map((day) => (
                 <Badge
                   key={day.value}
                   variant={formData.weeklyOffDays.includes(day.value) ? "default" : "outline"}
-                  className="cursor-pointer"
+                  className="cursor-pointer text-xs"
                   onClick={() => handleWeeklyOffDayToggle(day.value)}
                 >
                   {day.label}
                 </Badge>
               ))}
             </div>
-            <p className="text-sm text-gray-500">
-              Click to toggle weekly off days for this shift
-            </p>
           </div>
         </CardContent>
       </Card>
 
-      {/* Work Hours Configuration */}
+      {/* Work Hours */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Work Hours Configuration
-          </CardTitle>
+          <CardTitle className="text-lg">Work Hours</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullDayHours">Full Day Hours *</Label>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="fullDayHours" className="text-sm">Full Day Hours *</Label>
               <Input
                 id="fullDayHours"
                 type="number"
@@ -352,16 +330,13 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
                 step="0.5"
                 value={formData.fullDayHours}
                 onChange={(e) => handleChange('fullDayHours', e.target.value)}
-                className={errors.fullDayHours ? 'border-red-500' : ''}
+                className={`text-sm ${errors.fullDayHours ? 'border-red-500' : ''}`}
               />
-              {errors.fullDayHours && (
-                <p className="text-sm text-red-600">{errors.fullDayHours}</p>
-              )}
-              <p className="text-sm text-gray-500">Minimum hours for full day attendance</p>
+              {errors.fullDayHours && <p className="text-xs text-red-600">{errors.fullDayHours}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="halfDayHours">Half Day Hours *</Label>
+            <div className="space-y-1">
+              <Label htmlFor="halfDayHours" className="text-sm">Half Day Hours *</Label>
               <Input
                 id="halfDayHours"
                 type="number"
@@ -370,12 +345,9 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
                 step="0.5"
                 value={formData.halfDayHours}
                 onChange={(e) => handleChange('halfDayHours', e.target.value)}
-                className={errors.halfDayHours ? 'border-red-500' : ''}
+                className={`text-sm ${errors.halfDayHours ? 'border-red-500' : ''}`}
               />
-              {errors.halfDayHours && (
-                <p className="text-sm text-red-600">{errors.halfDayHours}</p>
-              )}
-              <p className="text-sm text-gray-500">Minimum hours for half day attendance</p>
+              {errors.halfDayHours && <p className="text-xs text-red-600">{errors.halfDayHours}</p>}
             </div>
           </div>
         </CardContent>
@@ -384,15 +356,12 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
       {/* Attendance Rules */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
-            Attendance Rules
-          </CardTitle>
+          <CardTitle className="text-lg">Attendance Rules</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="gracePeriodMinutes">Grace Period (minutes)</Label>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="gracePeriodMinutes" className="text-sm">Grace Period (min)</Label>
               <Input
                 id="gracePeriodMinutes"
                 type="number"
@@ -400,16 +369,13 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
                 max="120"
                 value={formData.gracePeriodMinutes}
                 onChange={(e) => handleChange('gracePeriodMinutes', e.target.value)}
-                className={errors.gracePeriodMinutes ? 'border-red-500' : ''}
+                className={`text-sm ${errors.gracePeriodMinutes ? 'border-red-500' : ''}`}
               />
-              {errors.gracePeriodMinutes && (
-                <p className="text-sm text-red-600">{errors.gracePeriodMinutes}</p>
-              )}
-              <p className="text-sm text-gray-500">Allowed delay without marking late</p>
+              {errors.gracePeriodMinutes && <p className="text-xs text-red-600">{errors.gracePeriodMinutes}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="lateThresholdMinutes">Late Threshold (minutes)</Label>
+            <div className="space-y-1">
+              <Label htmlFor="lateThresholdMinutes" className="text-sm">Late Threshold (min)</Label>
               <Input
                 id="lateThresholdMinutes"
                 type="number"
@@ -417,16 +383,13 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
                 max="240"
                 value={formData.lateThresholdMinutes}
                 onChange={(e) => handleChange('lateThresholdMinutes', e.target.value)}
-                className={errors.lateThresholdMinutes ? 'border-red-500' : ''}
+                className={`text-sm ${errors.lateThresholdMinutes ? 'border-red-500' : ''}`}
               />
-              {errors.lateThresholdMinutes && (
-                <p className="text-sm text-red-600">{errors.lateThresholdMinutes}</p>
-              )}
-              <p className="text-sm text-gray-500">Minutes late to mark as "Late"</p>
+              {errors.lateThresholdMinutes && <p className="text-xs text-red-600">{errors.lateThresholdMinutes}</p>}
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="earlyDepartureThresholdMinutes">Early Departure (minutes)</Label>
+            <div className="space-y-1">
+              <Label htmlFor="earlyDepartureThresholdMinutes" className="text-sm">Early Departure (min)</Label>
               <Input
                 id="earlyDepartureThresholdMinutes"
                 type="number"
@@ -434,22 +397,22 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
                 max="240"
                 value={formData.earlyDepartureThresholdMinutes}
                 onChange={(e) => handleChange('earlyDepartureThresholdMinutes', e.target.value)}
+                className="text-sm"
               />
-              <p className="text-sm text-gray-500">Minutes early to mark as early departure</p>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Break Time Configuration */}
+      {/* Break Configuration */}
       <Card>
         <CardHeader>
-          <CardTitle>Break Time Configuration</CardTitle>
+          <CardTitle className="text-lg">Break Configuration</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="defaultBreakMinutes">Default Break (minutes)</Label>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <Label htmlFor="defaultBreakMinutes" className="text-sm">Default Break (min)</Label>
               <Input
                 id="defaultBreakMinutes"
                 type="number"
@@ -457,12 +420,12 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
                 max="480"
                 value={formData.defaultBreakMinutes}
                 onChange={(e) => handleChange('defaultBreakMinutes', e.target.value)}
+                className="text-sm"
               />
-              <p className="text-sm text-gray-500">Standard break duration</p>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="maxBreakMinutes">Maximum Break (minutes)</Label>
+            <div className="space-y-1">
+              <Label htmlFor="maxBreakMinutes" className="text-sm">Maximum Break (min)</Label>
               <Input
                 id="maxBreakMinutes"
                 type="number"
@@ -470,35 +433,32 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
                 max="480"
                 value={formData.maxBreakMinutes}
                 onChange={(e) => handleChange('maxBreakMinutes', e.target.value)}
-                className={errors.maxBreakMinutes ? 'border-red-500' : ''}
+                className={`text-sm ${errors.maxBreakMinutes ? 'border-red-500' : ''}`}
               />
-              {errors.maxBreakMinutes && (
-                <p className="text-sm text-red-600">{errors.maxBreakMinutes}</p>
-              )}
-              <p className="text-sm text-gray-500">Maximum allowed break time</p>
+              {errors.maxBreakMinutes && <p className="text-xs text-red-600">{errors.maxBreakMinutes}</p>}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Overtime Configuration */}
+      {/* Overtime */}
       <Card>
         <CardHeader>
-          <CardTitle>Overtime Configuration</CardTitle>
+          <CardTitle className="text-lg">Overtime</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           <div className="flex items-center gap-2">
             <Switch
               id="overtimeEnabled"
               checked={formData.overtimeEnabled}
               onCheckedChange={(checked) => handleChange('overtimeEnabled', checked)}
             />
-            <Label htmlFor="overtimeEnabled">Enable Overtime Tracking</Label>
+            <Label htmlFor="overtimeEnabled" className="text-sm">Enable Overtime Tracking</Label>
           </div>
 
           {formData.overtimeEnabled && (
-            <div className="space-y-2">
-              <Label htmlFor="overtimeThresholdMinutes">Overtime Threshold (minutes)</Label>
+            <div className="space-y-1">
+              <Label htmlFor="overtimeThresholdMinutes" className="text-sm">Overtime Threshold (min)</Label>
               <Input
                 id="overtimeThresholdMinutes"
                 type="number"
@@ -506,57 +466,32 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
                 max="240"
                 value={formData.overtimeThresholdMinutes}
                 onChange={(e) => handleChange('overtimeThresholdMinutes', e.target.value)}
+                className="text-sm"
               />
-              <p className="text-sm text-gray-500">
-                Minutes after shift end to start overtime calculation
-              </p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Preview */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-blue-800">
-            <Info className="w-5 h-5" />
-            Shift Preview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div>
-              <p><strong>Shift:</strong> {formData.shiftName} ({formData.shiftCode})</p>
-              <p><strong>Timing:</strong> {formData.shiftStartTime} - {formData.shiftEndTime} ({getShiftDuration()})</p>
-              <p><strong>Full Day:</strong> {formData.fullDayHours}h | <strong>Half Day:</strong> {formData.halfDayHours}h</p>
-            </div>
-            <div>
-              <p><strong>Grace Period:</strong> {formData.gracePeriodMinutes} minutes</p>
-              <p><strong>Late Threshold:</strong> {formData.lateThresholdMinutes} minutes</p>
-              <p><strong>Overtime:</strong> {formData.overtimeEnabled ? 'Enabled' : 'Disabled'}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Action Buttons */}
-      <div className="flex justify-end gap-3 pt-6 border-t">
+      <div className="flex justify-end gap-2 pt-4 border-t">
         <Button
           type="button"
           variant="outline"
           onClick={onCancel}
           disabled={loading}
+          className="text-sm"
         >
-          <X className="w-4 h-4 mr-2" />
+          <X className="w-4 h-4 mr-1" />
           Cancel
         </Button>
         <Button
           type="submit"
           disabled={loading}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-blue-600 hover:bg-blue-700 text-sm"
         >
-          <Save className="w-4 h-4 mr-2" />
-          {loading ? 'Saving...' : (shift ? 'Update Shift' : 'Create Shift')}
+          <Save className="w-4 h-4 mr-1" />
+          {loading ? 'Saving...' : (shift ? 'Update' : 'Create')}
         </Button>
       </div>
     </form>

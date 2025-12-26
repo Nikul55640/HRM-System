@@ -16,12 +16,13 @@ const LeaveBalancesPage = lazy(() => import("../modules/admin/pages/LeaveBalance
 // Feature 4: Employee Management (Admin)
 const EmployeeList = lazy(() => import("../modules/employees/pages/EmployeeList"));
 const DepartmentsPage = lazy(() => import("../modules/admin/pages/DepartmentsPage"));
+const EmployeeForm = lazy(() => import("../modules/employees/pages/EmployeeForm"));
 
 // Feature 5: Lead Management (Admin)
 const LeadManagement = lazy(() => import("../modules/leads/pages/LeadManagement"));
 
 // Feature 6: Shift Management (Admin)
-const ShiftsPage = lazy(() => import("../modules/admin/pages/ShiftsPage"));
+const ShiftManagement = lazy(() => import("../modules/attendance/admin/ShiftManagement"));
 
 // Feature 7: Calendar & Events (Admin)
 const HolidaysPage = lazy(() => import("../modules/admin/pages/Holidays/HolidaysPage"));
@@ -35,6 +36,7 @@ export const adminRoutes = [
   // Feature 4: Employee Management
   { path: "admin/employees", element: <EmployeeList />, roles: ["SuperAdmin", "HR"] },
   { path: "admin/departments", element: <DepartmentsPage />, roles: ["SuperAdmin", "HR"] },
+  { path: "admin/employees/new", element: <EmployeeForm />, roles: ["SuperAdmin", "HR"] },
   
   // Feature 2: Attendance Management
   { path: "admin/attendance", element: <AttendanceAdminList />, roles: ["SuperAdmin", "HR"] },
@@ -48,7 +50,7 @@ export const adminRoutes = [
   { path: "admin/leads", element: <LeadManagement />, roles: ["SuperAdmin", "HR"] },
   
   // Feature 6: Shift Management
-  { path: "admin/shifts", element: <ShiftsPage />, roles: ["SuperAdmin", "HR"] },
+  { path: "admin/shifts", element: <ShiftManagement />, roles: ["SuperAdmin", "HR"] },
   
   // Feature 7: Calendar & Events
   { path: "admin/holidays", element: <HolidaysPage />, roles: ["SuperAdmin", "HR"] },

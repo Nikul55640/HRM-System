@@ -311,6 +311,41 @@ const employeeLeaveController = {
       logger.error("Controller: Get My Pending Leave Requests Error", error);
       return sendResponse(res, false, "Internal server error", null, 500);
     }
+  },
+
+  /**
+   * Export leave balance summary
+   */
+  exportLeaveBalance: async (req, res) => {
+    try {
+      const { year = new Date().getFullYear() } = req.query;
+      
+      const result = await leaveBalanceService.getEmployeeLeaveBalances(
+        req.user.employeeId,
+        year,
+        req.user
+      );
+
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
+      }
+
+      // Create CSV content from the formatted data
+      const csvHeader = 'Leave Type,Allocated,Used,Pending,Remaining\n';
+      const csvRows = result.data.leaveTypes.map(balance => 
+        `${balance.type},${balance.allocated},${balance.used},${balance.pending},${balance.remaining}`
+      ).join('\n');
+      
+      const csvContent = csvHeader + csvRows;
+
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="leave-balance-${year}.csv"`);
+      
+      return res.send(csvContent);
+    } catch (error) {
+      logger.error("Controller: Export Leave Balance Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
   }
 };
 

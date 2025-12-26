@@ -12,14 +12,14 @@ const router = express.Router();
  */
 
 /**
- * @route   GET /api/dashboard
+ * @route   GET /api/employee/dashboard
  * @desc    Get complete dashboard data (profile, leave, attendance, activity)
  * @access  All authenticated users
  * @requirements 6.1, 6.2
  * @permission Any authenticated user (role-based filtering in controller)
  */
 router.get(
-  '/',
+  '/dashboard',
   authenticate,
   dashboardController.getDashboard,
 );

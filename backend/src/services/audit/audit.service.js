@@ -1,5 +1,6 @@
 import { AuditLog } from "../../models/sequelize/index.js";
 import logger from "../../utils/logger.js";
+import IPService from "../IP.service.js";
 
 /* -------------------------------------------------------
  * SAFE DISPLAY NAME
@@ -17,6 +18,11 @@ const getDisplayName = (employee) => {
  * ----------------------------------------------------- */
 const logAction = async (payload) => {
   try {
+    // Encrypt IP address if present
+    if (payload.ipAddress && payload.ipAddress !== "unavailable") {
+      payload.ipAddress = IPService.encryptIP(payload.ipAddress);
+    }
+    
     return await AuditLog.create(payload);
   } catch (error) {
     logger.error("AuditLog Error:", error);

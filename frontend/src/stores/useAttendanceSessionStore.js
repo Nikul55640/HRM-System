@@ -12,12 +12,24 @@ const useAttendanceSessionStore = create(
       isLoading: false,
       lastUpdated: null,
       error: null,
+      initialized: false,
 
       // ===============================
       // INTERNAL HELPERS
       // ===============================
       setLoading: (isLoading) => set({ isLoading }),
       setError: (error) => set({ error }),
+
+      // ===============================
+      // INITIALIZATION
+      // ===============================
+      initialize: async () => {
+        const { initialized } = get();
+        if (!initialized) {
+          set({ initialized: true });
+          await get().fetchTodayRecord(true);
+        }
+      },
 
       // ===============================
       // FETCH TODAY RECORD
@@ -50,17 +62,22 @@ const useAttendanceSessionStore = create(
               todayRecord: isToday ? record : null,
               isLoading: false,
               lastUpdated: new Date(),
+              error: null,
             });
           } else {
             set({
               todayRecord: null,
               isLoading: false,
               lastUpdated: new Date(),
+              error: null,
             });
           }
         } catch (error) {
           console.error('Attendance fetch failed:', error);
-          set({ isLoading: false });
+          set({ 
+            isLoading: false,
+            error: error.response?.data?.message || 'Failed to fetch attendance data'
+          });
         }
       },
 
@@ -81,13 +98,27 @@ const useAttendanceSessionStore = create(
             return { success: true, data: response.data };
           }
 
-          return { success: false, error: 'Clock in failed' };
+          return { success: false, error: response.data?.message || 'Clock in failed' };
         } catch (error) {
           set({ isLoading: false });
+          
+          // Handle specific error cases
+          if (error.response?.status === 400) {
+            const errorMessage = error.response?.data?.message;
+            
+            // If already clocked in, refresh the data to sync the UI
+            if (errorMessage?.includes('Already clocked in')) {
+              await get().fetchTodayRecord(true);
+              return {
+                success: false,
+                error: 'You are already clocked in for today',
+              };
+            }
+          }
+          
           return {
             success: false,
-            error:
-              error.response?.data?.message || 'Clock in failed',
+            error: error.response?.data?.message || 'Clock in failed',
           };
         }
       },
@@ -185,27 +216,33 @@ const useAttendanceSessionStore = create(
           };
         }
 
+        // Check for new session format
         const activeSession = todayRecord.sessions?.find(
           (s) => s.status === 'active' || s.status === 'on_break'
         );
 
+        // Check for legacy format (direct clockIn/clockOut on record)
         const hasLegacyClockIn =
-          todayRecord.checkIn &&
-          !todayRecord.checkOut &&
+          todayRecord.clockIn &&
+          !todayRecord.clockOut &&
           (!todayRecord.sessions ||
             todayRecord.sessions.length === 0);
 
+        // Determine if clocked in (either new session format or legacy)
+        const isClockedIn = 
+          activeSession?.status === 'active' ||
+          hasLegacyClockIn ||
+          (todayRecord.clockIn && !todayRecord.clockOut);
+
         return {
-          isClockedIn:
-            activeSession?.status === 'active' ||
-            hasLegacyClockIn,
+          isClockedIn,
           isOnBreak: activeSession?.status === 'on_break',
           hasLegacyClockIn,
           activeSession,
           hasCompletedSessions:
             todayRecord.sessions?.some(
               (s) => s.status === 'completed'
-            ),
+            ) || false,
           todayRecord,
         };
       },

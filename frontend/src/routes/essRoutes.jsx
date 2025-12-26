@@ -31,6 +31,11 @@ const EmployeeCalendarPage = lazy(() =>
   import("../modules/employee/pages/CalendarPage")
 );
 
+// API Test Runner
+const APITestRunner = lazy(() =>
+  import("../components/APITestRunner")
+);
+
 export const essRoutes = [
   // Feature 1: Profile & Bank Details Management
   { path: "employee/profile", element: <ProfilePage />, roles: ["Employee", "HR", "SuperAdmin"] },
@@ -50,4 +55,7 @@ export const essRoutes = [
   
   // Feature 7: Calendar & Events (Employee)
   { path: "employee/calendar", element: <EmployeeCalendarPage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  
+  // API Test Runner
+  { path: "api-test", element: <APITestRunner />, roles: ["Employee", "HR", "SuperAdmin"] },
 ];

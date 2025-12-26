@@ -19,6 +19,12 @@ router.get(
   leaveController.getMyLeaveBalanceHistory
 );
 
+router.get(
+  "/leave-balance/export",
+  authenticate,
+  leaveController.exportLeaveBalance
+);
+
 /* ---------------------------------------------------------
    EMPLOYEE LEAVE REQUESTS (CRUD)
 --------------------------------------------------------- */
