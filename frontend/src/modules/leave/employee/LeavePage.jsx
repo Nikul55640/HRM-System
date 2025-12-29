@@ -78,9 +78,16 @@ const LeavePage = () => {
       return;
     }
 
+    // Prompt for cancellation reason
+    const reason = window.prompt('Please provide a reason for cancellation (optional):');
+    if (reason === null) {
+      // User clicked cancel on the prompt
+      return;
+    }
+
     try {
       setCancellingId(requestId);
-      await leaveService.cancelLeaveRequest(requestId);
+      await leaveService.cancelLeaveRequest(requestId, reason);
       toast.success('Leave request cancelled successfully');
       fetchData();
     } catch (error) {
@@ -118,6 +125,8 @@ const LeavePage = () => {
         return <XCircle className="h-5 w-5 text-red-600" />;
       case "pending":
         return <Clock className="h-5 w-5 text-yellow-600" />;
+      case "cancelled":
+        return <XCircle className="h-5 w-5 text-gray-600" />;
       default:
         return <AlertCircle className="h-5 w-5 text-gray-600" />;
     }
@@ -131,6 +140,8 @@ const LeavePage = () => {
         return "bg-red-100 text-red-800";
       case "pending":
         return "bg-yellow-100 text-yellow-800";
+      case "cancelled":
+        return "bg-gray-100 text-gray-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
@@ -295,6 +306,17 @@ const LeavePage = () => {
                               Rejection Reason:
                             </span>{" "}
                             {request.rejectionReason}
+                          </p>
+                        </div>
+                      )}
+
+                      {request.cancellationReason && (
+                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                          <p className="text-sm text-gray-900">
+                            <span className="font-medium">
+                              Cancellation Reason:
+                            </span>{" "}
+                            {request.cancellationReason}
                           </p>
                         </div>
                       )}

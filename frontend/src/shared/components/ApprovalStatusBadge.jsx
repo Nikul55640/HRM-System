@@ -10,6 +10,8 @@ const ApprovalStatusBadge = ({ status }) => {
         return { variant: 'destructive', label: 'Rejected', className: 'bg-red-100 text-red-800 hover:bg-red-100' };
       case 'pending':
         return { variant: 'secondary', label: 'Pending', className: 'bg-yellow-100 text-yellow-800 hover:bg-yellow-100' };
+      case 'cancelled':
+        return { variant: 'outline', label: 'Cancelled', className: 'bg-gray-100 text-gray-800 hover:bg-gray-100' };
       default:
         return { variant: 'outline', label: status || 'Unknown', className: 'bg-gray-100 text-gray-800 hover:bg-gray-100' };
     }

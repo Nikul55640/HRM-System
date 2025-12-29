@@ -19,7 +19,7 @@ export { default as JobDetailsStep } from './form-steps/JobDetailsStep';
 // Store exports removed - now using Zustand stores in src/stores/
 
 // Hooks
-export { default as useEmployeeSelfService } from './useEmployeeSelfService';
+export { default as useEmployeeSelfService } from '../../services/useEmployeeSelfService';
 
 // Services
 export { default as employeeService } from './services/employeeService';

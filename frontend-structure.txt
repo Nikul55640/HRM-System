@@ -1,0 +1,598 @@
+# HRM System Frontend Structure Documentation
+
+## Overview
+This document provides a comprehensive overview of the HRM System frontend architecture, built with React, Vite, and modern JavaScript/JSX.
+
+## Root Directory Structure
+
+```
+HRM-System/frontend/
+├── public/                     # Static assets
+├── src/                       # Source code
+├── node_modules/              # Dependencies
+├── .env                       # Environment variables
+├── .env.example              # Environment template
+├── .eslintignore             # ESLint ignore rules
+├── .eslintrc.json            # ESLint configuration
+├── babel.config.cjs          # Babel configuration
+├── components.json           # Shadcn/UI components config
+├── Dockerfile               # Docker configuration
+├── index.html               # Main HTML template
+├── jest.config.js           # Jest testing configuration
+├── jest.setup.js            # Jest setup file
+├── jsconfig.json            # JavaScript configuration
+├── package.json             # Dependencies and scripts
+├── postcss.config.js        # PostCSS configuration
+├── README.md                # Project documentation
+├── tailwind.config.js       # Tailwind CSS configuration
+└── vite.config.js           # Vite build configuration
+```
+
+## Source Code Structure (`src/`)
+
+### Main Application Files
+```
+src/
+├── App.jsx                   # Main application component
+├── App.zustand.js           # Zustand store configuration
+├── index.css                # Global styles
+└── main.jsx                 # Application entry point
+```
+
+### Core Architecture (`src/core/`)
+
+#### Authentication (`src/core/auth/`)
+```
+auth/
+└── tokenManager.js          # JWT token management utilities
+```
+
+#### Guards (`src/core/guards/`)
+```
+guards/
+├── index.js                 # Guards exports
+├── PermissionGate.jsx       # Permission-based access control
+├── ProtectedRoute.jsx       # Route protection wrapper
+└── RoleGate.jsx            # Role-based access control
+```
+
+#### Hooks (`src/core/hooks/`)
+```
+hooks/
+├── index.js                 # Hooks exports
+├── use-toast.js            # Toast notification hook
+├── useAuth.js              # Authentication hook
+└── usePermissions.js       # Permissions management hook
+```
+
+#### Layout (`src/core/layout/`)
+```
+layout/
+├── Footer.jsx              # Application footer
+├── Header.jsx              # Application header with navigation
+├── index.js                # Layout exports
+├── MainLayout.jsx          # Main layout wrapper
+└── Sidebar.jsx             # Navigation sidebar
+```
+
+#### Services (`src/core/services/`)
+```
+services/
+├── api.js                  # Base API configuration (Axios)
+├── configService.js        # Configuration management
+├── departmentService.js    # Department-related API calls
+├── leaveService.js         # Leave management API calls
+└── payrollService.js       # Payroll API calls
+```
+
+#### Utilities (`src/core/utils/`)
+```
+utils/
+├── errorHandler.js         # Global error handling
+├── essHelpers.js          # Employee Self Service helpers
+├── essValidation.js       # Validation utilities
+└── rolePermissions.js     # Role and permission definitions
+```
+
+### Feature Modules (`src/modules/`)
+
+#### Admin Module (`src/modules/admin/`)
+```
+admin/
+├── pages/
+│   ├── Dashboard/          # Admin dashboard components
+│   ├── Holidays/           # Holiday management
+│   ├── DepartmentsPage.jsx # Department management
+│   ├── DesignationsPage.jsx # Designation management
+│   ├── EventsPage.jsx      # Event management
+│   └── LeaveBalancesPage.jsx # Leave balance management
+└── services/
+    ├── adminLeaveService.js # Admin leave operations
+    └── leaveTypeService.js  # Leave type management
+```
+
+#### Attendance Module (`src/modules/attendance/`)
+```
+attendance/
+├── admin/                  # Admin attendance features
+│   ├── AssignShiftForm.jsx
+│   ├── AttendanceAdminDetail.jsx
+│   ├── AttendanceAdminList.jsx
+│   ├── AttendanceCorrections.jsx
+│   ├── LiveAttendanceDashboard.jsx
+│   ├── ShiftDetails.jsx
+│   ├── ShiftForm.jsx
+│   └── ShiftManagement.jsx
+├── calendar/               # Calendar views
+│   ├── AttendanceCalendar.jsx
+│   ├── DailyCalendarView.jsx
+│   ├── MonthlyCalendarView.jsx
+│   └── UnifiedCalendar.jsx
+├── components/             # Shared attendance components
+│   ├── AttendanceForm.jsx
+│   ├── ManageAttendance.jsx
+│   └── MyAttendance.jsx
+├── employee/               # Employee attendance features
+│   ├── AttendanceDashboard.jsx
+│   ├── AttendanceInsights.jsx
+│   ├── AttendancePage.jsx
+│   ├── AttendanceStatsWidget.jsx
+│   ├── AttendanceSummary.jsx
+│   ├── AttendanceWidget.jsx
+│   ├── EnhancedClockInOut.jsx
+│   ├── LocationSelectionModal.jsx
+│   ├── QuickActionsMenu.jsx
+│   └── SessionHistoryView.jsx
+├── pages/
+│   └── AttendanceSummaryPage.jsx
+├── services/
+│   └── attendanceService.js
+└── index.js
+```
+
+#### Authentication Module (`src/modules/auth/`)
+```
+auth/
+├── pages/
+│   ├── AdminLogin.jsx      # Admin login page
+│   ├── ForgotPassword.jsx  # Password reset
+│   └── Login.jsx           # Employee login page
+├── services/
+│   └── authService.js      # Authentication API calls
+└── index.js
+```
+
+#### Calendar Module (`src/modules/calendar/`)
+```
+calendar/
+├── admin/
+│   └── CalendarManagement.jsx
+├── components/
+│   ├── CalendarCell.jsx
+│   ├── CalendarFilters.jsx
+│   ├── CalendarGrid.jsx
+│   ├── CalendarSidebar.jsx
+│   ├── DayDetailModal.jsx
+│   └── EventModal.jsx
+├── pages/
+│   ├── CalendarPage.jsx
+│   └── CalendarTestPage.jsx
+├── services/
+│   └── calendarViewService.js
+├── stores/                 # Calendar-specific state
+├── index.js
+└── README.md
+```
+
+#### Employee Module (`src/modules/employee/`)
+```
+employee/
+├── pages/
+│   ├── Dashboard/          # Employee dashboard
+│   ├── Settings/           # Employee settings
+│   ├── CalendarPage.jsx
+│   ├── LeadsPage.jsx
+│   └── ShiftsPage.jsx
+├── profile/
+│   └── ProfilePage.jsx     # Employee profile management
+├── services/
+│   ├── dashboardService.js
+│   └── employeeService.js
+└── index.js
+```
+
+#### Employees Management Module (`src/modules/employees/`)
+```
+employees/
+├── components/
+│   ├── ActivityTab.jsx     # Employee activity tracking
+│   ├── EmployeeCard.jsx    # Employee card component
+│   ├── EmployeeTable.jsx   # Employee data table
+│   └── OverviewTab.jsx     # Employee overview
+├── form-steps/             # Multi-step employee form
+│   ├── ContactInfoStep.jsx
+│   ├── JobDetailsStep.jsx
+│   └── PersonalInfoStep.jsx
+├── pages/
+│   ├── EmployeeForm.jsx    # Employee creation/editing
+│   ├── EmployeeList.jsx    # Employee listing
+│   ├── EmployeeProfile.jsx # Employee profile view
+│   └── NoEmployeeProfile.jsx
+├── services/
+│   └── employeeService.js
+├── index.js
+└── useEmployeeSelfService.js
+```
+
+#### Employee Self Service (ESS) Module (`src/modules/ess/`)
+```
+ess/
+└── bank/
+    └── BankDetailsPage.jsx # Bank details management
+```
+
+#### Leads Module (`src/modules/leads/`)
+```
+leads/
+├── components/
+│   ├── ActivityForm.jsx    # Lead activity form
+│   ├── LeadDetails.jsx     # Lead details view
+│   ├── LeadForm.jsx        # Lead creation/editing
+│   └── NoteForm.jsx        # Lead notes
+├── pages/
+│   └── LeadManagement.jsx  # Lead management dashboard
+└── index.js
+```
+
+#### Leave Module (`src/modules/leave/`)
+```
+leave/
+├── components/
+│   ├── LeaveApplicationForm.jsx
+│   ├── LeaveBalanceCards.jsx
+│   ├── LeaveBalanceWidget.jsx
+│   └── LeaveHistoryTable.jsx
+├── employee/               # Employee leave features
+│   ├── LeaveBalanceCard.jsx
+│   ├── LeavePage.jsx
+│   └── LeaveRequestModal.jsx
+├── hooks/
+│   └── useLeaveBalance.js  # Leave balance hook
+├── hr/                     # HR leave features
+│   ├── HRLeaveApprovals.jsx
+│   └── LeaveManagement.jsx
+├── services/
+│   └── leaveService.js
+└── index.js
+```
+
+#### Notifications Module (`src/modules/notifications/`)
+```
+notifications/
+└── pages/
+    └── NotificationsPage.jsx
+```
+
+#### Organization Module (`src/modules/organization/`)
+```
+organization/
+├── admin/
+│   ├── CustomFieldsSection.jsx
+│   ├── SystemConfig.jsx
+│   └── UserManagement.jsx
+├── components/
+│   ├── DepartmentModal.jsx
+│   ├── DepartmentSection.jsx
+│   ├── DepartmentTable.jsx
+│   ├── DesignationModal.jsx
+│   ├── DesignationTable.jsx
+│   ├── DocumentList.jsx
+│   ├── DocumentUpload.jsx
+│   ├── HolidayModal.jsx
+│   ├── HolidayTable.jsx
+│   ├── PolicyModal.jsx
+│   └── PolicyTable.jsx
+├── pages/
+│   ├── CompanyDocumentsPage.jsx
+│   ├── DepartmentPage.jsx
+│   ├── DesignationPage.jsx
+│   └── PolicyPage.jsx
+└── index.js
+```
+
+### Routing (`src/routes/`)
+```
+routes/
+├── adminRoutes.jsx         # Admin-specific routes
+├── applyRoutes.jsx         # Application routes
+├── calendarRoutes.jsx      # Calendar routes
+├── dashboardRoutes.jsx     # Dashboard routes
+├── employeeRoutes.jsx      # Employee routes
+├── essRoutes.jsx           # ESS routes
+├── generalRoutes.jsx       # General routes
+├── hrRoutes.jsx            # HR routes
+├── index.js                # Route configuration
+├── leadRoutes.jsx          # Lead management routes
+└── organizationRoutes.jsx  # Organization routes
+```
+
+### Services (`src/services/`)
+```
+services/
+├── adminDashboardService.js    # Admin dashboard API
+├── auditLogService.js          # Audit logging API
+├── calendarService.js          # Calendar API
+├── employeeDashboardService.js # Employee dashboard API
+├── employeeSelfService.js      # ESS API
+├── hrmApiService.js            # Main HRM API service
+├── index.js                    # Service exports
+├── managerService.js           # Manager-specific API
+├── shiftService.js             # Shift management API
+└── userService.js              # User management API
+```
+
+### Shared Components (`src/shared/`)
+
+#### Components (`src/shared/components/`)
+```
+components/
+├── ApprovalStatusBadge.jsx # Status badge component
+├── EmptyState.jsx          # Empty state placeholder
+├── ErrorBoundary.jsx       # Error boundary wrapper
+├── Icon.jsx                # Icon component
+├── index.js                # Component exports
+├── LoadingSpinner.jsx      # Loading indicator
+├── NotificationManager.jsx # Notification system
+├── Pagination.jsx          # Pagination component
+├── ScopeIndicator.jsx      # Scope indicator
+└── SkeletonLoader.jsx      # Skeleton loading
+```
+
+#### UI Components (`src/shared/ui/`)
+```
+ui/
+├── alert-dialog.jsx        # Alert dialog component
+├── alert.jsx               # Alert component
+├── avatar.jsx              # Avatar component
+├── badge.jsx               # Badge component
+├── button.jsx              # Button component
+├── calendar.jsx            # Calendar component
+├── card.jsx                # Card component
+├── checkbox.jsx            # Checkbox component
+├── DeleteConfirmModal.jsx  # Delete confirmation modal
+├── dialog.jsx              # Dialog component
+├── dropdown-menu.jsx       # Dropdown menu
+├── form.jsx                # Form components
+├── hover-card.jsx          # Hover card
+├── index.js                # UI exports
+├── input.jsx               # Input component
+├── label.jsx               # Label component
+├── menubar.jsx             # Menu bar
+├── modal.jsx               # Modal component
+├── native-select.jsx       # Native select
+├── navigation-menu.jsx     # Navigation menu
+├── popover.jsx             # Popover component
+├── progress.jsx            # Progress bar
+├── radio-group.jsx         # Radio group
+├── radio.jsx               # Radio button
+├── RequestDetailModal.jsx  # Request detail modal
+├── scroll-area.jsx         # Scroll area
+├── select.jsx              # Select component
+├── separator.jsx           # Separator
+├── sheet.jsx               # Sheet component
+├── skeleton.jsx            # Skeleton loader
+├── switch.jsx              # Switch component
+├── table.jsx               # Table component
+├── tabs.jsx                # Tabs component
+├── textarea.jsx            # Textarea component
+├── toast.jsx               # Toast notification
+├── toaster.jsx             # Toast container
+├── tooltip.jsx             # Tooltip component
+└── UserModal.jsx           # User modal
+```
+
+### State Management (`src/stores/`)
+```
+stores/
+├── index.js                        # Store exports
+├── setupStores.js                  # Store configuration
+├── storeInitializer.js             # Store initialization
+├── useAttendanceSessionStore.js    # Attendance session state
+├── useAttendanceStore.js           # Attendance state
+├── useAuthStore.js                 # Authentication state
+├── useCalendarStore.js             # Calendar state
+├── useDepartmentStore.js           # Department state
+├── useEmployeeStore.js             # Employee state
+├── useLeaveStore.js                # Leave state
+├── useOrganizationStore.js         # Organization state
+└── useUIStore.js                   # UI state
+```
+
+### Utilities (`src/utils/`)
+```
+utils/
+└── apiConnectionTest.js    # API connection testing utility
+```
+
+### Library Utilities (`src/lib/`)
+```
+lib/
+├── date-utils.js           # Date manipulation utilities
+└── utils.js                # General utility functions
+```
+
+### Pages (`src/pages/`)
+```
+pages/
+├── NotFound.jsx            # 404 error page
+└── Unauthorized.jsx        # 403 unauthorized page
+```
+
+### Components (`src/components/`)
+```
+components/
+├── APITestRunner.jsx       # API testing component
+└── IconTest.jsx            # Icon testing component
+```
+
+## Key Technologies & Libraries
+
+### Core Framework
+- **React 18**: Modern React with hooks and concurrent features
+- **Vite**: Fast build tool and development server
+- **JavaScript/JSX**: Primary development language
+
+### UI & Styling
+- **Tailwind CSS**: Utility-first CSS framework
+- **Shadcn/UI**: Pre-built accessible components
+- **Lucide React**: Icon library
+- **React Hot Toast**: Toast notifications
+
+### State Management
+- **Zustand**: Lightweight state management
+- **React Hook Form**: Form state management
+- **Zod**: Schema validation
+
+### Routing & Navigation
+- **React Router DOM**: Client-side routing
+- **Protected Routes**: Role-based access control
+
+### HTTP & API
+- **Axios**: HTTP client for API calls
+- **React Query**: Server state management (if used)
+
+### Development Tools
+- **ESLint**: Code linting
+- **Jest**: Testing framework
+- **Babel**: JavaScript transpilation
+- **PostCSS**: CSS processing
+
+### Date & Time
+- **date-fns**: Date manipulation library
+- **React Day Picker**: Date picker component
+
+### Forms & Validation
+- **Formik**: Form library
+- **Yup**: Schema validation
+- **React Hook Form**: Modern form handling
+
+## Architecture Patterns
+
+### 1. Feature-Based Organization
+- Each major feature (attendance, leave, employees) has its own module
+- Modules contain pages, components, services, and stores
+- Promotes code organization and maintainability
+
+### 2. Layered Architecture
+- **Core**: Shared utilities, authentication, layout
+- **Modules**: Feature-specific code
+- **Shared**: Reusable components and UI elements
+- **Services**: API communication layer
+
+### 3. Component Composition
+- Atomic design principles with shared UI components
+- Higher-order components for common functionality
+- Compound components for complex UI patterns
+
+### 4. State Management Strategy
+- Zustand for global application state
+- Local state for component-specific data
+- Form state managed by React Hook Form
+
+### 5. Route Protection
+- Role-based access control
+- Permission gates for fine-grained access
+- Protected route wrappers
+
+## Development Workflow
+
+### 1. Environment Setup
+```bash
+npm install          # Install dependencies
+npm run dev         # Start development server
+npm run build       # Build for production
+npm run preview     # Preview production build
+npm test            # Run tests
+npm run lint        # Run ESLint
+```
+
+### 2. Component Development
+- Use Shadcn/UI components as base
+- Follow atomic design principles
+- Implement proper TypeScript/PropTypes
+- Add proper error boundaries
+
+### 3. API Integration
+- Use service layer for API calls
+- Implement proper error handling
+- Add loading states and optimistic updates
+- Cache responses where appropriate
+
+### 4. Testing Strategy
+- Unit tests for utilities and hooks
+- Component tests for UI components
+- Integration tests for user workflows
+- E2E tests for critical paths
+
+## Security Considerations
+
+### 1. Authentication
+- JWT token management
+- Automatic token refresh
+- Secure token storage
+
+### 2. Authorization
+- Role-based access control (RBAC)
+- Permission-based UI rendering
+- Route protection
+
+### 3. Data Validation
+- Client-side validation with Zod/Yup
+- Server-side validation backup
+- Input sanitization
+
+### 4. API Security
+- HTTPS enforcement
+- CORS configuration
+- Request/response interceptors
+
+## Performance Optimizations
+
+### 1. Code Splitting
+- Lazy loading of route components
+- Dynamic imports for large modules
+- Bundle size optimization
+
+### 2. Caching Strategy
+- API response caching
+- Static asset caching
+- Browser storage optimization
+
+### 3. Rendering Optimization
+- React.memo for expensive components
+- useMemo and useCallback for computations
+- Virtual scrolling for large lists
+
+### 4. Asset Optimization
+- Image optimization and lazy loading
+- Font loading optimization
+- CSS purging with Tailwind
+
+## Deployment Configuration
+
+### 1. Build Configuration
+- Vite production build
+- Environment variable management
+- Asset optimization
+
+### 2. Docker Support
+- Multi-stage Docker builds
+- Production-ready containers
+- Health checks and monitoring
+
+### 3. Environment Management
+- Development, staging, production configs
+- Feature flags and toggles
+- Configuration validation
+
+This comprehensive structure provides a scalable, maintainable, and feature-rich frontend for the HRM system, following modern React development practices and architectural patterns.

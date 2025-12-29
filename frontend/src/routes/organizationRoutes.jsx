@@ -9,9 +9,6 @@ const DesignationPage = lazy(() =>
 const PolicyPage = lazy(() =>
   import("../modules/organization/pages/PolicyPage")
 );
-const HolidayPage = lazy(() =>
-  import("../modules/organization/pages/HolidayPage")
-);
 const CompanyDocumentsPage = lazy(() =>
   import("../modules/organization/pages/CompanyDocumentsPage")
 );
@@ -30,11 +27,6 @@ export const organizationRoutes = [
   {
     path: "hr/policies",
     element: <PolicyPage />,
-    roles: ["HR", "SuperAdmin"],
-  },
-  {
-    path: "hr/holidays",
-    element: <HolidayPage />,
     roles: ["HR", "SuperAdmin"],
   },
   {

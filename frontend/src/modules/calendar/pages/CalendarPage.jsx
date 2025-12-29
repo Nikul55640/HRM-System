@@ -3,7 +3,7 @@ import { Calendar as CalendarIcon, Download, Plus } from 'lucide-react';
 import CalendarGrid from '../components/CalendarGrid';
 import CalendarSidebar from '../components/CalendarSidebar';
 import useCalendarStore from '../../../stores/useCalendarStore';
-import calendarViewService from '../services/calendarViewService';
+import calendarViewService from '../../../services/calendarViewService';
 import useAuth from '../../../core/hooks/useAuth';
 
 const CalendarPage = () => {

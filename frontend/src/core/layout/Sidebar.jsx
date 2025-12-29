@@ -6,8 +6,11 @@ import useAuth from "../hooks/useAuth";
 import { usePermissions } from "../hooks";
 import { MODULES } from "../utils/rolePermissions";
 
-const Sidebar = () => {
-  const [openSections, setOpenSections] = useState(["General", "My Self Service"]);
+const Sidebar = ({ setLayoutSidebarExpanded }) => {
+  const [openSections, setOpenSections] = useState([
+    "General",
+    "My Self Service",
+  ]);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   const location = useLocation();
@@ -52,60 +55,60 @@ const Sidebar = () => {
       section: "My Self Service",
       icon: "User",
       collapsible: true,
-      showIf: () => user?.role === 'Employee', // Only show for employees
+      showIf: () => user?.role === "Employee", // Only show for employees
       items: [
         // FEATURE 1: Profile & Bank Details Management
-        { 
-          name: "My Profile", 
-          path: "/employee/profile", 
-          icon: "User", 
-          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) 
+        {
+          name: "My Profile",
+          path: "/employee/profile",
+          icon: "User",
+          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
         },
-        { 
-          name: "Bank Details", 
-          path: "/employee/bank-details", 
-          icon: "Banknote", 
-          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN) 
+        {
+          name: "Bank Details",
+          path: "/employee/bank-details",
+          icon: "Banknote",
+          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
         },
 
         // FEATURE 2: Attendance Management
-        { 
-          name: "My Attendance", 
-          path: "/employee/attendance", 
-          icon: "Clock", 
-          showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN) 
+        {
+          name: "My Attendance",
+          path: "/employee/attendance",
+          icon: "Clock",
+          showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN),
         },
 
         // FEATURE 3: Leave Management
-        { 
-          name: "My Leave", 
-          path: "/employee/leave", 
-          icon: "CalendarDays", 
-          showIf: () => can.do(MODULES.LEAVE.VIEW_OWN) 
+        {
+          name: "My Leave",
+          path: "/employee/leave",
+          icon: "CalendarDays",
+          showIf: () => can.do(MODULES.LEAVE.VIEW_OWN),
         },
 
         // FEATURE 5: Lead Management (Employee view)
-        { 
-          name: "My Leads", 
-          path: "/employee/leads", 
-          icon: "Target", 
-          showIf: () => can.do(MODULES.LEAD.VIEW) 
+        {
+          name: "My Leads",
+          path: "/employee/leads",
+          icon: "Target",
+          showIf: () => can.do(MODULES.LEAD.VIEW),
         },
 
         // FEATURE 6: Shift Management
-        { 
-          name: "My Shifts", 
-          path: "/employee/shifts", 
-          icon: "Calendar", 
-          showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN) 
+        {
+          name: "My Shifts",
+          path: "/employee/shifts",
+          icon: "Calendar",
+          showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN),
         },
 
         // FEATURE 7: Calendar & Events
-        { 
-          name: "Calendar & Events", 
-          path: "/employee/calendar", 
-          icon: "CalendarRange", 
-          showIf: () => can.do(MODULES.CALENDAR.VIEW) 
+        {
+          name: "Calendar & Events",
+          path: "/employee/calendar",
+          icon: "CalendarRange",
+          showIf: () => can.do(MODULES.CALENDAR.VIEW),
         },
       ],
     },
@@ -118,11 +121,13 @@ const Sidebar = () => {
       section: "HR Administration",
       icon: "Settings",
       collapsible: true,
-      showIf: () => (user?.role === 'HR' || user?.role === 'SuperAdmin') && can.doAny([
-        MODULES.EMPLOYEE.VIEW_ALL, 
-        MODULES.ATTENDANCE.VIEW_ALL, 
-        MODULES.LEAVE.VIEW_ALL
-      ]),
+      showIf: () =>
+        (user?.role === "HR" || user?.role === "SuperAdmin") &&
+        can.doAny([
+          MODULES.EMPLOYEE.VIEW_ALL,
+          MODULES.ATTENDANCE.VIEW_ALL,
+          MODULES.LEAVE.VIEW_ALL,
+        ]),
       items: [
         // FEATURE 4: Employee Management
         {
@@ -135,7 +140,8 @@ const Sidebar = () => {
           name: "Departments",
           path: "/admin/departments",
           icon: "Building2",
-          showIf: () => can.doAny([MODULES.DEPARTMENT.VIEW, MODULES.DEPARTMENT.CREATE]),
+          showIf: () =>
+            can.doAny([MODULES.DEPARTMENT.VIEW, MODULES.DEPARTMENT.CREATE]),
         },
 
         // FEATURE 2: Attendance Management
@@ -143,37 +149,61 @@ const Sidebar = () => {
           name: "Attendance Management",
           path: "/admin/attendance",
           icon: "Clock4",
-          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+          showIf: () =>
+            can.doAny([
+              MODULES.ATTENDANCE.VIEW_ALL,
+              MODULES.ATTENDANCE.EDIT_ANY,
+            ]),
         },
         {
           name: "Attendance Corrections",
           path: "/admin/attendance/corrections",
           icon: "ClipboardEdit",
-          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+          showIf: () =>
+            can.doAny([
+              MODULES.ATTENDANCE.VIEW_ALL,
+              MODULES.ATTENDANCE.EDIT_ANY,
+            ]),
         },
         {
           name: "Live Attendance",
           path: "/admin/attendance/live",
           icon: "Activity",
-          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+          showIf: () =>
+            can.doAny([
+              MODULES.ATTENDANCE.VIEW_ALL,
+              MODULES.ATTENDANCE.EDIT_ANY,
+            ]),
         },
         {
           name: "Attendance Summary",
           path: "/admin/attendance/summary",
           icon: "BarChart3",
-          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+          showIf: () =>
+            can.doAny([
+              MODULES.ATTENDANCE.VIEW_ALL,
+              MODULES.ATTENDANCE.EDIT_ANY,
+            ]),
         },
         {
           name: "Attendance Dashboard",
           path: "/admin/attendance/dashboard",
           icon: "LayoutDashboard",
-          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+          showIf: () =>
+            can.doAny([
+              MODULES.ATTENDANCE.VIEW_ALL,
+              MODULES.ATTENDANCE.EDIT_ANY,
+            ]),
         },
         {
           name: "Attendance Insights",
           path: "/admin/attendance/insights",
           icon: "TrendingUp",
-          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+          showIf: () =>
+            can.doAny([
+              MODULES.ATTENDANCE.VIEW_ALL,
+              MODULES.ATTENDANCE.EDIT_ANY,
+            ]),
         },
 
         // FEATURE 3: Leave Management
@@ -181,7 +211,8 @@ const Sidebar = () => {
           name: "Leave Requests",
           path: "/admin/leave",
           icon: "ClipboardCheck",
-          showIf: () => can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
+          showIf: () =>
+            can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
         },
         {
           name: "Leave Balances",
@@ -193,7 +224,8 @@ const Sidebar = () => {
           name: "Leave Approvals",
           path: "/admin/leave/approvals",
           icon: "CheckCircle2",
-          showIf: () => can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
+          showIf: () =>
+            can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
         },
 
         // FEATURE 5: Lead Management
@@ -201,7 +233,8 @@ const Sidebar = () => {
           name: "Lead Management",
           path: "/admin/leads",
           icon: "Target",
-          showIf: () => can.doAny([MODULES.LEAD.CREATE, MODULES.LEAD.MANAGE_ALL]),
+          showIf: () =>
+            can.doAny([MODULES.LEAD.CREATE, MODULES.LEAD.MANAGE_ALL]),
         },
 
         // FEATURE 6: Shift Management
@@ -242,11 +275,13 @@ const Sidebar = () => {
       section: "System Administration",
       icon: "Shield",
       collapsible: true,
-      showIf: () => user?.role === 'SuperAdmin' && can.doAny([
-        MODULES.USER.VIEW, 
-        MODULES.SYSTEM.VIEW_CONFIG, 
-        MODULES.SYSTEM.VIEW_AUDIT_LOGS
-      ]),
+      showIf: () =>
+        user?.role === "SuperAdmin" &&
+        can.doAny([
+          MODULES.USER.VIEW,
+          MODULES.SYSTEM.VIEW_CONFIG,
+          MODULES.SYSTEM.VIEW_AUDIT_LOGS,
+        ]),
       items: [
         // FEATURE 4: Employee Management (System level)
         {
@@ -277,24 +312,24 @@ const Sidebar = () => {
 
   // Filter navigation based on permissions
   const nav = allNavItems
-    .filter(section => {
+    .filter((section) => {
       // Check if section should be shown
-      if (section.showIf && typeof section.showIf === 'function') {
+      if (section.showIf && typeof section.showIf === "function") {
         return section.showIf();
       }
       return true;
     })
-    .map(section => ({
+    .map((section) => ({
       ...section,
-      items: section.items.filter(item => {
+      items: section.items.filter((item) => {
         // Check if item should be shown
-        if (item.showIf && typeof item.showIf === 'function') {
+        if (item.showIf && typeof item.showIf === "function") {
           return item.showIf();
         }
         return true;
-      })
+      }),
     }))
-    .filter(section => section.items.length > 0);
+    .filter((section) => section.items.length > 0);
 
   const totalBadges = nav.reduce(
     (sum, group) =>
@@ -305,32 +340,50 @@ const Sidebar = () => {
 
   const handleMouseEnter = () => {
     setIsSidebarExpanded(true);
+    setLayoutSidebarExpanded(true);
   };
 
   const handleMouseLeave = () => {
     setIsSidebarExpanded(false);
+    setLayoutSidebarExpanded(false);
   };
-
   const handleNavClick = () => {
     setIsSidebarExpanded(false);
+    setLayoutSidebarExpanded(false);
   };
 
   return (
     <aside
       style={{ width: isSidebarExpanded ? 250 : 70 }}
-      className="bg-white border-r border-gray-200 flex flex-col transition-all duration-300"
+      className="
+    bg-white
+    border-r
+    border-gray-200
+    flex
+    flex-col
+    transition-all
+    duration-300
+    fixed
+    top-0
+    left-0
+    h-screen
+    z-40
+    overflow-hidden
+  "
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       {/* HEADER */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+      <div className="p-3 border-b border-gray-200 flex items-center justify-between">
         {isSidebarExpanded && (
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-semibold text-lg">HR</span>
             </div>
             <div>
-              <h1 className="text-base font-semibold text-gray-800">HRM System</h1>
+              <h1 className="text-base font-semibold text-gray-800">
+                HRM System
+              </h1>
               <p className="text-xs text-gray-500">Management</p>
             </div>
           </div>
@@ -339,7 +392,11 @@ const Sidebar = () => {
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+          onClick={() => {
+            const next = !isSidebarExpanded;
+            setIsSidebarExpanded(next);
+            setLayoutSidebarExpanded(next);
+          }}
         >
           {isSidebarExpanded ? (
             <Icon name="ChevronLeft" className="w-5 h-5" />
@@ -360,70 +417,83 @@ const Sidebar = () => {
       )}
 
       {/* NAVIGATION */}
-      <nav className="flex-1 overflow-y-auto mt-4 px-3 space-y-2">
-        {nav.map((group) => (
-          <div key={group.section}>
-            {/* Section Header */}
-            {group.collapsible ? (
-              <button
-                onClick={() => toggleSection(group.section)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${openSections.includes(group.section)
-                    ? "bg-gray-100 text-gray-900"
-                    : "text-gray-600 hover:bg-gray-50"
+      <div className="flex-1 overflow-y-auto">
+        <nav className="mt-4 px-3 space-y-2">
+          {nav.map((group) => (
+            <div key={group.section}>
+              {/* Section Header */}
+              {group.collapsible ? (
+                <button
+                  onClick={() => toggleSection(group.section)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    openSections.includes(group.section)
+                      ? "bg-gray-100 text-gray-900"
+                      : "text-gray-600 hover:bg-gray-50"
                   }`}
-              >
-                <Icon name={group.icon} className="w-5 h-5" />
-                {isSidebarExpanded && (
-                  <>
-                    <span className="flex-1 text-left">{group.section}</span>
-                    <Icon
-                      name="ChevronDown"
-                      className={`w-4 h-4 transition-transform ${openSections.includes(group.section) ? "rotate-180" : ""
+                >
+                  <Icon
+                    name={group.icon}
+                    className={isSidebarExpanded ? "w-5 h-5" : "w-6 h-6"}
+                  />
+                  {isSidebarExpanded && (
+                    <>
+                      <span className="flex-1 text-left">{group.section}</span>
+                      <Icon
+                        name="ChevronDown"
+                        className={`w-4 h-4 transition-transform ${
+                          openSections.includes(group.section)
+                            ? "rotate-180"
+                            : ""
                         }`}
-                    />
-                  </>
-                )}
-              </button>
-            ) : (
-              isSidebarExpanded && (
-                <div className="text-xs uppercase text-gray-500 font-medium px-3 py-2">
-                  {group.section}
-                </div>
-              )
-            )}
+                      />
+                    </>
+                  )}
+                </button>
+              ) : (
+                isSidebarExpanded && (
+                  <div className="text-xs uppercase text-gray-500 font-medium px-3 py-2">
+                    {group.section}
+                  </div>
+                )
+              )}
 
-            {/* Menu Items */}
-            {(!group.collapsible || openSections.includes(group.section)) && (
-              <div className="space-y-1 mt-1">
-                {group.items.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={handleNavClick}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive(item.path)
-                        ? "bg-blue-50 text-blue-700 font-medium"
-                        : "text-gray-600 hover:bg-gray-50"
+              {/* Menu Items */}
+              {(!group.collapsible || openSections.includes(group.section)) && (
+                <div className="space-y-1 mt-1">
+                  {group.items.map((item) => (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={handleNavClick}
+                      className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
+                        isSidebarExpanded
+                          ? "gap-3 px-3 justify-start"
+                          : "justify-center"
+                      } ${
+                        isActive(item.path)
+                          ? "bg-blue-50 text-blue-700 font-medium"
+                          : "text-gray-600 hover:bg-gray-50"
                       }`}
-                  >
-                    <Icon name={item.icon} className="w-5 h-5" />
-                    {isSidebarExpanded && (
-                      <>
-                        <span>{item.name}</span>
-                        {item.badge && item.badge > 0 && (
-                          <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                            {item.badge}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </nav>
-
+                    >
+                      <Icon name={item.icon} className="w-5 h-5" />
+                      {isSidebarExpanded && (
+                        <>
+                          <span>{item.name}</span>
+                          {item.badge && item.badge > 0 && (
+                            <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                              {item.badge}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </nav>
+      </div>
       {/* FOOTER */}
       {isSidebarExpanded && (
         <div className="p-4 border-t border-gray-200">
@@ -438,4 +508,3 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
-

@@ -49,6 +49,7 @@ import {
   MoreHorizontal,
   ExternalLink,
   Mail,
+  CheckCircle2,
   Phone,
   MapPin,
   User,
@@ -89,15 +90,16 @@ import {
   Coffee,
   Play,
   ClipboardEdit,
-  Scale
+  CalendarCog,
+  Scale,
 } from 'lucide-react';
-
-
 
 const iconMap = {
   LayoutDashboard,
   Users,
+  CalendarCog,
   Calendar,
+  CheckCircle2,
   FileText,
   Settings,
   Building2,

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import calendarViewService from '../modules/calendar/services/calendarViewService';
+import calendarViewService from '../services/calendarViewService';
 
 const useCalendarStore = create(
   devtools(

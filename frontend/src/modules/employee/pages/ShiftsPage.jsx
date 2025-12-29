@@ -4,6 +4,7 @@ import { Button } from "../../../shared/ui/button";
 import { Badge } from "../../../shared/ui/badge";
 import { Icon, LoadingSpinner } from "../../../shared/components";
 import { useToast } from "../../../core/hooks/use-toast";
+import shiftService from "../../../services/shiftService";
 
 const ShiftsPage = () => {
   const [shifts, setShifts] = useState([]);
@@ -13,34 +14,54 @@ const ShiftsPage = () => {
 
   useEffect(() => {
     fetchMyShifts();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchMyShifts = async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      // const response = await api.get('/employee/shifts/my-shifts');
       
-      // Mock data for now
-      const mockShifts = [
-        {
-          id: 1,
-          name: "Morning Shift",
-          startTime: "09:00",
-          endTime: "17:00",
-          days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
+      // Fetch both current shift and all shifts
+      const [currentShiftResponse, shiftsResponse] = await Promise.all([
+        shiftService.employee.getCurrentShift(),
+        shiftService.employee.getMyShifts()
+      ]);
+      
+      if (currentShiftResponse.success && currentShiftResponse.data?.currentShift) {
+        const currentShiftData = currentShiftResponse.data.currentShift;
+        setCurrentShift({
+          id: currentShiftData.id,
+          name: currentShiftData.shift?.shiftName || 'Unknown Shift',
+          startTime: currentShiftData.shift?.shiftStartTime || '09:00',
+          endTime: currentShiftData.shift?.shiftEndTime || '17:00',
+          days: getWorkingDays(currentShiftData.shift?.weeklyOffDays),
           isActive: true,
-          effectiveFrom: "2024-01-01",
-          effectiveTo: null
-        }
-      ];
+          effectiveFrom: currentShiftData.effectiveDate,
+          effectiveTo: currentShiftData.endDate,
+          shiftCode: currentShiftData.shift?.shiftCode,
+          gracePeriod: currentShiftData.shift?.gracePeriodMinutes,
+          maxBreakMinutes: currentShiftData.shift?.maxBreakMinutes
+        });
+      }
       
-      setShifts(mockShifts);
-      setCurrentShift(mockShifts.find(s => s.isActive));
+      if (shiftsResponse.success && shiftsResponse.data?.shiftAssignments) {
+        const formattedShifts = shiftsResponse.data.shiftAssignments.map(assignment => ({
+          id: assignment.id,
+          name: assignment.shift?.shiftName || 'Unknown Shift',
+          startTime: assignment.shift?.shiftStartTime || '09:00',
+          endTime: assignment.shift?.shiftEndTime || '17:00',
+          days: getWorkingDays(assignment.shift?.weeklyOffDays),
+          isActive: assignment.isActive,
+          effectiveFrom: assignment.effectiveDate,
+          effectiveTo: assignment.endDate,
+          shiftCode: assignment.shift?.shiftCode
+        }));
+        setShifts(formattedShifts);
+      }
+      
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to fetch shift information",
+        description: error.response?.data?.message || "Failed to fetch shift information",
         variant: "destructive",
       });
     } finally {
@@ -48,11 +69,51 @@ const ShiftsPage = () => {
     }
   };
 
-  const requestShiftChange = () => {
-    toast({
-      title: "Feature Coming Soon",
-      description: "Shift change request functionality will be available soon",
-    });
+  // Helper function to convert weeklyOffDays to working days
+  const getWorkingDays = (weeklyOffDays) => {
+    const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    if (!weeklyOffDays || weeklyOffDays.length === 0) {
+      return allDays.slice(0, 5); // Default to Mon-Fri
+    }
+    
+    // weeklyOffDays might be an array like ['Saturday', 'Sunday']
+    const offDays = Array.isArray(weeklyOffDays) ? weeklyOffDays : JSON.parse(weeklyOffDays || '[]');
+    return allDays.filter(day => !offDays.includes(day));
+  };
+
+  const requestShiftChange = async () => {
+    try {
+      // For now, just show a simple prompt for shift change reason
+      const reason = window.prompt("Please provide a reason for the shift change request:");
+      
+      if (!reason) {
+        return; // User cancelled
+      }
+      
+      // Get effective date (default to next Monday)
+      const nextMonday = new Date();
+      nextMonday.setDate(nextMonday.getDate() + (1 + 7 - nextMonday.getDay()) % 7);
+      const effectiveDate = nextMonday.toISOString().split('T')[0];
+      
+      await shiftService.employee.requestShiftChange({
+        reason,
+        effectiveDate,
+        requestedShiftId: 1, // This should be selected by user in a proper form
+        // Add more fields as needed based on backend requirements
+      });
+      
+      toast({
+        title: "Success",
+        description: "Shift change request submitted successfully. HR will review your request.",
+      });
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to submit shift change request",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
@@ -86,18 +147,27 @@ const ShiftsPage = () => {
               <div>
                 <label className="text-sm font-medium text-gray-500">Shift Name</label>
                 <p className="text-lg font-semibold">{currentShift.name}</p>
+                {currentShift.shiftCode && (
+                  <p className="text-sm text-gray-600">Code: {currentShift.shiftCode}</p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Working Hours</label>
                 <p className="text-lg font-semibold">
                   {currentShift.startTime} - {currentShift.endTime}
                 </p>
+                {currentShift.gracePeriod && (
+                  <p className="text-sm text-gray-600">Grace: {currentShift.gracePeriod} min</p>
+                )}
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Status</label>
                 <div>
                   <Badge variant="success">Active</Badge>
                 </div>
+                {currentShift.maxBreakMinutes && (
+                  <p className="text-sm text-gray-600">Max break: {currentShift.maxBreakMinutes} min</p>
+                )}
               </div>
             </div>
             <div className="mt-4">
@@ -110,6 +180,14 @@ const ShiftsPage = () => {
                 ))}
               </div>
             </div>
+            {(currentShift.effectiveFrom || currentShift.effectiveTo) && (
+              <div className="mt-4 text-sm text-gray-600">
+                <span className="font-medium">Effective Period: </span>
+                {currentShift.effectiveFrom && new Date(currentShift.effectiveFrom).toLocaleDateString()}
+                {currentShift.effectiveTo && ` to ${new Date(currentShift.effectiveTo).toLocaleDateString()}`}
+                {!currentShift.effectiveTo && ' (ongoing)'}
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
@@ -150,30 +228,36 @@ const ShiftsPage = () => {
       {/* Weekly Schedule Preview */}
       <Card>
         <CardHeader>
-          <CardTitle>This Week's Schedule</CardTitle>
+          <CardTitle>This Week&apos;s Schedule</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-7 gap-2">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-              <div key={day} className="text-center">
-                <div className="text-sm font-medium text-gray-500 mb-2">{day}</div>
-                <div className="p-2 bg-blue-50 rounded text-xs">
-                  {currentShift?.days.includes(day + "day") ? (
-                    <div>
-                      <div className="font-medium">
-                        {currentShift.startTime}
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
+              const isWorkingDay = currentShift?.days.some(workDay => 
+                workDay.toLowerCase().startsWith(day.toLowerCase())
+              );
+              
+              return (
+                <div key={day} className="text-center">
+                  <div className="text-sm font-medium text-gray-500 mb-2">{day}</div>
+                  <div className={`p-2 rounded text-xs ${isWorkingDay ? 'bg-blue-50' : 'bg-gray-50'}`}>
+                    {isWorkingDay ? (
+                      <div>
+                        <div className="font-medium">
+                          {currentShift.startTime}
+                        </div>
+                        <div>to</div>
+                        <div className="font-medium">
+                          {currentShift.endTime}
+                        </div>
                       </div>
-                      <div>to</div>
-                      <div className="font-medium">
-                        {currentShift.endTime}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-gray-400">Off</div>
-                  )}
+                    ) : (
+                      <div className="text-gray-400">Off</div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </CardContent>
       </Card>

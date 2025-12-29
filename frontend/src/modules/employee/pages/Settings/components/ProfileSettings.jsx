@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useProfile } from "../../../../employees/useEmployeeSelfService";
+import { useProfile } from "../../../../../services/useEmployeeSelfService";
 import { LoadingSpinner } from "../../../../../shared/components";
 import ProfileSettingsForm from "./ProfileSettingsForm";
 

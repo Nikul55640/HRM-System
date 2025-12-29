@@ -203,9 +203,9 @@ const SessionHistoryView = () => {
                   <h3 className="font-semibold text-lg sticky top-0 bg-background py-2">
                     {date}
                   </h3>
-                  {records.map((record) => (
+                  {records.map((record, recordIdx) => (
                     <div
-                      key={record._id}
+                      key={record.id || record._id || `record-${date}-${recordIdx}`}
                       className="border rounded-lg p-4 space-y-3"
                     >
                       {/* Record Summary */}
@@ -234,7 +234,7 @@ const SessionHistoryView = () => {
                         <div className="space-y-2">
                           {record.sessions.map((session, idx) => (
                             <div
-                              key={session.sessionId || idx}
+                              key={session.sessionId || session.id || `session-${record.id || record._id}-${idx}`}
                               className="bg-muted/50 rounded-md p-3 space-y-2"
                             >
                               <div className="flex items-center justify-between">
@@ -293,7 +293,7 @@ const SessionHistoryView = () => {
                                   <div className="space-y-1">
                                     {session.breaks.map((breakItem, bIdx) => (
                                       <div
-                                        key={breakItem.breakId || bIdx}
+                                        key={breakItem.breakId || breakItem.id || `break-${session.sessionId || session.id}-${bIdx}`}
                                         className="text-xs flex items-center justify-between"
                                       >
                                         <span>

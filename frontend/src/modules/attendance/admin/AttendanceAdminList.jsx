@@ -3,7 +3,7 @@ import { Card, CardContent } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
 import { Download, Search } from 'lucide-react';
 import useAttendanceStore from '../../../stores/useAttendanceStore';
-import attendanceService from '../services/attendanceService';
+import attendanceService from '../../../services/attendanceService';
 import { formatDate } from '../../../core/utils/essHelpers';
 
 const AttendanceAdminList = () => {

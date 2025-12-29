@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { toast } from 'react-toastify';
-import attendanceService from '../modules/attendance/services/attendanceService';
+import attendanceService from '../services/attendanceService';
 
 const useAttendanceStore = create(
   devtools(

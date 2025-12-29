@@ -40,26 +40,12 @@ const useAttendanceSessionStore = create(
             set({ isLoading: true });
           }
 
-          const today = new Date();
-          const date = today.toISOString().split('T')[0];
+          // Use the dedicated today endpoint for better accuracy
+          const response = await api.get('/employee/attendance/today');
 
-          const response = await api.get('/employee/attendance', {
-            params: {
-              startDate: date,
-              endDate: date,
-              limit: 1,
-            },
-          });
-
-          if (response.data?.success && response.data.data?.length > 0) {
-            const record = response.data.data[0];
-            const recordDate = new Date(record.date);
-
-            const isToday =
-              recordDate.toDateString() === today.toDateString();
-
+          if (response.data?.success && response.data.data) {
             set({
-              todayRecord: isToday ? record : null,
+              todayRecord: response.data.data,
               isLoading: false,
               lastUpdated: new Date(),
               error: null,
@@ -73,7 +59,6 @@ const useAttendanceSessionStore = create(
             });
           }
         } catch (error) {
-          console.error('Attendance fetch failed:', error);
           set({ 
             isLoading: false,
             error: error.response?.data?.message || 'Failed to fetch attendance data'
@@ -107,11 +92,12 @@ const useAttendanceSessionStore = create(
             const errorMessage = error.response?.data?.message;
             
             // If already clocked in, refresh the data to sync the UI
-            if (errorMessage?.includes('Already clocked in')) {
+            if (errorMessage?.includes('Already clocked in') || errorMessage?.includes('already clocked in')) {
               await get().fetchTodayRecord(true);
               return {
                 success: false,
-                error: 'You are already clocked in for today',
+                error: 'already clocked in',
+                message: 'You are already clocked in for today',
               };
             }
           }
@@ -160,6 +146,8 @@ const useAttendanceSessionStore = create(
           );
 
           if (response.data?.success) {
+            // Add a small delay to ensure database update is complete
+            await new Promise(resolve => setTimeout(resolve, 500));
             await get().fetchTodayRecord(true);
             return { success: true, data: response.data };
           }
@@ -184,6 +172,8 @@ const useAttendanceSessionStore = create(
           );
 
           if (response.data?.success) {
+            // Add a small delay to ensure database update is complete
+            await new Promise(resolve => setTimeout(resolve, 500));
             await get().fetchTodayRecord(true);
             return { success: true, data: response.data };
           }
@@ -216,7 +206,7 @@ const useAttendanceSessionStore = create(
           };
         }
 
-        // Check for new session format
+        // Check for new session format (if it exists)
         const activeSession = todayRecord.sessions?.find(
           (s) => s.status === 'active' || s.status === 'on_break'
         );
@@ -228,17 +218,35 @@ const useAttendanceSessionStore = create(
           (!todayRecord.sessions ||
             todayRecord.sessions.length === 0);
 
+        // Check for active break session in breakSessions array
+        const activeBreakSession = todayRecord.breakSessions?.find(
+          session => session.breakIn && !session.breakOut
+        );
+
         // Determine if clocked in (either new session format or legacy)
         const isClockedIn = 
           activeSession?.status === 'active' ||
           hasLegacyClockIn ||
           (todayRecord.clockIn && !todayRecord.clockOut);
 
+        // Determine if on break (check both session format and breakSessions array)
+        const isOnBreak = 
+          activeSession?.status === 'on_break' ||
+          !!activeBreakSession;
+
         return {
           isClockedIn,
-          isOnBreak: activeSession?.status === 'on_break',
+          isOnBreak,
           hasLegacyClockIn,
-          activeSession,
+          activeSession: activeSession || (activeBreakSession ? {
+            checkIn: todayRecord.clockIn,
+            workLocation: todayRecord.location || 'office',
+            locationDetails: todayRecord.location,
+            breaks: todayRecord.breakSessions || [],
+            totalBreakMinutes: todayRecord.totalBreakMinutes || 0,
+            workedMinutes: todayRecord.totalWorkedMinutes || 0,
+            status: activeBreakSession ? 'on_break' : 'active'
+          } : null),
           hasCompletedSessions:
             todayRecord.sessions?.some(
               (s) => s.status === 'completed'

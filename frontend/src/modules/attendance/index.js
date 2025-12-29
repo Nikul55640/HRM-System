@@ -17,4 +17,4 @@ export * from "./calendar/MonthlyCalendarView";
 export * from "./calendar/UnifiedCalendar";
 
 // Store exports removed - now using Zustand stores in src/stores/
-export * from "./services/attendanceService";
+export * from "../../services/attendanceService";

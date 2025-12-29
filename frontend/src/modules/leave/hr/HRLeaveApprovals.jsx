@@ -71,6 +71,8 @@ const HRLeaveApprovals = () => {
         return 'text-red-600 bg-red-50 border-red-200';
       case 'pending':
         return 'text-orange-600 bg-orange-50 border-orange-200';
+      case 'cancelled':
+        return 'text-gray-600 bg-gray-50 border-gray-200';
       default:
         return 'text-gray-600 bg-gray-50 border-gray-200';
     }
@@ -128,6 +130,13 @@ const HRLeaveApprovals = () => {
                 onClick={() => setFilterStatus('rejected')}
               >
                 Rejected
+              </Button>
+              <Button
+                variant={filterStatus === 'cancelled' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setFilterStatus('cancelled')}
+              >
+                Cancelled
               </Button>
               <Button
                 variant={filterStatus === 'all' ? 'default' : 'outline'}

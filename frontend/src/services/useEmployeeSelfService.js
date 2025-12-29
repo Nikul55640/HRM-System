@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
-import employeeSelfService from "../../services/employeeSelfService";
-import useAuthStore from "../../stores/useAuthStore";
+import employeeSelfService from "./employeeSelfService";
+import useAuthStore from "../stores/useAuthStore";
 
 /**
  * Custom hooks for Employee Self-Service features (Zustand Version)

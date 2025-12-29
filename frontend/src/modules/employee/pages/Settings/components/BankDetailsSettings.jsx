@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useBankDetails } from "../../../../employees/useEmployeeSelfService";
+import { useBankDetails } from "../../../../../services/useEmployeeSelfService";
 import { LoadingSpinner } from "../../../../../shared/components";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

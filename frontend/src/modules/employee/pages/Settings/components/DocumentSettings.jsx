@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useDocuments } from "../../../../employees/useEmployeeSelfService";
+import { useDocuments } from "../../../../../services/useEmployeeSelfService";
 import { LoadingSpinner } from "../../../../../shared/components";
 import { Button } from "../../../../../shared/ui/button";
 import { Input } from "../../../../../shared/ui/input";

@@ -23,7 +23,8 @@ const logAction = async (payload) => {
       payload.ipAddress = IPService.encryptIP(payload.ipAddress);
     }
     
-    return await AuditLog.create(payload);
+    // Use the model's logAction method directly
+    return await AuditLog.logAction(payload);
   } catch (error) {
     logger.error("AuditLog Error:", error);
     return null;
@@ -35,37 +36,28 @@ const logAction = async (payload) => {
  * ----------------------------------------------------- */
 const logEmployeeCreation = async (employee, user, meta = {}) => {
   return logAction({
-    action: "CREATE",
-    severity: "info",
-    entityType: "Employee",
-    entityId: employee?.id,
-    entityDisplayName: getDisplayName(employee),
-
     userId: user?.id,
-    userRole: user?.role,
-    performedByName: user?.fullName || user?.name || "Unknown User",
-    performedByEmail: user?.email,
-
-    changes: [
-      {
-        field: "employee",
-        oldValue: null,
-        newValue: {
-          name: getDisplayName(employee),
-          email: employee?.email,
-          jobTitle: employee?.jobTitle,
-          status: employee?.status,
-        },
-      },
-    ],
-
-    meta: {
-      employeeCode: employee?.employeeId,
-      departmentId: employee?.departmentId || null,
+    action: "employee_create",
+    module: "employee",
+    targetType: "Employee",
+    targetId: employee?.id,
+    oldValues: null,
+    newValues: {
+      name: getDisplayName(employee),
+      email: employee?.email,
+      jobTitle: employee?.jobTitle,
+      status: employee?.status,
     },
-
+    description: `Employee ${getDisplayName(employee)} created`,
     ipAddress: meta.ipAddress,
     userAgent: meta.userAgent,
+    severity: "low",
+    metadata: {
+      employeeCode: employee?.employeeId,
+      departmentId: employee?.departmentId || null,
+      performedByName: user?.fullName || user?.name || "Unknown User",
+      performedByEmail: user?.email,
+    },
   });
 };
 
@@ -75,27 +67,32 @@ const logEmployeeCreation = async (employee, user, meta = {}) => {
 const logEmployeeUpdate = async (employee, changes = [], user, meta = {}) => {
   if (!changes.length) return null;
 
+  const oldValues = {};
+  const newValues = {};
+  
+  changes.forEach(change => {
+    oldValues[change.field] = change.oldValue;
+    newValues[change.field] = change.newValue;
+  });
+
   return logAction({
-    action: "UPDATE",
-    severity: "warning",
-    entityType: "Employee",
-    entityId: employee?.id,
-    entityDisplayName: getDisplayName(employee),
-
     userId: user?.id,
-    userRole: user?.role,
-    performedByName: user?.fullName || user?.name || "Unknown User",
-    performedByEmail: user?.email,
-
-    changes,
-
-    meta: {
-      employeeCode: employee?.employeeId,
-      changedFields: changes.map((c) => c.field),
-    },
-
+    action: "employee_update",
+    module: "employee",
+    targetType: "Employee",
+    targetId: employee?.id,
+    oldValues,
+    newValues,
+    description: `Employee ${getDisplayName(employee)} updated`,
     ipAddress: meta.ipAddress,
     userAgent: meta.userAgent,
+    severity: "medium",
+    metadata: {
+      employeeCode: employee?.employeeId,
+      changedFields: changes.map((c) => c.field),
+      performedByName: user?.fullName || user?.name || "Unknown User",
+      performedByEmail: user?.email,
+    },
   });
 };
 
@@ -104,32 +101,23 @@ const logEmployeeUpdate = async (employee, changes = [], user, meta = {}) => {
  * ----------------------------------------------------- */
 const logEmployeeTermination = async (employee, user, meta = {}) => {
   return logAction({
-    action: "DELETE",
-    severity: "critical",
-    entityType: "Employee",
-    entityId: employee?.id,
-    entityDisplayName: getDisplayName(employee),
-
     userId: user?.id,
-    userRole: user?.role,
-    performedByName: user?.fullName || user?.name || "Unknown User",
-    performedByEmail: user?.email,
-
-    changes: [
-      {
-        field: "status",
-        oldValue: employee?.status,
-        newValue: "Terminated",
-      },
-    ],
-
-    meta: {
-      employeeCode: employee?.employeeId,
-      terminatedAt: new Date(),
-    },
-
+    action: "employee_delete",
+    module: "employee",
+    targetType: "Employee",
+    targetId: employee?.id,
+    oldValues: { status: employee?.status },
+    newValues: { status: "Terminated" },
+    description: `Employee ${getDisplayName(employee)} terminated`,
     ipAddress: meta.ipAddress,
     userAgent: meta.userAgent,
+    severity: "critical",
+    metadata: {
+      employeeCode: employee?.employeeId,
+      terminatedAt: new Date(),
+      performedByName: user?.fullName || user?.name || "Unknown User",
+      performedByEmail: user?.email,
+    },
   });
 };
 
@@ -138,23 +126,20 @@ const logEmployeeTermination = async (employee, user, meta = {}) => {
  * ----------------------------------------------------- */
 const logEmployeeView = async (employee, user, meta = {}) => {
   return logAction({
-    action: "VIEW",
-    severity: "info",
-    entityType: "Employee",
-    entityId: employee?.id,
-    entityDisplayName: getDisplayName(employee),
-
     userId: user?.id,
-    userRole: user?.role,
-    performedByName: user?.fullName || user?.name || "Unknown User",
-    performedByEmail: user?.email,
-
-    meta: {
-      viewedEmployeeCode: employee?.employeeId,
-    },
-
+    action: "profile_update", // Using existing enum value
+    module: "employee",
+    targetType: "Employee",
+    targetId: employee?.id,
+    description: `Employee ${getDisplayName(employee)} profile viewed`,
     ipAddress: meta.ipAddress,
     userAgent: meta.userAgent,
+    severity: "low",
+    metadata: {
+      viewedEmployeeCode: employee?.employeeId,
+      performedByName: user?.fullName || user?.name || "Unknown User",
+      performedByEmail: user?.email,
+    },
   });
 };
 
@@ -163,32 +148,34 @@ const logEmployeeView = async (employee, user, meta = {}) => {
  * ----------------------------------------------------- */
 const logCustomAction = async ({
   action,
-  severity = "info",
-  entityType,
-  entityId,
-  entityDisplayName,
+  module = "system",
+  severity = "low",
+  targetType,
+  targetId,
   user,
-  changes = [],
-  meta = {},
+  oldValues = null,
+  newValues = null,
+  description,
+  metadata = {},
   request,
 }) => {
   return logAction({
-    action,
-    severity,
-    entityType,
-    entityId,
-    entityDisplayName,
-
     userId: user?.id,
-    userRole: user?.role,
-    performedByName: user?.fullName || user?.name,
-    performedByEmail: user?.email,
-
-    changes,
-    meta,
-
+    action,
+    module,
+    targetType,
+    targetId,
+    oldValues,
+    newValues,
+    description,
     ipAddress: request?.ip,
     userAgent: request?.get?.("User-Agent"),
+    severity,
+    metadata: {
+      ...metadata,
+      performedByName: user?.fullName || user?.name,
+      performedByEmail: user?.email,
+    },
   });
 };
 
@@ -201,12 +188,12 @@ const getAuditLogs = async (query = {}) => {
       page = 1,
       limit = 50,
       action,
-      entityType,
+      targetType,
       userId,
       severity,
       startDate,
       endDate,
-      sortBy = 'timestamp',
+      sortBy = 'createdAt',
       sortOrder = 'desc'
     } = query;
 
@@ -215,14 +202,14 @@ const getAuditLogs = async (query = {}) => {
 
     // Apply filters
     if (action) where.action = action;
-    if (entityType) where.entityType = entityType;
+    if (targetType) where.targetType = targetType;
     if (userId) where.userId = userId;
     if (severity) where.severity = severity;
     
     if (startDate || endDate) {
-      where.timestamp = {};
-      if (startDate) where.timestamp[AuditLog.sequelize.Sequelize.Op.gte] = new Date(startDate);
-      if (endDate) where.timestamp[AuditLog.sequelize.Sequelize.Op.lte] = new Date(endDate);
+      where.createdAt = {};
+      if (startDate) where.createdAt[AuditLog.sequelize.Sequelize.Op.gte] = new Date(startDate);
+      if (endDate) where.createdAt[AuditLog.sequelize.Sequelize.Op.lte] = new Date(endDate);
     }
 
     const { count: total, rows: logs } = await AuditLog.findAndCountAll({
@@ -301,7 +288,7 @@ const cleanupAuditLogs = async (olderThanDays = 90) => {
 
     const deleted = await AuditLog.destroy({
       where: {
-        timestamp: {
+        createdAt: {
           [AuditLog.sequelize.Sequelize.Op.lt]: cutoffDate
         }
       }

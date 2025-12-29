@@ -10,10 +10,15 @@ const employeeDashboardService = {
     try {
       console.log('📊 [EMPLOYEE DASHBOARD SERVICE] Fetching dashboard data...');
 
+      // Get current year and month for attendance summary
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+
       // Fetch all data in parallel for better performance
       const [profileRes, attendanceRes, leaveBalanceRes, leaveHistoryRes] = await Promise.allSettled([
         api.get('/employee/profile'),
-        api.get('/employee/attendance/summary'),
+        api.get(`/employee/attendance/summary/${year}/${month}`),
         api.get('/employee/leave-balance'),
         api.get('/employee/leave-history'),
       ]);
@@ -34,12 +39,17 @@ const employeeDashboardService = {
       // Calculate attendance rate from last 30 days
       const attendanceRate = attendanceData?.attendanceRate || 0;
 
-      // Count approved leaves in last 30 days
+      // Count approved leaves in last 30 days - use parseISO for consistent date handling
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       const recentLeaves = (leaveHistoryData || []).filter(leave => {
-        const leaveDate = new Date(leave.startDate);
-        return leave.status === 'approved' && leaveDate >= thirtyDaysAgo;
+        try {
+          const leaveDate = parseISO(leave.startDate);
+          return leave.status === 'approved' && leaveDate >= thirtyDaysAgo;
+        } catch (e) {
+          console.warn('Invalid date format for leave:', leave.startDate);
+          return false;
+        }
       });
 
       // Get this week's date range
@@ -50,29 +60,38 @@ const employeeDashboardService = {
       // Get week events (leaves and holidays for current user)
       const weekEvents = [];
       const userLeaves = (leaveHistoryData || []).filter(leave => {
-        const startDate = parseISO(leave.startDate);
-        const endDate = parseISO(leave.endDate);
-        return (
-          leave.status === 'approved' &&
-          ((startDate >= weekStart && startDate <= weekEnd) ||
-            (endDate >= weekStart && endDate <= weekEnd) ||
-            (startDate <= weekStart && endDate >= weekEnd))
-        );
+        try {
+          const startDate = parseISO(leave.startDate);
+          const endDate = parseISO(leave.endDate);
+          return (
+            leave.status === 'approved' &&
+            ((startDate >= weekStart && startDate <= weekEnd) ||
+              (endDate >= weekStart && endDate <= weekEnd) ||
+              (startDate <= weekStart && endDate >= weekEnd))
+          );
+        } catch (e) {
+          console.warn('Invalid date format for leave:', leave.startDate, leave.endDate);
+          return false;
+        }
       });
 
       userLeaves.forEach(leave => {
-        const startDate = parseISO(leave.startDate);
-        const endDate = parseISO(leave.endDate);
-        let currentDate = startDate < weekStart ? weekStart : startDate;
-        const lastDate = endDate > weekEnd ? weekEnd : endDate;
+        try {
+          const startDate = parseISO(leave.startDate);
+          const endDate = parseISO(leave.endDate);
+          let currentDate = startDate < weekStart ? weekStart : startDate;
+          const lastDate = endDate > weekEnd ? weekEnd : endDate;
 
-        while (currentDate <= lastDate) {
-          weekEvents.push({
-            date: format(currentDate, 'yyyy-MM-dd'),
-            event: leave.leaveType || 'Leave',
-            color: 'text-orange-600',
-          });
-          currentDate = addDays(currentDate, 1);
+          while (currentDate <= lastDate) {
+            weekEvents.push({
+              date: format(currentDate, 'yyyy-MM-dd'),
+              event: leave.leaveType || 'Leave',
+              color: 'text-orange-600',
+            });
+            currentDate = addDays(currentDate, 1);
+          }
+        } catch (e) {
+          console.warn('Error processing leave dates:', e);
         }
       });
 

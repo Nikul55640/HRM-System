@@ -140,8 +140,9 @@ class AttendanceService {
                 throw { message: "Already clocked out for today", statusCode: 400 };
             }
 
-            // Check if there's an active break session
-            if (attendanceRecord.canEndBreak()) {
+            // Check if there's an active break session - must end break before clocking out
+            // canEndBreak() returns true if there IS an active break session
+            if (attendanceRecord.breakSessions && attendanceRecord.breakSessions.some(session => session.breakIn && !session.breakOut)) {
                 throw { message: "Please end your current break session before clocking out", statusCode: 400 };
             }
 
@@ -220,6 +221,9 @@ class AttendanceService {
                 updatedBy: user.id
             });
 
+            // Reload the record to get the updated data
+            await attendanceRecord.reload();
+
             // Log break start action
             await AuditLog.logAction({
                 userId: user.id,
@@ -295,6 +299,9 @@ class AttendanceService {
                     totalBreakMinutes,
                     updatedBy: user.id
                 });
+
+                // Reload the record to get the updated data
+                await attendanceRecord.reload();
             }
 
             // Log break end action
@@ -806,7 +813,7 @@ class AttendanceService {
     async getMonthlyAttendanceSummary(employeeId, year, month, user) {
         try {
             // Employees can only view their own summary
-            if (user.role === ROLES.EMPLOYEE && user.employeeId.toString() !== employeeId) {
+            if (user.role === ROLES.EMPLOYEE && parseInt(user.employeeId) !== parseInt(employeeId)) {
                 throw { message: "You can only view your own attendance summary", statusCode: 403 };
             }
 

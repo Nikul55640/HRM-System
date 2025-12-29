@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
-import calendarViewService from '../services/calendarViewService';
+import calendarViewService from '../../../services/calendarViewService';
 import useAuth from '../../../core/hooks/useAuth';
 
 const CalendarTestPage = () => {

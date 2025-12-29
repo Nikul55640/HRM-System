@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
-import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users, RefreshCw } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LocationSelectionModal from './LocationSelectionModal';
 import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore';
@@ -42,6 +42,15 @@ const EnhancedClockInOut = () => {
     setShowLocationModal(true);
   };
 
+  const handleRefresh = async () => {
+    try {
+      await fetchTodayRecord();
+      toast.success('Attendance status refreshed');
+    } catch (error) {
+      toast.error('Failed to refresh status');
+    }
+  };
+
   const handleLocationConfirm = async (locationData) => {
     try {
       // Check current status first
@@ -61,8 +70,10 @@ const EnhancedClockInOut = () => {
       } else {
         // If already clocked in, just close modal and show info
         if (result.error?.includes('already clocked in')) {
-          toast.info("You are already clocked in for today");
+          toast.info(result.message || "You are already clocked in for today");
           setShowLocationModal(false);
+          // Force refresh the attendance status
+          await fetchTodayRecord(true);
         } else {
           toast.error(result.error || 'Failed to clock in');
         }
@@ -184,10 +195,21 @@ const EnhancedClockInOut = () => {
     <>
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5" />
-            Clock In/Out
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5" />
+              Clock In/Out
+            </CardTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={isLoading}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-6">
@@ -233,7 +255,7 @@ const EnhancedClockInOut = () => {
                   <div>
                     <div className="text-muted-foreground">Clock In</div>
                     <div className="font-semibold">
-                      {new Date(activeSession?.checkIn || todayRecord?.checkIn).toLocaleTimeString('en-US', {
+                      {new Date(activeSession?.checkIn || todayRecord?.clockIn).toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit',
                       })}
@@ -244,7 +266,7 @@ const EnhancedClockInOut = () => {
                     <div className="font-semibold">
                       {activeSession ? 
                         formatDuration(activeSession.workedMinutes || 0) :
-                        formatDuration(calculateWorkedMinutes(todayRecord?.checkIn))
+                        formatDuration(calculateWorkedMinutes(todayRecord?.clockIn))
                       }
                     </div>
                   </div>
@@ -256,11 +278,18 @@ const EnhancedClockInOut = () => {
                   </div>
                 )}
 
-                {activeSession?.breaks && activeSession.breaks.length > 0 && (
+                {/* Break Sessions Display */}
+                {(activeSession?.breaks?.length > 0 || todayRecord?.breakSessions?.length > 0) && (
                   <div className="text-sm">
                     <div className="text-muted-foreground">
-                      Breaks: {activeSession.breaks.length} ({formatDuration(activeSession.totalBreakMinutes || 0)})
+                      Breaks: {(activeSession?.breaks || todayRecord?.breakSessions || []).length} 
+                      {todayRecord?.totalBreakMinutes > 0 && ` (${formatDuration(todayRecord.totalBreakMinutes)})`}
                     </div>
+                    {isOnBreak && (
+                      <div className="text-orange-600 font-medium">
+                        🟠 Currently on break
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -281,7 +310,7 @@ const EnhancedClockInOut = () => {
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-3">
-              {!activeSession && (
+              {!isActive && (
                 <Button
                   onClick={handleClockInClick}
                   disabled={isLoading}
@@ -293,7 +322,7 @@ const EnhancedClockInOut = () => {
                 </Button>
               )}
 
-              {isActive && (
+              {isActive && !isOnBreak && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <Button
@@ -336,6 +365,17 @@ const EnhancedClockInOut = () => {
             {todayRecord?.isLate && (
               <div className="text-sm text-orange-600 text-center">
                 ⚠️ Late arrival recorded
+              </div>
+            )}
+
+            {/* Debug Info - Remove this after testing */}
+            {process.env.NODE_ENV === 'development' && (
+              <div className="text-xs bg-gray-100 p-2 rounded mt-2">
+                <div>Debug Info:</div>
+                <div>isClockedIn: {isActive ? 'true' : 'false'}</div>
+                <div>isOnBreak: {isOnBreak ? 'true' : 'false'}</div>
+                <div>breakSessions: {JSON.stringify(todayRecord?.breakSessions || [])}</div>
+                <div>hasActiveBreak: {todayRecord?.breakSessions?.some(s => s.breakIn && !s.breakOut) ? 'true' : 'false'}</div>
               </div>
             )}
           </div>

@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import { LoadingSpinner } from "../../../shared/components";
-import { useProfile } from "../../../modules/employees/useEmployeeSelfService";
+import { useProfile } from "../../../services/useEmployeeSelfService";
 import { Button } from "../../../shared/ui/button";
 import {
   Card,

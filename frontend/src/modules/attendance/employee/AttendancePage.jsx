@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useAttendance } from "../../employees/useEmployeeSelfService";
+import { useAttendance } from "../../../services/useEmployeeSelfService";
 import AttendanceSummary from "./AttendanceSummary";
 import AttendanceCalendar from "../calendar/AttendanceCalendar";
 import EnhancedClockInOut from "./EnhancedClockInOut";

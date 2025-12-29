@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import employeeDashboardService from '../../../../services/employeeDashboardService';
-import attendanceService from '../../../attendance/services/attendanceService';
+import attendanceService from '../../../../services/attendanceService';
 import leaveService from '../../../../core/services/leaveService';
 
 const APITester = () => {

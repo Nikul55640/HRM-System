@@ -25,6 +25,13 @@ router.get(
   attendanceController.getAttendanceStatus
 );
 
+// GET attendance sessions (for session history view)
+router.get(
+  "/attendance/sessions",
+  authenticate,
+  attendanceController.getMyAttendanceRecords
+);
+
 // GET monthly summary
 router.get(
   "/attendance/summary/:year/:month",

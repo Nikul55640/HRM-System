@@ -7,4 +7,4 @@ export { default as CalendarCell } from './components/CalendarCell';
 export { default as CalendarPage } from './pages/CalendarPage';
 
 // Calendar Services
-export { default as calendarViewService } from './services/calendarViewService';
+export { default as calendarViewService } from '../../services/calendarViewService';
