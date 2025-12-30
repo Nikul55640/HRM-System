@@ -376,6 +376,10 @@ const EnhancedClockInOut = () => {
                 <div>isOnBreak: {isOnBreak ? 'true' : 'false'}</div>
                 <div>breakSessions: {JSON.stringify(todayRecord?.breakSessions || [])}</div>
                 <div>hasActiveBreak: {todayRecord?.breakSessions?.some(s => s.breakIn && !s.breakOut) ? 'true' : 'false'}</div>
+                <div>activeSession: {JSON.stringify(activeSession)}</div>
+                <div>hasLegacyClockIn: {hasLegacyClockIn ? 'true' : 'false'}</div>
+                <div>todayRecord.clockIn: {todayRecord?.clockIn || 'null'}</div>
+                <div>todayRecord.clockOut: {todayRecord?.clockOut || 'null'}</div>
               </div>
             )}
           </div>

@@ -23,17 +23,36 @@ const employeeDashboardService = {
         api.get('/employee/leave-history'),
       ]);
 
-      // Extract data safely
-      const profileData = profileRes.status === 'fulfilled' ? profileRes.value.data?.data : null;
-      const attendanceData = attendanceRes.status === 'fulfilled' ? attendanceRes.value.data?.data : null;
-      const leaveBalanceData = leaveBalanceRes.status === 'fulfilled' ? leaveBalanceRes.value.data?.data : null;
-      const leaveHistoryData = leaveHistoryRes.status === 'fulfilled' ? leaveHistoryRes.value.data?.data : null;
+      // Debug: Log raw responses
+      console.log('🔍 [EMPLOYEE DASHBOARD] Raw API Responses:', {
+        profileRes: profileRes.status === 'fulfilled' ? profileRes.value.data : profileRes.reason,
+        attendanceRes: attendanceRes.status === 'fulfilled' ? attendanceRes.value.data : attendanceRes.reason,
+        leaveBalanceRes: leaveBalanceRes.status === 'fulfilled' ? leaveBalanceRes.value.data : leaveBalanceRes.reason,
+        leaveHistoryRes: leaveHistoryRes.status === 'fulfilled' ? leaveHistoryRes.value.data : leaveHistoryRes.reason,
+      });
 
-      console.log('📊 [EMPLOYEE DASHBOARD SERVICE] Extracted data:', {
-        profileData,
-        attendanceData,
-        leaveBalanceData,
-        leaveHistoryData,
+      // Extract data safely with multiple fallback patterns
+      const profileData = profileRes.status === 'fulfilled' 
+        ? (profileRes.value.data?.data || profileRes.value.data || null)
+        : null;
+        
+      const attendanceData = attendanceRes.status === 'fulfilled' 
+        ? (attendanceRes.value.data?.data || attendanceRes.value.data || null)
+        : null;
+        
+      const leaveBalanceData = leaveBalanceRes.status === 'fulfilled' 
+        ? (leaveBalanceRes.value.data?.data || leaveBalanceRes.value.data || null)
+        : null;
+        
+      const leaveHistoryData = leaveHistoryRes.status === 'fulfilled' 
+        ? (leaveHistoryRes.value.data?.data || leaveHistoryRes.value.data || [])
+        : [];
+
+      console.log('✅ [EMPLOYEE DASHBOARD SERVICE] Extracted data:', {
+        profileData: profileData ? 'Found' : 'Missing',
+        attendanceData: attendanceData ? 'Found' : 'Missing',
+        leaveBalanceData: leaveBalanceData ? 'Found' : 'Missing',
+        leaveHistoryData: Array.isArray(leaveHistoryData) ? `${leaveHistoryData.length} items` : 'Invalid',
       });
 
       // Calculate attendance rate from last 30 days

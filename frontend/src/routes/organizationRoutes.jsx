@@ -15,23 +15,9 @@ const CompanyDocumentsPage = lazy(() =>
 
 export const organizationRoutes = [
   {
-    path: "hr/departments",
+    path: "departments",
     element: <DepartmentPage />,
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
-  {
-    path: "hr/designations",
-    element: <DesignationPage />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
-  },
-  {
-    path: "hr/policies",
-    element: <PolicyPage />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
-  },
-  {
-    path: "hr/documents",
-    element: <CompanyDocumentsPage />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
-  },
+
 ];

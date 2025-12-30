@@ -5,6 +5,7 @@
 
 import { Lead, Employee, User } from '../../models/sequelize/index.js';
 import { Op } from 'sequelize';
+import sequelize from '../../config/sequelize.js';
 import logger from '../../utils/logger.js';
 
 class LeadService {
@@ -147,6 +148,11 @@ class LeadService {
             if (!leadData.leadId) {
                 const leadCount = await Lead.count();
                 leadData.leadId = `LEAD-${String(leadCount + 1).padStart(6, '0')}`;
+            }
+
+            // Ensure assignedTo is properly converted to integer or null
+            if (leadData.assignedTo) {
+                leadData.assignedTo = parseInt(leadData.assignedTo);
             }
 
             const lead = await Lead.create({
@@ -407,6 +413,189 @@ class LeadService {
             return {
                 success: false,
                 message: 'Failed to fetch assigned leads',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Get lead analytics with status, priority, and source breakdowns
+     */
+    async getLeadAnalytics() {
+        try {
+            // Get total leads count
+            const totalLeads = await Lead.count({ where: { isActive: true } });
+
+            // Get status statistics
+            const statusStats = await Lead.findAll({
+                attributes: [
+                    'status',
+                    [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+                ],
+                where: { isActive: true },
+                group: ['status'],
+                raw: true
+            });
+
+            // Get priority statistics
+            const priorityStats = await Lead.findAll({
+                attributes: [
+                    'priority',
+                    [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+                ],
+                where: { isActive: true },
+                group: ['priority'],
+                raw: true
+            });
+
+            // Get source statistics
+            const sourceStats = await Lead.findAll({
+                attributes: [
+                    'source',
+                    [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+                ],
+                where: { isActive: true },
+                group: ['source'],
+                raw: true
+            });
+
+            // Format the results
+            const formatStats = (stats, keys) => {
+                const result = {};
+                keys.forEach(key => result[key] = 0);
+                stats.forEach(stat => {
+                    result[stat.status || stat.priority || stat.source] = parseInt(stat.count);
+                });
+                return result;
+            };
+
+            const analytics = {
+                totalLeads,
+                statusStats: formatStats(statusStats, ['new', 'contacted', 'qualified', 'proposal', 'negotiation', 'closed_won', 'closed_lost']),
+                priorityStats: formatStats(priorityStats, ['low', 'medium', 'high', 'urgent']),
+                sourceStats: formatStats(sourceStats, ['website', 'referral', 'social_media', 'email_campaign', 'cold_call', 'trade_show', 'other'])
+            };
+
+            return {
+                success: true,
+                data: analytics
+            };
+        } catch (error) {
+            logger.error('Error fetching lead analytics:', error);
+            return {
+                success: false,
+                message: 'Failed to fetch lead analytics',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Get lead statistics including conversion rates and growth
+     */
+    async getLeadStats() {
+        try {
+            const now = new Date();
+            const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+            const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+            const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+            // Total leads
+            const totalLeads = await Lead.count({ where: { isActive: true } });
+
+            // New leads (status = 'new')
+            const newLeads = await Lead.count({ 
+                where: { 
+                    isActive: true,
+                    status: 'new'
+                } 
+            });
+
+            // Qualified leads (status = 'qualified')
+            const qualifiedLeads = await Lead.count({ 
+                where: { 
+                    isActive: true,
+                    status: 'qualified'
+                } 
+            });
+
+            // Converted leads (status = 'closed_won')
+            const convertedLeads = await Lead.count({ 
+                where: { 
+                    isActive: true,
+                    status: 'closed_won'
+                } 
+            });
+
+            // Leads this month
+            const leadsThisMonth = await Lead.count({
+                where: {
+                    isActive: true,
+                    createdAt: {
+                        [Op.gte]: startOfMonth
+                    }
+                }
+            });
+
+            // Leads last month
+            const leadsLastMonth = await Lead.count({
+                where: {
+                    isActive: true,
+                    createdAt: {
+                        [Op.between]: [startOfLastMonth, endOfLastMonth]
+                    }
+                }
+            });
+
+            // Calculate conversion rate
+            const conversionRate = totalLeads > 0 ? ((convertedLeads / totalLeads) * 100).toFixed(2) : 0;
+
+            // Calculate growth rate
+            const growthRate = leadsLastMonth > 0 ? 
+                (((leadsThisMonth - leadsLastMonth) / leadsLastMonth) * 100).toFixed(2) : 
+                (leadsThisMonth > 0 ? 100 : 0);
+
+            // Calculate average response time (simplified - based on created vs last contact)
+            const leadsWithContact = await Lead.findAll({
+                attributes: ['createdAt', 'lastContactDate'],
+                where: {
+                    isActive: true,
+                    lastContactDate: { [Op.not]: null }
+                },
+                raw: true
+            });
+
+            let averageResponseTime = 0;
+            if (leadsWithContact.length > 0) {
+                const totalResponseTime = leadsWithContact.reduce((sum, lead) => {
+                    const created = new Date(lead.createdAt);
+                    const contacted = new Date(lead.lastContactDate);
+                    return sum + (contacted - created);
+                }, 0);
+                averageResponseTime = Math.round(totalResponseTime / leadsWithContact.length / (1000 * 60 * 60)); // Convert to hours
+            }
+
+            const stats = {
+                totalLeads,
+                newLeads,
+                qualifiedLeads,
+                convertedLeads,
+                conversionRate: parseFloat(conversionRate),
+                averageResponseTime,
+                leadsThisMonth,
+                leadsLastMonth,
+                growthRate: parseFloat(growthRate)
+            };
+
+            return {
+                success: true,
+                data: stats
+            };
+        } catch (error) {
+            logger.error('Error fetching lead stats:', error);
+            return {
+                success: false,
+                message: 'Failed to fetch lead stats',
                 error: error.message
             };
         }

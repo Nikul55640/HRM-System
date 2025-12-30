@@ -9,9 +9,8 @@ const AuditLogsPage = lazy(() =>
 const AttendanceCorrections = lazy(() => import("../modules/attendance/admin/AttendanceCorrections"));
 const LiveAttendanceDashboard = lazy(() => import("../modules/attendance/admin/LiveAttendanceDashboard"));
 const ManageAttendance = lazy(() => import("../modules/attendance/components/ManageAttendance"));
-
-
-
+const  PolicyPage = lazy(() => import("../modules/organization/pages/PolicyPage"));
+const  CompanyDocumentsPage = lazy(() => import("../modules/organization/pages/CompanyDocumentsPage"));
 // Feature 3: Leave Management (Admin)
 const LeaveManagement = lazy(() => import("../modules/leave/hr/LeaveManagement"));
 const LeaveBalancesPage = lazy(() => import("../modules/leave/Admin/LeaveBalancesPage"));
@@ -19,6 +18,8 @@ const LeaveBalancesPage = lazy(() => import("../modules/leave/Admin/LeaveBalance
 // Feature 4: Employee Management (Admin)
 const EmployeeList = lazy(() => import("../modules/employees/pages/EmployeeList"));
 const DepartmentsPage = lazy(() => import("../modules/admin/pages/Departments/DepartmentsPage"));
+const EmployeeProfile = lazy(() => import("../modules/employees/pages/EmployeeProfile"));
+const DesignationsPage = lazy(() => import("../modules/admin/pages/Designations/DesignationsPage"));
 const EmployeeForm = lazy(() => import("../modules/employees/pages/EmployeeForm"));
 
 // Feature 5: Lead Management (Admin)
@@ -35,35 +36,52 @@ const UserManagement = lazy(() => import("../modules/organization/admin/UserMana
 const SystemConfig = lazy(() => import("../modules/organization/admin/SystemConfig"));
 
 export const adminRoutes = [
-  // Feature 4: Employee Management
+  // Employee Management
   { path: "admin/employees", element: <EmployeeList />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/departments", element: <DepartmentsPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/employees/new", element: <EmployeeForm />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  
-  // Feature 2: Attendance Management
+{ path: "admin/employees/:id", element: <EmployeeProfile />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+{ path: "admin/employees/:id/edit", element: <EmployeeForm />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+
+  // Department Management
+  { path: "admin/departments", element: <DepartmentsPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+
+  // Designation Management
+  { path: "admin/designations", element: <DesignationsPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+
+  // Attendance Management
   { path: "admin/attendance", element: <ManageAttendance />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/attendance/manage", element: <ManageAttendance />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/attendance/corrections", element: <AttendanceCorrections />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/attendance/live", element: <LiveAttendanceDashboard />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
 
- 
-  // Feature 3: Leave Management
+  // Leave Management
   { path: "admin/leave", element: <LeaveManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/leave-balances", element: <LeaveBalancesPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
 
-  // Feature 5: Lead Management
+  // Lead Management
   { path: "admin/leads", element: <LeadManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  
-  // Feature 6: Shift Management
+
+  // Shift Management
   { path: "admin/shifts", element: <ShiftManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  
-  // Feature 7: Calendar & Events
+
+  // Calendar Management
   { path: "admin/calendar/management", element: <CalendarManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   
+  {
+    path: "admin/policies",
+    element: <PolicyPage />,
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+  },
+  {
+    path: "admin/documents",
+    element: <CompanyDocumentsPage />,
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+  },
+
   // System Administration
-  { path: "admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },
-  { path: "admin/system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
-  
-  // Feature 8: Audit Log Management
-  { path: "admin/audit-logs", element: <AuditLogsPage />, roles: ["SuperAdmin"] },
+  { path: "users", element: <UserManagement />, roles: ["SuperAdmin"] },
+  { path: "system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
+
+  // Audit Logs
+  { path: "audit-logs", element: <AuditLogsPage />, roles: ["SuperAdmin"] },
 ];

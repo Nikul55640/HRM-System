@@ -111,7 +111,7 @@ const useAttendanceStore = create(
         set({ loading: true, error: null });
         
         try {
-          const response = await attendanceService.checkIn(data);
+          const response = await attendanceService.clockIn(data);
           
           set((state) => ({
             attendanceRecords: [response.data, ...state.attendanceRecords],
@@ -131,17 +131,17 @@ const useAttendanceStore = create(
       },
       
       // Check out
-      checkOut: async (recordId, data = {}) => {
+      checkOut: async (data = {}) => {
         set({ loading: true, error: null });
         
         try {
-          const response = await attendanceService.checkOut(recordId, data);
+          const response = await attendanceService.clockOut(data);
           
           set((state) => ({
             attendanceRecords: state.attendanceRecords.map(record =>
-              record._id === recordId ? response.data : record
+              record._id === response.data._id ? response.data : record
             ),
-            currentRecord: state.currentRecord?._id === recordId 
+            currentRecord: state.currentRecord?._id === response.data._id 
               ? response.data 
               : state.currentRecord,
             loading: false
@@ -159,11 +159,11 @@ const useAttendanceStore = create(
       },
       
       // Get attendance summary
-      fetchAttendanceSummary: async (params = {}) => {
+      fetchAttendanceSummary: async (year, month) => {
         set({ loading: true, error: null });
         
         try {
-          const response = await attendanceService.getAllAttendance(params);
+          const response = await attendanceService.getMyAttendanceSummary(year, month);
           
           set({
             attendanceSummary: response.data,
@@ -185,7 +185,7 @@ const useAttendanceStore = create(
         set({ loading: true, error: null });
         
         try {
-          const response = await attendanceService.updateAttendanceRecord(id, data);
+          const response = await attendanceService.updateAttendance(id, data);
           
           set((state) => ({
             attendanceRecords: state.attendanceRecords.map(record =>
@@ -210,7 +210,7 @@ const useAttendanceStore = create(
         set({ loading: true, error: null });
         
         try {
-          await attendanceService.deleteAttendanceRecord(id);
+          await attendanceService.deleteAttendance(id);
           
           set((state) => ({
             attendanceRecords: state.attendanceRecords.filter(record => record._id !== id),
@@ -232,7 +232,7 @@ const useAttendanceStore = create(
         set({ loading: true, error: null });
         
         try {
-          const response = await attendanceService.exportAttendanceReport(params);
+          const response = await attendanceService.exportReport(params);
           
           // Create download link
           const url = window.URL.createObjectURL(new Blob([response]));
@@ -267,11 +267,10 @@ const useAttendanceStore = create(
       // Get current attendance status
       getCurrentAttendanceStatus: async () => {
         try {
-          const response = await attendanceService.getCurrentAttendanceStatus();
+          const response = await attendanceService.getTodayStatus();
           set({ currentRecord: response.data });
           return response.data;
         } catch (error) {
-          
           return null;
         }
       },

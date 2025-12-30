@@ -36,8 +36,33 @@ const ShiftManagement = () => {
     setLoading(true);
     try {
       const response = await api.get('/admin/shifts');
-      setShifts(response.data.data || []);
+      
+      // Debug: Log the actual response structure
+      console.log('🔍 [SHIFT MANAGEMENT] API Response:', response);
+      
+      // Handle different response structures
+      let shiftsData = [];
+      
+      if (response?.data?.data) {
+        // Structure: { success: true, data: { data: [...] } }
+        shiftsData = response.data.data;
+      } else if (Array.isArray(response?.data)) {
+        // Structure: { success: true, data: [...] }
+        shiftsData = response.data;
+      } else if (response?.shifts) {
+        // Structure: { success: true, shifts: [...] }
+        shiftsData = response.shifts;
+      } else if (Array.isArray(response)) {
+        // Structure: [...]
+        shiftsData = response;
+      }
+      
+      console.log('✅ [SHIFT MANAGEMENT] Extracted shifts:', shiftsData.length, 'shifts');
+      setShifts(shiftsData);
+      
     } catch (error) {
+      console.error('Failed to fetch shifts:', error);
+      setShifts([]); // Ensure empty array on error
       toast.error("Failed to fetch shifts");
     } finally {
       setLoading(false);

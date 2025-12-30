@@ -5,8 +5,10 @@ const DailyCalendarView = lazy(() => import("../modules/calendar/pages/DailyCale
 const MonthlyCalendarView = lazy(() => import("../modules/calendar/pages/MonthlyCalendarView"));
 
 export const calendarRoutes = [
-  { path: "/admin/calendar", element: <CalendarView /> },
-  { path: "/employee/calendar", element: <CalendarView /> },
-  { path: "/employee/calendar/daily", element: <DailyCalendarView /> },
-  { path: "/employee/calendar/monthly", element: <MonthlyCalendarView /> },
+  // Employee calendar
+  { path: "calendar/daily", element: <DailyCalendarView />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "calendar/monthly", element: <MonthlyCalendarView />, roles: ["Employee", "HR", "SuperAdmin"] },
+
+  // Admin calendar (if same UI)
+  { path: "admin/calendar", element: <CalendarView />, roles: ["HR", "SuperAdmin"] },
 ];

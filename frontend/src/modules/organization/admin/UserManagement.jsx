@@ -25,31 +25,40 @@ const UserManagement = () => {
         departmentService.getDepartments(),
       ]);
       
-      // Ensure users is always an array
-      // Backend returns: { success: true, data: { users: [...], pagination: {...} } }
-      const usersArray = Array.isArray(usersData) 
-        ? usersData 
-        : Array.isArray(usersData?.data?.users)
-          ? usersData.data.users
-          : Array.isArray(usersData?.data) 
-            ? usersData.data 
-            : Array.isArray(usersData?.users)
-              ? usersData.users
-              : [];
+      // Debug: Log the actual response structures
+      console.log('🔍 [USER MANAGEMENT] Users API Response:', usersData);
+      console.log('🔍 [USER MANAGEMENT] Departments API Response:', departmentsData);
       
-      console.log('👥 [USER MANAGEMENT] Users loaded:', usersArray.length, 'users');
+      // Extract users with robust fallback handling
+      let usersArray = [];
+      if (Array.isArray(usersData)) {
+        usersArray = usersData;
+      } else if (usersData?.data?.users && Array.isArray(usersData.data.users)) {
+        usersArray = usersData.data.users;
+      } else if (usersData?.data && Array.isArray(usersData.data)) {
+        usersArray = usersData.data;
+      } else if (usersData?.users && Array.isArray(usersData.users)) {
+        usersArray = usersData.users;
+      }
       
-      // Ensure departments is always an array
-      const departmentsArray = Array.isArray(departmentsData)
-        ? departmentsData
-        : Array.isArray(departmentsData?.data)
-          ? departmentsData.data
-          : [];
+      // Extract departments with robust fallback handling
+      let departmentsArray = [];
+      if (Array.isArray(departmentsData)) {
+        departmentsArray = departmentsData;
+      } else if (departmentsData?.data && Array.isArray(departmentsData.data)) {
+        departmentsArray = departmentsData.data;
+      } else if (departmentsData?.departments && Array.isArray(departmentsData.departments)) {
+        departmentsArray = departmentsData.departments;
+      }
+      
+      console.log('✅ [USER MANAGEMENT] Extracted users:', usersArray.length, 'users');
+      console.log('✅ [USER MANAGEMENT] Extracted departments:', departmentsArray.length, 'departments');
       
       setUsers(usersArray);
       setDepartments(departmentsArray);
-    } catch (error) {
       
+    } catch (error) {
+      console.error('Failed to load user management data:', error);
       toast.error(error.message || 'Failed to load data');
       // Ensure state is set to empty arrays on error
       setUsers([]);

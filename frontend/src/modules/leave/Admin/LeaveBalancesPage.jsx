@@ -22,9 +22,33 @@ const LeaveBalancesPage = () => {
     try {
       setLoading(true);
       const response = await adminLeaveService.getAllEmployeesLeaveBalances();
-      setEmployees(response.data?.employees || []);
+      
+      // Debug: Log the actual response structure
+      console.log('🔍 [LEAVE BALANCES] API Response:', response);
+      
+      // Handle different response structures
+      let employeesData = [];
+      
+      if (response?.data?.employees) {
+        // Structure: { success: true, data: { employees: [...] } }
+        employeesData = response.data.employees;
+      } else if (response?.employees) {
+        // Structure: { success: true, employees: [...] }
+        employeesData = response.employees;
+      } else if (Array.isArray(response?.data)) {
+        // Structure: { success: true, data: [...] }
+        employeesData = response.data;
+      } else if (Array.isArray(response)) {
+        // Structure: [...]
+        employeesData = response;
+      }
+      
+      console.log('✅ [LEAVE BALANCES] Extracted employees:', employeesData.length, 'employees');
+      setEmployees(employeesData);
+      
     } catch (error) {
       console.error('Failed to fetch leave balances:', error);
+      setEmployees([]); // Ensure empty array on error
       toast({
         title: "Error",
         description: "Failed to load leave balances",
@@ -87,7 +111,7 @@ const LeaveBalancesPage = () => {
   });
 
   const getBalanceColor = (remaining, allocated) => {
-    const percentage = (remaining / allocated) * 100;
+    const percentage = allocated > 0 ? (remaining / allocated) * 100 : 0;
     if (percentage > 50) return "text-green-600";
     if (percentage > 25) return "text-yellow-600";
     return "text-red-600";
@@ -276,7 +300,7 @@ const LeaveBalancesPage = () => {
                             <div
                               className="bg-blue-600 h-2 rounded-full"
                               style={{
-                                width: `${(balance.remaining / balance.allocated) * 100}%`
+                                width: `${balance.allocated > 0 ? (balance.remaining / balance.allocated) * 100 : 0}%`
                               }}
                             ></div>
                           </div>

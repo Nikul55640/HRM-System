@@ -75,7 +75,7 @@ const APITestRunner = () => {
                 </div>
                 <div>
                   <div className="text-2xl font-bold">
-                    {((testResults.passed / testResults.totalTests) * 100).toFixed(1)}%
+                    {testResults.totalTests > 0 ? ((testResults.passed / testResults.totalTests) * 100).toFixed(1) : 0}%
                   </div>
                   <div className="text-sm text-gray-600">Success Rate</div>
                 </div>

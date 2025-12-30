@@ -40,6 +40,20 @@ router.get(
 );
 
 /* -----------------------------------
+   GET LEAD STATS
+   Permission: HR & SuperAdmin
+----------------------------------- */
+router.get(
+    '/stats',
+    authenticate,
+    checkAnyPermission([
+        MODULES.LEAD.VIEW_ALL,
+        MODULES.LEAD.MANAGE,
+    ]),
+    leadController.getLeadStats
+);
+
+/* -----------------------------------
    GET MY ASSIGNED LEADS
    Permission: All authenticated users
 ----------------------------------- */

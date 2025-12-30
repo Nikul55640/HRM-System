@@ -76,8 +76,8 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
                 <div className="flex items-center gap-2">
                   <ApprovalStatusBadge status={item.status} />
 
-                  {/* PENDING → Cancel */}
-                  {item.status === "pending" && (
+                  {/* PENDING → Cancel - Check for both "pending" and empty string without approvedAt */}
+                  {(item.status === "pending" || (item.status === "" && !item.approvedAt && !item.cancelledAt)) && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -99,8 +99,8 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
                     </Button>
                   )}
 
-                  {/* APPROVED */}
-                  {item.status === "approved" && (
+                  {/* APPROVED - Check for both "approved" and empty string with approvedAt */}
+                  {(item.status === "approved" || (item.status === "" && item.approvedAt)) && (
                     <span className="flex items-center gap-1 text-sm text-green-600">
                       <CheckCircle className="h-4 w-4" />
                       Approved
@@ -120,6 +120,14 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
                     <span className="flex items-center gap-1 text-sm text-gray-600">
                       <XCircle className="h-4 w-4" />
                       Cancelled
+                    </span>
+                  )}
+
+                  {/* PENDING - Show for empty status without approvedAt or explicit pending */}
+                  {(item.status === "pending" || (item.status === "" && !item.approvedAt && !item.cancelledAt)) && (
+                    <span className="flex items-center gap-1 text-sm text-yellow-600">
+                      <Clock className="h-4 w-4" />
+                      Pending
                     </span>
                   )}
                 </div>

@@ -57,6 +57,38 @@ const configController = {
             logger.error("Controller: Update Config Error", error);
             return sendResponse(res, false, "Internal server error", null, 500);
         }
+    },
+
+    /**
+     * Get custom fields configuration
+     */
+    getCustomFields: async (req, res) => {
+        try {
+            // Return mock custom fields configuration
+            const customFields = {
+                employee: [],
+                leave: [],
+                attendance: []
+            };
+
+            return sendResponse(res, true, "Custom fields retrieved successfully", customFields);
+        } catch (error) {
+            logger.error("Controller: Get Custom Fields Error", error);
+            return sendResponse(res, false, "Internal server error", null, 500);
+        }
+    },
+
+    /**
+     * Update custom fields configuration (SuperAdmin only)
+     */
+    updateCustomFields: async (req, res) => {
+        try {
+            // For now, just return success as custom fields system is not fully implemented
+            return sendResponse(res, true, "Custom fields updated successfully");
+        } catch (error) {
+            logger.error("Controller: Update Custom Fields Error", error);
+            return sendResponse(res, false, "Internal server error", null, 500);
+        }
     }
 };
 

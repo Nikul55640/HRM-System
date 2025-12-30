@@ -248,7 +248,7 @@ const leaveRequestController = {
         status: 'approved' // Only approved leaves for usage report
       };
 
-      const result = await leaveRequestService.getLeaveRequests(filters, req.user, { limit: 1000 });
+      const result = await leaveRequestService.getLeaveRequests(filters, req.user, { limit: 100 });
 
       if (!result.success) {
         const statusCode = result.message.includes('Unauthorized') ? 403 : 400;

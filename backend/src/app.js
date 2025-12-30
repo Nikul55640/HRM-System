@@ -138,6 +138,7 @@ app.use("/api/admin/shifts", shiftRoutes);
 app.use("/api/admin/leads", leadRoutes);
 app.use("/api/admin/audit-logs", auditLogRoutes);
 app.use("/api/admin/system-policies", systemPolicyRoutes);
+app.use("/api/admin/config", configRoutes);
 
 // AUTH SECTION
 app.use("/api/auth", authRoutes);

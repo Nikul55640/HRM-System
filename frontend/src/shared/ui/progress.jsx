@@ -12,14 +12,14 @@ const Progress = React.forwardRef(({ className, value = 0, max = 100, ...props }
   >
     <div
       className="h-full w-full flex-1 bg-primary transition-all"
-      style={{ transform: `translateX(-${100 - (value / max) * 100}%)` }}
+      style={{ transform: `translateX(-${100 - (max > 0 ? (value / max) * 100 : 0)}%)` }}
     />
   </div>
 ));
 Progress.displayName = "Progress";
 
 const ProgressBar = ({ value = 0, max = 100, className, showValue = false, size = 'default' }) => {
-  const percentage = Math.min(Math.max((value / max) * 100, 0), 100);
+  const percentage = max > 0 ? Math.min(Math.max((value / max) * 100, 0), 100) : 0;
   
   const sizeClasses = {
     sm: 'h-2',

@@ -27,8 +27,26 @@ const BankDetailsPage = () => {
       setLoading(true);
       const response = await api.get("/employee/bank-details");
 
-      if (response.data?.success && response.data?.data) {
-        setBankDetails(response.data.data);
+      // Debug: Log the actual response structure
+      console.log('🔍 [BANK DETAILS] API Response:', response);
+
+      // Handle different response structures
+      let bankData = null;
+      
+      if (response?.data?.success && response?.data?.data) {
+        // Structure: { success: true, data: { bankDetails } }
+        bankData = response.data.data;
+      } else if (response?.data && !response?.data?.success) {
+        // Structure: { success: false, message: "..." }
+        bankData = null;
+      } else if (response?.data) {
+        // Structure: { bankDetails directly }
+        bankData = response.data;
+      }
+
+      if (bankData) {
+        console.log('✅ [BANK DETAILS] Bank data found:', bankData);
+        setBankDetails(bankData);
         
         // Check if this is a SuperAdmin message
         if (response.data.message?.includes('SuperAdmin')) {
@@ -36,6 +54,7 @@ const BankDetailsPage = () => {
         }
       } else {
         // Handle case where no bank details exist yet
+        console.log('ℹ️ [BANK DETAILS] No bank details found, setting empty state');
         setBankDetails({
           accountHolderName: "",
           accountNumber: "",
@@ -48,7 +67,7 @@ const BankDetailsPage = () => {
         });
       }
     } catch (error) {
-      console.log("Error fetching bank details:", error);
+      console.error("Error fetching bank details:", error);
       
       // Check if it's a SuperAdmin error
       if (error.response?.data?.message?.includes('SuperAdmin')) {

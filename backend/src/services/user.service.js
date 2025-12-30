@@ -40,25 +40,21 @@ const createUser = async (userData, currentUser, metadata = {}) => {
     });
 
     await AuditLog.logAction({
-      action: 'CREATE',
-      entityType: 'User',
-      entityId: user.id.toString(),
       userId: currentUser.id,
-      userRole: currentUser.role,
-      changes: [
-        {
-          field: 'user',
-          oldValue: null,
-          newValue: {
-            email: user.email,
-            role: user.role,
-            assignedDepartments: user.assignedDepartments,
-            isActive: user.isActive,
-          },
-        },
-      ],
+      action: 'employee_create',
+      module: 'employee',
+      targetType: 'User',
+      targetId: user.id,
+      description: `Created new user: ${user.email} with role ${user.role}`,
+      newValues: {
+        email: user.email,
+        role: user.role,
+        assignedDepartments: user.assignedDepartments,
+        isActive: user.isActive,
+      },
       ipAddress: metadata.ipAddress,
       userAgent: metadata.userAgent,
+      severity: 'medium'
     });
 
     logger.info(`User created: ${user.email} by SuperAdmin ${currentUser.email}`);
@@ -181,14 +177,17 @@ const updateUser = async (userId, updateData, currentUser, metadata = {}) => {
 
     if (changes.length > 0) {
       await AuditLog.logAction({
-        action: 'UPDATE',
-        entityType: 'User',
-        entityId: user.id.toString(),
         userId: currentUser.id,
-        userRole: currentUser.role,
-        changes,
+        action: 'employee_update',
+        module: 'employee',
+        targetType: 'User',
+        targetId: user.id,
+        description: `Updated user: ${user.email}`,
+        oldValues: Object.fromEntries(changes.map(c => [c.field, c.oldValue])),
+        newValues: Object.fromEntries(changes.map(c => [c.field, c.newValue])),
         ipAddress: metadata.ipAddress,
         userAgent: metadata.userAgent,
+        severity: 'medium'
       });
     }
 
@@ -253,14 +252,17 @@ const changeUserRole = async (userId, newRole, currentUser, metadata = {}) => {
     await user.save();
 
     await AuditLog.logAction({
-      action: 'UPDATE',
-      entityType: 'User',
-      entityId: user.id.toString(),
       userId: currentUser.id,
-      userRole: currentUser.role,
-      changes: [{ field: 'role', oldValue: oldRole, newValue: newRole }],
+      action: 'role_change',
+      module: 'employee',
+      targetType: 'User',
+      targetId: user.id,
+      description: `Changed user role from ${oldRole} to ${newRole} for ${user.email}`,
+      oldValues: { role: oldRole },
+      newValues: { role: newRole },
       ipAddress: metadata.ipAddress,
       userAgent: metadata.userAgent,
+      severity: 'high'
     });
 
     logger.info(`User role changed: ${user.email}`);
@@ -316,14 +318,17 @@ const deactivateUser = async (userId, currentUser, metadata = {}) => {
     await user.save();
 
     await AuditLog.logAction({
-      action: 'UPDATE',
-      entityType: 'User',
-      entityId: user.id.toString(),
       userId: currentUser.id,
-      userRole: currentUser.role,
-      changes: [{ field: 'isActive', oldValue: true, newValue: false }],
+      action: 'employee_deactivate',
+      module: 'employee',
+      targetType: 'User',
+      targetId: user.id,
+      description: `Deactivated user: ${user.email}`,
+      oldValues: { isActive: true },
+      newValues: { isActive: false },
       ipAddress: metadata.ipAddress,
       userAgent: metadata.userAgent,
+      severity: 'high'
     });
 
     return user;
@@ -359,14 +364,17 @@ const activateUser = async (userId, currentUser, metadata = {}) => {
     await user.save();
 
     await AuditLog.logAction({
-      action: 'UPDATE',
-      entityType: 'User',
-      entityId: user.id.toString(),
       userId: currentUser.id,
-      userRole: currentUser.role,
-      changes: [{ field: 'isActive', oldValue: false, newValue: true }],
+      action: 'employee_activate',
+      module: 'employee',
+      targetType: 'User',
+      targetId: user.id,
+      description: `Activated user: ${user.email}`,
+      oldValues: { isActive: false },
+      newValues: { isActive: true },
       ipAddress: metadata.ipAddress,
       userAgent: metadata.userAgent,
+      severity: 'medium'
     });
 
     return user;

@@ -74,6 +74,11 @@ const Lead = sequelize.define('Lead', {
     type: DataTypes.TEXT,
     allowNull: true
   },
+  tags: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    defaultValue: []
+  },
 
   // Follow-up and Notes (simplified)
   followUpNotes: {
@@ -96,11 +101,13 @@ const Lead = sequelize.define('Lead', {
   },
   createdBy: {
     type: DataTypes.INTEGER,
-    allowNull: false,
+    allowNull: true,
     references: {
       model: 'employees',
       key: 'id'
-    }
+    },
+    onDelete: 'NO ACTION',
+    onUpdate: 'CASCADE'
   },
   updatedBy: {
     type: DataTypes.INTEGER,

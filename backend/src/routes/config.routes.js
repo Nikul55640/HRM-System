@@ -35,4 +35,28 @@ router.put(
   configController.updateConfig,
 );
 
+/**
+ * @route   GET /api/config/custom-fields
+ * @desc    Get custom fields configuration
+ * @access  All authenticated users
+ */
+router.get(
+  '/custom-fields',
+  authenticate,
+  configController.getCustomFields,
+);
+
+/**
+ * @route   PUT /api/config/custom-fields
+ * @desc    Update custom fields configuration
+ * @access  SuperAdmin only
+ * @permission SYSTEM.MANAGE_CONFIG
+ */
+router.put(
+  '/custom-fields',
+  authenticate,
+  checkPermission(MODULES.SYSTEM.MANAGE_CONFIG),
+  configController.updateCustomFields,
+);
+
 export default router;

@@ -39,24 +39,45 @@ const LiveAttendanceDashboard = () => {
       if (filters.workLocation && filters.workLocation !== 'all') params.workLocation = filters.workLocation;
 
       const response = await api.get('/admin/attendance/live', { params });
+      
+      // Debug: Log the actual response structure
+      console.log('🔍 [LIVE ATTENDANCE] API Response:', response);
 
-      if (response.data.success) {
-        setLiveData(response.data.data);
-        setSummary(response.data.summary);
+      // Handle response with proper success check
+      if (response?.data?.success) {
+        setLiveData(response.data.data || []);
+        setSummary(response.data.summary || {});
         
         // Show message if using mock data
         if (response.data.meta?.usingMockData && !silent) {
           toast.info('Showing demo data - no active attendance sessions found');
+        } else if (response.data.meta?.realRecordsFound === 0 && !silent) {
+          toast.info('No employees currently clocked in');
+        }
+        
+        console.log('✅ [LIVE ATTENDANCE] Data loaded:', {
+          liveData: response.data.data?.length || 0,
+          summary: response.data.summary,
+          usingMockData: response.data.meta?.usingMockData,
+          realRecordsFound: response.data.meta?.realRecordsFound
+        });
+      } else {
+        // Handle case where success is false
+        console.warn('⚠️ [LIVE ATTENDANCE] API returned success: false');
+        setLiveData([]);
+        setSummary({});
+        
+        if (!silent) {
+          toast.error(response?.data?.message || 'Failed to load live attendance');
         }
       }
     } catch (error) {
+      console.error('Failed to fetch live attendance:', error);
+      setLiveData([]);
+      setSummary({});
+      
       if (!silent) {
         toast.error('Failed to load live attendance');
-      }
-      // Only log in development
-      if (process.env.NODE_ENV === 'development') {
-        // eslint-disable-next-line no-console
-        console.error('Error fetching live attendance:', error);
       }
     } finally {
       if (!silent) setLoading(false);

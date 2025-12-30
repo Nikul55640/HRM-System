@@ -23,7 +23,7 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
 
   const fetchAvailableEmployees = async () => {
     try {
-      const response = await api.get('/employees', { params: { limit: 1000 } });
+      const response = await api.get('/employees', { params: { limit: 100 } });
       console.log('📊 [AssignShiftForm] Employees response:', response.data);
       const employees = response.data.data || response.data || [];
       console.log('📊 [AssignShiftForm] Extracted employees:', employees);
@@ -37,7 +37,7 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
   const fetchAssignedEmployees = async () => {
     try {
       const response = await api.get('/admin/shifts/assignments/list', {
-        params: { shiftId: shift.id, limit: 1000 }
+        params: { shiftId: shift.id, limit: 100 }
       });
       console.log('📊 [AssignShiftForm] Assigned employees response:', response.data);
       setAssignedEmployees(response.data.data || []);

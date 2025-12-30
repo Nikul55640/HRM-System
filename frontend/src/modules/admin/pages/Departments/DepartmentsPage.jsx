@@ -30,9 +30,36 @@ const DepartmentsPage = () => {
     try {
       setLoading(true);
       const response = await api.get('/admin/departments');
-      setDepartments(response.data.data || []);
+      
+      // Debug: Log the actual response structure
+      console.log('🔍 [DEPARTMENTS] API Response:', response);
+      
+      // Handle different response structures
+      let departmentsData = [];
+      
+      if (response?.data?.data && Array.isArray(response.data.data)) {
+        // Structure: { success: true, data: [...] }
+        departmentsData = response.data.data;
+      } else if (response?.data && Array.isArray(response.data)) {
+        // Structure: [...]
+        departmentsData = response.data;
+      } else if (response?.departments && Array.isArray(response.departments)) {
+        // Structure: { success: true, departments: [...] }
+        departmentsData = response.departments;
+      }
+      
+      // Ensure each department has a valid employeeCount
+      departmentsData = departmentsData.map(dept => ({
+        ...dept,
+        employeeCount: dept.employeeCount || 0
+      }));
+      
+      console.log('✅ [DEPARTMENTS] Extracted departments:', departmentsData.length, 'departments');
+      setDepartments(departmentsData);
+      
     } catch (error) {
       console.error('Failed to fetch departments:', error);
+      setDepartments([]); // Ensure empty array on error
       toast({
         title: "Error",
         description: "Failed to load departments",
@@ -246,7 +273,7 @@ const DepartmentsPage = () => {
               <div>
                 <p className="text-sm text-gray-600">Total Employees</p>
                 <p className="text-2xl font-bold">
-                  {departments.reduce((sum, dept) => sum + dept.employeeCount, 0)}
+                  {departments.reduce((sum, dept) => sum + (dept.employeeCount || 0), 0)}
                 </p>
               </div>
             </div>
@@ -298,7 +325,7 @@ const DepartmentsPage = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">
-                    {parentDept.employeeCount} employees
+                    {parentDept.employeeCount || 0} employees
                   </Badge>
                   <Button
                     size="sm"
@@ -356,7 +383,7 @@ const DepartmentsPage = () => {
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" size="sm">
-                              {childDept.employeeCount} employees
+                              {childDept.employeeCount || 0} employees
                             </Badge>
                             <Button
                               size="sm"
@@ -406,7 +433,7 @@ const DepartmentsPage = () => {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="outline">
-                          {dept.employeeCount} employees
+                          {dept.employeeCount || 0} employees
                         </Badge>
                         <Button
                           size="sm"

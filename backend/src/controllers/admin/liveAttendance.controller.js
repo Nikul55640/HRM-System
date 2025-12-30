@@ -27,8 +27,13 @@ export const getLiveAttendance = async (req, res) => {
       today.getDate()
     );
 
+    // Get attendance records for today where employees are clocked in but not clocked out
     const records = await AttendanceRecord.findAll({
-      where: { date: dateOnly },
+      where: { 
+        date: dateOnly,
+        clockIn: { [AttendanceRecord.sequelize.Sequelize.Op.ne]: null },
+        clockOut: null // Only get records where employee hasn't clocked out
+      },
       include: [
         {
           model: Employee,
@@ -52,17 +57,9 @@ export const getLiveAttendance = async (req, res) => {
     records.forEach((record) => {
       if (!record.employee) return;
 
-      const sessions = record.sessions || [];
-
-      const activeSession = sessions.find(
-        (s) => s.status === "active" || s.status === "on_break"
-      );
-
-      if (!activeSession) return;
-
       const employeeDepartment = record.employee.department || "";
 
-      // ✅ Correct filter handling
+      // Apply filters
       if (
         department &&
         department !== "all" &&
@@ -71,42 +68,49 @@ export const getLiveAttendance = async (req, res) => {
         return;
       }
 
+      // For now, we'll assume office location if not specified
+      // This can be enhanced when location tracking is fully implemented
+      const currentLocation = record.location?.workLocation || 'office';
+      
       if (
         workLocation &&
         workLocation !== "all" &&
-        activeSession.workLocation !== workLocation
+        currentLocation !== workLocation
       ) {
         return;
       }
 
       const now = new Date();
-      const sessionDuration = Math.round(
-        (now - new Date(activeSession.checkIn)) / (1000 * 60)
-      );
+      const clockInTime = new Date(record.clockIn);
+      const sessionDuration = Math.round((now - clockInTime) / (1000 * 60));
 
+      // Calculate current worked minutes (total time minus break time)
       const currentWorkedMinutes = Math.max(
         0,
-        sessionDuration - (activeSession.totalBreakMinutes || 0)
+        sessionDuration - (record.totalBreakMinutes || 0)
       );
 
-      // Current break info
+      // Check if currently on break
+      const breakSessions = record.breakSessions || [];
+      const activeBreak = breakSessions.find(session => session.breakIn && !session.breakOut);
+      
       let currentBreak = null;
-      if (activeSession.status === "on_break") {
-        const activeBreakObj = activeSession.breaks?.find((b) => !b.endTime);
-        if (activeBreakObj) {
-          const breakDuration = Math.round(
-            (now - new Date(activeBreakObj.startTime)) / (1000 * 60)
-          );
-          currentBreak = {
-            breakId: activeBreakObj.breakId,
-            startTime: activeBreakObj.startTime,
-            durationMinutes: breakDuration,
-          };
-        }
+      let status = 'active';
+      
+      if (activeBreak) {
+        status = 'on_break';
+        const breakDuration = Math.round(
+          (now - new Date(activeBreak.breakIn)) / (1000 * 60)
+        );
+        currentBreak = {
+          breakId: activeBreak.id || `break-${Date.now()}`,
+          startTime: activeBreak.breakIn,
+          durationMinutes: breakDuration,
+        };
       }
 
       liveAttendance.push({
-        employeeId: record.employee.id,
+        employeeId: record.employee.employeeId, // Use employee's ID, not the record ID
         fullName:
           `${record.employee.firstName || ""} ${
             record.employee.lastName || ""
@@ -115,20 +119,20 @@ export const getLiveAttendance = async (req, res) => {
         department: employeeDepartment,
         position: record.employee.designation || "",
         currentSession: {
-          sessionId: activeSession.sessionId,
-          checkInTime: activeSession.checkIn,
-          workLocation: activeSession.workLocation,
-          locationDetails: activeSession.locationDetails,
-          status: activeSession.status,
+          sessionId: `session-${record.id}`,
+          checkInTime: record.clockIn,
+          workLocation: currentLocation,
+          locationDetails: record.location?.address || null,
+          status: status,
           currentBreak,
           totalWorkedMinutes: currentWorkedMinutes,
-          totalBreakMinutes: activeSession.totalBreakMinutes || 0,
-          breakCount: activeSession.breaks?.length || 0,
+          totalBreakMinutes: record.totalBreakMinutes || 0,
+          breakCount: breakSessions.length,
         },
       });
     });
 
-    // ✅ Mock data ONLY in development
+    // Only show mock data in development if no real records exist
     const isDev = process.env.NODE_ENV !== "production";
 
     if (liveAttendance.length === 0 && isDev) {
@@ -168,7 +172,7 @@ export const getLiveAttendance = async (req, res) => {
       });
     }
 
-    // Sort newest first
+    // Sort by check-in time (newest first)
     liveAttendance.sort(
       (a, b) =>
         new Date(b.currentSession.checkInTime) -
@@ -177,22 +181,24 @@ export const getLiveAttendance = async (req, res) => {
 
     // Audit log
     await AuditLog.logAction({
-      action: "VIEW",
-      severity: "info",
-      entityType: "Live Attendance",
-      entityId: "live-attendance-dashboard",
-      entityDisplayName: "Live Attendance Dashboard",
       userId,
-      userRole: role,
-      performedByName: fullName,
-      performedByEmail: email,
-      meta: {
+      action: "attendance_clock_in", // Using existing enum value
+      module: "attendance",
+      targetType: "Live Attendance",
+      targetId: null,
+      description: `Viewed live attendance dashboard with ${liveAttendance.length} active employees`,
+      newValues: {
         activeEmployees: liveAttendance.length,
         filters: { department, workLocation },
         usingMockData: isDev && records.length === 0,
       },
       ipAddress: req.ip,
       userAgent: req.get("User-Agent"),
+      severity: "low",
+      metadata: {
+        performedByName: fullName,
+        performedByEmail: email,
+      }
     });
 
     return res.json({
@@ -209,6 +215,7 @@ export const getLiveAttendance = async (req, res) => {
       },
       meta: {
         usingMockData: isDev && records.length === 0,
+        realRecordsFound: records.length,
       },
     });
   } catch (error) {
@@ -265,53 +272,55 @@ export const getEmployeeLiveStatus = async (req, res) => {
       });
     }
 
-    const sessions = record.sessions || [];
-    const activeSession = sessions.find(
-      (s) => s.status === "active" || s.status === "on_break"
-    );
-
-    if (!activeSession) {
+    // Check if employee is currently clocked in (has clockIn but no clockOut)
+    if (!record.clockIn || record.clockOut) {
       return res.json({
         success: true,
         data: {
-          employeeId: record.employee.id,
+          employeeId: record.employee.employeeId,
           fullName:
             `${record.employee.firstName || ""} ${
               record.employee.lastName || ""
             }`.trim() || "Unknown",
           status: "clocked_out",
-          sessions,
+          lastClockIn: record.clockIn,
+          lastClockOut: record.clockOut,
         },
       });
     }
 
     const now = new Date();
-    const sessionDuration = Math.round(
-      (now - new Date(activeSession.checkIn)) / (1000 * 60)
-    );
+    const clockInTime = new Date(record.clockIn);
+    const sessionDuration = Math.round((now - clockInTime) / (1000 * 60));
 
     const currentWorkedMinutes = Math.max(
       0,
-      sessionDuration - (activeSession.totalBreakMinutes || 0)
+      sessionDuration - (record.totalBreakMinutes || 0)
     );
 
+    // Check for active break
+    const breakSessions = record.breakSessions || [];
+    const activeBreak = breakSessions.find(session => session.breakIn && !session.breakOut);
+    
     let currentBreak = null;
-    if (activeSession.status === "on_break") {
-      const activeBreakObj = activeSession.breaks?.find((b) => !b.endTime);
-      if (activeBreakObj) {
-        const breakDuration = Math.round(
-          (now - new Date(activeBreakObj.startTime)) / (1000 * 60)
-        );
-        currentBreak = {
-          breakId: activeBreakObj.breakId,
-          startTime: activeBreakObj.startTime,
-          durationMinutes: breakDuration,
-        };
-      }
+    let status = 'active';
+    
+    if (activeBreak) {
+      status = 'on_break';
+      const breakDuration = Math.round(
+        (now - new Date(activeBreak.breakIn)) / (1000 * 60)
+      );
+      currentBreak = {
+        breakId: activeBreak.id || `break-${Date.now()}`,
+        startTime: activeBreak.breakIn,
+        durationMinutes: breakDuration,
+      };
     }
 
+    const currentLocation = record.location?.workLocation || 'office';
+
     const liveStatus = {
-      employeeId: record.employee.id,
+      employeeId: record.employee.employeeId,
       fullName:
         `${record.employee.firstName || ""} ${
           record.employee.lastName || ""
@@ -320,35 +329,44 @@ export const getEmployeeLiveStatus = async (req, res) => {
       department: record.employee.department || "",
       position: record.employee.designation || "",
       currentSession: {
-        sessionId: activeSession.sessionId,
-        checkInTime: activeSession.checkIn,
-        workLocation: activeSession.workLocation,
-        locationDetails: activeSession.locationDetails,
-        status: activeSession.status,
+        sessionId: `session-${record.id}`,
+        checkInTime: record.clockIn,
+        workLocation: currentLocation,
+        locationDetails: record.location?.address || null,
+        status: status,
         currentBreak,
         totalWorkedMinutes: currentWorkedMinutes,
-        totalBreakMinutes: activeSession.totalBreakMinutes,
-        breaks: activeSession.breaks || [],
+        totalBreakMinutes: record.totalBreakMinutes || 0,
+        breaks: breakSessions,
       },
-      allSessions: sessions,
+      todayRecord: {
+        clockIn: record.clockIn,
+        clockOut: record.clockOut,
+        totalWorkedMinutes: record.totalWorkedMinutes,
+        totalBreakMinutes: record.totalBreakMinutes,
+        breakSessions: breakSessions,
+        status: record.status,
+      }
     };
 
     await AuditLog.logAction({
-      action: "VIEW",
-      severity: "info",
-      entityType: "Employee Live Status",
-      entityId: employeeId,
-      entityDisplayName: liveStatus.fullName,
       userId,
-      userRole: role,
-      performedByName: fullName,
-      performedByEmail: email,
-      meta: {
+      action: "attendance_clock_in", // Using existing enum value
+      module: "attendance",
+      targetType: "Employee Live Status",
+      targetId: employeeId,
+      description: `Viewed live status for employee ${liveStatus.fullName}`,
+      newValues: {
         targetEmployeeId: employeeId,
-        status: activeSession.status,
+        status: status,
       },
       ipAddress: req.ip,
       userAgent: req.get("User-Agent"),
+      severity: "low",
+      metadata: {
+        performedByName: fullName,
+        performedByEmail: email,
+      }
     });
 
     return res.json({

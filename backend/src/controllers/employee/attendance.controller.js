@@ -223,7 +223,7 @@ const employeeAttendanceController = {
         dateTo: endDate
       };
 
-      const result = await attendanceService.getAttendanceRecords(filters, req.user, { limit: 1000 });
+      const result = await attendanceService.getAttendanceRecords(filters, req.user, { limit: 100 });
 
       if (!result.success) {
         return sendResponse(res, false, result.message, null, 400);
@@ -249,7 +249,7 @@ const employeeAttendanceController = {
   },
 
   /**
-   * Get late arrival and early exit status
+   * Get attendance status for a date range
    */
   getAttendanceStatus: async (req, res) => {
     try {
@@ -290,6 +290,33 @@ const employeeAttendanceController = {
       return sendResponse(res, true, "Attendance status retrieved successfully", status);
     } catch (error) {
       logger.error("Controller: Get Attendance Status Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
+   * Get employee's attendance summary (without parameters)
+   */
+  getMyAttendanceSummary: async (req, res) => {
+    try {
+      const currentDate = new Date();
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth() + 1;
+
+      const result = await attendanceService.getMonthlyAttendanceSummary(
+        req.user.employeeId,
+        year,
+        month,
+        req.user
+      );
+
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
+      }
+
+      return sendResponse(res, true, "Attendance summary retrieved successfully", result.data);
+    } catch (error) {
+      logger.error("Controller: Get My Attendance Summary Error", error);
       return sendResponse(res, false, "Internal server error", null, 500);
     }
   }

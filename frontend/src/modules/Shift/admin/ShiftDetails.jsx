@@ -30,7 +30,7 @@ const ShiftDetails = ({ shiftId, onClose }) => {
   const fetchAssignedEmployees = async () => {
     try {
       const response = await api.get('/admin/shifts/assignments/list', {
-        params: { shiftId, limit: 1000 }
+        params: { shiftId, limit: 100 }
       });
       setAssignedEmployees(response.data.data || []);
     } catch (error) {

@@ -27,11 +27,14 @@ const MonthlyCalendarView = () => {
       const response = await calendarService.getEventsByDateRange(startDate, endDate);
       
       if (response.success) {
-        setEvents(response.data);
+        // Extract events array from response data
+        const eventsData = response.data?.events || [];
+        setEvents(Array.isArray(eventsData) ? eventsData : []);
       }
     } catch (error) {
       console.error('Failed to fetch events:', error);
       toast.error('Failed to load calendar events');
+      setEvents([]); // Ensure events is always an array
     } finally {
       setLoading(false);
     }
@@ -64,6 +67,10 @@ const MonthlyCalendarView = () => {
 
   const getEventsForDay = (day) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    // Ensure events is an array before filtering
+    if (!Array.isArray(events)) {
+      return [];
+    }
     return events.filter(event => {
       const eventDate = new Date(event.startDate).toISOString().split('T')[0];
       return eventDate === dateStr;

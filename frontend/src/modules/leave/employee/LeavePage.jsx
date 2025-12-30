@@ -46,8 +46,10 @@ const LeavePage = () => {
       setHistoryLoading(true);
       const historyRes = await employeeSelfService.leave.getHistory();
       setLeaveRequests(historyRes.data || []);
+      console.log("Leave history fetched:", historyRes.data); 
     } catch (error) {
       toast.error(error.message || "Failed to load leave history");
+    
     } finally {
       setHistoryLoading(false);
     }
@@ -57,6 +59,7 @@ const LeavePage = () => {
     await Promise.all([
       refreshBalance(),
       fetchLeaveHistory(),
+
     ]);
   };
 

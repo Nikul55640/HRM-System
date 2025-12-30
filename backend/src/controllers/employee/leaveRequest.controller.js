@@ -162,14 +162,13 @@ const createLeaveRequest = async (req, res) => {
 
     // Audit Log
     await AuditLog.create({
-      action: "CREATE",
-      entityType: "LeaveRequest",
-      entityId: leaveRequest.id.toString(),
       userId,
-      userRole: role,
-      performedByName: fullName,
-      performedByEmail: email,
-      meta: {
+      action: "leave_apply",
+      module: "leave",
+      description: `Employee ${fullName} submitted ${type} leave request for ${totalDays} days from ${startDate} to ${endDate}`,
+      targetType: "LeaveRequest",
+      targetId: leaveRequest.id,
+      newValues: {
         type,
         totalDays,
         startDate,
@@ -179,6 +178,8 @@ const createLeaveRequest = async (req, res) => {
       },
       ipAddress: req.ip,
       userAgent: req.get("User-Agent"),
+      severity: "low",
+      isSuccessful: true,
     });
 
     return res.status(201).json({
@@ -305,6 +306,8 @@ const cancelLeaveRequest = async (req, res) => {
 
     await leaveRequest.update({
       status: "cancelled",
+      cancelledAt: new Date(),
+      updatedBy: employeeId,
     });
 
     // Restore leave balance
@@ -323,6 +326,28 @@ const cancelLeaveRequest = async (req, res) => {
         remaining: leaveBalance.remaining + leaveRequest.totalDays,
       });
     }
+
+    // Audit Log for cancellation
+    await AuditLog.create({
+      userId: req.user.id,
+      action: "leave_cancel",
+      module: "leave",
+      description: `Employee ${req.user.fullName || 'Unknown'} cancelled ${leaveRequest.leaveType} leave request for ${leaveRequest.totalDays} days`,
+      targetType: "LeaveRequest",
+      targetId: leaveRequest.id,
+      oldValues: {
+        status: "pending",
+      },
+      newValues: {
+        status: "cancelled",
+        totalDays: leaveRequest.totalDays,
+        leaveType: leaveRequest.leaveType,
+      },
+      ipAddress: req.ip,
+      userAgent: req.get("User-Agent"),
+      severity: "low",
+      isSuccessful: true,
+    });
 
     return res.json({
       success: true,

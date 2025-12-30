@@ -1,5 +1,4 @@
 import api from './api';
-import { toast } from 'react-toastify';
 
 /**
  * Service for handling all attendance-related API calls
@@ -21,7 +20,6 @@ const attendanceService = {
     } catch (error) {
       console.error(' [ATTENDANCE] Failed to fetch records:', error);
       const errorMsg = error.response?.data?.message || 'Failed to load attendance records';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -34,14 +32,12 @@ const attendanceService = {
   clockIn: async (data) => {
     try {
       console.log(' [ATTENDANCE] Clocking in:', data);
-      const response = await api.post('/employee/attendance/check-in', data);
+      const response = await api.post('/employee/attendance/clock-in', data);
       console.log(' [ATTENDANCE] Clock-in successful:', response.data);
-      toast.success('Clocked in successfully!');
       return response.data;
     } catch (error) {
       console.error(' [ATTENDANCE] Clock-in failed:', error);
       const errorMsg = error.response?.data?.message || 'Failed to clock in';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -54,14 +50,12 @@ const attendanceService = {
   clockOut: async (data = {}) => {
     try {
       console.log(' [ATTENDANCE] Clocking out:', data);
-      const response = await api.post('/employee/attendance/check-out', data);
+      const response = await api.post('/employee/attendance/clock-out', data);
       console.log(' [ATTENDANCE] Clock-out successful:', response.data);
-      toast.success('Clocked out successfully!');
       return response.data;
     } catch (error) {
       console.error(' [ATTENDANCE] Clock-out failed:', error);
       const errorMsg = error.response?.data?.message || 'Failed to clock out';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -75,15 +69,12 @@ const attendanceService = {
   getMyAttendanceSummary: async (year, month) => {
     try {
       console.log(' [ATTENDANCE] Fetching attendance summary:', { year, month });
-      const response = await api.get('/employee/attendance/summary', {
-        params: { year, month },
-      });
+      const response = await api.get(`/employee/attendance/summary/${year}/${month}`);
       console.log(' [ATTENDANCE] Summary fetched:', response.data);
       return response.data;
     } catch (error) {
       console.error(' [ATTENDANCE] Failed to fetch summary:', error);
       const errorMsg = error.response?.data?.message || 'Failed to load attendance summary';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -116,7 +107,6 @@ const attendanceService = {
     } catch (error) {
       console.error(' [ATTENDANCE] Failed to fetch all records:', error);
       const errorMsg = error.response?.data?.message || 'Failed to load attendance records';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -134,7 +124,6 @@ const attendanceService = {
     } catch (error) {
       console.error(` [ATTENDANCE] Failed to fetch attendance for employee ${employeeId}:`, error);
       const errorMsg = error.response?.data?.message || 'Failed to load employee attendance';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -147,12 +136,10 @@ const attendanceService = {
   createManualEntry: async (data) => {
     try {
       const response = await api.post('/admin/attendance/manual', data);
-      toast.success('Attendance record created successfully');
       return response.data;
     } catch (error) {
       console.error(' [ATTENDANCE] Failed to create manual entry:', error);
       const errorMsg = error.response?.data?.message || 'Failed to create attendance record';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -166,12 +153,10 @@ const attendanceService = {
   updateAttendance: async (id, data) => {
     try {
       const response = await api.put(`/admin/attendance/${id}`, data);
-      toast.success('Attendance record updated successfully');
       return response.data;
     } catch (error) {
       console.error(` [ATTENDANCE] Failed to update record ${id}:`, error);
       const errorMsg = error.response?.data?.message || 'Failed to update attendance record';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -184,12 +169,10 @@ const attendanceService = {
   deleteAttendance: async (id) => {
     try {
       const response = await api.delete(`/admin/attendance/${id}`);
-      toast.success('Attendance record deleted successfully');
       return response.data;
     } catch (error) {
       console.error(` [ATTENDANCE] Failed to delete record ${id}:`, error);
       const errorMsg = error.response?.data?.message || 'Failed to delete attendance record';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -203,12 +186,10 @@ const attendanceService = {
   processCorrectionRequest: async (id, data) => {
     try {
       const response = await api.put(`/admin/attendance/corrections/${id}`, data);
-      toast.success(`Correction request ${data.status} successfully`);
       return response.data;
     } catch (error) {
       console.error(` [ATTENDANCE] Failed to process correction ${id}:`, error);
       const errorMsg = error.response?.data?.message || 'Failed to process correction request';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -227,7 +208,6 @@ const attendanceService = {
     } catch (error) {
       console.error(' [ATTENDANCE] Failed to fetch statistics:', error);
       const errorMsg = error.response?.data?.message || 'Failed to load attendance statistics';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },
@@ -247,7 +227,6 @@ const attendanceService = {
     } catch (error) {
       console.error(' [ATTENDANCE] Export failed:', error);
       const errorMsg = error.response?.data?.message || 'Failed to export attendance data';
-      toast.error(errorMsg);
       throw new Error(errorMsg);
     }
   },

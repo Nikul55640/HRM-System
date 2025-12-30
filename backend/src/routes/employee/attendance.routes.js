@@ -39,6 +39,13 @@ router.get(
   attendanceController.getMyMonthlySummary
 );
 
+// GET attendance summary (without parameters)
+router.get(
+  "/attendance/summary",
+  authenticate,
+  attendanceController.getMyAttendanceSummary
+);
+
 // GET working hours
 router.get(
   "/attendance/working-hours",

@@ -36,7 +36,10 @@ const leadController = {
         userAgent: req.headers["user-agent"],
       };
 
-      const result = await leadService.createLead(req.body, req.user, metadata);
+      // Extract employee ID from user object, allow null if no employee record
+      const createdBy = req.user.employeeId || null;
+
+      const result = await leadService.createLead(req.body, createdBy, metadata);
 
       if (!result.success) {
         const statusCode = result.message.includes('Unauthorized') ? 403 : 400;
@@ -55,7 +58,7 @@ const leadController = {
    */
   getLeads: async (req, res) => {
     try {
-      const result = await leadService.getLeads(req.query, req.user, req.query);
+      const result = await leadService.getLeads(req.query, req.query);
 
       if (!result.success) {
         const statusCode = result.message.includes('Unauthorized') ? 403 : 400;
@@ -75,7 +78,7 @@ const leadController = {
   getLeadById: async (req, res) => {
     try {
       const { id } = req.params;
-      const result = await leadService.getLeadById(id, req.user);
+      const result = await leadService.getLeadById(id);
 
       if (!result.success) {
         const statusCode = result.message.includes('not found') ? 404 :
@@ -101,7 +104,10 @@ const leadController = {
         userAgent: req.headers["user-agent"],
       };
 
-      const result = await leadService.updateLead(id, req.body, req.user, metadata);
+      // Extract employee ID from user object
+      const updatedBy = req.user.employeeId || req.user.id;
+
+      const result = await leadService.updateLead(id, req.body, updatedBy, metadata);
 
       if (!result.success) {
         const statusCode = result.message.includes('not found') ? 404 :
@@ -128,7 +134,10 @@ const leadController = {
         userAgent: req.headers["user-agent"],
       };
 
-      const result = await leadService.assignLead(id, assignedTo, req.user, metadata);
+      // Extract employee ID from user object
+      const updatedBy = req.user.employeeId || req.user.id;
+
+      const result = await leadService.assignLead(id, assignedTo, updatedBy, metadata);
 
       if (!result.success) {
         const statusCode = result.message.includes('not found') ? 404 :
@@ -159,7 +168,10 @@ const leadController = {
         return sendResponse(res, false, "Follow-up note is required", null, 400);
       }
 
-      const result = await leadService.addFollowUpNote(id, note, req.user, metadata);
+      // Extract employee ID from user object
+      const createdBy = req.user.employeeId || req.user.id;
+
+      const result = await leadService.addFollowUpNote(id, note, createdBy, metadata);
 
       if (!result.success) {
         const statusCode = result.message.includes('not found') ? 404 :
@@ -186,7 +198,10 @@ const leadController = {
         userAgent: req.headers["user-agent"],
       };
 
-      const result = await leadService.updateLeadStatus(id, status, nextFollowUpDate, req.user, metadata);
+      // Extract employee ID from user object
+      const updatedBy = req.user.employeeId || req.user.id;
+
+      const result = await leadService.updateLeadStatus(id, status, nextFollowUpDate, updatedBy, metadata);
 
       if (!result.success) {
         const statusCode = result.message.includes('not found') ? 404 :
@@ -208,10 +223,10 @@ const leadController = {
     try {
       const filters = {
         ...req.query,
-        assignedTo: req.user.employeeId
+        assignedTo: req.user.employeeId || req.user.id
       };
 
-      const result = await leadService.getLeads(filters, req.user, req.query);
+      const result = await leadService.getLeads(filters, req.query);
 
       if (!result.success) {
         return sendResponse(res, false, result.message, null, 400);
@@ -229,16 +244,33 @@ const leadController = {
    */
   getLeadAnalytics: async (req, res) => {
     try {
-      const result = await leadService.getLeadAnalytics(req.query, req.user);
+      const result = await leadService.getLeadAnalytics();
 
       if (!result.success) {
-        const statusCode = result.message.includes('Unauthorized') ? 403 : 400;
-        return sendResponse(res, false, result.message, null, statusCode);
+        return sendResponse(res, false, result.message, null, 400);
       }
 
       return sendResponse(res, true, "Lead analytics retrieved successfully", result.data);
     } catch (error) {
       logger.error("Controller: Get Lead Analytics Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
+   * Get lead stats (HR & SuperAdmin)
+   */
+  getLeadStats: async (req, res) => {
+    try {
+      const result = await leadService.getLeadStats();
+
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
+      }
+
+      return sendResponse(res, true, "Lead stats retrieved successfully", result.data);
+    } catch (error) {
+      logger.error("Controller: Get Lead Stats Error", error);
       return sendResponse(res, false, "Internal server error", null, 500);
     }
   }

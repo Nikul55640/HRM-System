@@ -18,15 +18,12 @@ import NotFound from "./pages/NotFound";
 import Unauthorized from "./pages/Unauthorized";
 
 import {
-  employeeRoutes,
   essRoutes,
-  hrRoutes,
   organizationRoutes,
   calendarRoutes,
   adminRoutes,
   dashboardRoutes,
-  generalRoutes,
-  leadRoutes
+  generalRoutes
 } from "./routes";
 
 function App() {
@@ -75,16 +72,12 @@ function App() {
               }
             >
               <Route index element={<Navigate to="/dashboard" replace />} />
-
-              {applyRoutes(employeeRoutes)}
               {applyRoutes(essRoutes)}
-              {applyRoutes(hrRoutes)}
               {applyRoutes(organizationRoutes)}
               {applyRoutes(calendarRoutes)}
               {applyRoutes(adminRoutes)}
               {applyRoutes(dashboardRoutes)}
               {applyRoutes(generalRoutes)}
-              {applyRoutes(leadRoutes)}
             </Route>
 
             <Route path="*" element={<NotFound />} />

@@ -93,6 +93,8 @@ import {
   ClipboardEdit,
   CalendarCog,
   Scale,
+  TreePine,
+  GitBranch,
 } from 'lucide-react';
 
 const iconMap = {
@@ -163,6 +165,7 @@ const iconMap = {
   AlertTriangle,
   HelpCircle,
   Loader2,
+  TreePine,
   Palmtree,
   Wrench,
   Megaphone,
@@ -187,6 +190,7 @@ const iconMap = {
   Coffee,
   Play,
   ClipboardEdit,
+  GitBranch,
   Scale,
 };
 

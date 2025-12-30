@@ -303,7 +303,7 @@ class LeaveRequestService {
 
             // Update leave request
             const updateData = {
-                status: action,
+                status: action === 'approve' ? 'approved' : 'rejected',
                 rejectionReason: action === 'reject' ? comments : null,
                 updatedBy: user.id
             };
@@ -696,7 +696,7 @@ class LeaveRequestService {
 
             // Update leave request
             await leaveRequest.update({
-                status: action,
+                status: action === 'approve' ? 'approved' : 'rejected',
                 approvedBy: action === 'approve' ? user.id : leaveRequest.approvedBy,
                 approvedAt: action === 'approve' ? new Date() : leaveRequest.approvedAt,
                 rejectionReason: action === 'reject' ? reason : null,
@@ -704,8 +704,9 @@ class LeaveRequestService {
             });
 
             // Adjust leave balance based on the override
-            if (oldStatus !== action) {
-                if (action === 'approve' && oldStatus === 'rejected') {
+            const newStatus = action === 'approve' ? 'approved' : 'rejected';
+            if (oldStatus !== newStatus) {
+                if (newStatus === 'approved' && oldStatus === 'rejected') {
                     // Convert to used
                     await LeaveBalance.adjustBalanceForLeave(
                         leaveRequest.employeeId,
@@ -713,7 +714,7 @@ class LeaveRequestService {
                         leaveRequest.totalDays,
                         'use'
                     );
-                } else if (action === 'reject' && oldStatus === 'approved') {
+                } else if (newStatus === 'rejected' && oldStatus === 'approved') {
                     // Restore balance
                     await LeaveBalance.adjustBalanceForLeave(
                         leaveRequest.employeeId,

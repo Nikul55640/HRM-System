@@ -13,6 +13,8 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
     "My Self Service",
   ]);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const DEFAULT_OPEN_SECTIONS = ["General", "My Self Service"];
+
 
   const location = useLocation();
   const { user } = useAuth();
@@ -132,7 +134,7 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
         },
         {
           name: "Designations",
-          path: "/hr/designations",
+          path: "/admin/designations",
           icon: "Award",
           showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.EDIT_ANY]),
         },
@@ -159,14 +161,8 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
 
         // Leave Management
         {
-          name: "Leave Management",
-          path: "/admin/leave",
-          icon: "ClipboardCheck",
-          showIf: () => can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
-        },
-        {
           name: "Leave Requests",
-          path: "/admin/leave-requests",
+          path: "/admin/leave",
           icon: "FileText",
           showIf: () => can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
         },
@@ -220,13 +216,13 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
         },
         {
           name: "Daily View",
-          path: "/employee/calendar/daily",
+          path: "calendar/daily",
           icon: "CalendarDays",
           showIf: () => can.do(MODULES.CALENDAR.VIEW),
         },
         {
           name: "Monthly View",
-          path: "/employee/calendar/monthly",
+          path: "calendar/monthly",
           icon: "Calendar",
           showIf: () => can.do(MODULES.CALENDAR.VIEW),
         },
@@ -250,39 +246,21 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
       items: [
         {
           name: "User Management",
-          path: "/admin/users",
+          path: "users",
           icon: "UserCog",
           showIf: () => can.do(MODULES.USER.VIEW),
         },
         {
           name: "System Policies",
-          path: "/admin/system-policies",
+          path: "system-policies",
           icon: "Settings",
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
         },
         {
           name: "Audit Logs",
-          path: "/admin/audit-logs",
+          path: "audit-logs",
           icon: "ListChecks",
           showIf: () => can.do(MODULES.SYSTEM.VIEW_AUDIT_LOGS),
-        },
-      ],
-    },
-
-    // ===================================================
-    // DEVELOPMENT TOOLS SECTION
-    // ===================================================
-    {
-      section: "Development Tools",
-      icon: "Wrench",
-      collapsible: true,
-      showIf: () => process.env.NODE_ENV === 'development' || user?.role === "SuperAdmin",
-      items: [
-        {
-          name: "API Test Runner",
-          path: "/api-test",
-          icon: "TestTube",
-          showIf: () => true,
         },
       ],
     },
@@ -316,15 +294,19 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
     0
   );
 
-  const handleMouseEnter = () => {
-    setIsSidebarExpanded(true);
-    setLayoutSidebarExpanded(true);
-  };
+const handleMouseEnter = () => {
+  setIsSidebarExpanded(true);
+  setLayoutSidebarExpanded(true);
+  setOpenSections(DEFAULT_OPEN_SECTIONS); // 👈 restore defaults
+};
 
-  const handleMouseLeave = () => {
-    setIsSidebarExpanded(false);
-    setLayoutSidebarExpanded(false);
-  };
+
+const handleMouseLeave = () => {
+  setIsSidebarExpanded(false);
+  setLayoutSidebarExpanded(false);
+  setOpenSections([]); // 👈 collapse all sections
+};
+
   
   const handleNavClick = () => {
     setIsSidebarExpanded(false);
@@ -368,19 +350,21 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           </div>
         )}
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            const next = !isSidebarExpanded;
-            setIsSidebarExpanded(next);
-            setLayoutSidebarExpanded(next);
-          }}
-        >
+       <Button
+  variant="ghost"
+  size="sm"
+  onClick={() => {
+    const next = !isSidebarExpanded;
+    setIsSidebarExpanded(next);
+    setLayoutSidebarExpanded(next);
+    setOpenSections(next ? DEFAULT_OPEN_SECTIONS : []);
+  }}
+>
+
           {isSidebarExpanded ? (
-            <Icon name="ChevronLeft" className="w-5 h-5" />
+            <Icon name="ChevronLeft" className="w-10 h-10" />
           ) : (
-            <Icon name="ChevronRight" className="w-5 h-5" />
+            <Icon name="ChevronRight" className="w-10 h-10 " />
           )}
         </Button>
       </div>

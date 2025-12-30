@@ -53,27 +53,54 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
     try {
       setLoading(true);
       const year = viewMode === 'calendar' ? currentDate.getFullYear() : selectedYear;
+      
+      // Fetch holidays and events separately to ensure we get the data
       const [eventsRes, holidaysRes] = await Promise.all([
         calendarService.getCalendarEvents({
           startDate: `${year}-01-01`,
           endDate: `${year}-12-31`
+        }).catch(error => {
+          console.warn('Calendar events API failed:', error);
+          return { success: false, data: null };
         }),
-        calendarService.getHolidays(year)
+        calendarService.getHolidays(year).catch(error => {
+          console.warn('Holidays API failed:', error);
+          return { success: false, data: null };
+        })
       ]);
 
-      if (eventsRes.success) {
-        // Handle the new response structure
-        const calendarData = eventsRes.data || {};
+      // Handle calendar events response
+      if (eventsRes.success && eventsRes.data) {
+        const calendarData = eventsRes.data;
         setEvents(calendarData.events || []);
-        setHolidays(calendarData.holidays || []);
         setLeaves(calendarData.leaves || []);
         setBirthdays(calendarData.birthdays || []);
         setAnniversaries(calendarData.anniversaries || []);
+      } else {
+        // If calendar events API fails, set empty arrays
+        setEvents([]);
+        setLeaves([]);
+        setBirthdays([]);
+        setAnniversaries([]);
       }
-      if (holidaysRes.success && !eventsRes.data?.holidays) {
-        // Only set holidays from separate API if not already set from calendar data
-        setHolidays(holidaysRes.data || []);
+
+      // Handle holidays response - always use the dedicated holidays API
+      if (holidaysRes.success && holidaysRes.data) {
+        // The holidays API returns { success: true, data: { holidays: [...], pagination: {...} } }
+        if (holidaysRes.data.data && holidaysRes.data.data.holidays && Array.isArray(holidaysRes.data.data.holidays)) {
+          setHolidays(holidaysRes.data.data.holidays);
+        } else if (holidaysRes.data.holidays && Array.isArray(holidaysRes.data.holidays)) {
+          setHolidays(holidaysRes.data.holidays);
+        } else if (Array.isArray(holidaysRes.data)) {
+          setHolidays(holidaysRes.data);
+        } else {
+          console.warn('Unexpected holidays response structure:', holidaysRes.data);
+          setHolidays([]);
+        }
+      } else {
+        setHolidays([]);
       }
+
     } catch (error) {
       console.error('Error fetching calendar data:', error);
       toast.error('Failed to load calendar data');

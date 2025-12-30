@@ -51,7 +51,7 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
 
   const fetchEmployees = async () => {
     try {
-      const response = await api.get('/employees', { params: { limit: 1000 } });
+      const response = await api.get('/employees', { params: { limit: 100 } });
       setEmployees(response.data?.data || []);
     } catch (error) {
       console.log(error) 
@@ -115,7 +115,7 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
         ...formData,
         estimatedValue: formData.estimatedValue ? parseFloat(formData.estimatedValue) : null,
         expectedCloseDate: formData.expectedCloseDate || null,
-        assignedTo: formData.assignedTo || null
+        assignedTo: formData.assignedTo ? parseInt(formData.assignedTo) : null
       };
 
       const response = await api[method.toLowerCase()](url, submitData);
@@ -127,8 +127,9 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
         toast.error(`Failed to ${lead ? 'update' : 'create'} lead`);
       }
     } catch (error) {
-      
-      toast.error(`Failed to ${lead ? 'update' : 'create'} lead`);
+      console.error('Lead creation/update error:', error);
+      const errorMessage = error.response?.data?.message || error.message || `Failed to ${lead ? 'update' : 'create'} lead`;
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
