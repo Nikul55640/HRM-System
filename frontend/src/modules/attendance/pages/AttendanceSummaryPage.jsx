@@ -1,266 +1,284 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Box,
-  Container,
-  Grid,
-  Card,
-  CardContent,
-  CardHeader,
-  Typography,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  Loading,
-} from '@mui/material';
-import { useSnackbar } from 'notistack';
-import attendanceService from '../../services/attendanceService';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
+import { Button } from '../../../shared/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
+import { Calendar, Download, Filter, Users } from 'lucide-react';
+import { toast } from 'react-hot-toast';
+import AttendanceSummary from '../employee/AttendanceSummary';
+import api from '../../../services/api';
 
 const AttendanceSummaryPage = () => {
-  const [data, setData] = useState({
-    present: 0,
-    absent: 0,
-    late: 0,
-    onLeave: 0,
-  });
-  const [records, setRecords] = useState([]);
+  const [summaryData, setSummaryData] = useState(null);
+  const [employeeList, setEmployeeList] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [openCorrection, setOpenCorrection] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState(null);
-  const [month, setMonth] = useState(new Date().getMonth() + 1);
-  const [year, setYear] = useState(new Date().getFullYear());
-  const { enqueueSnackbar } = useSnackbar();
+  const [filters, setFilters] = useState({
+    month: new Date().getMonth() + 1,
+    year: new Date().getFullYear(),
+    department: 'all',
+    employeeId: 'all'
+  });
 
   useEffect(() => {
-    fetchAttendanceData();
-  }, [month, year]);
+    fetchAttendanceSummary();
+    fetchEmployeeList();
+  }, [filters.month, filters.year, filters.department, filters.employeeId]);
 
-  const fetchAttendanceData = async () => {
+  const fetchAttendanceSummary = async () => {
     try {
       setLoading(true);
-      const response = await attendanceService.getAttendanceSummary({
-        month,
-        year,
-      });
-      setData(response.data);
-      setRecords(response.records || []);
+      const params = {
+        month: filters.month,
+        year: filters.year,
+        ...(filters.department !== 'all' && { department: filters.department }),
+        ...(filters.employeeId !== 'all' && { employeeId: filters.employeeId })
+      };
+
+      const response = await api.get('/admin/attendance/summary', { params });
+      
+      if (response.data.success) {
+        setSummaryData(response.data.data);
+      } else {
+        // Fallback demo data for testing
+        setSummaryData({
+          presentDays: 18,
+          absentDays: 2,
+          lateDays: 3,
+          earlyDepartures: 1,
+          totalWorkedMinutes: 8640, // 144 hours
+          averageWorkHours: 8.0,
+          totalDays: 20
+        });
+        toast.info('Showing demo data - API endpoint not fully implemented');
+      }
     } catch (error) {
-      enqueueSnackbar('Failed to load attendance data', { variant: 'error' });
+      console.error('Error fetching attendance summary:', error);
+      // Fallback demo data
+      setSummaryData({
+        presentDays: 18,
+        absentDays: 2,
+        lateDays: 3,
+        earlyDepartures: 1,
+        totalWorkedMinutes: 8640,
+        averageWorkHours: 8.0,
+        totalDays: 20
+      });
+      toast.error('Failed to load attendance summary. Showing demo data.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleOpenCorrection = (record) => {
-    setSelectedRecord(record);
-    setOpenCorrection(true);
-  };
-
-  const handleCloseCorrection = () => {
-    setOpenCorrection(false);
-    setSelectedRecord(null);
-  };
-
-  const handleSubmitCorrection = async (correctionData) => {
+  const fetchEmployeeList = async () => {
     try {
-      await attendanceService.requestCorrection({
-        ...correctionData,
-        recordId: selectedRecord.id,
-      });
-      enqueueSnackbar('Correction request submitted', { variant: 'success' });
-      handleCloseCorrection();
-      fetchAttendanceData();
+      const response = await api.get('/employees', { params: { limit: 100 } });
+      if (response.data.success) {
+        setEmployeeList(response.data.data.employees || []);
+      }
     } catch (error) {
-      enqueueSnackbar('Failed to submit correction', { variant: 'error' });
+      console.error('Error fetching employees:', error);
     }
   };
 
-  if (loading) {
-    return <Loading />;
-  }
+  const handleExport = async () => {
+    try {
+      toast.info('Exporting attendance summary...');
+      const params = {
+        month: filters.month,
+        year: filters.year,
+        format: 'xlsx',
+        ...(filters.department !== 'all' && { department: filters.department }),
+        ...(filters.employeeId !== 'all' && { employeeId: filters.employeeId })
+      };
+
+      const response = await api.get('/admin/attendance/export', { 
+        params,
+        responseType: 'blob'
+      });
+
+      const blob = new Blob([response.data], { 
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `Attendance_Summary_${getMonthName(filters.month)}_${filters.year}.xlsx`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('Attendance summary exported successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Failed to export attendance summary');
+    }
+  };
+
+  const getMonthName = (month) => {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
+  };
+
+  const departments = ['Engineering', 'HR', 'Sales', 'Marketing', 'Finance'];
+  const years = [2023, 2024, 2025];
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Attendance Summary
-      </Typography>
+    <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Attendance Summary</h1>
+          <p className="text-gray-600 mt-1">
+            Overview of attendance metrics and trends
+          </p>
+        </div>
+        <Button onClick={handleExport} className="flex items-center gap-2">
+          <Download className="w-4 h-4" />
+          Export Report
+        </Button>
+      </div>
 
-      {/* Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {/* Month */}
+            <Select
+              value={filters.month.toString()}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, month: parseInt(value) }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Month" />
+              </SelectTrigger>
+              <SelectContent>
+                {months.map((month) => (
+                  <SelectItem key={month} value={month.toString()}>
+                    {getMonthName(month)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Year */}
+            <Select
+              value={filters.year.toString()}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, year: parseInt(value) }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select Year" />
+              </SelectTrigger>
+              <SelectContent>
+                {years.map((year) => (
+                  <SelectItem key={year} value={year.toString()}>
+                    {year}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Department */}
+            <Select
+              value={filters.department}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, department: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept} value={dept}>
+                    {dept}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Employee */}
+            <Select
+              value={filters.employeeId}
+              onValueChange={(value) => setFilters(prev => ({ ...prev, employeeId: value }))}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="All Employees" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Employees</SelectItem>
+                {employeeList.map((emp) => (
+                  <SelectItem key={emp.id} value={emp.id.toString()}>
+                    {emp.personalInfo?.firstName} {emp.personalInfo?.lastName} ({emp.employeeId})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Attendance Summary Component */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-3">
+            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-600">Loading attendance summary...</span>
+          </div>
+        </div>
+      ) : (
+        <AttendanceSummary 
+          summary={summaryData} 
+          period={`${getMonthName(filters.month)} ${filters.year}`}
+        />
+      )}
+
+      {/* Additional Insights */}
+      {summaryData && !loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Department Breakdown */}
           <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Department Overview
+              </CardTitle>
+            </CardHeader>
             <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Present
-              </Typography>
-              <Typography variant="h5">{data.present}</Typography>
+              <div className="space-y-4">
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Department breakdown will be available when backend API is implemented</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+
+          {/* Trends */}
           <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                Monthly Trends
+              </CardTitle>
+            </CardHeader>
             <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Absent
-              </Typography>
-              <Typography variant="h5">{data.absent}</Typography>
+              <div className="space-y-4">
+                <div className="text-center py-8 text-gray-500">
+                  <Calendar className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p>Trend analysis will be available when historical data is implemented</p>
+                </div>
+              </div>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Late
-              </Typography>
-              <Typography variant="h5">{data.late}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                On Leave
-              </Typography>
-              <Typography variant="h5">{data.onLeave}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Month/Year Filter */}
-      <Box sx={{ mb: 3, display: 'flex', gap: 2 }}>
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>Month</InputLabel>
-          <Select
-            value={month}
-            label="Month"
-            onChange={(e) => setMonth(e.target.value)}
-          >
-            {Array.from({ length: 12 }, (_, i) => (
-              <MenuItem key={i + 1} value={i + 1}>
-                {new Date(2000, i).toLocaleString('default', { month: 'long' })}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <FormControl sx={{ minWidth: 120 }}>
-          <InputLabel>Year</InputLabel>
-          <Select
-            value={year}
-            label="Year"
-            onChange={(e) => setYear(e.target.value)}
-          >
-            {Array.from({ length: 5 }, (_, i) => (
-              <MenuItem key={i} value={new Date().getFullYear() - i}>
-                {new Date().getFullYear() - i}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-      </Box>
-
-      {/* Attendance Records Table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
-              <TableCell>Date</TableCell>
-              <TableCell>Check-In</TableCell>
-              <TableCell>Check-Out</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {records.map((record) => (
-              <TableRow key={record.id}>
-                <TableCell>{new Date(record.date).toLocaleDateString()}</TableCell>
-                <TableCell>{record.checkIn || '-'}</TableCell>
-                <TableCell>{record.checkOut || '-'}</TableCell>
-                <TableCell>
-                  <span
-                    style={{
-                      padding: '4px 8px',
-                      borderRadius: '4px',
-                      backgroundColor:
-                        record.status === 'present'
-                          ? '#4caf50'
-                          : record.status === 'absent'
-                          ? '#f44336'
-                          : '#ff9800',
-                      color: 'white',
-                    }}
-                  >
-                    {record.status}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  {record.status !== 'present' && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      onClick={() => handleOpenCorrection(record)}
-                    >
-                      Request Correction
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {/* Correction Dialog */}
-      <Dialog open={openCorrection} onClose={handleCloseCorrection}>
-        <DialogTitle>Request Attendance Correction</DialogTitle>
-        <DialogContent sx={{ minWidth: 400, py: 2 }}>
-          <TextField
-            fullWidth
-            label="Reason"
-            multiline
-            rows={4}
-            placeholder="Explain why you need a correction..."
-            sx={{ mb: 2 }}
-            id="correction-reason"
-          />
-          <TextField
-            fullWidth
-            label="Correction Details"
-            placeholder="Provide check-in/check-out times if needed"
-            id="correction-details"
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseCorrection}>Cancel</Button>
-          <Button
-            onClick={() => {
-              const reason = document.getElementById('correction-reason')?.value;
-              const details = document.getElementById('correction-details')?.value;
-              handleSubmitCorrection({ reason, details });
-            }}
-            variant="contained"
-          >
-            Submit
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Container>
+        </div>
+      )}
+    </div>
   );
 };
 

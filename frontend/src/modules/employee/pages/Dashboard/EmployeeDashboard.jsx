@@ -10,6 +10,9 @@ import {
   CardTitle,
 } from "../../../../shared/ui/card";
 import employeeDashboardService from "../../../../services/employeeDashboardService";
+import { useNotifications } from "../../../../services/useEmployeeSelfService";
+import { usePermissions } from "../../../../core/hooks";
+import { MODULES } from "../../../../core/utils/rolePermissions";
 import PropTypes from "prop-types";
 import { format } from "date-fns";
 import {
@@ -24,18 +27,15 @@ import {
   Play,
   Timer,
   Calendar,
-  Users,
-  TrendingUp,
   Bell,
   Palmtree,
   CreditCard,
-  UserCheck,
   Activity,
   Target,
   Gift,
   AlertCircle,
 } from "lucide-react";
-import leaveService from "../../../../services/leaveService";
+import { leaveService } from "../../../../services";
 import useAttendanceSessionStore from "../../../../stores/useAttendanceSessionStore";
 
 
@@ -46,9 +46,20 @@ const EmployeeDashboard = () => {
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [attendanceSummary, setAttendanceSummary] = useState(null);
   const [todayActivities, setTodayActivities] = useState([]);
-  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Use notifications hook for live data
+  const {
+    notifications,
+    loading: notificationsLoading,
+    error: notificationsError,
+    getNotifications,
+    markAsRead,
+  } = useNotifications();
+
+  // Use permissions hook
+  const { can } = usePermissions();
 
   // Use shared attendance context
  const {
@@ -56,8 +67,6 @@ const EmployeeDashboard = () => {
    isLoading,
    clockIn,
    clockOut,
-   startBreak,
-   endBreak,
    getAttendanceStatus,
    fetchTodayRecord,
  } = useAttendanceSessionStore();
@@ -69,7 +78,6 @@ const EmployeeDashboard = () => {
         fetchDashboardData(),
         fetchLeaveBalance(),
         fetchAttendanceSummary(),
-        fetchNotifications(),
         fetchTodayRecord(), // Fetch attendance data
       ]);
       setLoading(false);
@@ -99,6 +107,19 @@ const EmployeeDashboard = () => {
     };
   }, [fetchTodayRecord]);
 
+  // Fetch notifications on component mount
+  useEffect(() => {
+    const loadNotifications = async () => {
+      try {
+        await getNotifications({ limit: 5 }); // Get latest 5 notifications
+      } catch (error) {
+        console.warn('Failed to load notifications:', error);
+      }
+    };
+    
+    loadNotifications();
+  }, [getNotifications]);
+
   // Update today activities when todayRecord changes
   useEffect(() => {
     if (todayRecord) {
@@ -116,40 +137,26 @@ const EmployeeDashboard = () => {
       if (res.success) {
         setDashboardData(res.data);
       } else {
-        // Set fallback data
+        console.warn('Dashboard API returned error:', res.message);
+        toast.warn("Some dashboard data may be limited");
+        // Set minimal fallback data only if API fails
         setDashboardData({
-          personalInfo: {
-            firstName: "Employee",
-            lastName: ""
-          },
+          personalInfo: { firstName: "Employee", lastName: "" },
           employeeId: "EMP-001",
-          jobInfo: {
-            jobTitle: "Employee"
-          },
-          stats: {
-            attendanceRate: 90,
-            leaveRequests: 2
-          }
+          jobInfo: { jobTitle: "Employee" },
+          stats: { attendanceRate: 0, leaveRequests: 0 }
         });
-        toast.warn("Using demo data - some features may be limited");
       }
     } catch (error) {
-      // Set fallback data on error
+      console.error('Dashboard API error:', error);
+      toast.error("Failed to load dashboard data");
+      // Set minimal fallback data only on error
       setDashboardData({
-        personalInfo: {
-          firstName: "Employee",
-          lastName: ""
-        },
+        personalInfo: { firstName: "Employee", lastName: "" },
         employeeId: "EMP-001",
-        jobInfo: {
-          jobTitle: "Employee"
-        },
-        stats: {
-          attendanceRate: 90,
-          leaveRequests: 2
-        }
+        jobInfo: { jobTitle: "Employee" },
+        stats: { attendanceRate: 0, leaveRequests: 0 }
       });
-      toast.warn("Using demo data - please check your connection");
     }
   };
 
@@ -250,17 +257,19 @@ const EmployeeDashboard = () => {
       if (res.success) {
         setLeaveBalance(res.data);
       } else {
-        // Set fallback data
+        console.warn('Leave balance API returned error:', res.message);
+        // Set empty data instead of fallback
         setLeaveBalance({
-          casualLeave: { remaining: 12 },
-          sickLeave: { remaining: 8 }
+          casualLeave: { remaining: 0 },
+          sickLeave: { remaining: 0 }
         });
       }
     } catch (error) {
-      // Set fallback data on error
+      console.error('Leave balance API error:', error);
+      // Set empty data instead of fallback
       setLeaveBalance({
-        casualLeave: { remaining: 12 },
-        sickLeave: { remaining: 8 }
+        casualLeave: { remaining: 0 },
+        sickLeave: { remaining: 0 }
       });
     }
   };
@@ -271,45 +280,66 @@ const EmployeeDashboard = () => {
       if (res.success) {
         setAttendanceSummary(res.data);
       } else {
-        // Set fallback data
+        console.warn('Attendance summary API returned error:', res.message);
+        // Set empty data instead of fallback
         setAttendanceSummary({
-          presentDays: 18,
-          absentDays: 2,
-          lateDays: 1,
-          totalHours: 132,
-          requiredHours: 160
+          presentDays: 0,
+          absentDays: 0,
+          lateDays: 0,
+          totalHours: 0,
+          requiredHours: 0
         });
       }
     } catch (error) {
-      // Set fallback data on error
+      console.error('Attendance summary API error:', error);
+      // Set empty data instead of fallback
       setAttendanceSummary({
-        presentDays: 18,
-        absentDays: 2,
-        lateDays: 1,
-        totalHours: 132,
-        requiredHours: 160
+        presentDays: 0,
+        absentDays: 0,
+        lateDays: 0,
+        totalHours: 0,
+        requiredHours: 0
       });
     }
   };
 
-  const fetchNotifications = async () => {
+  // Refresh all dashboard data
+  const refreshDashboard = async () => {
+    setLoading(true);
     try {
-      // Try to fetch real notifications from API
-      // For now, using fallback data
-      const fallbackNotifications = [
-        { icon: <Gift className="w-4 h-4 text-red-500" />, message: "Holiday on 26 Jan (Republic Day)" },
-        { icon: <DollarSign className="w-4 h-4 text-green-500" />, message: "Salary credited for Dec" },
-        { icon: <CheckCircle className="w-4 h-4 text-blue-500" />, message: "Leave request approved" },
-      ];
-      setNotifications(fallbackNotifications);
+      await Promise.all([
+        fetchDashboardData(),
+        fetchLeaveBalance(),
+        fetchAttendanceSummary(),
+        fetchTodayRecord(true),
+        getNotifications({ limit: 5 })
+      ]);
+      toast.success('Dashboard refreshed successfully');
     } catch (error) {
-      // Set fallback notifications on error
-      const fallbackNotifications = [
-        { icon: <Gift className="w-4 h-4 text-red-500" />, message: "Holiday on 26 Jan (Republic Day)" },
-        { icon: <DollarSign className="w-4 h-4 text-green-500" />, message: "Salary credited for Dec" },
-        { icon: <CheckCircle className="w-4 h-4 text-blue-500" />, message: "Leave request approved" },
-      ];
-      setNotifications(fallbackNotifications);
+      console.error('Error refreshing dashboard:', error);
+      toast.error('Failed to refresh some data');
+    } finally {
+      setLoading(false);
+    }
+  };
+  // Helper function to get notification icon based on type
+  const getNotificationIcon = (type) => {
+    switch (type?.toLowerCase()) {
+      case 'leave':
+        return <Palmtree className="w-4 h-4 text-green-500" />;
+      case 'salary':
+      case 'payroll':
+        return <DollarSign className="w-4 h-4 text-green-500" />;
+      case 'holiday':
+        return <Gift className="w-4 h-4 text-red-500" />;
+      case 'attendance':
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case 'approval':
+        return <CheckCircle className="w-4 h-4 text-blue-500" />;
+      case 'system':
+        return <Bell className="w-4 h-4 text-gray-500" />;
+      default:
+        return <Bell className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -378,7 +408,7 @@ const EmployeeDashboard = () => {
     dashboardData?.personalInfo?.lastName || ""
   }`.trim();
 
-  // Calculate attendance stats from real data
+  // Calculate attendance stats from real data with safe fallbacks
   const attendanceStats = {
     present: attendanceSummary?.presentDays || 0,
     absent: attendanceSummary?.absentDays || 0,
@@ -391,10 +421,10 @@ const EmployeeDashboard = () => {
     ? Math.round((attendanceStats.workedHours / attendanceStats.requiredHours) * 100)
     : 0;
 
-  // Real leave balance data
+  // Real leave balance data with safe fallbacks
   const leaveBalanceData = {
-    casual: leaveBalance?.casualLeave?.remaining || 0,
-    sick: leaveBalance?.sickLeave?.remaining || 0,
+    casual: leaveBalance?.casualLeave?.remaining || leaveBalance?.casual?.remaining || 0,
+    sick: leaveBalance?.sickLeave?.remaining || leaveBalance?.sick?.remaining || 0,
   };
 
 
@@ -433,30 +463,42 @@ const EmployeeDashboard = () => {
               </div>
 
               {/* Right side */}
-              <div className="text-center space-y-2">
+              <div className="flex items-center gap-4">
+                {/* Refresh button */}
                 <button
-                  onClick={isClockedIn ? handleClockOut : handleClockIn}
-                  disabled={isLoading}
-                  className={`px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 ${
-                    isClockedIn
-                      ? "bg-red-500 hover:bg-red-600"
-                      : "bg-green-500 hover:bg-green-600"
-                  } ${isLoading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                  onClick={refreshDashboard}
+                  disabled={loading}
+                  className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Refresh dashboard"
                 >
-                  {isLoading ? (
-                    <div className="flex items-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Processing...
-                    </div>
-                  ) : (
-                    <>
-                      {isClockedIn ? "Clock Out" : "Clock In"}
-                    </>
-                  )}
+                  <Activity className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
                 </button>
-                <div className="flex items-center gap-1 text-xs text-gray-500">
-                  <MapPin className="w-3 h-3" />
-                  Location: Office
+                
+                <div className="text-center space-y-2">
+                  <button
+                    onClick={isClockedIn ? handleClockOut : handleClockIn}
+                    disabled={isLoading}
+                    className={`px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 ${
+                      isClockedIn
+                        ? "bg-red-500 hover:bg-red-600"
+                        : "bg-green-500 hover:bg-green-600"
+                    } ${isLoading ? "opacity-50 cursor-not-allowed" : "hover:scale-105"}`}
+                  >
+                    {isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Processing...
+                      </div>
+                    ) : (
+                      <>
+                        {isClockedIn ? "Clock Out" : "Clock In"}
+                      </>
+                    )}
+                  </button>
+                  <div className="flex items-center gap-1 text-xs text-gray-500">
+                    <MapPin className="w-3 h-3" />
+                    Location: Office
+                  </div>
                 </div>
               </div>
             </div>
@@ -479,7 +521,7 @@ const EmployeeDashboard = () => {
                 <div>Late: <span className="font-bold">{attendanceStats.late}</span></div>
               </div>
             }
-            onClick={() => navigate("/attendance")}
+            onClick={() => navigate("/employee/attendance")}
           />
           
           <StatCard
@@ -495,7 +537,7 @@ const EmployeeDashboard = () => {
                 <div>Sick: <span className="font-bold">{leaveBalanceData.sick}</span></div>
               </div>
             }
-            onClick={() => navigate("/leave")}
+            onClick={() => navigate("/employee/leave")}
           />
           
           <StatCard
@@ -518,25 +560,25 @@ const EmployeeDashboard = () => {
                 <div className="text-xs text-gray-500">{workProgress}% completed</div>
               </div>
             }
-            onClick={() => navigate("/attendance")}
+            onClick={() => navigate("/employee/attendance")}
           />
           
           <StatCard
             title={
               <div className="flex items-center gap-2">
-                <DollarSign className="w-4 h-4 text-green-600" />
-                Latest Payslip
+                <CreditCard className="w-4 h-4 text-green-600" />
+                Bank Details
               </div>
             }
             content={
               <div className="space-y-2">
-                <div className="font-medium">{format(new Date(), "MMMM yyyy")}</div>
+                <div className="font-medium">Manage Details</div>
                 <button className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-sm font-medium hover:bg-blue-200 transition-colors">
                   View
                 </button>
               </div>
             }
-            onClick={() => navigate("/payslips")}
+            onClick={() => navigate("/employee/bank-details")}
           />
         </div>
 
@@ -595,7 +637,7 @@ const EmployeeDashboard = () => {
                   ) : (
                     <div className="text-center py-8 text-gray-500">
                       <Clock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                      <p>No activities recorded for today</p>
+                      <p className="text-sm text-gray-500">No activities recorded for today</p>
                       <p className="text-sm">Clock in to start tracking your day</p>
                     </div>
                   )}
@@ -613,23 +655,31 @@ const EmployeeDashboard = () => {
                   <QuickActionButton
                     icon={<FileText className="w-6 h-6" />}
                     label="Apply Leave"
-                    onClick={() => navigate("/leave")}
+                    onClick={() => navigate("/employee/leave")}
                   />
                   <QuickActionButton
                     icon={<BarChart3 className="w-6 h-6" />}
                     label="Attendance History"
-                    onClick={() => navigate("/attendance")}
+                    onClick={() => navigate("/employee/attendance")}
                   />
                   <QuickActionButton
-                    icon={<DollarSign className="w-6 h-6" />}
-                    label="My Payslips"
-                    onClick={() => navigate("/payslips")}
+                    icon={<CreditCard className="w-6 h-6" />}
+                    label="Bank Details"
+                    onClick={() => navigate("/employee/bank-details")}
                   />
                   <QuickActionButton
                     icon={<User className="w-6 h-6" />}
                     label="My Profile"
-                    onClick={() => navigate("/profile")}
+                    onClick={() => navigate("/employee/profile")}
                   />
+                  {/* Only show leads if user has permission */}
+                  {can.do(MODULES.LEAD.VIEW) && (
+                    <QuickActionButton
+                      icon={<Target className="w-6 h-6" />}
+                      label="My Leads"
+                      onClick={() => navigate("/employee/leads")}
+                    />
+                  )}
                   <QuickActionButton
                     icon={<AlertCircle className="w-6 h-6" />}
                     label="API Test"
@@ -652,21 +702,64 @@ const EmployeeDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {notifications.map((notification, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="mt-0.5">{notification.icon}</div>
-                      <span className="text-sm text-gray-700 flex-1">{notification.message}</span>
+                  {notificationsLoading ? (
+                    <div className="text-center py-4">
+                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-500">Loading notifications...</p>
                     </div>
-                  ))}
-                  <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
-                    View all →
-                  </button>
+                  ) : notificationsError ? (
+                    <div className="text-center py-4">
+                      <AlertCircle className="w-6 h-6 text-red-500 mx-auto mb-2" />
+                      <p className="text-sm text-red-600">Failed to load notifications</p>
+                    </div>
+                  ) : notifications && notifications.length > 0 ? (
+                    <>
+                      {notifications.slice(0, 5).map((notification, index) => (
+                        <div 
+                          key={notification.id || index} 
+                          className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                            notification.read ? 'bg-gray-50' : 'bg-blue-50 border border-blue-200'
+                          }`}
+                          onClick={() => !notification.read && markAsRead(notification.id)}
+                        >
+                          <div className="mt-0.5">
+                            {getNotificationIcon(notification.type)}
+                          </div>
+                          <div className="flex-1">
+                            <span className={`text-sm ${notification.read ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>
+                              {notification.message || notification.title}
+                            </span>
+                            {notification.createdAt && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                {format(new Date(notification.createdAt), 'MMM dd, hh:mm a')}
+                              </p>
+                            )}
+                          </div>
+                          {!notification.read && (
+                            <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                          )}
+                        </div>
+                      ))}
+                      <button 
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        onClick={() => navigate('/notifications')}
+                      >
+                        View all →
+                      </button>
+                    </>
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Bell className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm">No notifications</p>
+                      <p className="text-xs">You're all caught up!</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
 
             {/* 🟢 MINI CALENDAR */}
-            {/* <Card className="bg-white shadow-sm rounded-xl border-0">
+            <Card className="bg-white shadow-sm rounded-xl border-0">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Calendar className="w-5 h-5 text-purple-600" />
@@ -710,7 +803,7 @@ const EmployeeDashboard = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card> */}
+            </Card>
           </div>
         </div>
       </div>

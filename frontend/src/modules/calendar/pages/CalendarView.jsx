@@ -1,13 +1,13 @@
 import React from 'react';
 import UnifiedCalendarView from '../components/UnifiedCalendarView';
 
-const CalendarManagement = () => {
+const CalendarView = () => {
   return (
     <UnifiedCalendarView 
-      viewMode="list" 
-      showManagementFeatures={true} 
+      viewMode="calendar" 
+      showManagementFeatures={false} 
     />
   );
 };
 
-export default CalendarManagement;
+export default CalendarView;

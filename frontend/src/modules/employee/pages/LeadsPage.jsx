@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
 import { Button } from "../../../shared/ui/button";
 import { Badge } from "../../../shared/ui/badge";
-import { Input } from "../../../shared/ui/input";
 import { Textarea } from "../../../shared/ui/textarea";
 import { Icon, LoadingSpinner } from "../../../shared/components";
 import { useToast } from "../../../core/hooks/use-toast";
+import { usePermissions } from "../../../core/hooks";
+import { MODULES } from "../../../core/utils/rolePermissions";
+import useAuth from "../../../core/hooks/useAuth";
 
 const LeadsPage = () => {
   const [leads, setLeads] = useState([]);
@@ -14,12 +16,14 @@ const LeadsPage = () => {
   const [showAddNote, setShowAddNote] = useState(false);
   const [newNote, setNewNote] = useState("");
   const { toast } = useToast();
+  const { can } = usePermissions();
+  const { user } = useAuth();
 
-  useEffect(() => {
-    fetchMyLeads();
-  }, []);
+  // Check if user has permission to view leads
+  const canViewLeads = can.do(MODULES.LEAD.VIEW);
+  const canUpdateLeads = can.do(MODULES.LEAD.UPDATE);
 
-  const fetchMyLeads = async () => {
+  const fetchMyLeads = useCallback(async () => {
     try {
       setLoading(true);
       // TODO: Replace with actual API call
@@ -84,7 +88,38 @@ const LeadsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    if (canViewLeads) {
+      fetchMyLeads();
+    }
+  }, [canViewLeads, fetchMyLeads]);
+
+  // If user doesn't have permission, show access denied
+  if (!canViewLeads) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6 text-center">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Icon name="Lock" className="w-8 h-8 text-red-600" />
+            </div>
+            <h3 className="text-lg font-semibold text-red-900 mb-2">Access Denied</h3>
+            <p className="text-red-700 mb-4">
+              You don&apos;t have permission to view leads. This feature is available for HR and management roles only.
+            </p>
+            <p className="text-sm text-gray-600">
+              Current role: <span className="font-medium">{user?.role || 'Employee'}</span>
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              Contact your HR administrator if you need access to lead management features.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -323,6 +358,7 @@ const LeadsPage = () => {
                         onChange={(e) => updateLeadStatus(lead.id, e.target.value)}
                         className="text-sm border rounded px-2 py-1"
                         onClick={(e) => e.stopPropagation()}
+                        disabled={!canUpdateLeads}
                       >
                         <option value="new">New</option>
                         <option value="contacted">Contacted</option>
@@ -333,17 +369,19 @@ const LeadsPage = () => {
                         <option value="closed_lost">Closed Lost</option>
                       </select>
                       
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedLead(lead);
-                          setShowAddNote(true);
-                        }}
-                      >
-                        <Icon name="Plus" className="w-4 h-4" />
-                      </Button>
+                      {canUpdateLeads && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedLead(lead);
+                            setShowAddNote(true);
+                          }}
+                        >
+                          <Icon name="Plus" className="w-4 h-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
 
@@ -387,7 +425,7 @@ const LeadsPage = () => {
                           <p className="text-gray-500 text-sm mb-3">No follow-up notes yet</p>
                         )}
 
-                        {showAddNote && selectedLead?.id === lead.id && (
+                        {showAddNote && selectedLead?.id === lead.id && canUpdateLeads && (
                           <div className="space-y-2">
                             <Textarea
                               placeholder="Add a follow-up note..."

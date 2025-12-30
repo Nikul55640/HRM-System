@@ -84,12 +84,12 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
   };
 
   const getFilteredEmployees = () => {
-    const assignedIds = assignedEmployees.map(e => e.id || e._id);
+    const assignedIds = assignedEmployees.map(e => e.employee?.id || e.employeeId);
     return availableEmployees.filter(emp => {
-      const isAssigned = assignedIds.includes(emp.id || emp._id);
+      const isAssigned = assignedIds.includes(emp.id);
       const matchesSearch = employeeSearch === '' || 
-        `${emp.personalInfo?.firstName} ${emp.personalInfo?.lastName}`.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-        emp.contactInfo?.email?.toLowerCase().includes(employeeSearch.toLowerCase());
+        `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+        emp.email?.toLowerCase().includes(employeeSearch.toLowerCase());
       return !isAssigned && matchesSearch;
     });
   };
@@ -153,9 +153,9 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">
-                      {emp.personalInfo?.firstName} {emp.personalInfo?.lastName}
+                      {emp.firstName} {emp.lastName}
                     </p>
-                    <p className="text-xs text-gray-600 truncate">{emp.contactInfo?.email}</p>
+                    <p className="text-xs text-gray-600 truncate">{emp.email}</p>
                     <p className="text-xs text-gray-500">ID: {emp.employeeId}</p>
                   </div>
                   <Button
@@ -186,22 +186,23 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
             <p className="text-sm text-gray-500 text-center py-4">No employees assigned yet</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
-              {assignedEmployees.map((emp) => (
+              {assignedEmployees.map((assignment) => (
                 <div
-                  key={emp.id || emp._id}
+                  key={assignment.id}
                   className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">
-                      {emp.personalInfo?.firstName} {emp.personalInfo?.lastName}
+                      {assignment.employee?.firstName} {assignment.employee?.lastName}
                     </p>
-                    <p className="text-xs text-gray-600 truncate">{emp.contactInfo?.email}</p>
-                    <p className="text-xs text-gray-500">ID: {emp.employeeId}</p>
+                    <p className="text-xs text-gray-600 truncate">{assignment.employee?.email}</p>
+                    <p className="text-xs text-gray-500">ID: {assignment.employee?.employeeId}</p>
+                    <p className="text-xs text-gray-400">Effective: {assignment.effectiveDate}</p>
                   </div>
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleRemoveEmployee(emp.assignmentId || emp.id)}
+                    onClick={() => handleRemoveEmployee(assignment.id)}
                     disabled={loading}
                     className="text-red-600 hover:text-red-700 hover:bg-red-50 ml-2 flex-shrink-0"
                   >

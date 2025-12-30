@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
+import PropTypes from "prop-types";
 import { Button } from "../../shared/ui/button";
 import { Icon } from "../../shared/components";
 import useAuth from "../hooks/useAuth";
@@ -28,7 +29,7 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
     );
   };
 
-  // Navigation structure based on 8 CORE FEATURES with role-based permissions
+  // Navigation structure based on actual routes and permissions
   const allNavItems = [
     // ===================================================
     // GENERAL SECTION - Always visible
@@ -42,22 +43,20 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           name: "Dashboard",
           path: "/dashboard",
           icon: "LayoutDashboard",
-          showIf: () => true, // Everyone can see dashboard
+          showIf: () => true,
         },
       ],
     },
 
     // ===================================================
     // EMPLOYEE SELF-SERVICE SECTION
-    // Features: 1, 2, 3, 5, 6, 7 (Employee access only)
     // ===================================================
     {
       section: "My Self Service",
       icon: "User",
       collapsible: true,
-      showIf: () => user?.role === "Employee", // Only show for employees
+      showIf: () => user?.role === "Employee",
       items: [
-        // FEATURE 1: Profile & Bank Details Management
         {
           name: "My Profile",
           path: "/employee/profile",
@@ -70,42 +69,32 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           icon: "Banknote",
           showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
         },
-
-        // FEATURE 2: Attendance Management
         {
           name: "My Attendance",
           path: "/employee/attendance",
           icon: "Clock",
           showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN),
         },
-
-        // FEATURE 3: Leave Management
         {
           name: "My Leave",
           path: "/employee/leave",
           icon: "CalendarDays",
           showIf: () => can.do(MODULES.LEAVE.VIEW_OWN),
         },
-
-        // FEATURE 5: Lead Management (Employee view)
         {
           name: "My Leads",
           path: "/employee/leads",
           icon: "Target",
           showIf: () => can.do(MODULES.LEAD.VIEW),
         },
-
-        // FEATURE 6: Shift Management
         {
           name: "My Shifts",
           path: "/employee/shifts",
           icon: "Calendar",
           showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN),
         },
-
-        // FEATURE 7: Calendar & Events
         {
-          name: "Calendar & Events",
+          name: "Calendar",
           path: "/employee/calendar",
           icon: "CalendarRange",
           showIf: () => can.do(MODULES.CALENDAR.VIEW),
@@ -115,7 +104,6 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
 
     // ===================================================
     // HR ADMINISTRATION SECTION
-    // Features: 1, 2, 3, 4, 5, 6, 7 (HR access)
     // ===================================================
     {
       section: "HR Administration",
@@ -129,7 +117,7 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           MODULES.LEAVE.VIEW_ALL,
         ]),
       items: [
-        // FEATURE 4: Employee Management
+        // Employee Management
         {
           name: "Employees",
           path: "/admin/employees",
@@ -140,79 +128,47 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           name: "Departments",
           path: "/admin/departments",
           icon: "Building2",
-          showIf: () =>
-            can.doAny([MODULES.DEPARTMENT.VIEW, MODULES.DEPARTMENT.CREATE]),
+          showIf: () => can.doAny([MODULES.DEPARTMENT.VIEW, MODULES.DEPARTMENT.CREATE]),
+        },
+        {
+          name: "Designations",
+          path: "/hr/designations",
+          icon: "Award",
+          showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.EDIT_ANY]),
         },
 
-        // FEATURE 2: Attendance Management
+        // Attendance Management
         {
           name: "Attendance Management",
           path: "/admin/attendance",
           icon: "Clock4",
-          showIf: () =>
-            can.doAny([
-              MODULES.ATTENDANCE.VIEW_ALL,
-              MODULES.ATTENDANCE.EDIT_ANY,
-            ]),
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
         },
         {
           name: "Attendance Corrections",
           path: "/admin/attendance/corrections",
           icon: "ClipboardEdit",
-          showIf: () =>
-            can.doAny([
-              MODULES.ATTENDANCE.VIEW_ALL,
-              MODULES.ATTENDANCE.EDIT_ANY,
-            ]),
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
         },
         {
           name: "Live Attendance",
           path: "/admin/attendance/live",
           icon: "Activity",
-          showIf: () =>
-            can.doAny([
-              MODULES.ATTENDANCE.VIEW_ALL,
-              MODULES.ATTENDANCE.EDIT_ANY,
-            ]),
-        },
-        {
-          name: "Attendance Summary",
-          path: "/admin/attendance/summary",
-          icon: "BarChart3",
-          showIf: () =>
-            can.doAny([
-              MODULES.ATTENDANCE.VIEW_ALL,
-              MODULES.ATTENDANCE.EDIT_ANY,
-            ]),
-        },
-        {
-          name: "Attendance Dashboard",
-          path: "/admin/attendance/dashboard",
-          icon: "LayoutDashboard",
-          showIf: () =>
-            can.doAny([
-              MODULES.ATTENDANCE.VIEW_ALL,
-              MODULES.ATTENDANCE.EDIT_ANY,
-            ]),
-        },
-        {
-          name: "Attendance Insights",
-          path: "/admin/attendance/insights",
-          icon: "TrendingUp",
-          showIf: () =>
-            can.doAny([
-              MODULES.ATTENDANCE.VIEW_ALL,
-              MODULES.ATTENDANCE.EDIT_ANY,
-            ]),
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
         },
 
-        // FEATURE 3: Leave Management
+        // Leave Management
         {
-          name: "Leave Requests",
+          name: "Leave Management",
           path: "/admin/leave",
           icon: "ClipboardCheck",
-          showIf: () =>
-            can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
+          showIf: () => can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
+        },
+        {
+          name: "Leave Requests",
+          path: "/admin/leave-requests",
+          icon: "FileText",
+          showIf: () => can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
         },
         {
           name: "Leave Balances",
@@ -220,24 +176,16 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           icon: "Scale",
           showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCE),
         },
-        {
-          name: "Leave Approvals",
-          path: "/admin/leave/approvals",
-          icon: "CheckCircle2",
-          showIf: () =>
-            can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
-        },
 
-        // FEATURE 5: Lead Management
+        // Lead Management
         {
           name: "Lead Management",
           path: "/admin/leads",
           icon: "Target",
-          showIf: () =>
-            can.doAny([MODULES.LEAD.CREATE, MODULES.LEAD.MANAGE_ALL]),
+          showIf: () => can.doAny([MODULES.LEAD.CREATE, MODULES.LEAD.MANAGE_ALL]),
         },
 
-        // FEATURE 6: Shift Management
+        // Shift Management
         {
           name: "Shift Management",
           path: "/admin/shifts",
@@ -245,19 +193,7 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           showIf: () => can.do(MODULES.ATTENDANCE.MANAGE_SHIFTS),
         },
 
-        // FEATURE 7: Calendar, Events & Holidays
-        {
-          name: "Events",
-          path: "/admin/events",
-          icon: "Calendar",
-          showIf: () => can.do(MODULES.CALENDAR.MANAGE),
-        },
-        {
-          name: "Holidays",
-          path: "/admin/holidays",
-          icon: "PartyPopper",
-          showIf: () => can.do(MODULES.LEAVE.MANAGE_POLICIES),
-        },
+        // Calendar Management
         {
           name: "Calendar Management",
           path: "/admin/calendar/management",
@@ -268,8 +204,37 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
     },
 
     // ===================================================
+    // CALENDAR VIEWS SECTION
+    // ===================================================
+    {
+      section: "Calendar Views",
+      icon: "Calendar",
+      collapsible: true,
+      showIf: () => can.do(MODULES.CALENDAR.VIEW),
+      items: [
+        {
+          name: "Calendar Overview",
+          path: "/admin/calendar",
+          icon: "CalendarRange",
+          showIf: () => can.do(MODULES.CALENDAR.VIEW),
+        },
+        {
+          name: "Daily View",
+          path: "/employee/calendar/daily",
+          icon: "CalendarDays",
+          showIf: () => can.do(MODULES.CALENDAR.VIEW),
+        },
+        {
+          name: "Monthly View",
+          path: "/employee/calendar/monthly",
+          icon: "Calendar",
+          showIf: () => can.do(MODULES.CALENDAR.VIEW),
+        },
+      ],
+    },
+
+    // ===================================================
     // SYSTEM ADMINISTRATION SECTION
-    // Features: 4, 8 + System Config (Super Admin only)
     // ===================================================
     {
       section: "System Administration",
@@ -283,28 +248,41 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           MODULES.SYSTEM.VIEW_AUDIT_LOGS,
         ]),
       items: [
-        // FEATURE 4: Employee Management (System level)
         {
           name: "User Management",
           path: "/admin/users",
           icon: "UserCog",
           showIf: () => can.do(MODULES.USER.VIEW),
         },
-
-        // System Configuration
         {
           name: "System Policies",
           path: "/admin/system-policies",
           icon: "Settings",
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
         },
-
-        // FEATURE 8: Audit Log Management
         {
           name: "Audit Logs",
           path: "/admin/audit-logs",
           icon: "ListChecks",
           showIf: () => can.do(MODULES.SYSTEM.VIEW_AUDIT_LOGS),
+        },
+      ],
+    },
+
+    // ===================================================
+    // DEVELOPMENT TOOLS SECTION
+    // ===================================================
+    {
+      section: "Development Tools",
+      icon: "Wrench",
+      collapsible: true,
+      showIf: () => process.env.NODE_ENV === 'development' || user?.role === "SuperAdmin",
+      items: [
+        {
+          name: "API Test Runner",
+          path: "/api-test",
+          icon: "TestTube",
+          showIf: () => true,
         },
       ],
     },
@@ -347,6 +325,7 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
     setIsSidebarExpanded(false);
     setLayoutSidebarExpanded(false);
   };
+  
   const handleNavClick = () => {
     setIsSidebarExpanded(false);
     setLayoutSidebarExpanded(false);
@@ -356,20 +335,20 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
     <aside
       style={{ width: isSidebarExpanded ? 250 : 70 }}
       className="
-    bg-white
-    border-r
-    border-gray-200
-    flex
-    flex-col
-    transition-all
-    duration-300
-    fixed
-    top-0
-    left-0
-    h-screen
-    z-40
-    overflow-hidden
-  "
+        bg-white
+        border-r
+        border-gray-200
+        flex
+        flex-col
+        transition-all
+        duration-300
+        fixed
+        top-0
+        left-0
+        h-screen
+        z-40
+        overflow-hidden
+      "
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
@@ -494,17 +473,22 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           ))}
         </nav>
       </div>
+
       {/* FOOTER */}
       {isSidebarExpanded && (
         <div className="p-4 border-t border-gray-200">
           <div className="text-xs text-gray-500 text-center">
             <div className="font-medium text-gray-700">HRM System v1.0</div>
-            <div className="mt-1">© 2026</div>
+            <div className="mt-1">© 2025</div>
           </div>
         </div>
       )}
     </aside>
   );
+};
+
+Sidebar.propTypes = {
+  setLayoutSidebarExpanded: PropTypes.func.isRequired,
 };
 
 export default Sidebar;

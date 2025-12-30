@@ -142,4 +142,38 @@ Employee.prototype.toPublicJSON = function () {
   return values;
 };
 
+// Transform to frontend expected structure
+Employee.prototype.toFrontendJSON = function () {
+  const values = this.get();
+  return {
+    id: values.id,
+    employeeId: values.employeeId,
+    personalInfo: {
+      firstName: values.firstName,
+      lastName: values.lastName,
+      dateOfBirth: values.dateOfBirth,
+      gender: values.gender,
+      profilePhoto: values.profilePicture
+    },
+    contactInfo: {
+      email: values.email,
+      phone: values.phone,
+      address: values.address
+    },
+    jobInfo: {
+      designation: values.designation,
+      department: values.department,
+      joiningDate: values.joiningDate,
+      employmentType: values.employmentType,
+      reportingManager: values.reportingManager
+    },
+    bankDetails: values.bankDetails,
+    emergencyContact: values.emergencyContact,
+    status: values.status,
+    isActive: values.isActive,
+    createdAt: values.createdAt,
+    updatedAt: values.updatedAt
+  };
+};
+
 export default Employee;

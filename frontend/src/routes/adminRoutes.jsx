@@ -6,17 +6,15 @@ const AuditLogsPage = lazy(() =>
 );
 
 // Feature 2: Attendance Management (Admin)
-const AttendanceAdminList = lazy(() => import("../modules/attendance/admin/AttendanceAdminList"));
 const AttendanceCorrections = lazy(() => import("../modules/attendance/admin/AttendanceCorrections"));
 const LiveAttendanceDashboard = lazy(() => import("../modules/attendance/admin/LiveAttendanceDashboard"));
-const AttendanceSummaryPage = lazy(() => import("../modules/attendance/pages/AttendanceSummaryPage"));
-const AttendanceDashboard = lazy(() => import("../modules/attendance/employee/AttendanceDashboard"));
-const AttendanceInsights = lazy(() => import("../modules/attendance/employee/AttendanceInsights"));
+const ManageAttendance = lazy(() => import("../modules/attendance/components/ManageAttendance"));
+
+
 
 // Feature 3: Leave Management (Admin)
 const LeaveManagement = lazy(() => import("../modules/leave/hr/LeaveManagement"));
 const LeaveBalancesPage = lazy(() => import("../modules/leave/Admin/LeaveBalancesPage"));
-const HRLeaveApprovals = lazy(() => import("../modules/leave/hr/HRLeaveApprovals"));
 
 // Feature 4: Employee Management (Admin)
 const EmployeeList = lazy(() => import("../modules/employees/pages/EmployeeList"));
@@ -27,11 +25,9 @@ const EmployeeForm = lazy(() => import("../modules/employees/pages/EmployeeForm"
 const LeadManagement = lazy(() => import("../modules/leads/pages/LeadManagement"));
 
 // Feature 6: Shift Management (Admin)
-const ShiftManagement = lazy(() => import("../modules/attendance/admin/ShiftManagement"));
+const ShiftManagement = lazy(() => import("../modules/Shift/admin/ShiftManagement"));
 
 // Feature 7: Calendar & Events (Admin)
-const HolidaysPage = lazy(() => import("../modules/admin/pages/Holidays/HolidaysPage"));
-const EventsPage = lazy(() => import("../modules/admin/pages/Events/EventsPage"));
 const CalendarManagement = lazy(() => import("../modules/calendar/admin/CalendarManagement"))
 
 // System Configuration
@@ -45,18 +41,16 @@ export const adminRoutes = [
   { path: "admin/employees/new", element: <EmployeeForm />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   
   // Feature 2: Attendance Management
-  { path: "admin/attendance", element: <AttendanceAdminList />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "admin/attendance", element: <ManageAttendance />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "admin/attendance/manage", element: <ManageAttendance />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/attendance/corrections", element: <AttendanceCorrections />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/attendance/live", element: <LiveAttendanceDashboard />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/attendance/summary", element: <AttendanceSummaryPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/attendance/dashboard", element: <AttendanceDashboard />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/attendance/insights", element: <AttendanceInsights />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  
+
+ 
   // Feature 3: Leave Management
   { path: "admin/leave", element: <LeaveManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/leave-balances", element: <LeaveBalancesPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/leave/approvals", element: <HRLeaveApprovals />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  
+
   // Feature 5: Lead Management
   { path: "admin/leads", element: <LeadManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   
@@ -64,8 +58,6 @@ export const adminRoutes = [
   { path: "admin/shifts", element: <ShiftManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   
   // Feature 7: Calendar & Events
-  { path: "admin/holidays", element: <HolidaysPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/events", element: <EventsPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/calendar/management", element: <CalendarManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   
   // System Administration

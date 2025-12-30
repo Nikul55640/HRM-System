@@ -40,7 +40,7 @@ const EmployeeShiftController = {
           {
             model: Employee,
             as: 'employee',
-            attributes: ['id', 'employeeId', 'personalInfo']
+            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email', 'designation', 'department']
           },
           {
             model: Shift,
@@ -216,7 +216,7 @@ const EmployeeShiftController = {
           {
             model: Employee,
             as: 'employee',
-            attributes: ['id', 'employeeId', 'personalInfo']
+            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email', 'designation', 'department']
           },
           {
             model: Shift,
@@ -285,7 +285,7 @@ const EmployeeShiftController = {
           {
             model: Employee,
             as: 'employee',
-            attributes: ['id', 'employeeId', 'personalInfo']
+            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email', 'designation', 'department']
           },
           {
             model: Shift,

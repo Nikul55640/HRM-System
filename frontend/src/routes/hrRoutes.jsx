@@ -3,8 +3,8 @@ import { lazy } from "react";
 const LeaveManagement = lazy(() =>
   import("../modules/leave/hr/LeaveManagement")
 );
-const AttendanceAdminList = lazy(() =>
-  import("../modules/attendance/admin/AttendanceAdminList.jsx")
+const ManageAttendance = lazy(() =>
+  import("../modules/attendance/components/ManageAttendance")
 );
 
 const DesignationsPage = lazy(() =>
@@ -14,7 +14,7 @@ const DesignationsPage = lazy(() =>
 export const hrRoutes = [
   {
     path: "admin/attendance",
-    element: <AttendanceAdminList />,
+    element: <ManageAttendance />,
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
 

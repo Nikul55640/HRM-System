@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useAttendance } from "../../../services/useEmployeeSelfService";
 import AttendanceSummary from "./AttendanceSummary";
-import AttendanceCalendar from "../calendar/AttendanceCalendar";
+import AttendanceLog from "./AttendanceLog";
 import EnhancedClockInOut from "./EnhancedClockInOut";
 import SessionHistoryView from "./SessionHistoryView";
+import AttendanceStatsWidget from "./AttendanceStatsWidget";
 import { Download } from "lucide-react";
 import { toast } from "react-toastify";
 import {
-  getCurrentFinancialYear,
   getMonthName,
   downloadBlob,
 } from "../../ess/utils/essHelpers";
@@ -27,8 +27,17 @@ const AttendancePage = () => {
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   useEffect(() => {
-    getAttendanceRecords({ month: selectedMonth, year: selectedYear });
-    getAttendanceSummary(selectedMonth, selectedYear);
+    const fetchData = async () => {
+      try {
+        await getAttendanceRecords({ month: selectedMonth, year: selectedYear });
+        await getAttendanceSummary(selectedMonth, selectedYear);
+      } catch (error) {
+        // Log error for debugging
+        console.warn('Error fetching attendance data:', error);
+      }
+    };
+    
+    fetchData();
   }, [getAttendanceRecords, getAttendanceSummary, selectedMonth, selectedYear]);
 
   const handleExport = async () => {
@@ -47,7 +56,8 @@ const AttendancePage = () => {
         throw new Error(result.payload || "Export failed");
       }
     } catch (error) {
-      console.error("Export error:", error);
+      // Log error for debugging
+      console.warn('Export error:', error);
       toast.error("Failed to export attendance report");
     }
   };
@@ -121,13 +131,17 @@ const AttendancePage = () => {
         <EnhancedClockInOut />
 
         {/* Attendance Summary */}
-        <AttendanceSummary summary={attendanceSummary} />
-
+        <AttendanceSummary 
+          summary={attendanceSummary} 
+          period={`${getMonthName(selectedMonth)} ${selectedYear}`}
+        />
+        <AttendanceStatsWidget 
+          summary={attendanceSummary} 
+        />
         {/* Session History with Filters */}
         <SessionHistoryView />
-
         {/* Calendar View */}
-        <AttendanceCalendar records={attendanceRecords} />
+        <AttendanceLog records={attendanceRecords} />
       </div>
     </div>
   );

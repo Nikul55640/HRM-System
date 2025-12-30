@@ -10,8 +10,6 @@ import { Calendar } from '../../../shared/ui/calendar';
 import { CalendarIcon, Clock, Loader2, X } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { formatDate } from '../../../lib/date-utils.js';
-import useAttendanceStore from '../../../stores/useAttendanceStore';
-import useEmployeeStore from '../../../stores/useEmployeeStore';
 
 const statusOptions = [
   { value: 'present', label: 'Present' },
@@ -22,9 +20,6 @@ const statusOptions = [
 ];
 
 const AttendanceForm = ({ record, onClose, onSubmit }) => {
-  const { updateAttendanceRecord, loading: attendanceLoading } = useAttendanceStore();
-  const { employees, fetchEmployees } = useEmployeeStore();
-  
   const [loading, setLoading] = useState(false);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [employeeResults, setEmployeeResults] = useState([]);
@@ -121,7 +116,8 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
       
       await onSubmit(formattedData);
     } catch (error) {
-      
+      // Handle error appropriately
+      alert('Failed to save record');
     } finally {
       setLoading(false);
     }

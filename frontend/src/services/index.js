@@ -2,9 +2,10 @@
 export { default as api } from "./api";
 
 // Core services (shared across modules)
-export { default as configService } from "../core/services/configService";
-export { default as departmentService } from "../core/services/departmentService";
+export { default as configService } from "./configService";
+export { default as departmentService } from "./departmentService";
 export { default as leaveService } from "./leaveService";
+export { default as adminLeaveService } from "./adminLeaveService";
 
 // Module-specific services
 export { default as authService } from "./authService";

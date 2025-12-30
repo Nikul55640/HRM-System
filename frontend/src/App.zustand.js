@@ -19,7 +19,7 @@ import EmployeeList from './modules/employees/pages/EmployeeList';
 import EmployeeForm from './modules/employees/pages/EmployeeForm';
 import DepartmentSection from './modules/organization/components/DepartmentSection';
 import LeaveManagement from './modules/leave/hr/LeaveManagement';
-import AttendanceAdminList from './modules/attendance/admin/AttendanceAdminList';
+import ManageAttendance from './modules/attendance/components/ManageAttendance';
 
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -154,7 +154,7 @@ function App() {
               element={
                 <ProtectedRoute>
                   <RoleGate allowedRoles={['SuperAdmin', 'HR Administrator', 'HR Manager']}>
-                    <AttendanceAdminList />
+                    <ManageAttendance />
                   </RoleGate>
                 </ProtectedRoute>
               }

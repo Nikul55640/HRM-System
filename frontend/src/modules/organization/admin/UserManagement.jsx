@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
 import userService from '../../../services/userService';
-import departmentService from '../../../core/services/departmentService';
+import departmentService from '../../../services/departmentService';
 import { LoadingSpinner } from '../../../shared/components';
 import UserModal from '../../../shared/ui/UserModal';
 

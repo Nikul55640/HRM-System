@@ -87,7 +87,7 @@ const getMonthlyCalendarData = async (req, res) => {
       if (isManager) {
         // Managers can see their team's leaves
         const teamEmployees = await Employee.findAll({
-          where: { 'jobInfo.managerId': req.user.id },
+          where: { reportingManager: req.user.id },
           attributes: ['id']
         });
         const teamIds = teamEmployees.map(emp => emp.id);
@@ -109,7 +109,7 @@ const getMonthlyCalendarData = async (req, res) => {
       include: [{
         model: Employee,
         as: 'employee',
-        attributes: ['id', 'employeeId', 'personalInfo', 'jobInfo']
+        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department']
       }],
       order: [['startDate', 'ASC']]
     });
@@ -117,9 +117,9 @@ const getMonthlyCalendarData = async (req, res) => {
     calendarData.leaves = leaves.map(leave => ({
       id: leave.id,
       employeeId: leave.employeeId,
-      employeeName: `${leave.employee?.personalInfo?.firstName || ''} ${leave.employee?.personalInfo?.lastName || ''}`.trim(),
+      employeeName: `${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''}`.trim(),
       employeeCode: leave.employee?.employeeId,
-      department: leave.employee?.jobInfo?.departmentName || 'N/A',
+      department: leave.employee?.department || 'N/A',
       leaveType: leave.leaveType,
       startDate: leave.startDate,
       endDate: leave.endDate,
@@ -133,24 +133,24 @@ const getMonthlyCalendarData = async (req, res) => {
     // 3. Get Birthdays and Anniversaries
     const employeeFilters = { status: 'Active' };
     if (departmentId) {
-      employeeFilters['jobInfo.departmentId'] = departmentId;
+      employeeFilters.department = departmentId;
     }
 
     const employees = await Employee.findAll({
       where: employeeFilters,
-      attributes: ['id', 'employeeId', 'personalInfo', 'jobInfo']
+      attributes: ['id', 'employeeId', 'firstName', 'lastName', 'dateOfBirth', 'joiningDate', 'department']
     });
 
     employees.forEach(employee => {
       // Birthdays
-      if (employee.personalInfo?.dateOfBirth) {
-        const dob = new Date(employee.personalInfo.dateOfBirth);
+      if (employee.dateOfBirth) {
+        const dob = new Date(employee.dateOfBirth);
         if (dob.getMonth() === currentMonth - 1) {
           const birthdayThisYear = new Date(currentYear, dob.getMonth(), dob.getDate());
           calendarData.birthdays.push({
             id: `birthday-${employee.id}`,
             employeeId: employee.id,
-            employeeName: `${employee.personalInfo.firstName || ''} ${employee.personalInfo.lastName || ''}`.trim(),
+            employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
             employeeCode: employee.employeeId,
             date: birthdayThisYear,
             age: currentYear - dob.getFullYear()
@@ -159,15 +159,15 @@ const getMonthlyCalendarData = async (req, res) => {
       }
 
       // Work Anniversaries
-      if (employee.jobInfo?.joiningDate) {
-        const joinDate = new Date(employee.jobInfo.joiningDate);
+      if (employee.joiningDate) {
+        const joinDate = new Date(employee.joiningDate);
         if (joinDate.getMonth() === currentMonth - 1 && joinDate.getFullYear() < currentYear) {
           const anniversaryThisYear = new Date(currentYear, joinDate.getMonth(), joinDate.getDate());
           const years = currentYear - joinDate.getFullYear();
           calendarData.anniversaries.push({
             id: `anniversary-${employee.id}`,
             employeeId: employee.id,
-            employeeName: `${employee.personalInfo.firstName || ''} ${employee.personalInfo.lastName || ''}`.trim(),
+            employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
             employeeCode: employee.employeeId,
             date: anniversaryThisYear,
             years: years
@@ -185,7 +185,7 @@ const getMonthlyCalendarData = async (req, res) => {
       if (!isHROrAdmin) {
         if (isManager) {
           const teamEmployees = await Employee.findAll({
-            where: { 'jobInfo.managerId': req.user.id },
+            where: { reportingManager: req.user.id },
             attributes: ['id']
           });
           const teamIds = teamEmployees.map(emp => emp.id);
@@ -204,7 +204,7 @@ const getMonthlyCalendarData = async (req, res) => {
         include: [{
           model: Employee,
           as: 'employee',
-          attributes: ['id', 'employeeId', 'personalInfo']
+          attributes: ['id', 'employeeId', 'firstName', 'lastName']
         }],
         order: [['date', 'ASC']]
       });
@@ -212,7 +212,7 @@ const getMonthlyCalendarData = async (req, res) => {
       calendarData.attendance = attendance.map(record => ({
         id: record.id,
         employeeId: record.employeeId,
-        employeeName: `${record.employee?.personalInfo?.firstName || ''} ${record.employee?.personalInfo?.lastName || ''}`.trim(),
+        employeeName: `${record.employee?.firstName || ''} ${record.employee?.lastName || ''}`.trim(),
         employeeCode: record.employee?.employeeId,
         date: record.date,
         checkIn: record.checkIn,
@@ -336,7 +336,7 @@ const getDailyCalendarData = async (req, res) => {
     if (!isHROrAdmin) {
       if (isManager) {
         const teamEmployees = await Employee.findAll({
-          where: { 'jobInfo.managerId': req.user.id },
+          where: { reportingManager: req.user.id },
           attributes: ['id']
         });
         const teamIds = teamEmployees.map(emp => emp.id);
@@ -356,14 +356,14 @@ const getDailyCalendarData = async (req, res) => {
       include: [{
         model: Employee,
         as: 'employee',
-        attributes: ['id', 'employeeId', 'personalInfo']
+        attributes: ['id', 'employeeId', 'firstName', 'lastName']
       }]
     });
 
     dailyData.leaves = leaves.map(leave => ({
       id: leave.id,
       employeeId: leave.employeeId,
-      employeeName: `${leave.employee?.personalInfo?.firstName || ''} ${leave.employee?.personalInfo?.lastName || ''}`.trim(),
+      employeeName: `${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''}`.trim(),
       employeeCode: leave.employee?.employeeId,
       leaveType: leave.leaveType,
       isHalfDay: leave.isHalfDay,
@@ -380,7 +380,7 @@ const getDailyCalendarData = async (req, res) => {
       if (!isHROrAdmin) {
         if (isManager) {
           const teamEmployees = await Employee.findAll({
-            where: { 'jobInfo.managerId': req.user.id },
+            where: { reportingManager: req.user.id },
             attributes: ['id']
           });
           const teamIds = teamEmployees.map(emp => emp.id);
@@ -399,14 +399,14 @@ const getDailyCalendarData = async (req, res) => {
         include: [{
           model: Employee,
           as: 'employee',
-          attributes: ['id', 'employeeId', 'personalInfo']
+          attributes: ['id', 'employeeId', 'firstName', 'lastName']
         }]
       });
 
       dailyData.attendance = attendance.map(record => ({
         id: record.id,
         employeeId: record.employeeId,
-        employeeName: `${record.employee?.personalInfo?.firstName || ''} ${record.employee?.personalInfo?.lastName || ''}`.trim(),
+        employeeName: `${record.employee?.firstName || ''} ${record.employee?.lastName || ''}`.trim(),
         employeeCode: record.employee?.employeeId,
         checkIn: record.checkIn,
         checkOut: record.checkOut,

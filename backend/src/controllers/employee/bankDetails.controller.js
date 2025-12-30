@@ -17,33 +17,80 @@ const maskAccountNumber = (accountNumber) => {
  */
 const getBankDetails = async (req, res) => {
   try {
-    const { employeeId } = req.user;
+    const { employeeId, role } = req.user;
 
+    console.log('🏦 [BANK DETAILS] Full req.user:', req.user);
     console.log('🏦 [BANK DETAILS] Fetching for employeeId:', employeeId);
+    console.log('🏦 [BANK DETAILS] User role:', role);
+
+    // Special case for SuperAdmin who might not have an employeeId
+    if (!employeeId) {
+      if (role === 'SuperAdmin') {
+        return res.status(200).json({
+          success: true,
+          message: 'SuperAdmin users do not have employee records or bank details',
+          data: {
+            accountHolderName: "",
+            accountNumber: "",
+            maskedAccountNumber: "",
+            ifscCode: "",
+            bankName: "",
+            branchName: "",
+            accountType: "savings",
+            isVerified: false,
+          }
+        });
+      }
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Employee ID not found in user profile. Please contact HR to link your account.',
+      });
+    }
 
     const employee = await Employee.findByPk(employeeId);
 
     console.log('🏦 [BANK DETAILS] Employee found:', !!employee);
     console.log('🏦 [BANK DETAILS] Bank details exist:', !!employee?.bankDetails);
+    console.log('🏦 [BANK DETAILS] Bank details content:', employee?.bankDetails);
 
-    if (!employee || !employee.bankDetails || Object.keys(employee.bankDetails).length === 0) {
+    if (!employee) {
       return res.status(404).json({
         success: false,
-        message: 'Bank details not found',
+        message: 'Employee record not found',
+      });
+    }
+
+    // If no bank details exist, return empty structure instead of 404
+    if (!employee.bankDetails || Object.keys(employee.bankDetails).length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'No bank details found',
+        data: {
+          accountHolderName: "",
+          accountNumber: "",
+          maskedAccountNumber: "",
+          ifscCode: "",
+          bankName: "",
+          branchName: "",
+          accountType: "savings",
+          isVerified: false,
+        }
       });
     }
 
     // Return bank details with masked account number
-    const bankDetails = {
-      accountNumber: maskAccountNumber(employee.bankDetails.accountNumber),
-      bankName: employee.bankDetails.bankName,
-      ifscCode: employee.bankDetails.ifscCode,
-      accountHolderName: employee.bankDetails.accountHolderName,
-      accountType: employee.bankDetails.accountType,
-      branchName: employee.bankDetails.branchName,
-      isVerified: employee.bankDetails.isVerified || false,
-      verifiedAt: employee.bankDetails.verifiedAt,
-    };
+const bankDetails = {
+  accountNumber: employee.bankDetails.accountNumber, // REAL
+  maskedAccountNumber: maskAccountNumber(employee.bankDetails.accountNumber), // DISPLAY
+  bankName: employee.bankDetails.bankName,
+  ifscCode: employee.bankDetails.ifscCode,
+  accountHolderName: employee.bankDetails.accountHolderName,
+  accountType: employee.bankDetails.accountType,
+  branchName: employee.bankDetails.branchName,
+  isVerified: employee.bankDetails.isVerified || false,
+  verifiedAt: employee.bankDetails.verifiedAt,
+};
 
     console.log('✅ [BANK DETAILS] Returning masked details');
 
@@ -67,7 +114,7 @@ const getBankDetails = async (req, res) => {
  */
 const updateBankDetails = async (req, res) => {
   try {
-    const { employeeId, id: userId } = req.user;
+    const { employeeId, id: userId, role } = req.user;
     const {
       accountNumber,
       bankName,
@@ -76,6 +123,21 @@ const updateBankDetails = async (req, res) => {
       accountType,
       branchName,
     } = req.body;
+
+    // Special case for SuperAdmin who might not have an employeeId
+    if (!employeeId) {
+      if (role === 'SuperAdmin') {
+        return res.status(400).json({
+          success: false,
+          message: 'SuperAdmin users do not have employee records. Bank details are not applicable.',
+        });
+      }
+      
+      return res.status(400).json({
+        success: false,
+        message: 'Employee ID not found in user profile. Please contact HR to link your account.',
+      });
+    }
 
     // Validate required fields
     if (!accountNumber || !bankName || !ifscCode || !accountHolderName) {
@@ -125,7 +187,8 @@ const updateBankDetails = async (req, res) => {
       success: true,
       message: 'Bank details updated successfully. Pending HR verification.',
       data: {
-        accountNumber: maskAccountNumber(bankDetails.accountNumber),
+        accountNumber: bankDetails.accountNumber, // REAL for editing
+        maskedAccountNumber: maskAccountNumber(bankDetails.accountNumber), // DISPLAY
         bankName: bankDetails.bankName,
         ifscCode: bankDetails.ifscCode,
         accountHolderName: bankDetails.accountHolderName,

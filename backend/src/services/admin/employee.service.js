@@ -94,7 +94,7 @@ class EmployeeService {
 
       return {
         success: true,
-        data: employee,
+        data: employee.toFrontendJSON(),
         message: 'Employee created successfully'
       };
     } catch (error) {
@@ -264,7 +264,7 @@ class EmployeeService {
       }
 
       // Return public JSON for non-admin users to hide sensitive bank details
-      const empData = user.role === ROLES.EMPLOYEE ? employee.toPublicJSON() : employee.toJSON();
+      const empData = user.role === ROLES.EMPLOYEE ? employee.toPublicJSON() : employee.toFrontendJSON();
 
       return {
         success: true,
@@ -370,7 +370,7 @@ class EmployeeService {
 
       // Return appropriate data based on user role
       const employeesData = employees.map(emp =>
-        user.role === ROLES.EMPLOYEE ? emp.toPublicJSON() : emp.toJSON()
+        user.role === ROLES.EMPLOYEE ? emp.toPublicJSON() : emp.toFrontendJSON()
       );
 
       return {

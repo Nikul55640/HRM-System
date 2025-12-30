@@ -1,7 +1,7 @@
 import { formatDate, calculateWorkHours } from '../../ess/utils/essHelpers';
 import PropTypes from 'prop-types';
 
-const AttendanceCalendar = ({ records = [] }) => {
+const AttendanceLog = ({ records = [] }) => {
   // records should now always be an array from the hook
   const recordsArray = Array.isArray(records) ? records : [];
   
@@ -85,8 +85,8 @@ const AttendanceCalendar = ({ records = [] }) => {
   );
 };
 
-AttendanceCalendar.propTypes = {
+AttendanceLog.propTypes = {
   records: PropTypes.array,
 };
 
-export default AttendanceCalendar;
+export default AttendanceLog

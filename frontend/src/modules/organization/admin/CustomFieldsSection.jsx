@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'react-toastify';
-import configService from '../../../core/services/configService';
+import configService from '../../../services/configService';
 import LoadingSpinner from '../../../shared/components/LoadingSpinner';
 
 const CustomFieldsSection = () => {

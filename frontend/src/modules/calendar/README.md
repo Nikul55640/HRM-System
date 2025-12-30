@@ -1,96 +1,57 @@
-# Calendar Module
+# Calendar Module Consolidation
 
-A comprehensive calendar system for the HRM application that displays events, holidays, leaves, birthdays, anniversaries, and attendance data.
+## Overview
+The calendar functionality has been consolidated from two separate components into a unified system that serves both admin management and general calendar viewing needs.
 
 ## Components
 
-### CalendarGrid
-The main calendar grid component that displays a monthly view with:
-- Navigation controls (previous/next month, today button)
-- Day headers
-- Calendar cells with events and attendance indicators
+### UnifiedCalendarView
+- **Location**: `src/modules/calendar/components/UnifiedCalendarView.jsx`
+- **Purpose**: Core calendar component that handles both calendar view and list view modes
+- **Props**:
+  - `viewMode`: 'calendar' | 'list' - Controls display format
+  - `showManagementFeatures`: boolean - Shows/hides admin management features
 
-### CalendarCell
-Individual calendar cell component that shows:
-- Date number
-- Event indicators (holidays, leaves, birthdays, anniversaries)
-- Attendance status indicators
-- Visual styling for today, selected date, and current month
+### CalendarManagement (Admin)
+- **Location**: `src/modules/calendar/admin/CalendarManagement.jsx`
+- **Purpose**: Admin wrapper for calendar management with list view and full CRUD operations
+- **Route**: `/admin/calendar/management`
 
-### CalendarSidebar
-Sidebar component displaying:
-- Monthly summary statistics
-- Upcoming events (next 7 days)
-- Quick stats overview
-- Leave types breakdown
-- Attendance summary
-
-## Pages
-
-### CalendarPage
-Main calendar page that integrates all components and provides:
-- Full calendar view with sidebar
-- View type selector (Month/Week/Day)
-- Export functionality
-- Add event button
-
-### CalendarTestPage
-Development test page for verifying calendar API functionality:
-- Tests monthly calendar data endpoint
-- Tests daily calendar data endpoint
-- Displays test results and raw data
-- Shows current user context
-
-## Services
-
-### calendarViewService
-Service for interacting with calendar APIs:
-- `getMonthlyCalendarData()` - Fetch monthly calendar data
-- `getDailyCalendarData()` - Fetch daily calendar data
-- `applyLeaveFromCalendar()` - Apply for leave from calendar
-- `exportCalendarData()` - Export calendar data
-
-## Store
-
-### useCalendarStore
-Zustand store for calendar state management:
-- Current date and selected date
-- Calendar data and loading states
-- Navigation helpers
-- Data filtering helpers
+### CalendarView (General)
+- **Location**: `src/modules/calendar/pages/CalendarView.jsx`
+- **Purpose**: General calendar view for all users with read-only access
+- **Routes**: `/admin/calendar`, `/employee/calendar`
 
 ## Features
 
-- **Multi-role Support**: Different data visibility based on user role (Employee, Manager, HR, Admin)
-- **Event Types**: Holidays, company events, leaves, birthdays, anniversaries
-- **Attendance Integration**: Shows attendance status on calendar cells
-- **Responsive Design**: Works on desktop and mobile devices
-- **Export Functionality**: Export calendar data to Excel
-- **Real-time Updates**: Automatic data refresh when navigating months
+### Admin Features (when `showManagementFeatures=true`)
+- Create, edit, delete events and holidays
+- Sync employee birthdays and anniversaries
+- Advanced filtering and search
+- List view with detailed management options
 
-## Usage
+### General Features
+- Calendar grid view with monthly navigation
+- Event display with color coding by type
+- Permission-based access control
+- Responsive design
 
-```jsx
-import { CalendarPage } from '../modules/calendar';
-
-// Use in routes
-<Route path="/calendar" element={<CalendarPage />} />
-```
-
-## API Endpoints
-
-- `GET /api/calendar/view/monthly` - Get monthly calendar data
-- `GET /api/calendar/view/daily` - Get daily calendar data
-- `POST /api/calendar/view/apply-leave` - Apply for leave from calendar
-- `GET /api/calendar/export` - Export calendar data
+## Event Types
+- **Holiday**: Company holidays (red)
+- **Event**: Company events (blue)
+- **Leave**: Employee leave (orange)
+- **Birthday**: Employee birthdays (pink)
+- **Anniversary**: Work anniversaries (purple)
+- **Meeting**: Meetings (green)
+- **Training**: Training sessions (indigo)
 
 ## Permissions
+Uses the `usePermissions` hook with `MODULES.CALENDAR.MANAGE` to control access to management features.
 
-Calendar access is controlled by the `MODULES.LEAVE.VIEW_CALENDAR` permission.
-
-## Navigation
-
-Calendar is accessible through the sidebar under the "Calendar" section:
-- Calendar Overview (`/calendar`)
-- Calendar Test (`/calendar/test`)
-- Attendance Calendar (`/calendar/attendance`)
+## Service Integration
+Integrates with `calendarService` for all API operations including:
+- `getCalendarEvents()` - Fetch events and holidays
+- `getHolidays()` - Fetch holidays by year
+- `createEvent()` / `updateEvent()` / `deleteEvent()` - Event CRUD
+- `createHoliday()` / `updateHoliday()` / `deleteHoliday()` - Holiday CRUD
+- `syncEmployeeEvents()` - Sync birthdays and anniversaries

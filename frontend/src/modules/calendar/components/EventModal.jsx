@@ -1,319 +1,283 @@
-import React, { useState, useEffect } from 'react';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '../../../shared/ui/dialog';
+import { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../shared/ui/dialog';
 import { Button } from '../../../shared/ui/button';
 import { Input } from '../../../shared/ui/input';
-import { Textarea } from '../../../shared/ui/textarea';
 import { Label } from '../../../shared/ui/label';
-import { Checkbox } from '../../../shared/ui/checkbox';
-import { Calendar } from 'lucide-react';
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from '../../../shared/ui/popover';
-import { Calendar as ShadCalendar } from '../../../shared/ui/calendar';
+import { Textarea } from '../../../shared/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
 import { toast } from 'react-toastify';
-import calendarService from '../../../services/calendarService';
+import { calendarService } from '../../../services';
 
-const EventModal = ({ open, event, onClose, onSuccess }) => {
+const EventModal = ({ open, event, selectedDate, onClose, onSuccess }) => {
   const [loading, setLoading] = useState(false);
-
-  const validationSchema = Yup.object({
-    title: Yup.string().required('Event title is required'),
-    startDate: Yup.date().required('Start date is required'),
-    endDate: Yup.date().required('End date is required'),
-    type: Yup.string().required('Event type is required'),
-    description: Yup.string().max(500, 'Description must be less than 500 characters'),
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    type: 'meeting',
+    date: '',
+    startTime: '09:00',
+    endTime: '10:00',
+    location: '',
+    organizer: '',
+    attendees: 0,
+    isActive: true
   });
 
-  const formik = useFormik({
-    initialValues: {
-      title: event?.title || '',
-      startDate: event?.startDate ? new Date(event.startDate) : null,
-      endDate: event?.endDate ? new Date(event.endDate) : null,
-      type: event?.type || 'event',
-      description: event?.description || '',
-      location: event?.location || '',
-      isAllDay: event?.isAllDay ?? true,
-      isRecurring: event?.isRecurring ?? false,
-      recurrencePattern: event?.recurrencePattern || 'none',
-      color: event?.color || '#3b82f6',
-      isPublic: event?.isPublic ?? true,
-    },
-    enableReinitialize: true,
-    validationSchema,
-    onSubmit: async (values) => {
-      try {
-        setLoading(true);
-        
-        const eventData = {
-          ...values,
-          startDate: values.startDate?.toISOString(),
-          endDate: values.endDate?.toISOString(),
-        };
+  const [errors, setErrors] = useState({});
 
-        if (event) {
-          await calendarService.updateEvent(event._id || event.id, eventData);
-          toast.success('Event updated successfully');
-        } else {
-          await calendarService.createEvent(eventData);
-          toast.success('Event created successfully');
-        }
-
-        onSuccess();
-      } catch (error) {
-        console.error('Error saving event:', error);
-        toast.error(error.response?.data?.message || 'Failed to save event');
-      } finally {
-        setLoading(false);
-      }
-    },
-  });
-
-  // Auto-set end date when start date changes
   useEffect(() => {
-    if (formik.values.startDate && !formik.values.endDate) {
-      formik.setFieldValue('endDate', formik.values.startDate);
+    if (event) {
+      setFormData({
+        title: event.title || '',
+        description: event.description || '',
+        type: event.type || 'meeting',
+        date: event.date || '',
+        startTime: event.startTime || '09:00',
+        endTime: event.endTime || '10:00',
+        location: event.location || '',
+        organizer: event.organizer || '',
+        attendees: event.attendees || 0,
+        isActive: event.isActive !== undefined ? event.isActive : true
+      });
+    } else {
+      setFormData({
+        title: '',
+        description: '',
+        type: 'meeting',
+        date: selectedDate || '',
+        startTime: '09:00',
+        endTime: '10:00',
+        location: '',
+        organizer: '',
+        attendees: 0,
+        isActive: true
+      });
     }
-  }, [formik.values.startDate]);
+    setErrors({});
+  }, [event, selectedDate, open]);
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.title.trim()) {
+      newErrors.title = 'Event title is required';
+    }
+
+    if (!formData.date) {
+      newErrors.date = 'Event date is required';
+    }
+
+    if (!formData.organizer.trim()) {
+      newErrors.organizer = 'Organizer is required';
+    }
+
+    if (formData.startTime >= formData.endTime) {
+      newErrors.endTime = 'End time must be after start time';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      if (event) {
+        // Update existing event
+        await calendarService.updateEvent(event.id, formData);
+        toast.success('Event updated successfully');
+      } else {
+        // Create new event
+        await calendarService.createEvent(formData);
+        toast.success('Event created successfully');
+      }
+
+      onSuccess();
+    } catch (error) {
+      console.error('Error saving event:', error);
+      toast.error(error.response?.data?.message || 'Failed to save event');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{event ? 'Edit Event' : 'Create Event'}</DialogTitle>
-          <DialogDescription>
-            {event ? 'Update event details' : 'Create a new company event'}
-          </DialogDescription>
+          <DialogTitle>
+            {event ? 'Edit Event' : 'Create New Event'}
+          </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={formik.handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Event Title */}
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="title">Event Title *</Label>
             <Input
               id="title"
-              name="title"
-              value={formik.values.title}
-              onChange={formik.handleChange}
-              className={formik.errors.title ? 'border-red-500' : ''}
-              placeholder="e.g., Company Annual Meeting"
+              value={formData.title}
+              onChange={(e) => handleInputChange('title', e.target.value)}
+              placeholder="Enter event title"
+              className={errors.title ? 'border-red-500' : ''}
             />
-            {formik.errors.title && (
-              <p className="text-sm text-red-500">{formik.errors.title}</p>
+            {errors.title && (
+              <p className="text-sm text-red-600 mt-1">{errors.title}</p>
             )}
           </div>
 
-          {/* Date Range */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label>Start Date *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    type="button"
-                    className={`w-full justify-start text-left font-normal ${
-                      formik.errors.startDate ? 'border-red-500' : ''
-                    }`}
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {formik.values.startDate
-                      ? formik.values.startDate.toDateString()
-                      : 'Pick start date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="p-0">
-                  <ShadCalendar
-                    mode="single"
-                    selected={formik.values.startDate}
-                    onSelect={(date) => formik.setFieldValue('startDate', date)}
-                  />
-                </PopoverContent>
-              </Popover>
-              {formik.errors.startDate && (
-                <p className="text-sm text-red-500">{formik.errors.startDate}</p>
+          {/* Event Type */}
+          <div>
+            <Label htmlFor="type">Event Type</Label>
+            <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="meeting">Meeting</SelectItem>
+                <SelectItem value="training">Training</SelectItem>
+                <SelectItem value="celebration">Celebration</SelectItem>
+                <SelectItem value="team_building">Team Building</SelectItem>
+                <SelectItem value="conference">Conference</SelectItem>
+                <SelectItem value="workshop">Workshop</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Date and Time */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="date">Date *</Label>
+              <Input
+                id="date"
+                type="date"
+                value={formData.date}
+                onChange={(e) => handleInputChange('date', e.target.value)}
+                className={errors.date ? 'border-red-500' : ''}
+              />
+              {errors.date && (
+                <p className="text-sm text-red-600 mt-1">{errors.date}</p>
               )}
             </div>
-
-            <div className="space-y-2">
-              <Label>End Date *</Label>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    type="button"
-                    className={`w-full justify-start text-left font-normal ${
-                      formik.errors.endDate ? 'border-red-500' : ''
-                    }`}
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {formik.values.endDate
-                      ? formik.values.endDate.toDateString()
-                      : 'Pick end date'}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="p-0">
-                  <ShadCalendar
-                    mode="single"
-                    selected={formik.values.endDate}
-                    onSelect={(date) => formik.setFieldValue('endDate', date)}
-                  />
-                </PopoverContent>
-              </Popover>
-              {formik.errors.endDate && (
-                <p className="text-sm text-red-500">{formik.errors.endDate}</p>
+            <div>
+              <Label htmlFor="startTime">Start Time</Label>
+              <Input
+                id="startTime"
+                type="time"
+                value={formData.startTime}
+                onChange={(e) => handleInputChange('startTime', e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="endTime">End Time</Label>
+              <Input
+                id="endTime"
+                type="time"
+                value={formData.endTime}
+                onChange={(e) => handleInputChange('endTime', e.target.value)}
+                className={errors.endTime ? 'border-red-500' : ''}
+              />
+              {errors.endTime && (
+                <p className="text-sm text-red-600 mt-1">{errors.endTime}</p>
               )}
             </div>
           </div>
 
-          {/* Event Type and Color */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="type">Event Type *</Label>
-              <select
-                id="type"
-                name="type"
-                value={formik.values.type}
-                onChange={formik.handleChange}
-                className={`w-full border rounded-md px-3 py-2 ${
-                  formik.errors.type ? 'border-red-500' : 'border-gray-300'
-                }`}
-              >
-                <option value="event">Company Event</option>
-                <option value="meeting">Meeting</option>
-                <option value="training">Training</option>
-                <option value="conference">Conference</option>
-                <option value="team_building">Team Building</option>
-                <option value="announcement">Announcement</option>
-              </select>
-              {formik.errors.type && (
-                <p className="text-sm text-red-500">{formik.errors.type}</p>
-              )}
+          {/* Location and Organizer */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="location">Location</Label>
+              <Input
+                id="location"
+                value={formData.location}
+                onChange={(e) => handleInputChange('location', e.target.value)}
+                placeholder="Enter event location"
+              />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="color">Event Color</Label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  id="color"
-                  name="color"
-                  value={formik.values.color}
-                  onChange={formik.handleChange}
-                  className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
-                />
-                <Input
-                  value={formik.values.color}
-                  onChange={(e) => formik.setFieldValue('color', e.target.value)}
-                  placeholder="#3b82f6"
-                  className="flex-1"
-                />
-              </div>
+            <div>
+              <Label htmlFor="organizer">Organizer *</Label>
+              <Input
+                id="organizer"
+                value={formData.organizer}
+                onChange={(e) => handleInputChange('organizer', e.target.value)}
+                placeholder="Enter organizer name/department"
+                className={errors.organizer ? 'border-red-500' : ''}
+              />
+              {errors.organizer && (
+                <p className="text-sm text-red-600 mt-1">{errors.organizer}</p>
+              )}
             </div>
           </div>
 
-          {/* Location */}
-          <div className="space-y-2">
-            <Label htmlFor="location">Location</Label>
+          {/* Expected Attendees */}
+          <div>
+            <Label htmlFor="attendees">Expected Attendees</Label>
             <Input
-              id="location"
-              name="location"
-              value={formik.values.location}
-              onChange={formik.handleChange}
-              placeholder="e.g., Conference Room A, Online, etc."
+              id="attendees"
+              type="number"
+              min="0"
+              value={formData.attendees}
+              onChange={(e) => handleInputChange('attendees', parseInt(e.target.value) || 0)}
+              placeholder="Number of expected attendees"
             />
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
+          <div>
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              name="description"
+              value={formData.description}
+              onChange={(e) => handleInputChange('description', e.target.value)}
+              placeholder="Enter event description (optional)"
               rows={3}
-              value={formik.values.description}
-              onChange={formik.handleChange}
-              className={formik.errors.description ? 'border-red-500' : ''}
-              placeholder="Event description (optional)"
             />
-            {formik.errors.description && (
-              <p className="text-sm text-red-500">{formik.errors.description}</p>
-            )}
           </div>
 
-          {/* Options */}
-          <div className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isAllDay"
-                checked={formik.values.isAllDay}
-                onCheckedChange={(value) => formik.setFieldValue('isAllDay', value)}
-              />
-              <Label htmlFor="isAllDay">All Day Event</Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isPublic"
-                checked={formik.values.isPublic}
-                onCheckedChange={(value) => formik.setFieldValue('isPublic', value)}
-              />
-              <Label htmlFor="isPublic">Visible to All Employees</Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="isRecurring"
-                checked={formik.values.isRecurring}
-                onCheckedChange={(value) => formik.setFieldValue('isRecurring', value)}
-              />
-              <Label htmlFor="isRecurring">Recurring Event</Label>
-            </div>
-
-            {formik.values.isRecurring && (
-              <div className="ml-6 space-y-2">
-                <Label htmlFor="recurrencePattern">Recurrence Pattern</Label>
-                <select
-                  id="recurrencePattern"
-                  name="recurrencePattern"
-                  value={formik.values.recurrencePattern}
-                  onChange={formik.handleChange}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
-                >
-                  <option value="daily">Daily</option>
-                  <option value="weekly">Weekly</option>
-                  <option value="monthly">Monthly</option>
-                  <option value="yearly">Yearly</option>
-                </select>
-              </div>
-            )}
+          {/* Active Status */}
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={formData.isActive}
+              onChange={(e) => handleInputChange('isActive', e.target.checked)}
+              className="w-4 h-4"
+            />
+            <Label htmlFor="isActive">Active Event</Label>
           </div>
 
-          <DialogFooter>
+          {/* Action Buttons */}
+          <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                  {event ? 'Updating...' : 'Creating...'}
-                </>
-              ) : (
-                event ? 'Update Event' : 'Create Event'
-              )}
+              {loading ? 'Saving...' : (event ? 'Update Event' : 'Create Event')}
             </Button>
-          </DialogFooter>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

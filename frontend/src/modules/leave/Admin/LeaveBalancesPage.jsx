@@ -5,8 +5,7 @@ import { Badge } from "../../../shared/ui/badge";
 import { Input } from "../../../shared/ui/input";
 import { Icon, LoadingSpinner } from "../../../shared/components";
 import { useToast } from "../../../core/hooks/use-toast";
-import adminLeaveService from "../services/adminLeaveService";
-
+import adminLeaveService from "../../../services/adminLeaveService";
 const LeaveBalancesPage = () => {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);

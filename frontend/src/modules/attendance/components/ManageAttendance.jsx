@@ -1,16 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { format, parseISO, isToday } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { Button } from '../../../shared/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../shared/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../../shared/ui/table';
 import { Badge } from '../../../shared/ui/badge';
 import { Input } from '../../../shared/ui/input';
-import { Search, Filter, Download, Plus, Loader2, Calendar as CalendarIcon } from 'lucide-react';
+import { Search, Download, Plus, Loader2, Calendar as CalendarIcon, BarChart2, MoreHorizontal } from 'lucide-react';
 import useAttendanceStore from '../../../stores/useAttendanceStore';
 import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/ui/popover';
 import { Calendar } from '../../../shared/ui/calendar';
 import { cn } from '../../../lib/utils';
 import { formatDate } from '../../../lib/date-utils.js';
+import AttendanceForm from './AttendanceForm';
 
 const statusOptions = [
   { value: 'all', label: 'All Status' },
@@ -31,20 +32,21 @@ const statusVariant = {
 
 const ManageAttendance = () => {
   const { 
-    allAttendance: attendance, 
+    attendanceRecords: attendance, 
     loading, 
     pagination, 
-    filters, 
-    statistics,
-    fetchAllAttendance,
-    createAttendanceEntry,
+    error,
+    fetchAttendanceRecords,
     updateAttendanceRecord,
     deleteAttendanceRecord,
-    processCorrectionRequest,
-    fetchAttendanceStatistics,
-    exportAttendanceReport
+    exportAttendanceReport,
+    setPagination
   } = useAttendanceStore();
-  // State is now managed by Zustand store
+
+  // Initialize default values to prevent undefined errors
+  const safeAttendance = attendance || [];
+  const safePagination = pagination || { currentPage: 1, itemsPerPage: 10, totalItems: 0 };
+  const statistics = null; // We'll need to implement this separately
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -60,44 +62,42 @@ const ManageAttendance = () => {
   // Fetch attendance data on component mount and when filters change
   useEffect(() => {
     const params = {
-      page: pagination.currentPage,
-      limit: pagination.itemsPerPage,
+      page: safePagination.page || 1,
+      limit: safePagination.limit || 10,
       search: searchQuery,
       status: statusFilter !== 'all' ? statusFilter : undefined,
-      from: formatDate(dateRange.from),
-      to: formatDate(dateRange.to),
+      startDate: formatDate(dateRange.from),
+      endDate: formatDate(dateRange.to),
     };
 
-    fetchAllAttendance(params);
-    fetchAttendanceStatistics(params);
-  }, [fetchAllAttendance, fetchAttendanceStatistics, pagination.currentPage, searchQuery, statusFilter, dateRange]);
+    fetchAttendanceRecords(params);
+  }, [fetchAttendanceRecords, safePagination.page, safePagination.limit, searchQuery, statusFilter, dateRange]);
 
   const handlePageChange = (page) => {
-    // Update pagination in the store - need to add setPagination to the destructured methods
-    // For now, we'll call fetchAllAttendance with the new page
+    setPagination({ page });
     const params = {
       page: page,
-      limit: pagination.itemsPerPage,
+      limit: safePagination.limit || 10,
       search: searchQuery,
       status: statusFilter !== 'all' ? statusFilter : undefined,
-      from: formatDate(dateRange.from),
-      to: formatDate(dateRange.to),
+      startDate: formatDate(dateRange.from),
+      endDate: formatDate(dateRange.to),
     };
-    fetchAllAttendance(params);
+    fetchAttendanceRecords(params);
   };
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // Trigger a refetch with the new search query
+    setPagination({ page: 1 });
     const params = {
       page: 1,
-      limit: pagination.itemsPerPage,
+      limit: safePagination.limit || 10,
       search: searchQuery,
       status: statusFilter !== 'all' ? statusFilter : undefined,
-      from: formatDate(dateRange.from),
-      to: formatDate(dateRange.to),
+      startDate: formatDate(dateRange.from),
+      endDate: formatDate(dateRange.to),
     };
-    fetchAllAttendance(params);
+    fetchAttendanceRecords(params);
   };
 
   const handleExport = async () => {
@@ -105,51 +105,41 @@ const ManageAttendance = () => {
       const params = {
         search: searchQuery,
         status: statusFilter !== 'all' ? statusFilter : undefined,
-        from: formatDate(dateRange.from),
-        to: formatDate(dateRange.to),
+        startDate: formatDate(dateRange.from),
+        endDate: formatDate(dateRange.to),
       };
 
-      const blob = await exportAttendanceReport(params);
-      
-      // Create a download link
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `attendance-report-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      a.remove();
+      await exportAttendanceReport(params);
     } catch (error) {
-      console.error('Export failed:', error);
+      alert('Export failed');
     }
   };
 
   const handleApproveCorrection = async (recordId) => {
     try {
-      await processCorrectionRequest({
-        id: recordId,
-        status: 'approved',
-        notes: 'Correction approved by admin'
+      // For now, we'll just update the record status
+      await updateAttendanceRecord(recordId, {
+        correctionStatus: 'approved',
+        correctionNotes: 'Correction approved by admin'
       });
       // Refresh the list
-      fetchAllAttendance({});
+      fetchAttendanceRecords({});
     } catch (error) {
-      console.error('Failed to approve correction:', error);
+      alert('Failed to approve correction');
     }
   };
 
   const handleRejectCorrection = async (recordId) => {
     try {
-      await processCorrectionRequest({
-        id: recordId,
-        status: 'rejected',
-        notes: 'Correction rejected by admin'
+      // For now, we'll just update the record status
+      await updateAttendanceRecord(recordId, {
+        correctionStatus: 'rejected',
+        correctionNotes: 'Correction rejected by admin'
       });
       // Refresh the list
-      fetchAllAttendance({});
+      fetchAttendanceRecords({});
     } catch (error) {
-      console.error('Failed to reject correction:', error);
+      alert('Failed to reject correction');
     }
   };
 
@@ -166,6 +156,18 @@ const ManageAttendance = () => {
 
   return (
     <div className="space-y-6">
+      {/* Error Display */}
+      {error && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center space-x-2 text-red-800">
+              <div className="text-sm font-medium">Error loading attendance data</div>
+            </div>
+            <div className="text-sm text-red-600 mt-1">{error}</div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Filters */}
       <Card>
         <CardHeader>
@@ -260,7 +262,7 @@ const ManageAttendance = () => {
 
       {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-4">
-        {Object.entries(stats).map(([key, value]) => (
+        {statistics && Object.entries(statistics).map(([key, value]) => (
           <Card key={key}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium capitalize">
@@ -307,8 +309,8 @@ const ManageAttendance = () => {
                       <p className="mt-2">Loading attendance records...</p>
                     </TableCell>
                   </TableRow>
-                ) : attendance.length > 0 ? (
-                  attendance.map((record) => (
+                ) : safeAttendance.length > 0 ? (
+                  safeAttendance.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">
                         <div className="flex items-center space-x-2">
@@ -354,7 +356,7 @@ const ManageAttendance = () => {
                                   <>
                                     <button
                                       onClick={() => {
-                                        handleApproveCorrection(record.id);
+                                        handleApproveCorrection(record._id || record.id);
                                         setShowActionMenu(null);
                                       }}
                                       className="block w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50"
@@ -363,7 +365,7 @@ const ManageAttendance = () => {
                                     </button>
                                     <button
                                       onClick={() => {
-                                        handleRejectCorrection(record.id);
+                                        handleRejectCorrection(record._id || record.id);
                                         setShowActionMenu(null);
                                       }}
                                       className="block w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
@@ -375,7 +377,7 @@ const ManageAttendance = () => {
                                 <button
                                   onClick={() => {
                                     if (window.confirm('Are you sure you want to delete this record?')) {
-                                      deleteAttendanceRecord(record.id);
+                                      deleteAttendanceRecord(record._id || record.id);
                                     }
                                     setShowActionMenu(null);
                                   }}
@@ -406,26 +408,26 @@ const ManageAttendance = () => {
       {/* Pagination */}
       <div className="flex items-center justify-between px-2">
         <div className="text-sm text-muted-foreground">
-          Showing <span className="font-medium">{(pagination.currentPage - 1) * pagination.itemsPerPage + 1}</span> to{' '}
+          Showing <span className="font-medium">{(safePagination.page - 1) * safePagination.limit + 1}</span> to{' '}
           <span className="font-medium">
-            {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}
+            {Math.min(safePagination.page * safePagination.limit, safePagination.total)}
           </span>{' '}
-          of <span className="font-medium">{pagination.totalItems}</span> records
+          of <span className="font-medium">{safePagination.total}</span> records
         </div>
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handlePageChange(pagination.currentPage - 1)}
-            disabled={pagination.currentPage === 1}
+            onClick={() => handlePageChange(safePagination.page - 1)}
+            disabled={safePagination.page === 1}
           >
             Previous
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => handlePageChange(pagination.currentPage + 1)}
-            disabled={pagination.currentPage * pagination.itemsPerPage >= pagination.totalItems}
+            onClick={() => handlePageChange(safePagination.page + 1)}
+            disabled={safePagination.page * safePagination.limit >= safePagination.total}
           >
             Next
           </Button>
@@ -443,17 +445,15 @@ const ManageAttendance = () => {
           onSubmit={async (data) => {
             try {
               if (selectedRecord) {
-                await updateAttendanceRecord({
-                  id: selectedRecord.id,
-                  ...data
-                });
+                await updateAttendanceRecord(selectedRecord._id || selectedRecord.id, data);
               } else {
-                await createAttendanceEntry(data);
+                // For creating new records, we'll need to implement this in the store
+                alert('Creating new records is not yet implemented');
               }
               setShowAddModal(false);
               setSelectedRecord(null);
             } catch (error) {
-              console.error('Failed to save record:', error);
+              alert('Failed to save record');
             }
           }}
         />

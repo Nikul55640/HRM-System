@@ -30,20 +30,6 @@ const LiveAttendanceDashboard = () => {
   });
   const [autoRefresh, setAutoRefresh] = useState(true);
 
-  useEffect(() => {
-    fetchLiveAttendance();
-  }, [fetchLiveAttendance]);
-
-  useEffect(() => {
-    if (!autoRefresh) return;
-
-    const interval = setInterval(() => {
-      fetchLiveAttendance(true); // Silent refresh
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(interval);
-  }, [autoRefresh, fetchLiveAttendance]);
-
   const fetchLiveAttendance = useCallback(async (silent = false) => {
     try {
       if (!silent) setLoading(true);
@@ -76,6 +62,20 @@ const LiveAttendanceDashboard = () => {
       if (!silent) setLoading(false);
     }
   }, [filters]);
+
+  useEffect(() => {
+    fetchLiveAttendance();
+  }, [fetchLiveAttendance]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+
+    const interval = setInterval(() => {
+      fetchLiveAttendance(true); // Silent refresh
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [autoRefresh, fetchLiveAttendance]);
 
   const handleRefresh = () => {
     fetchLiveAttendance();
@@ -321,64 +321,6 @@ const LiveAttendanceDashboard = () => {
       </div>
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-4">
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  setLoading(true);
-                  const response = await api.post('/admin/attendance/create-test-data');
-                  if (response.data.success) {
-                    toast.success(response.data.message);
-                    // Refresh the live data
-                    setTimeout(() => {
-                      fetchLiveAttendance();
-                    }, 1000);
-                  }
-                } catch (error) {
-                  toast.error('Failed to create test data: ' + (error.response?.data?.message || error.message));
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              disabled={loading}
-            >
-              <Clock className="h-4 w-4 mr-2" />
-              Create Test Data
-            </Button>
-            <Button
-              variant="outline"
-              onClick={async () => {
-                try {
-                  setLoading(true);
-                  const response = await api.delete('/admin/attendance/clear-test-data');
-                  if (response.data.success) {
-                    toast.success('Test data cleared');
-                    fetchLiveAttendance();
-                  }
-                } catch (error) {
-                  toast.error('Failed to clear test data: ' + (error.response?.data?.message || error.message));
-                } finally {
-                  setLoading(false);
-                }
-              }}
-              disabled={loading}
-            >
-              <Coffee className="h-4 w-4 mr-2" />
-              Clear Test Data
-            </Button>
-          </div>
-          <p className="text-sm text-muted-foreground mt-2">
-            These buttons simulate attendance actions for testing purposes.
-          </p>
-        </CardContent>
-      </Card>
-
       {/* Last Updated */}
       {!loading && liveData.length > 0 && (
         <div className="text-center text-sm text-muted-foreground">
