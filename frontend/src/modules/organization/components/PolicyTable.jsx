@@ -15,7 +15,7 @@ import {
   TableCell,
 } from "../../../shared/ui/table";
 import { Download, Eye, Edit, Trash2, FileText } from "lucide-react";
-import { formatDate } from "../../../core/utils/essHelpers";
+import { formatDate } from "../../ess/utils/essHelpers";
 
 const PolicyTable = ({
   data = [],

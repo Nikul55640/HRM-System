@@ -68,7 +68,7 @@ const quickSeed = async () => {
                 name: 'HR Manager',
                 email: 'hr@hrm.com',
                 password: 'hr123', // Let the model hook handle hashing
-                role: 'HR',
+                role: 'HR Manager',
                 isActive: true,
                 employeeId: createdEmployees[0].id // HR Manager employee
             },

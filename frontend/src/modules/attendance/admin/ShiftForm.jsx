@@ -8,7 +8,7 @@ import { Switch } from '../../../shared/ui/switch';
 import { Badge } from '../../../shared/ui/badge';
 import { Save, X, Clock, Settings } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import api from '../../../core/services/api';
+import api from '../../../services/api';
 
 const ShiftForm = ({ shift, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);

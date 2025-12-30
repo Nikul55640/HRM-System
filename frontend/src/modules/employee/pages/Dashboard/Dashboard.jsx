@@ -12,7 +12,8 @@ const Dashboard = () => {
   // Show admin dashboard for SuperAdmin and HR roles
   if (
     user?.role === "SuperAdmin" ||
-    user?.role === "HR"
+    user?.role === "HR Administrator" ||
+    user?.role === "HR Manager"
   ) {
     console.log('📊 [DASHBOARD] Showing AdminDashboard for role:', user.role);
     return <AdminDashboard />;

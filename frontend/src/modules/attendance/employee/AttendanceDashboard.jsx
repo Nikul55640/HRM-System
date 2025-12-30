@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Clock, Calendar, TrendingUp, MapPin } from 'lucide-react';
 import { toast } from 'react-toastify';
-import api from '../../../core/services/api';
+import api from '../../../services/api';
 
 const AttendanceDashboard = () => {
   const [loading, setLoading] = useState(true);

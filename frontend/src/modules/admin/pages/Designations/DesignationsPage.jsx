@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
-import { Button } from '../../../shared/ui/button';
-import { Input } from '../../../shared/ui/input';
-import { Label } from '../../../shared/ui/label';
-import { Textarea } from '../../../shared/ui/textarea';
-import { Badge } from '../../../shared/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../../shared/ui/dialog';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/card';
+import { Button } from '../../../../shared/ui/button';
+import { Input } from '../../../../shared/ui/input';
+import { Label } from '../../../../shared/ui/label';
+import { Textarea } from '../../../../shared/ui/textarea';
+import { Badge } from '../../../../shared/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../../../../shared/ui/dialog';
 import { 
   Plus, 
   Search, 
@@ -17,7 +17,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import api from '../../../core/services/api';
+import api from '../../../../services/api';
 
 const DesignationsPage = () => {
   const [designations, setDesignations] = useState([]);

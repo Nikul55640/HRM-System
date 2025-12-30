@@ -6,32 +6,26 @@ const LeaveManagement = lazy(() =>
 const AttendanceAdminList = lazy(() =>
   import("../modules/attendance/admin/AttendanceAdminList.jsx")
 );
-const AttendanceAdminDetail = lazy(() =>
-  import("../modules/attendance/admin/AttendanceAdminDetail.jsx")
-);
+
 const DesignationsPage = lazy(() =>
-  import("../modules/admin/pages/DesignationsPage")
+  import("../modules/admin/pages/Designations/DesignationsPage")
 );
 
 export const hrRoutes = [
   {
     path: "admin/attendance",
     element: <AttendanceAdminList />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
-  {
-    path: "admin/attendance/:id",
-    element: <AttendanceAdminDetail />,
-    roles: ["HR", "SuperAdmin"],
-  },
+
   {
     path: "admin/leave-requests",
     element: <LeaveManagement />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "hr/designations",
     element: <DesignationsPage />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
 ];

@@ -16,21 +16,21 @@ export const employeeRoutes = [
   {
     path: "employees",
     element: <EmployeeList />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "employees/new",
     element: <EmployeeForm />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "employees/:id",
     element: <EmployeeProfile />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "employees/:id/edit",
     element: <EmployeeForm />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
 ];

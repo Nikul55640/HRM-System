@@ -5,7 +5,7 @@ import { Button } from '../../../shared/ui/button';
 import { Calendar, ChevronLeft, ChevronRight, Clock, Users, MapPin } from 'lucide-react';
 import { calendarService } from '../../../services';
 import { toast } from 'react-toastify';
-import { formatDate } from '../../../core/utils/essHelpers';
+import { formatDate } from '../../ess/utils/essHelpers';
 
 const DailyCalendarView = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());

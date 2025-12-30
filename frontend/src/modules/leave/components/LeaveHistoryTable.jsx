@@ -8,7 +8,7 @@ import {
 } from "../../../shared/ui/card";
 import { Button } from "../../../shared/ui/button";
 import { ApprovalStatusBadge } from "../../../shared/components";
-import { formatDate } from "../../../core/utils/essHelpers";
+import { formatDate } from "../../ess/utils/essHelpers";
 import {
   Calendar,
   Clock,
@@ -18,7 +18,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
-import leaveService from "../../../core/services/leaveService";
+import leaveService from "../../../services/leaveService";
 
 const LeaveHistoryTable = ({ history, onRefresh }) => {
   const [cancellingId, setCancellingId] = useState(null);

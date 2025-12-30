@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { toast } from 'react-toastify';
-import api from '../core/services/api';
+import api from '../services/api';
 
 const useAuthStore = create(
   devtools(

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/
 import { Button } from '../../../../shared/ui/button';
 import { Plus, Edit, Trash2, Megaphone } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { formatDate } from '../../../../core/utils/essHelpers';
+import { formatDate } from '../../../ess/utils/essHelpers';
 
 const AnnouncementsPage = () => {
   const [announcements, setAnnouncements] = useState([]);

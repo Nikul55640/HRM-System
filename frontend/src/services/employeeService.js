@@ -1,5 +1,5 @@
 // Employee Dashboard Service - for individual employee operations
-import api from '../core/services/api';
+import api from './api';
 
 const employeeService = {
   // Get employee dashboard data

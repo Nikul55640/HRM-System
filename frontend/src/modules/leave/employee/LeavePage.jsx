@@ -13,7 +13,7 @@ import {
   X,
 } from "lucide-react";
 import employeeSelfService from "../../../services/employeeSelfService";
-import leaveService from "../../../core/services/leaveService";
+import leaveService from "../../../services/leaveService";
 import LeaveRequestModal from "./LeaveRequestModal";
 import LeaveBalanceCards from "../components/LeaveBalanceCards";
 import useLeaveBalance from "../hooks/useLeaveBalance";

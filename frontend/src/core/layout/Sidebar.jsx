@@ -122,7 +122,7 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
       icon: "Settings",
       collapsible: true,
       showIf: () =>
-        (user?.role === "HR" || user?.role === "SuperAdmin") &&
+        (user?.role === "HR Administrator" || user?.role === "HR Manager" || user?.role === "SuperAdmin") &&
         can.doAny([
           MODULES.EMPLOYEE.VIEW_ALL,
           MODULES.ATTENDANCE.VIEW_ALL,

@@ -38,24 +38,24 @@ const APITestRunner = lazy(() =>
 
 export const essRoutes = [
   // Feature 1: Profile & Bank Details Management
-  { path: "employee/profile", element: <ProfilePage />, roles: ["Employee", "HR", "SuperAdmin"] },
-  { path: "employee/bank-details", element: <BankDetailsPage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/profile", element: <ProfilePage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/bank-details", element: <BankDetailsPage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
   
   // Feature 2: Attendance Management
-  { path: "employee/attendance", element: <AttendancePage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/attendance", element: <AttendancePage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
   
   // Feature 3: Leave Management
-  { path: "employee/leave", element: <LeavePage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/leave", element: <LeavePage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
   
   // Feature 5: Lead Management (Employee)
-  { path: "employee/leads", element: <EmployeeLeadsPage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/leads", element: <EmployeeLeadsPage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
   
   // Feature 6: Shift Management (Employee)
-  { path: "employee/shifts", element: <EmployeeShiftsPage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/shifts", element: <EmployeeShiftsPage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
   
   // Feature 7: Calendar & Events (Employee)
-  { path: "employee/calendar", element: <EmployeeCalendarPage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/calendar", element: <EmployeeCalendarPage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
   
   // API Test Runner
-  { path: "api-test", element: <APITestRunner />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "api-test", element: <APITestRunner />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
 ];

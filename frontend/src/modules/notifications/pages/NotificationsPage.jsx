@@ -18,7 +18,7 @@ import {
   FileText
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { formatDate } from '../../../core/utils/essHelpers';
+import { formatDate } from '../../ess/utils/essHelpers';
 
 const NotificationsPage = () => {
   const [notifications, setNotifications] = useState([]);

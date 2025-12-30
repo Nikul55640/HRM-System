@@ -17,21 +17,21 @@ export const organizationRoutes = [
   {
     path: "hr/departments",
     element: <DepartmentPage />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "hr/designations",
     element: <DesignationPage />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "hr/policies",
     element: <PolicyPage />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
   {
     path: "hr/documents",
     element: <CompanyDocumentsPage />,
-    roles: ["HR", "SuperAdmin"],
+    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
 ];

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
-import api from '../core/services/api';
+import api from '../services/api';
 
 const useAttendanceSessionStore = create(
   devtools(

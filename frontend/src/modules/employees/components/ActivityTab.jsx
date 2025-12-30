@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
-import api from "../../../core/services/api";
+import api from "../../../services/api";
 import { LoadingSpinner } from "../../../shared/components";
 
 const ActivityTab = ({ employeeId }) => {

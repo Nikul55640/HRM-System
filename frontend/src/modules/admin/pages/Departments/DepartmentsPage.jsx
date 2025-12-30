@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
-import { Button } from "../../../shared/ui/button";
-import { Badge } from "../../../shared/ui/badge";
-import { Input } from "../../../shared/ui/input";
-import { Textarea } from "../../../shared/ui/textarea";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../../shared/ui/dialog";
-import { Icon, LoadingSpinner } from "../../../shared/components";
-import { useToast } from "../../../core/hooks/use-toast";
-import api from "../../../core/services/api";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../../shared/ui/card";
+import { Button } from "../../../../shared/ui/button";
+import { Badge } from "../../../../shared/ui/badge";
+import { Input } from "../../../../shared/ui/input";
+import { Textarea } from "../../../../shared/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../../../shared/ui/dialog";
+import { Icon, LoadingSpinner } from "../../../../shared/components";
+import { useToast } from "../../../../core/hooks/use-toast";
+import api from "../../../../services/api";
 
 const DepartmentsPage = () => {
   const [departments, setDepartments] = useState([]);

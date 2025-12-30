@@ -1,4 +1,4 @@
-import { formatDate, calculateWorkHours } from '../../../core/utils/essHelpers';
+import { formatDate, calculateWorkHours } from '../../ess/utils/essHelpers';
 import PropTypes from 'prop-types';
 
 const AttendanceCalendar = ({ records = [] }) => {

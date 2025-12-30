@@ -1,4 +1,4 @@
-import api from '../core/services/api';
+import api from './api';
 import { toast } from 'react-toastify';
 
 const dashboardService = {

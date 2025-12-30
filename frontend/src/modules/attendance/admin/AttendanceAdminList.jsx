@@ -4,7 +4,7 @@ import { Button } from '../../../shared/ui/button';
 import { Download, Search } from 'lucide-react';
 import useAttendanceStore from '../../../stores/useAttendanceStore';
 import attendanceService from '../../../services/attendanceService';
-import { formatDate } from '../../../core/utils/essHelpers';
+import { formatDate } from '../../ess/utils/essHelpers';
 
 const AttendanceAdminList = () => {
   const {

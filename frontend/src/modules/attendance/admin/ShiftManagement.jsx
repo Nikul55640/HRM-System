@@ -16,7 +16,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import api from '../../../core/services/api';
+import api from '../../../services/api';
 import ShiftForm from './ShiftForm';
 import ShiftDetails from './ShiftDetails';
 import AssignShiftForm from './AssignShiftForm';

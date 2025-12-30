@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { toast } from 'react-toastify';
 import employeeDashboardService from '../../../../services/employeeDashboardService';
 import attendanceService from '../../../../services/attendanceService';
-import leaveService from '../../../../core/services/leaveService';
+import leaveService from '../../../../services/leaveService';
 
 const APITester = () => {
   const [results, setResults] = useState({});

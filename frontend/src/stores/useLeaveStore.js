@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { toast } from "react-toastify";
-import leaveService from "../core/services/leaveService";
+import leaveService from "../services/leaveService";
 
 const useLeaveStore = create(
   devtools(

@@ -4,7 +4,7 @@ import { Button } from '../../../shared/ui/button';
 import { CheckCircle, XCircle, Search, Clock } from 'lucide-react';
 import { leaveService } from '../../../services';
 import { toast } from 'react-toastify';
-import { formatDate } from '../../../core/utils/essHelpers';
+import { formatDate } from '../../ess/utils/essHelpers';
 
 const HRLeaveApprovals = () => {
   const [leaves, setLeaves] = useState([]);

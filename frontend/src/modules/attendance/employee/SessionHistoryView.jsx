@@ -12,7 +12,7 @@ import {
 } from '../../../shared/ui/select';
 import { Calendar, Clock, MapPin, Coffee, Building2, Home, Users } from 'lucide-react';
 import { toast } from 'react-toastify';
-import api from '../../../core/services/api';
+import api from '../../../services/api';
 import { formatDecimal } from '../../../lib/utils';
 
 const SessionHistoryView = () => {

@@ -8,7 +8,7 @@ import {
   formatDate,
   getStatusBadgeVariant,
   formatCurrency,
-} from "../../core/utils/essHelpers";
+} from "../../modules/ess/utils/essHelpers";
 const RequestDetailModal = ({ request, open, onClose }) => {
   if (!request) return null;
 

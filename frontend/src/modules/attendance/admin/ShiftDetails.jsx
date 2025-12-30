@@ -4,7 +4,7 @@ import { Button } from '../../../shared/ui/button';
 import { Badge } from '../../../shared/ui/badge';
 import { Users, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import api from '../../../core/services/api';
+import api from '../../../services/api';
 
 const ShiftDetails = ({ shiftId, onClose }) => {
   const [shift, setShift] = useState(null);

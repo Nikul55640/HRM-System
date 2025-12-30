@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { documentUploadSchema } from "../../../core/utils/essValidation";
+import { documentUploadSchema } from "../../ess/validation/essValidation";
 
 import { Button } from "../../../shared/ui/button";
 import { Input } from "../../../shared/ui/input";

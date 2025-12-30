@@ -1,4 +1,4 @@
-import api from '../core/services/api';
+import api from './api';
 import { format, addDays, startOfWeek, endOfWeek, parseISO } from 'date-fns';
 
 const employeeDashboardService = {

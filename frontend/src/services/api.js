@@ -1,7 +1,7 @@
 import axios from "axios";
-import useAuthStore from "../../stores/useAuthStore";
-import { tokenManager } from "../auth/tokenManager";
-import { logError } from "../utils/errorHandler";
+import useAuthStore from "../stores/useAuthStore";
+import { tokenManager } from "../core/auth/tokenManager";
+import { logError } from "../core/utils/errorHandler";
 import { toast } from "react-toastify";
 
 // Create axios instance with base configuration

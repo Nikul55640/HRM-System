@@ -10,7 +10,7 @@ import {
   getCurrentFinancialYear,
   getMonthName,
   downloadBlob,
-} from "../../../core/utils/essHelpers";
+} from "../../ess/utils/essHelpers";
 
 const AttendancePage = () => {
   const {

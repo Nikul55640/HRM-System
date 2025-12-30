@@ -8,7 +8,10 @@
 // ===================================================
 export const ROLES = {
   SUPER_ADMIN: 'SuperAdmin',
-  HR: 'HR',
+  HR_ADMIN: 'HR Administrator',
+  HR_MANAGER: 'HR Manager',
+  PAYROLL_OFFICER: 'Payroll Officer',
+  MANAGER: 'Manager',
   EMPLOYEE: 'Employee',
 };
 

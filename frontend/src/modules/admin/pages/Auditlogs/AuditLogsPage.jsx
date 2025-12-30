@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/
 import { Button } from '../../../../shared/ui/button';
 import { Search, Filter, Download, RefreshCw } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { formatDate } from '../../../../core/utils/essHelpers';
+import { formatDate } from '../../../ess/utils/essHelpers';
 import auditLogService from '../../../../services/auditLogService';
 
 const AuditLogsPage = () => {

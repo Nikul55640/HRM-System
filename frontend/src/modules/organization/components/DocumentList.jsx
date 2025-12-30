@@ -15,7 +15,7 @@ import {
 } from "../../../shared/ui/table";
 import { Button } from "../../../shared/ui/button";
 import { FileText, Download, Eye, Trash2 } from "lucide-react";
-import { formatDate } from "../../../core/utils/essHelpers";
+import { formatDate } from "../../ess/utils/essHelpers";
 import { ApprovalStatusBadge } from "../../../shared/components";
 
 const DocumentList = ({ documents = [], onView, onDownload, onDelete }) => {

@@ -6,7 +6,7 @@ import { Label } from '../../../shared/ui/label';
 import { Badge } from '../../../shared/ui/badge';
 import { Search, Plus, Trash2, Users } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import api from '../../../core/services/api';
+import api from '../../../services/api';
 
 const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
   const [assignedEmployees, setAssignedEmployees] = useState([]);

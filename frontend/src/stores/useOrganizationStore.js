@@ -1,8 +1,8 @@
 import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { toast } from 'react-toastify';
-import departmentService from '../core/services/departmentService';
-import configService from '../core/services/configService';
+import departmentService from '../services/departmentService';
+import configService from '../services/configService';
 
 const useOrganizationStore = create(
   devtools(

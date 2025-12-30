@@ -3,7 +3,7 @@ import { devtools, subscribeWithSelector } from "zustand/middleware";
 import { toast } from "react-toastify";
 
 import employeeService from "../modules/employees/services/employeeService";
-import departmentService from "../core/services/departmentService";
+import departmentService from "../services/departmentService";
 
 const useEmployeeStore = create(
   devtools(

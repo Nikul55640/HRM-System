@@ -35,7 +35,7 @@ import {
   Gift,
   AlertCircle,
 } from "lucide-react";
-import leaveService from "../../../../core/services/leaveService";
+import leaveService from "../../../../services/leaveService";
 import useAttendanceSessionStore from "../../../../stores/useAttendanceSessionStore";
 
 

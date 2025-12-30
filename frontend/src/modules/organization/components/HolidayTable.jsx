@@ -14,7 +14,7 @@ import {
 import { Button } from "../../../shared/ui/button";
 import { Edit, Trash2, CalendarDays } from "lucide-react";
 
-import { formatDate } from "../../../core/utils/essHelpers";
+import { formatDate } from "../../ess/utils/essHelpers";
 const HolidayTable = ({ data = [], loading, onEdit }) => {
   const { deleteHoliday, fetchHolidays } = useOrganizationStore();
 

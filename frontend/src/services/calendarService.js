@@ -1,4 +1,4 @@
-import api from '../core/services/api';
+import api from './api';
 
 const calendarService = {
   // =========================================================

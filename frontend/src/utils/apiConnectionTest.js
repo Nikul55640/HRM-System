@@ -3,9 +3,9 @@
  * Tests all employee backend APIs to verify frontend-backend connectivity
  */
 
-import api from '../core/services/api';
+import api from '../services/api';
 import employeeSelfService from '../services/employeeSelfService';
-import leaveService from '../core/services/leaveService';
+import leaveService from '../services/leaveService';
 
 const apiConnectionTest = {
   /**
