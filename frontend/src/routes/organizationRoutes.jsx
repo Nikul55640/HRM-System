@@ -3,9 +3,6 @@ import { lazy } from "react";
 const DepartmentPage = lazy(() =>
   import("../modules/organization/pages/DepartmentPage")
 );
-const DesignationPage = lazy(() =>
-  import("../modules/organization/pages/DesignationPage")
-);
 const PolicyPage = lazy(() =>
   import("../modules/organization/pages/PolicyPage")
 );
@@ -19,5 +16,5 @@ export const organizationRoutes = [
     element: <DepartmentPage />,
     roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
   },
-
+  
 ];

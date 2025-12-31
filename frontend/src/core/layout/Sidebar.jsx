@@ -78,6 +78,12 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN),
         },
         {
+          name: "Attendance Corrections",
+          path: "/employee/attendance/corrections",
+          icon: "ClipboardEdit",
+          showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN),
+        },
+        {
           name: "My Leave",
           path: "/employee/leave",
           icon: "CalendarDays",
@@ -192,7 +198,7 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
         // Calendar Management
         {
           name: "Calendar Management",
-          path: "/admin/calendar/management",
+          path: "/admin/calendar",
           icon: "CalendarCog",
           showIf: () => can.do(MODULES.CALENDAR.MANAGE),
         },
@@ -200,34 +206,8 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
     },
 
     // ===================================================
-    // CALENDAR VIEWS SECTION
+    // CALENDAR VIEWS SECTION - Removed (now unified)
     // ===================================================
-    {
-      section: "Calendar Views",
-      icon: "Calendar",
-      collapsible: true,
-      showIf: () => can.do(MODULES.CALENDAR.VIEW),
-      items: [
-        {
-          name: "Calendar Overview",
-          path: "/admin/calendar",
-          icon: "CalendarRange",
-          showIf: () => can.do(MODULES.CALENDAR.VIEW),
-        },
-        {
-          name: "Daily View",
-          path: "calendar/daily",
-          icon: "CalendarDays",
-          showIf: () => can.do(MODULES.CALENDAR.VIEW),
-        },
-        {
-          name: "Monthly View",
-          path: "calendar/monthly",
-          icon: "Calendar",
-          showIf: () => can.do(MODULES.CALENDAR.VIEW),
-        },
-      ],
-    },
 
     // ===================================================
     // SYSTEM ADMINISTRATION SECTION
@@ -246,19 +226,19 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
       items: [
         {
           name: "User Management",
-          path: "users",
+          path: "/users",
           icon: "UserCog",
           showIf: () => can.do(MODULES.USER.VIEW),
         },
         {
           name: "System Policies",
-          path: "system-policies",
+          path: "/system-policies",
           icon: "Settings",
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
         },
         {
           name: "Audit Logs",
-          path: "audit-logs",
+          path: "/audit-logs",
           icon: "ListChecks",
           showIf: () => can.do(MODULES.SYSTEM.VIEW_AUDIT_LOGS),
         },

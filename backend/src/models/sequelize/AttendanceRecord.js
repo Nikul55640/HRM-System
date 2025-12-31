@@ -79,7 +79,7 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
 
   // Status
   status: {
-    type: DataTypes.ENUM('present', 'absent', 'leave', 'half_day', 'holiday'),
+    type: DataTypes.ENUM('present', 'absent', 'leave', 'half_day', 'holiday', 'pending_correction'),
     defaultValue: 'present',
   },
   statusReason: {
@@ -131,6 +131,22 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     },
   },
   correctedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  flaggedReason: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  flaggedBy: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+  },
+  flaggedAt: {
     type: DataTypes.DATE,
     allowNull: true,
   },

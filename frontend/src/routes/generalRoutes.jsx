@@ -8,7 +8,12 @@ const HelpPage = lazy(() =>
   import("../modules/help/HelpPage")
 );
 
+const DebugAuth = lazy(() =>
+  import("../pages/DebugAuth")
+);
+
 export const generalRoutes = [
   { path: "notifications", element: <NotificationsPage /> },
   { path: "help", element: <HelpPage /> },
+  { path: "debug-auth", element: <DebugAuth /> },
 ];

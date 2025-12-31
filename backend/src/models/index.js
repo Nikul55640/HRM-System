@@ -4,6 +4,7 @@ import User from './sequelize/User.js';
 import Department from './sequelize/Department.js';
 import Employee from './sequelize/Employee.js';
 import AttendanceRecord from './sequelize/AttendanceRecord.js';
+import AttendanceCorrectionRequest from './sequelize/AttendanceCorrectionRequest.js';
 import LeaveRequest from './sequelize/LeaveRequest.js';
 import LeaveBalance from './sequelize/LeaveBalance.js';
 import Holiday from './sequelize/Holiday.js';
@@ -22,6 +23,7 @@ export {
   Department,
   Employee,
   AttendanceRecord,
+  AttendanceCorrectionRequest,
   LeaveRequest,
   LeaveBalance,
   Holiday,
@@ -39,6 +41,7 @@ export default {
   Department,
   Employee,
   AttendanceRecord,
+  AttendanceCorrectionRequest,
   LeaveRequest,
   LeaveBalance,
   Holiday,

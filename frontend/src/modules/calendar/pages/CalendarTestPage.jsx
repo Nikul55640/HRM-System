@@ -270,7 +270,7 @@ const CalendarTestPage = () => {
             <p><strong>User ID:</strong> {user?.id || 'Not available'}</p>
             <p><strong>Employee ID:</strong> {user?.employeeId || 'Not available'}</p>
             <p><strong>Role:</strong> {user?.role || 'Not available'}</p>
-            <p><strong>Name:</strong> {user?.name || 'Not available'}</p>
+            <p><strong>Name:</strong> {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.email || 'Not available'}</p>
           </div>
         </div>
       </div>

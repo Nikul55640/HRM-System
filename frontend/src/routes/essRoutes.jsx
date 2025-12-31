@@ -12,6 +12,9 @@ const BankDetailsPage = lazy(() =>
 const AttendancePage = lazy(() =>
   import("../modules/attendance/employee/AttendancePage")
 );
+const AttendanceCorrectionRequests = lazy(() =>
+  import("../modules/attendance/employee/AttendanceCorrectionRequests")
+);
 
 // Feature 3: Leave Management
 const LeavePage = lazy(() => import("../modules/leave/employee/LeavePage"));
@@ -28,7 +31,7 @@ const EmployeeShiftsPage = lazy(() =>
 
 // Feature 7: Calendar & Events (Employee)
 const EmployeeCalendarPage = lazy(() =>
-  import("../modules/employee/pages/CalendarPage")
+  import("../modules/calendar/employee/EmployeeCalendarPage")
 );
 
 
@@ -39,6 +42,7 @@ export const essRoutes = [
 
   // Attendance
   { path: "employee/attendance", element: <AttendancePage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/attendance/corrections", element: <AttendanceCorrectionRequests />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
 
   // Leave
   { path: "employee/leave", element: <LeavePage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },

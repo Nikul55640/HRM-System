@@ -65,10 +65,10 @@ const EmployeeTable = ({ employees, onView, onEdit, onDelete, canManage }) => {
                   <div className="text-sm text-gray-900">{employee.employeeId || 'N/A'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{employee.jobInfo?.jobTitle || 'N/A'}</div>
+                  <div className="text-sm text-gray-900">{employee.jobInfo?.designation || 'N/A'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-900">{employee.jobInfo?.departmentInfo?.name || employee.jobInfo?.department?.name || 'N/A'}</div>
+                  <div className="text-sm text-gray-900">{employee.jobInfo?.department || 'N/A'}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(employee.status)}`}>

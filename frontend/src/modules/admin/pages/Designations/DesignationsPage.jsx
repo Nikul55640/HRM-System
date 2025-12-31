@@ -17,10 +17,11 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import api from '../../../../services/api';
+import employeeManagementService from '../../../../services/employeeManagementService';
 
 const DesignationsPage = () => {
   const [designations, setDesignations] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedDesignation, setSelectedDesignation] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -38,16 +39,43 @@ const DesignationsPage = () => {
     byDepartment: {}
   });
 
-  // Mock departments - in real app, fetch from API
-  const departments = [
-    'Engineering',
-    'Human Resources', 
-    'Finance',
-    'Marketing',
-    'Sales',
-    'Operations',
-    'Customer Support'
-  ];
+  const fetchDesignations = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await employeeManagementService.getDesignations();
+      
+      if (result.success) {
+        setDesignations(result.data);
+        
+        // Calculate stats
+        const total = result.data.length;
+        const active = result.data.filter(d => d.isActive).length;
+        const byDepartment = result.data.reduce((acc, d) => {
+          const deptName = d.department?.name || 'Unknown';
+          acc[deptName] = (acc[deptName] || 0) + 1;
+          return acc;
+        }, {});
+        
+        setStats({ total, active, byDepartment });
+      }
+    } catch (error) {
+      toast.error('Failed to fetch designations');
+      console.error('Error fetching designations:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadFormData = useCallback(async () => {
+    try {
+      const result = await employeeManagementService.getFormData();
+      if (result.success) {
+        setDepartments(result.data.departments || []);
+      }
+    } catch (error) {
+      console.error('Error loading form data:', error);
+    }
+  }, []);
 
   const levels = [
     { value: 'intern', label: 'Intern' },
@@ -60,94 +88,10 @@ const DesignationsPage = () => {
     { value: 'executive', label: 'Executive' }
   ];
 
-  const fetchDesignations = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Mock API call - replace with actual API endpoint
-      // const response = await api.get('/admin/designations');
-      
-      // Mock data for demonstration
-      const mockDesignations = [
-        {
-          id: 1,
-          title: 'Software Engineer',
-          description: 'Develops and maintains software applications',
-          department: 'Engineering',
-          level: 'mid',
-          isActive: true,
-          employeeCount: 15,
-          createdAt: '2024-01-15T10:00:00Z',
-          updatedAt: '2024-01-15T10:00:00Z'
-        },
-        {
-          id: 2,
-          title: 'Senior Software Engineer',
-          description: 'Senior developer with leadership responsibilities',
-          department: 'Engineering',
-          level: 'senior',
-          isActive: true,
-          employeeCount: 8,
-          createdAt: '2024-01-15T10:00:00Z',
-          updatedAt: '2024-01-15T10:00:00Z'
-        },
-        {
-          id: 3,
-          title: 'HR Manager',
-          description: 'Manages human resources operations and policies',
-          department: 'Human Resources',
-          level: 'manager',
-          isActive: true,
-          employeeCount: 2,
-          createdAt: '2024-01-15T10:00:00Z',
-          updatedAt: '2024-01-15T10:00:00Z'
-        },
-        {
-          id: 4,
-          title: 'Marketing Specialist',
-          description: 'Handles marketing campaigns and brand promotion',
-          department: 'Marketing',
-          level: 'junior',
-          isActive: true,
-          employeeCount: 5,
-          createdAt: '2024-01-15T10:00:00Z',
-          updatedAt: '2024-01-15T10:00:00Z'
-        },
-        {
-          id: 5,
-          title: 'Finance Director',
-          description: 'Oversees financial operations and strategy',
-          department: 'Finance',
-          level: 'director',
-          isActive: false,
-          employeeCount: 1,
-          createdAt: '2024-01-15T10:00:00Z',
-          updatedAt: '2024-01-15T10:00:00Z'
-        }
-      ];
-
-      setDesignations(mockDesignations);
-      
-      // Calculate stats
-      const total = mockDesignations.length;
-      const active = mockDesignations.filter(d => d.isActive).length;
-      const byDepartment = mockDesignations.reduce((acc, d) => {
-        acc[d.department] = (acc[d.department] || 0) + 1;
-        return acc;
-      }, {});
-      
-      setStats({ total, active, byDepartment });
-      
-    } catch (error) {
-      toast.error('Failed to fetch designations');
-      console.error('Error fetching designations:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchDesignations();
-  }, [fetchDesignations]);
+    loadFormData();
+  }, [fetchDesignations, loadFormData]);
 
   const handleCreateDesignation = () => {
     setSelectedDesignation(null);
@@ -166,7 +110,7 @@ const DesignationsPage = () => {
     setFormData({
       title: designation.title,
       description: designation.description,
-      department: designation.department,
+      department: designation.department?.id || designation.departmentId || '',
       level: designation.level,
       isActive: designation.isActive
     });
@@ -185,19 +129,23 @@ const DesignationsPage = () => {
         return;
       }
 
-      // Mock API call - replace with actual API endpoint
+      const designationData = {
+        title: formData.title,
+        description: formData.description,
+        level: formData.level,
+        departmentId: parseInt(formData.department, 10),
+        isActive: formData.isActive
+      };
+
       if (selectedDesignation) {
-        // await api.put(`/admin/designations/${selectedDesignation.id}`, formData);
-        toast.success('Designation updated successfully');
+        await employeeManagementService.updateDesignation(selectedDesignation.id, designationData);
       } else {
-        // await api.post('/admin/designations', formData);
-        toast.success('Designation created successfully');
+        await employeeManagementService.createDesignation(designationData);
       }
 
       setShowForm(false);
       fetchDesignations();
     } catch (error) {
-      toast.error(selectedDesignation ? 'Failed to update designation' : 'Failed to create designation');
       console.error('Error saving designation:', error);
     }
   };
@@ -208,31 +156,31 @@ const DesignationsPage = () => {
     }
 
     try {
-      // await api.delete(`/admin/designations/${designationId}`);
-      toast.success('Designation deleted successfully');
+      await employeeManagementService.deleteDesignation(designationId);
       fetchDesignations();
     } catch (error) {
-      toast.error('Failed to delete designation');
       console.error('Error deleting designation:', error);
     }
   };
 
   const handleToggleStatus = async (designation) => {
     try {
-      const updatedData = { ...designation, isActive: !designation.isActive };
-      // await api.put(`/admin/designations/${designation.id}`, updatedData);
-      toast.success(`Designation ${updatedData.isActive ? 'activated' : 'deactivated'} successfully`);
+      const updatedData = { 
+        ...designation, 
+        isActive: !designation.isActive,
+        departmentId: designation.department?.id || designation.departmentId
+      };
+      await employeeManagementService.updateDesignation(designation.id, updatedData);
       fetchDesignations();
     } catch (error) {
-      toast.error('Failed to update designation status');
       console.error('Error updating designation status:', error);
     }
   };
 
   const filteredDesignations = designations.filter(designation =>
     designation.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    designation.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    designation.description.toLowerCase().includes(searchTerm.toLowerCase())
+    (designation.department?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (designation.description || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const getLevelBadge = (level) => {
@@ -352,7 +300,7 @@ const DesignationsPage = () => {
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div className="flex items-center gap-2">
                           <Building2 className="w-4 h-4 text-gray-400" />
-                          <span>{designation.department}</span>
+                          <span>{designation.department?.name || 'Unknown Department'}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-gray-400" />
@@ -440,7 +388,7 @@ const DesignationsPage = () => {
               >
                 <option value="">Select Department</option>
                 {departments.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
+                  <option key={dept.id} value={dept.id}>{dept.name}</option>
                 ))}
               </select>
             </div>

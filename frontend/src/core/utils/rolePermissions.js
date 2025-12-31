@@ -275,7 +275,8 @@ const SUPER_ADMIN_PERMISSIONS = [
 
 export const ROLE_PERMISSIONS = {
   [ROLES.EMPLOYEE]: EMPLOYEE_PERMISSIONS,
-  [ROLES.HR]: HR_PERMISSIONS,
+  [ROLES.HR_ADMIN]: HR_PERMISSIONS,
+  [ROLES.HR_MANAGER]: HR_PERMISSIONS,
   [ROLES.SUPER_ADMIN]: SUPER_ADMIN_PERMISSIONS,
 };
 
@@ -320,7 +321,7 @@ export const canAccessDepartment = (user, departmentId) => {
     return true;
   }
 
-  if (user?.role === ROLES.HR) {
+  if (user?.role === ROLES.HR_ADMIN || user?.role === ROLES.HR_MANAGER) {
     if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
       return true; // HR can access all departments by default
     }
@@ -338,7 +339,8 @@ export const canAccessDepartment = (user, departmentId) => {
 export const getRoleDisplayName = (role) => {
   const roleNames = {
     [ROLES.SUPER_ADMIN]: 'Super Admin',
-    [ROLES.HR]: 'HR',
+    [ROLES.HR_ADMIN]: 'HR Administrator',
+    [ROLES.HR_MANAGER]: 'HR Manager',
     [ROLES.EMPLOYEE]: 'Employee',
   };
   return roleNames[role] || role;
@@ -350,7 +352,8 @@ export const getRoleDisplayName = (role) => {
 export const getRoleDescription = (role) => {
   const descriptions = {
     [ROLES.SUPER_ADMIN]: 'Full system access and configuration',
-    [ROLES.HR]: 'Manage all HR operations and policies',
+    [ROLES.HR_ADMIN]: 'Manage all HR operations and policies',
+    [ROLES.HR_MANAGER]: 'Manage HR operations for assigned departments',
     [ROLES.EMPLOYEE]: 'Basic employee self-service access',
   };
   return descriptions[role] || '';

@@ -7,13 +7,22 @@ const router = express.Router();
 
 // All routes require authentication and admin/hr role
 router.use(authenticate);
-router.use(authorize(['admin', 'hr']));
+router.use(authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']));
 
 // Get pending corrections
 router.get('/pending', attendanceCorrectionController.getPendingCorrections);
 
 // Get correction history
 router.get('/history', attendanceCorrectionController.getCorrectionHistory);
+
+// Get employee correction requests (new endpoint)
+router.get('/requests', attendanceCorrectionController.getEmployeeCorrectionRequests);
+
+// Approve employee correction request
+router.put('/requests/:requestId/approve', attendanceCorrectionController.approveEmployeeCorrectionRequest);
+
+// Reject employee correction request
+router.put('/requests/:requestId/reject', attendanceCorrectionController.rejectEmployeeCorrectionRequest);
 
 // Apply single correction
 router.put('/:recordId/correct', attendanceCorrectionController.applyCorrection);

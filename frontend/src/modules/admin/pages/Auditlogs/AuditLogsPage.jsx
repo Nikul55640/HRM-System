@@ -66,7 +66,8 @@ const AuditLogsPage = () => {
     const searchLower = searchTerm.toLowerCase();
     return (
       log.user?.email?.toLowerCase().includes(searchLower) ||
-      log.user?.name?.toLowerCase().includes(searchLower) ||
+      log.user?.firstName?.toLowerCase().includes(searchLower) ||
+      log.user?.lastName?.toLowerCase().includes(searchLower) ||
       log.action?.toLowerCase().includes(searchLower) ||
       log.targetType?.toLowerCase().includes(searchLower) ||
       log.description?.toLowerCase().includes(searchLower)
@@ -158,14 +159,14 @@ const AuditLogsPage = () => {
             </CardContent>
           </Card>
           
-          {summary.actionBreakdown?.map((item) => (
+          {/* {summary.actionBreakdown?.map((item) => (
             <Card key={item.action}>
               <CardContent className="p-4">
                 <div className="text-2xl font-bold text-gray-900">{item.count}</div>
                 <div className="text-sm text-gray-600">{item.action} Actions</div>
               </CardContent>
             </Card>
-          ))}
+          ))} */}
         </div>
       )}
 
@@ -260,7 +261,12 @@ const AuditLogsPage = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm">
-                        <div className="text-gray-800">{log.user?.name || 'Unknown'}</div>
+                        <div className="text-gray-800">
+                          {log.user?.firstName && log.user?.lastName 
+                            ? `${log.user.firstName} ${log.user.lastName}`
+                            : log.user?.email || 'Unknown'
+                          }
+                        </div>
                         <div className="text-xs text-gray-500">{log.user?.email}</div>
                         <div className="text-xs text-gray-400">{log.user?.role}</div>
                       </td>

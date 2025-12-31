@@ -6,6 +6,7 @@ import { LoadingSpinner } from "../../../shared/components";
 import useAuth from "../../../core/hooks/useAuth";
 import OverviewTab from "../components/OverviewTab";
 import ActivityTab from "../components/ActivityTab";
+import employeeManagementService from "../../../services/employeeManagementService";
 
 const EmployeeProfile = () => {
   const { id } = useParams();
@@ -37,32 +38,39 @@ const EmployeeProfile = () => {
   const loadEmployee = async () => {
     console.log('EmployeeProfile - Loading employee with ID:', id);
     try {
-      const employee = await fetchEmployeeById(id);
-      console.log('EmployeeProfile - Employee loaded successfully:', employee);
+      // Use the employee management service for better data structure
+      const result = await employeeManagementService.getEmployeeWithRole(id);
+      
+      if (result.success) {
+        const employee = result.data.employee;
+        console.log('EmployeeProfile - Employee loaded successfully:', employee);
 
-      // Check if HR Manager has access to this employee's department
-      if (isHRManager() && employee?.jobInfo?.department) {
-        const departmentId =
-          employee.jobInfo.department._id || employee.jobInfo.department;
-        console.log('EmployeeProfile - Checking department access for:', departmentId);
-        if (!canAccessDepartment(departmentId)) {
-          setAccessDenied(true);
-          toast.error("You do not have access to this employee");
-          navigate("/employees");
-          return;
+        // Set the employee in the store
+        useEmployeeStore.getState().setCurrentEmployee(employee);
+
+        // Check if HR Manager has access to this employee's department
+        if (isHRManager() && employee?.jobInfo?.departmentId) {
+          console.log('EmployeeProfile - Checking department access for:', employee.jobInfo.departmentId);
+          if (!canAccessDepartment(employee.jobInfo.departmentId)) {
+            setAccessDenied(true);
+            toast.error("You do not have access to this employee");
+            navigate("/admin/employees");
+            return;
+          }
         }
+      } else {
+        throw new Error(result.message || "Failed to load employee");
       }
     } catch (err) {
       console.error('EmployeeProfile - Error loading employee:', err);
-      const errorMsg =
-        err.response?.data?.error?.message || "Failed to load employee";
+      const errorMsg = err.message || "Failed to load employee";
       toast.error(errorMsg);
 
       // If it's a 403 error, show access denied
       if (err.response?.status === 403) {
         setAccessDenied(true);
       }
-      navigate("/employees");
+      navigate("/admin/employees");
     }
   };
 
@@ -78,11 +86,8 @@ const EmployeeProfile = () => {
     if (!hasEditRole) return false;
 
     // For HR Managers, check department access
-    if (isHRManager() && currentEmployee?.jobInfo?.department) {
-      const departmentId =
-        currentEmployee.jobInfo.department._id ||
-        currentEmployee.jobInfo.department;
-      return canAccessDepartment(departmentId);
+    if (isHRManager() && currentEmployee?.jobInfo?.departmentId) {
+      return canAccessDepartment(currentEmployee.jobInfo.departmentId);
     }
 
     return true;
@@ -141,17 +146,17 @@ const EmployeeProfile = () => {
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-6">
             {/* Profile Photo */}
-            {currentEmployee.personalInfo?.profilePhoto ? (
+            {currentEmployee.profilePicture ? (
               <img
-                src={currentEmployee.personalInfo.profilePhoto}
-                alt={`${currentEmployee.personalInfo?.firstName} ${currentEmployee.personalInfo?.lastName}`}
+                src={currentEmployee.personalInfo?.profilePhoto || currentEmployee.profilePicture}
+                alt={`${currentEmployee.personalInfo?.firstName || currentEmployee.firstName} ${currentEmployee.personalInfo?.lastName || currentEmployee.lastName}`}
                 className="w-24 h-24 rounded-full object-cover"
               />
             ) : (
               <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-3xl font-semibold">
                 {getInitials(
-                  currentEmployee.personalInfo?.firstName,
-                  currentEmployee.personalInfo?.lastName
+                  currentEmployee.personalInfo?.firstName || currentEmployee.firstName,
+                  currentEmployee.personalInfo?.lastName || currentEmployee.lastName
                 )}
               </div>
             )}
@@ -159,11 +164,11 @@ const EmployeeProfile = () => {
             {/* Basic Info */}
             <div>
               <h1 className="text-3xl font-bold text-gray-800">
-                {currentEmployee.personalInfo?.firstName}{" "}
-                {currentEmployee.personalInfo?.lastName}
+                {currentEmployee.personalInfo?.firstName || currentEmployee.firstName}{" "}
+                {currentEmployee.personalInfo?.lastName || currentEmployee.lastName}
               </h1>
               <p className="text-lg text-gray-600 mt-1">
-                {currentEmployee.jobInfo?.jobTitle}
+                {currentEmployee.jobInfo?.designation || currentEmployee.jobInfo?.jobTitle || currentEmployee.designation}
               </p>
               <div className="flex items-center gap-4 mt-2">
                 <span
@@ -188,7 +193,7 @@ const EmployeeProfile = () => {
           {/* Action Buttons */}
           <div className="flex gap-3">
             <button
-              onClick={() => navigate("/employees")}
+              onClick={() => navigate("/admin/employees")}
               className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
             >
               Back to List

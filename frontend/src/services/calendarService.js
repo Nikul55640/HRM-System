@@ -8,8 +8,13 @@ const calendarService = {
   // Get events by date range
   getEventsByDateRange: async (startDate, endDate) => {
     try {
+      // Convert date range to year/month for the backend API
+      const start = new Date(startDate);
+      const year = start.getFullYear();
+      const month = start.getMonth() + 1;
+      
       const response = await api.get('/calendar/events', { 
-        params: { startDate, endDate } 
+        params: { year, month, startDate, endDate } 
       });
       return response.data;
     } catch (error) {

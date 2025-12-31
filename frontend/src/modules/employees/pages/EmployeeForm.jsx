@@ -3,12 +3,13 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import { toast } from "react-toastify";
-import useEmployeeStore from "../../../stores/useEmployeeStore";
+import employeeManagementService from "../../../services/employeeManagementService";
 
 import { LoadingSpinner } from "../../../shared/components";
 import PersonalInfoStep from "../form-steps/PersonalInfoStep";
 import ContactInfoStep from "../form-steps/ContactInfoStep";
 import JobDetailsStep from "../form-steps/JobDetailsStep";
+import SystemAccessStep from "../form-steps/SystemAccessStep";
 
 const validationSchemas = [
   // Step 1: Personal Info
@@ -69,7 +70,7 @@ const validationSchemas = [
       hireDate: Yup.date().required("Hire date is required"),
       employmentType: Yup.string()
         .required("Employment type is required")
-        .oneOf(["Full-time", "Part-time", "Contract", "Intern"]),
+        .oneOf(["full_time", "part_time", "contract", "intern"]),
       workLocation: Yup.string().max(100, "Maximum 100 characters"),
       workSchedule: Yup.string().max(100, "Maximum 100 characters"),
       probationEndDate: Yup.date()
@@ -77,110 +78,118 @@ const validationSchemas = [
         .min(Yup.ref("hireDate"), "Probation end date must be after hire date"),
     }),
   }),
+  // Step 4: System Access
+  Yup.object({
+    systemAccess: Yup.object({
+      systemRole: Yup.string().required("System role selection is required"),
+      assignedDepartments: Yup.array().when('systemRole', {
+        is: 'HR',
+        then: (schema) => schema.min(1, "At least one department must be assigned for HR role"),
+        otherwise: (schema) => schema
+      }),
+    }),
+  }),
 ];
 
 const EmployeeForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { 
-    currentEmployee, 
-    loading, 
-    fetchEmployeeById,
-    createEmployee,
-    updateEmployee,
-    clearCurrentEmployee,
-    fetchDepartments
-  } = useEmployeeStore();
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [departments, setDepartments] = useState([]);
-  const [managers, setManagers] = useState([]); // Keep for future use
+  const [formData, setFormData] = useState({
+    departments: [],
+    designations: [],
+    managers: [],
+    systemRoles: []
+  });
+  const [currentEmployee, setCurrentEmployee] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(true);
 
   const isEditMode = Boolean(id);
-  const steps = ["Personal Info", "Contact Info", "Job Details"];
+  const steps = ["Personal Info", "Contact Info", "Job Details", "System Access"];
 
   const loadFormData = useCallback(async () => {
     try {
       setIsLoadingData(true);
 
-      // Load departments
-      const deptResponse = await fetchDepartments();
-      setDepartments(Array.isArray(deptResponse) ? deptResponse : []);
-      
-      // Load managers (for future use)
-      setManagers([]);
-
-      // Load potential managers (employees who can be managers)
-      // For now, we'll load this from employees endpoint
-      // In production, you might want a specific endpoint for this
+      // Load form data (departments, designations, managers, roles)
+      const formDataResponse = await employeeManagementService.getFormData();
+      if (formDataResponse.success) {
+        console.log('📋 [EmployeeForm] Form data loaded:', formDataResponse.data);
+        setFormData(formDataResponse.data);
+      }
 
       // If editing, load employee data
       if (id && id !== 'undefined') {
-        await fetchEmployeeById(id);
+        const employeeResponse = await employeeManagementService.getEmployeeWithRole(id);
+        if (employeeResponse.success) {
+          console.log('👤 [EmployeeForm] Employee data loaded:', employeeResponse.data.employee);
+          setCurrentEmployee(employeeResponse.data.employee);
+        }
       }
     } catch (error) {
       toast.error("Failed to load form data");
+      console.error('Form data loading error:', error);
     } finally {
       setIsLoadingData(false);
     }
-  }, [id, fetchDepartments, fetchEmployeeById]);
+  }, [id]);
 
   useEffect(() => {
     loadFormData();
     return () => {
-      clearCurrentEmployee();
+      setCurrentEmployee(null);
     };
-  }, [loadFormData, clearCurrentEmployee]);
+  }, [loadFormData]);
 
   const initialValues = {
     personalInfo: {
-      firstName: currentEmployee?.personalInfo?.firstName || "",
-      lastName: currentEmployee?.personalInfo?.lastName || "",
-      dateOfBirth: currentEmployee?.personalInfo?.dateOfBirth
-        ? new Date(currentEmployee.personalInfo.dateOfBirth)
+      firstName: currentEmployee?.personalInfo?.firstName || currentEmployee?.firstName || "",
+      lastName: currentEmployee?.personalInfo?.lastName || currentEmployee?.lastName || "",
+      dateOfBirth: currentEmployee?.personalInfo?.dateOfBirth || currentEmployee?.dateOfBirth
+        ? new Date(currentEmployee?.personalInfo?.dateOfBirth || currentEmployee.dateOfBirth)
             .toISOString()
             .split("T")[0]
         : "",
-      gender: currentEmployee?.personalInfo?.gender || "",
-      maritalStatus: currentEmployee?.personalInfo?.maritalStatus || "",
-      nationality: currentEmployee?.personalInfo?.nationality || "",
+      gender: currentEmployee?.personalInfo?.gender || currentEmployee?.gender || "",
+      maritalStatus: currentEmployee?.personalInfo?.maritalStatus || currentEmployee?.maritalStatus || "",
+      nationality: currentEmployee?.personalInfo?.nationality || currentEmployee?.nationality || "",
     },
     contactInfo: {
-      email: currentEmployee?.contactInfo?.email || "",
-      personalEmail: currentEmployee?.contactInfo?.personalEmail || "",
-      phoneNumber: currentEmployee?.contactInfo?.phoneNumber || "",
-      alternatePhone: currentEmployee?.contactInfo?.alternatePhone || "",
+      email: currentEmployee?.contactInfo?.email || currentEmployee?.email || "",
+      personalEmail: currentEmployee?.contactInfo?.personalEmail || currentEmployee?.personalEmail || "",
+      phoneNumber: currentEmployee?.contactInfo?.phoneNumber || currentEmployee?.phone || "",
+      alternatePhone: currentEmployee?.contactInfo?.alternatePhone || currentEmployee?.alternatePhone || "",
       currentAddress: {
-        street: currentEmployee?.contactInfo?.currentAddress?.street || "",
-        city: currentEmployee?.contactInfo?.currentAddress?.city || "",
-        state: currentEmployee?.contactInfo?.currentAddress?.state || "",
-        zipCode: currentEmployee?.contactInfo?.currentAddress?.zipCode || "",
-        country: currentEmployee?.contactInfo?.currentAddress?.country || "",
+        street: currentEmployee?.contactInfo?.currentAddress?.street || currentEmployee?.address?.street || "",
+        city: currentEmployee?.contactInfo?.currentAddress?.city || currentEmployee?.address?.city || "",
+        state: currentEmployee?.contactInfo?.currentAddress?.state || currentEmployee?.address?.state || "",
+        zipCode: currentEmployee?.contactInfo?.currentAddress?.zipCode || currentEmployee?.address?.zipCode || "",
+        country: currentEmployee?.contactInfo?.currentAddress?.country || currentEmployee?.address?.country || "",
       },
-      emergencyContacts: currentEmployee?.contactInfo?.emergencyContacts || [],
+      emergencyContacts: currentEmployee?.contactInfo?.emergencyContacts || (currentEmployee?.emergencyContact ? [currentEmployee.emergencyContact] : []),
     },
     jobInfo: {
-      jobTitle: currentEmployee?.jobInfo?.jobTitle || "",
-      department:
-        currentEmployee?.jobInfo?.department?._id ||
-        currentEmployee?.jobInfo?.department ||
-        "",
-      manager:
-        currentEmployee?.jobInfo?.manager?._id ||
-        currentEmployee?.jobInfo?.manager ||
-        "",
-      hireDate: currentEmployee?.jobInfo?.hireDate
-        ? new Date(currentEmployee.jobInfo.hireDate).toISOString().split("T")[0]
+      jobTitle: currentEmployee?.jobInfo?.jobTitle || currentEmployee?.designation || "", // This is the free text job title
+      department: currentEmployee?.jobInfo?.departmentId || currentEmployee?.departmentId || "",
+      designation: currentEmployee?.jobInfo?.designationId || currentEmployee?.designationId || "", // This is the structured designation ID
+      manager: currentEmployee?.jobInfo?.reportingManager || currentEmployee?.reportingManager || "",
+      hireDate: currentEmployee?.jobInfo?.hireDate || currentEmployee?.joiningDate
+        ? new Date(currentEmployee?.jobInfo?.hireDate || currentEmployee.joiningDate).toISOString().split("T")[0]
         : "",
-      employmentType: currentEmployee?.jobInfo?.employmentType || "",
-      workLocation: currentEmployee?.jobInfo?.workLocation || "",
-      workSchedule: currentEmployee?.jobInfo?.workSchedule || "",
-      probationEndDate: currentEmployee?.jobInfo?.probationEndDate
-        ? new Date(currentEmployee.jobInfo.probationEndDate)
+      employmentType: currentEmployee?.jobInfo?.employmentType || currentEmployee?.employmentType || "",
+      workLocation: currentEmployee?.jobInfo?.workLocation || currentEmployee?.workLocation || "",
+      workSchedule: currentEmployee?.jobInfo?.workSchedule || currentEmployee?.workSchedule || "",
+      probationEndDate: currentEmployee?.jobInfo?.probationEndDate || currentEmployee?.probationEndDate
+        ? new Date(currentEmployee?.jobInfo?.probationEndDate || currentEmployee.probationEndDate)
             .toISOString()
             .split("T")[0]
         : "",
+    },
+    systemAccess: {
+      systemRole: currentEmployee?.user?.role || "none",
+      assignedDepartments: currentEmployee?.user?.assignedDepartments || [],
     },
   };
 
@@ -216,6 +225,8 @@ const EmployeeForm = () => {
         return ["contactInfo"];
       case 2:
         return ["jobInfo"];
+      case 3:
+        return ["systemAccess"];
       default:
         return [];
     }
@@ -223,29 +234,38 @@ const EmployeeForm = () => {
 
   const handleSubmit = async (values, { setSubmitting }) => {
     try {
-      // Transform data to ensure proper types
+      setLoading(true);
+      
+      // Transform data to match backend expectations
       const transformedValues = {
-        ...values,
+        personalInfo: values.personalInfo,
+        contactInfo: values.contactInfo,
         jobInfo: {
           ...values.jobInfo,
           // Convert department and manager to integers if they exist
           department: values.jobInfo.department ? parseInt(values.jobInfo.department, 10) : null,
           manager: values.jobInfo.manager ? parseInt(values.jobInfo.manager, 10) : null,
-        }
+          designation: values.jobInfo.designation ? parseInt(values.jobInfo.designation, 10) : null,
+        },
+        systemRole: values.systemAccess.systemRole,
+        assignedDepartments: values.systemAccess.assignedDepartments || []
       };
 
+      let result;
       if (isEditMode) {
-        await updateEmployee(id, transformedValues);
+        result = await employeeManagementService.updateEmployeeWithRole(id, transformedValues);
       } else {
-        await createEmployee(transformedValues);
+        result = await employeeManagementService.createEmployeeWithRole(transformedValues);
       }
-      navigate("/employees");
+
+      if (result.success) {
+        navigate("/admin/employees");
+      }
     } catch (error) {
-      toast.error(
-        error.message ||
-          `Failed to ${isEditMode ? "update" : "create"} employee`
-      );
+      console.error('Submit error:', error);
+      // Error toast is handled by the service
     } finally {
+      setLoading(false);
       setSubmitting(false);
     }
   };
@@ -346,8 +366,17 @@ const EmployeeForm = () => {
                   values={values}
                   errors={errors}
                   touched={touched}
-                  departments={departments}
-                  managers={managers}
+                  departments={formData.departments}
+                  managers={formData.managers}
+                  designations={formData.designations}
+                />
+              )}
+              {currentStep === 3 && (
+                <SystemAccessStep
+                  values={values}
+                  errors={errors}
+                  touched={touched}
+                  departments={formData.departments}
                 />
               )}
 
@@ -367,7 +396,7 @@ const EmployeeForm = () => {
                 <div className="flex gap-3">
                   <button
                     type="button"
-                    onClick={() => navigate("/employees")}
+                    onClick={() => navigate("/admin/employees")}
                     className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                   >
                     Cancel
@@ -385,10 +414,10 @@ const EmployeeForm = () => {
                   ) : (
                     <button
                       type="submit"
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || loading}
                       className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
                     >
-                      {isSubmitting && <LoadingSpinner />}
+                      {(isSubmitting || loading) && <LoadingSpinner />}
                       {isEditMode ? "Update Employee" : "Create Employee"}
                     </button>
                   )}

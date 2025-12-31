@@ -32,10 +32,16 @@ import attendanceCorrectionRoutes from "./routes/admin/attendanceCorrection.rout
 import leadRoutes from "./routes/admin/lead.routes.js";
 import shiftRoutes from "./routes/admin/shift.routes.js";
 import departmentRoutes from "./routes/admin/department.routes.js";
+import designationRoutes from "./routes/admin/designation.routes.js";
+import employeeManagementRoutes from "./routes/admin/employeeManagement.routes.js";
 import auditLogRoutes from "./routes/admin/auditLog.routes.js";
 import systemPolicyRoutes from "./routes/admin/systemPolicy.routes.js";
 import leaveBalanceRoutes from "./routes/admin/leaveBalance.routes.js";
 import companyEventRoutes from "./routes/admin/companyEvent.routes.js";
+import helpSupportRoutes from "./routes/admin/helpSupport.routes.js";
+import eventTypesRoutes from "./routes/admin/eventTypes.routes.js";
+import workLocationsRoutes from "./routes/admin/workLocations.routes.js";
+import attendanceStatusRoutes from "./routes/admin/attendanceStatus.routes.js";
 
 // HRM Modules
 import calendarRoutes from "./routes/calendar.routes.js";
@@ -132,12 +138,18 @@ app.use("/api/admin/leave-balances", leaveBalanceRoutes);
 app.use("/api/admin/holidays", adminHolidayRoutes);
 app.use("/api/admin/events", companyEventRoutes);
 app.use("/api/admin/departments", departmentRoutes);
+app.use("/api/admin/designations", designationRoutes);
+app.use("/api/admin/employee-management", employeeManagementRoutes);
 app.use("/api/admin/attendance", adminAttendanceRoutes);
 app.use("/api/admin/attendance-corrections", attendanceCorrectionRoutes);
 app.use("/api/admin/shifts", shiftRoutes);
 app.use("/api/admin/leads", leadRoutes);
 app.use("/api/admin/audit-logs", auditLogRoutes);
 app.use("/api/admin/system-policies", systemPolicyRoutes);
+app.use("/api/admin/help-support", helpSupportRoutes);
+app.use("/api/admin/event-types", eventTypesRoutes);
+app.use("/api/admin/work-locations", workLocationsRoutes);
+app.use("/api/admin/attendance-status", attendanceStatusRoutes);
 app.use("/api/admin/config", configRoutes);
 
 // AUTH SECTION

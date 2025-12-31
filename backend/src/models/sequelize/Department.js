@@ -12,32 +12,43 @@ const Department = sequelize.define('Department', {
     allowNull: false,
     unique: true,
   },
-  code: {
-    type: DataTypes.STRING,
-    unique: true,
-    allowNull: true,
-  },
   description: {
     type: DataTypes.TEXT,
     allowNull: true,
   },
-  parentDepartment: {
-    type: DataTypes.INTEGER,
+  code: {
+    type: DataTypes.STRING(10),
     allowNull: true,
-    references: {
-      model: 'Departments',
-      key: 'id',
-    },
+    unique: true,
+    comment: 'Short department code (e.g., IT, HR, FIN)'
   },
-  manager: {
+  managerId: {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'Employees',
+      model: 'employees',
       key: 'id',
     },
+    comment: 'Department head/manager'
+  },
+  parentDepartmentId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'departments',
+      key: 'id',
+    },
+    comment: 'For hierarchical department structure'
+  },
+  budget: {
+    type: DataTypes.DECIMAL(15, 2),
+    allowNull: true,
   },
   location: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  costCenter: {
     type: DataTypes.STRING,
     allowNull: true,
   },
@@ -45,19 +56,23 @@ const Department = sequelize.define('Department', {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
   },
+  employeeCount: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+    comment: 'Number of employees in this department'
+  },
+  // Audit fields
   createdBy: {
     type: DataTypes.INTEGER,
-    allowNull: true,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id',
     },
   },
   updatedBy: {
     type: DataTypes.INTEGER,
-    allowNull: true,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id',
     },
   },
@@ -65,39 +80,18 @@ const Department = sequelize.define('Department', {
   tableName: 'departments',
   timestamps: true,
   indexes: [
-    {
-      fields: ['name'],
-    },
-    {
-      fields: ['code'],
-    },
-    {
-      fields: ['parentDepartment'],
-    },
+    { fields: ['name'], unique: true },
+    { fields: ['code'], unique: true },
+    { fields: ['managerId'] },
+    { fields: ['parentDepartmentId'] },
+    { fields: ['isActive'] },
   ],
 });
 
-// Static methods
-Department.isCodeUnique = async function(code, excludeId = null) {
-  const where = { code };
-  if (excludeId) {
-    where.id = { [sequelize.Sequelize.Op.ne]: excludeId };
-  }
-  const existing = await this.findOne({ where });
-  return !existing;
-};
-
-Department.searchDepartments = async function(searchTerm) {
-  return await this.findAll({
-    where: {
-      [sequelize.Sequelize.Op.or]: [
-        { name: { [sequelize.Sequelize.Op.like]: `%${searchTerm}%` } },
-        { code: { [sequelize.Sequelize.Op.like]: `%${searchTerm}%` } }
-      ],
-      isActive: true,
-    },
-    order: [['name', 'ASC']],
-  });
+// Instance methods
+Department.prototype.toJSON = function () {
+  const values = { ...this.get() };
+  return values;
 };
 
 export default Department;

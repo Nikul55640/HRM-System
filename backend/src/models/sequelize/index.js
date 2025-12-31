@@ -1,8 +1,10 @@
 import sequelize from '../../config/sequelize.js';
 import User from './User.js';
 import Department from './Department.js';
+import Designation from './Designation.js';
 import Employee from './Employee.js';
 import AttendanceRecord from './AttendanceRecord.js';
+import AttendanceCorrectionRequest from './AttendanceCorrectionRequest.js';
 import LeaveRequest from './LeaveRequest.js';
 import LeaveBalance from './LeaveBalance.js';
 import Holiday from './Holiday.js';
@@ -24,11 +26,21 @@ Department.belongsTo(Department, { foreignKey: 'parentDepartment', as: 'parent' 
 Department.hasMany(Department, { foreignKey: 'parentDepartment', as: 'children' });
 Department.belongsTo(Employee, { foreignKey: 'manager', as: 'managerEmployee' });
 
+// Designation relationships
+Designation.belongsTo(Department, { foreignKey: 'departmentId', as: 'department' });
+Department.hasMany(Designation, { foreignKey: 'departmentId', as: 'designations' });
+Designation.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+Designation.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
+
 // Employee relationships
 Employee.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 Employee.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 Employee.belongsTo(Employee, { foreignKey: 'reportingManager', as: 'manager' });
 Employee.hasMany(Employee, { foreignKey: 'reportingManager', as: 'subordinates' });
+Employee.belongsTo(Designation, { foreignKey: 'designationId', as: 'employeeDesignation' });
+Designation.hasMany(Employee, { foreignKey: 'designationId', as: 'employees' });
+Employee.belongsTo(Department, { foreignKey: 'departmentId', as: 'employeeDepartment' });
+Department.hasMany(Employee, { foreignKey: 'departmentId', as: 'departmentEmployees' });
 
 // Attendance relationships
 AttendanceRecord.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
@@ -37,6 +49,13 @@ AttendanceRecord.belongsTo(Shift, { foreignKey: 'shiftId', as: 'shift' });
 AttendanceRecord.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 AttendanceRecord.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 AttendanceRecord.belongsTo(User, { foreignKey: 'correctedBy', as: 'corrector' });
+
+// Attendance Correction Request relationships
+AttendanceCorrectionRequest.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
+Employee.hasMany(AttendanceCorrectionRequest, { foreignKey: 'employeeId', as: 'correctionRequests' });
+AttendanceCorrectionRequest.belongsTo(User, { foreignKey: 'processedBy', as: 'processor' });
+AttendanceCorrectionRequest.belongsTo(AttendanceRecord, { foreignKey: 'attendanceRecordId', as: 'attendanceRecord' });
+AttendanceRecord.hasMany(AttendanceCorrectionRequest, { foreignKey: 'attendanceRecordId', as: 'correctionRequests' });
 
 // Leave relationships
 LeaveRequest.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
@@ -91,8 +110,10 @@ export {
   sequelize,
   User,
   Department,
+  Designation,
   Employee,
   AttendanceRecord,
+  AttendanceCorrectionRequest,
   LeaveRequest,
   LeaveBalance,
   Holiday,
@@ -108,8 +129,10 @@ export default {
   sequelize,
   User,
   Department,
+  Designation,
   Employee,
   AttendanceRecord,
+  AttendanceCorrectionRequest,
   LeaveRequest,
   LeaveBalance,
   Holiday,

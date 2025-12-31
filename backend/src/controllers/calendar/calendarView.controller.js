@@ -1,4 +1,4 @@
-import { CompanyEvent, Employee, LeaveRequest, AttendanceRecord } from "../../models/sequelize/index.js";
+import { CompanyEvent, Employee, LeaveRequest, AttendanceRecord, Holiday } from "../../models/sequelize/index.js";
 import { Op } from "sequelize";
 import logger from "../../utils/logger.js";
 
@@ -38,7 +38,7 @@ const getMonthlyCalendarData = async (req, res) => {
     const isHROrAdmin = ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(req.user.role);
     const isManager = req.user.role === 'Manager';
 
-    // 1. Get Company Events (holidays, meetings, trainings) - Using working approach
+    // 1. Get Company Events (meetings, trainings, company events)
     const eventFilters = {
       [Op.or]: [
         {
@@ -54,7 +54,8 @@ const getMonthlyCalendarData = async (req, res) => {
           ]
         }
       ],
-      status: 'scheduled'
+      status: 'scheduled',
+      eventType: { [Op.ne]: 'holiday' } // Exclude holidays from CompanyEvent
     };
 
     if (!isHROrAdmin) {
@@ -71,9 +72,46 @@ const getMonthlyCalendarData = async (req, res) => {
       order: [['startDate', 'ASC']]
     });
 
-    // Separate holidays from other events
-    calendarData.events = events.filter(e => e.eventType !== 'holiday');
-    calendarData.holidays = events.filter(e => e.eventType === 'holiday');
+    calendarData.events = events.map(event => ({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      eventType: event.eventType,
+      isAllDay: event.isAllDay,
+      color: event.color || '#3498db',
+      location: event.location,
+      priority: event.priority
+    }));
+
+    // 1.5. Get Holidays from Holiday model
+    const holidayFilters = {
+      date: { [Op.between]: [startDate, endDate] },
+      isActive: true
+    };
+
+    const holidays = await Holiday.findAll({
+      where: holidayFilters,
+      attributes: ['id', 'name', 'date', 'type', 'description', 'color', 'isPaid', 'isRecurring'],
+      order: [['date', 'ASC']]
+    });
+
+    calendarData.holidays = holidays.map(holiday => ({
+      id: holiday.id,
+      title: holiday.name,
+      name: holiday.name,
+      date: holiday.date,
+      startDate: holiday.date,
+      endDate: holiday.date,
+      eventType: 'holiday',
+      type: holiday.type,
+      description: holiday.description,
+      color: holiday.color || '#dc2626',
+      isPaid: holiday.isPaid,
+      isRecurring: holiday.isRecurring,
+      isAllDay: true
+    }));
 
     // 2. Get Leave Requests - Using simple approach without Department association
     const leaveFilters = {
@@ -127,7 +165,11 @@ const getMonthlyCalendarData = async (req, res) => {
       isHalfDay: leave.isHalfDay,
       halfDayPeriod: leave.halfDayPeriod,
       reason: leave.reason,
-      status: leave.status
+      status: leave.status,
+      eventType: 'leave',
+      title: `${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''} - ${leave.leaveType}`.trim(),
+      color: '#f59e0b', // Orange color for leaves
+      isAllDay: true
     }));
 
     // 3. Get Birthdays and Anniversaries
@@ -153,7 +195,13 @@ const getMonthlyCalendarData = async (req, res) => {
             employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
             employeeCode: employee.employeeId,
             date: birthdayThisYear,
-            age: currentYear - dob.getFullYear()
+            startDate: birthdayThisYear,
+            endDate: birthdayThisYear,
+            age: currentYear - dob.getFullYear(),
+            eventType: 'birthday',
+            title: `🎂 ${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
+            color: '#ec4899', // Pink color for birthdays
+            isAllDay: true
           });
         }
       }
@@ -170,7 +218,13 @@ const getMonthlyCalendarData = async (req, res) => {
             employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
             employeeCode: employee.employeeId,
             date: anniversaryThisYear,
-            years: years
+            startDate: anniversaryThisYear,
+            endDate: anniversaryThisYear,
+            years: years,
+            eventType: 'anniversary',
+            title: `🎊 ${employee.firstName || ''} ${employee.lastName || ''} - ${years} years`.trim(),
+            color: '#8b5cf6', // Purple color for anniversaries
+            isAllDay: true
           });
         }
       }
@@ -496,14 +550,258 @@ const applyLeaveFromCalendar = async (req, res) => {
   }
 };
 
+/**
+ * Get Unified Calendar Events
+ * Returns all calendar events (holidays, company events, leaves, etc.) in a unified format
+ * This is the main endpoint used by /calendar/events
+ */
+const getEvents = async (req, res) => {
+  try {
+    const { year, month, startDate, endDate, departmentId, employeeId } = req.query;
+    
+    // Determine date range
+    let rangeStart, rangeEnd;
+    
+    if (startDate && endDate) {
+      rangeStart = new Date(startDate);
+      rangeEnd = new Date(endDate);
+    } else if (year && month) {
+      const currentYear = parseInt(year);
+      const currentMonth = parseInt(month);
+      rangeStart = new Date(currentYear, currentMonth - 1, 1);
+      rangeEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+    } else {
+      // Default to current month
+      const now = new Date();
+      rangeStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    }
+
+    const isHROrAdmin = ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(req.user.role);
+    const isManager = req.user.role === 'Manager';
+
+    const calendarData = {
+      events: [],
+      holidays: [],
+      leaves: [],
+      birthdays: [],
+      anniversaries: []
+    };
+
+    // 1. Get Company Events
+    const eventFilters = {
+      [Op.or]: [
+        { startDate: { [Op.between]: [rangeStart, rangeEnd] } },
+        { endDate: { [Op.between]: [rangeStart, rangeEnd] } },
+        {
+          [Op.and]: [
+            { startDate: { [Op.lte]: rangeStart } },
+            { endDate: { [Op.gte]: rangeEnd } }
+          ]
+        }
+      ],
+      status: 'scheduled',
+      eventType: { [Op.ne]: 'holiday' }
+    };
+
+    if (!isHROrAdmin) {
+      eventFilters[Op.or] = [
+        { isPublic: true },
+        { createdBy: req.user.id },
+        { organizer: req.user.id }
+      ];
+    }
+
+    const events = await CompanyEvent.findAll({
+      where: eventFilters,
+      attributes: ['id', 'title', 'description', 'startDate', 'endDate', 'eventType', 'isAllDay', 'color', 'location', 'priority'],
+      order: [['startDate', 'ASC']]
+    });
+
+    calendarData.events = events.map(event => ({
+      id: event.id,
+      title: event.title,
+      description: event.description,
+      startDate: event.startDate,
+      endDate: event.endDate,
+      eventType: event.eventType,
+      isAllDay: event.isAllDay,
+      color: event.color || '#3498db',
+      location: event.location,
+      priority: event.priority
+    }));
+
+    // 2. Get Holidays from Holiday model
+    const holidayFilters = {
+      date: { [Op.between]: [rangeStart, rangeEnd] },
+      isActive: true
+    };
+
+    const holidays = await Holiday.findAll({
+      where: holidayFilters,
+      attributes: ['id', 'name', 'date', 'type', 'description', 'color', 'isPaid', 'isRecurring'],
+      order: [['date', 'ASC']]
+    });
+
+    calendarData.holidays = holidays.map(holiday => ({
+      id: holiday.id,
+      title: holiday.name,
+      name: holiday.name,
+      date: holiday.date,
+      startDate: holiday.date,
+      endDate: holiday.date,
+      eventType: 'holiday',
+      type: holiday.type,
+      description: holiday.description,
+      color: holiday.color || '#dc2626',
+      isPaid: holiday.isPaid,
+      isRecurring: holiday.isRecurring,
+      isAllDay: true
+    }));
+
+    // 3. Get Leave Requests
+    const leaveFilters = {
+      startDate: { [Op.lte]: rangeEnd },
+      endDate: { [Op.gte]: rangeStart },
+      status: 'approved'
+    };
+
+    if (!isHROrAdmin) {
+      if (isManager) {
+        const teamEmployees = await Employee.findAll({
+          where: { reportingManager: req.user.id },
+          attributes: ['id']
+        });
+        const teamIds = teamEmployees.map(emp => emp.id);
+        teamIds.push(req.user.employeeId);
+        leaveFilters.employeeId = { [Op.in]: teamIds };
+      } else {
+        leaveFilters.employeeId = req.user.employeeId;
+      }
+    }
+
+    if (employeeId) {
+      leaveFilters.employeeId = employeeId;
+    }
+
+    const leaves = await LeaveRequest.findAll({
+      where: leaveFilters,
+      include: [{
+        model: Employee,
+        as: 'employee',
+        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department']
+      }],
+      order: [['startDate', 'ASC']]
+    });
+
+    calendarData.leaves = leaves.map(leave => ({
+      id: leave.id,
+      employeeId: leave.employeeId,
+      employeeName: `${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''}`.trim(),
+      employeeCode: leave.employee?.employeeId,
+      department: leave.employee?.department || 'N/A',
+      leaveType: leave.leaveType,
+      startDate: leave.startDate,
+      endDate: leave.endDate,
+      totalDays: leave.totalDays,
+      isHalfDay: leave.isHalfDay,
+      halfDayPeriod: leave.halfDayPeriod,
+      reason: leave.reason,
+      status: leave.status,
+      eventType: 'leave',
+      title: `${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''} - ${leave.leaveType}`.trim(),
+      color: '#f59e0b',
+      isAllDay: true
+    }));
+
+    // 4. Get Birthdays and Anniversaries
+    const employeeFilters = { status: 'Active' };
+    if (departmentId) {
+      employeeFilters.department = departmentId;
+    }
+
+    const employees = await Employee.findAll({
+      where: employeeFilters,
+      attributes: ['id', 'employeeId', 'firstName', 'lastName', 'dateOfBirth', 'joiningDate', 'department']
+    });
+
+    const currentYear = rangeStart.getFullYear();
+    const currentMonth = rangeStart.getMonth();
+
+    employees.forEach(employee => {
+      // Birthdays
+      if (employee.dateOfBirth) {
+        const dob = new Date(employee.dateOfBirth);
+        if (dob.getMonth() === currentMonth) {
+          const birthdayThisYear = new Date(currentYear, dob.getMonth(), dob.getDate());
+          if (birthdayThisYear >= rangeStart && birthdayThisYear <= rangeEnd) {
+            calendarData.birthdays.push({
+              id: `birthday-${employee.id}`,
+              employeeId: employee.id,
+              employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
+              employeeCode: employee.employeeId,
+              date: birthdayThisYear,
+              startDate: birthdayThisYear,
+              endDate: birthdayThisYear,
+              age: currentYear - dob.getFullYear(),
+              eventType: 'birthday',
+              title: `🎂 ${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
+              color: '#ec4899',
+              isAllDay: true
+            });
+          }
+        }
+      }
+
+      // Work Anniversaries
+      if (employee.joiningDate) {
+        const joinDate = new Date(employee.joiningDate);
+        if (joinDate.getMonth() === currentMonth && joinDate.getFullYear() < currentYear) {
+          const anniversaryThisYear = new Date(currentYear, joinDate.getMonth(), joinDate.getDate());
+          if (anniversaryThisYear >= rangeStart && anniversaryThisYear <= rangeEnd) {
+            const years = currentYear - joinDate.getFullYear();
+            calendarData.anniversaries.push({
+              id: `anniversary-${employee.id}`,
+              employeeId: employee.id,
+              employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
+              employeeCode: employee.employeeId,
+              date: anniversaryThisYear,
+              startDate: anniversaryThisYear,
+              endDate: anniversaryThisYear,
+              years: years,
+              eventType: 'anniversary',
+              title: `🎊 ${employee.firstName || ''} ${employee.lastName || ''} - ${years} years`.trim(),
+              color: '#8b5cf6',
+              isAllDay: true
+            });
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      data: calendarData
+    });
+
+  } catch (error) {
+    logger.error("Error fetching calendar events:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching calendar events",
+      error: error.message
+    });
+  }
+};
+
 export default {
   // Main calendar views
   getMonthlyCalendarData,
   getDailyCalendarData,
   applyLeaveFromCalendar,
   
-  // Route-compatible aliases
-  getEvents: getMonthlyCalendarData,
+  // Unified calendar events endpoint
+  getEvents,
   getUpcomingEvents: getDailyCalendarData,
   createEvent: async (req, res) => {
     res.status(501).json({ success: false, message: "Not implemented" });
@@ -515,16 +813,175 @@ export default {
     res.status(501).json({ success: false, message: "Not implemented" });
   },
   getHolidays: async (req, res) => {
-    res.status(501).json({ success: false, message: "Not implemented" });
+    try {
+      const { year } = req.query;
+      const currentYear = year ? parseInt(year) : new Date().getFullYear();
+      
+      const holidays = await Holiday.findAll({
+        where: {
+          date: {
+            [Op.gte]: `${currentYear}-01-01`,
+            [Op.lte]: `${currentYear}-12-31`
+          },
+          isActive: true
+        },
+        attributes: ['id', 'name', 'date', 'type', 'description', 'color', 'isPaid', 'isRecurring'],
+        order: [['date', 'ASC']]
+      });
+
+      res.json({
+        success: true,
+        data: holidays.map(holiday => ({
+          id: holiday.id,
+          name: holiday.name,
+          title: holiday.name,
+          date: holiday.date,
+          startDate: holiday.date,
+          endDate: holiday.date,
+          type: holiday.type,
+          eventType: 'holiday',
+          description: holiday.description,
+          color: holiday.color || '#dc2626',
+          isPaid: holiday.isPaid,
+          isRecurring: holiday.isRecurring,
+          isAllDay: true
+        }))
+      });
+    } catch (error) {
+      logger.error("Error fetching holidays:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching holidays",
+        error: error.message
+      });
+    }
   },
+
   createHoliday: async (req, res) => {
-    res.status(501).json({ success: false, message: "Not implemented" });
+    try {
+      const { name, date, type, description, color, isPaid, isRecurring, recurrencePattern } = req.body;
+      
+      const holiday = await Holiday.create({
+        name,
+        date,
+        type: type || 'public',
+        description,
+        color: color || '#dc2626',
+        isPaid: isPaid !== undefined ? isPaid : true,
+        isRecurring: isRecurring || false,
+        recurrencePattern,
+        createdBy: req.user.id
+      });
+
+      res.status(201).json({
+        success: true,
+        message: 'Holiday created successfully',
+        data: {
+          id: holiday.id,
+          name: holiday.name,
+          title: holiday.name,
+          date: holiday.date,
+          startDate: holiday.date,
+          endDate: holiday.date,
+          type: holiday.type,
+          eventType: 'holiday',
+          description: holiday.description,
+          color: holiday.color,
+          isPaid: holiday.isPaid,
+          isRecurring: holiday.isRecurring,
+          isAllDay: true
+        }
+      });
+    } catch (error) {
+      logger.error("Error creating holiday:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error creating holiday",
+        error: error.message
+      });
+    }
   },
+
   updateHoliday: async (req, res) => {
-    res.status(501).json({ success: false, message: "Not implemented" });
+    try {
+      const { id } = req.params;
+      const { name, date, type, description, color, isPaid, isRecurring, recurrencePattern } = req.body;
+      
+      const holiday = await Holiday.findByPk(id);
+      if (!holiday) {
+        return res.status(404).json({
+          success: false,
+          message: 'Holiday not found'
+        });
+      }
+
+      await holiday.update({
+        name,
+        date,
+        type,
+        description,
+        color,
+        isPaid,
+        isRecurring,
+        recurrencePattern,
+        updatedBy: req.user.id
+      });
+
+      res.json({
+        success: true,
+        message: 'Holiday updated successfully',
+        data: {
+          id: holiday.id,
+          name: holiday.name,
+          title: holiday.name,
+          date: holiday.date,
+          startDate: holiday.date,
+          endDate: holiday.date,
+          type: holiday.type,
+          eventType: 'holiday',
+          description: holiday.description,
+          color: holiday.color,
+          isPaid: holiday.isPaid,
+          isRecurring: holiday.isRecurring,
+          isAllDay: true
+        }
+      });
+    } catch (error) {
+      logger.error("Error updating holiday:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error updating holiday",
+        error: error.message
+      });
+    }
   },
+
   deleteHoliday: async (req, res) => {
-    res.status(501).json({ success: false, message: "Not implemented" });
+    try {
+      const { id } = req.params;
+      
+      const holiday = await Holiday.findByPk(id);
+      if (!holiday) {
+        return res.status(404).json({
+          success: false,
+          message: 'Holiday not found'
+        });
+      }
+
+      await holiday.destroy();
+
+      res.json({
+        success: true,
+        message: 'Holiday deleted successfully'
+      });
+    } catch (error) {
+      logger.error("Error deleting holiday:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error deleting holiday",
+        error: error.message
+      });
+    }
   },
   syncEmployeeEvents: async (req, res) => {
     res.status(501).json({ success: false, message: "Not implemented" });

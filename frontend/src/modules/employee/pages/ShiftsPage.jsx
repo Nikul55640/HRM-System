@@ -71,14 +71,19 @@ const ShiftsPage = () => {
 
   // Helper function to convert weeklyOffDays to working days
   const getWorkingDays = (weeklyOffDays) => {
-    const allDays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const allDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    
     if (!weeklyOffDays || weeklyOffDays.length === 0) {
-      return allDays.slice(0, 5); // Default to Mon-Fri
+      // Default: Saturday and Sunday off (weekends)
+      return ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
     }
     
-    // weeklyOffDays might be an array like ['Saturday', 'Sunday']
-    const offDays = Array.isArray(weeklyOffDays) ? weeklyOffDays : JSON.parse(weeklyOffDays || '[]');
-    return allDays.filter(day => !offDays.includes(day));
+    // weeklyOffDays contains day numbers where 0=Sunday, 1=Monday, ..., 6=Saturday
+    // These are the OFF days, so we need to return the working days
+    const offDayNames = weeklyOffDays.map(dayNum => allDays[dayNum]).filter(Boolean);
+    
+    // Return all days except the off days
+    return allDays.filter(day => !offDayNames.includes(day));
   };
 
   const requestShiftChange = async () => {

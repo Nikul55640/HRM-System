@@ -3,6 +3,7 @@ import { Filter, X, Download, Users, Building2, Calendar } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 import { useOrganizationStore } from '../../../stores/useOrganizationStore';
 import { useEmployeeStore } from '../../../stores/useEmployeeStore';
+import api from '../../../services/api';
 
 const CalendarFilters = ({
   filters,
@@ -12,26 +13,39 @@ const CalendarFilters = ({
   className
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [eventTypeOptions, setEventTypeOptions] = useState([]);
   const { departments, fetchDepartments } = useOrganizationStore();
   const { employees, fetchEmployees } = useEmployeeStore();
 
   useEffect(() => {
     fetchDepartments();
     fetchEmployees();
+    loadEventTypes();
   }, [fetchDepartments, fetchEmployees]);
+
+  const loadEventTypes = async () => {
+    try {
+      const response = await api.get('/admin/event-types');
+      if (response.data.success) {
+        setEventTypeOptions(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error loading event types:', error);
+      // Fallback to hardcoded options
+      setEventTypeOptions([
+        { value: 'holiday', label: 'Holidays', color: 'bg-red-100 text-red-800' },
+        { value: 'meeting', label: 'Meetings', color: 'bg-blue-100 text-blue-800' },
+        { value: 'training', label: 'Training', color: 'bg-green-100 text-green-800' },
+        { value: 'company_event', label: 'Company Events', color: 'bg-purple-100 text-purple-800' },
+        { value: 'birthday', label: 'Birthdays', color: 'bg-pink-100 text-pink-800' },
+        { value: 'anniversary', label: 'Anniversaries', color: 'bg-indigo-100 text-indigo-800' }
+      ]);
+    }
+  };
 
   const handleFilterChange = (key, value) => {
     onFiltersChange({ [key]: value });
   };
-
-  const eventTypeOptions = [
-    { value: 'holiday', label: 'Holidays', color: 'bg-red-100 text-red-800' },
-    { value: 'meeting', label: 'Meetings', color: 'bg-blue-100 text-blue-800' },
-    { value: 'training', label: 'Training', color: 'bg-green-100 text-green-800' },
-    { value: 'company_event', label: 'Company Events', color: 'bg-purple-100 text-purple-800' },
-    { value: 'birthday', label: 'Birthdays', color: 'bg-pink-100 text-pink-800' },
-    { value: 'anniversary', label: 'Anniversaries', color: 'bg-indigo-100 text-indigo-800' }
-  ];
 
   const hasActiveFilters = filters.departmentId || filters.employeeId || filters.eventTypes.length > 0 || filters.includeAttendance;
 

@@ -123,10 +123,18 @@ const EmployeeList = () => {
     setPagination({ page });
   };
 
-  const handleView = (employeeId) => navigate(`/employees/${employeeId}`);
-  const handleEdit = (id) => navigate(`/employees/${id}/edit`);
+  const handleView = (employeeId) => {
+    console.log('🔍 [EmployeeList] View clicked for employee ID:', employeeId);
+    navigate(`/admin/employees/${employeeId}`);
+  };
+  
+  const handleEdit = (id) => {
+    console.log('✏️ [EmployeeList] Edit clicked for employee ID:', id);
+    navigate(`/admin/employees/${id}/edit`);
+  };
 
   const handleDeleteClick = (emp) => {
+    console.log('🗑️ [EmployeeList] Delete clicked for employee:', emp);
     setSelectedEmployee(emp);
     setShowDeleteModal(true);
   };
@@ -147,7 +155,7 @@ const EmployeeList = () => {
     }
   };
 
-  const handleCreateNew = () => navigate("/employees/new");
+  const handleCreateNew = () => navigate("/admin/employees/new");
 
   const canManageEmployees = () =>
     can.doAny([

@@ -1,6 +1,5 @@
 import { authenticate, optionalAuthenticate, authorize } from './authenticate.js';
 import { checkPermission, checkAnyPermission } from './checkPermission.js';
-import { requireRoles } from './requireRoles.js';
 
 /**
  * Combined Authentication & Authorization Middleware

@@ -2,7 +2,7 @@
 // Barrel file for all route definitions
 
 // Core route helpers
-export { applyRoutes } from "./applyRoutes";
+export { applyRoutes } from "./applyRoutes.jsx";
 
 // Feature route groups (used by App.jsx)
 export { adminRoutes } from "./adminRoutes";

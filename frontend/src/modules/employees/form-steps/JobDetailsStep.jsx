@@ -1,6 +1,21 @@
 import { Field, ErrorMessage } from 'formik';
+import { useState, useEffect } from 'react';
 
-const JobDetailsStep = ({ values, errors, touched, departments = [], managers = [] }) => {
+const JobDetailsStep = ({ values, errors, touched, departments = [], managers = [], designations = [] }) => {
+  const [filteredDesignations, setFilteredDesignations] = useState([]);
+
+  // Filter designations when department changes
+  useEffect(() => {
+    if (values.jobInfo?.department && designations.length > 0) {
+      const filtered = designations.filter(
+        designation => designation.departmentId == values.jobInfo.department
+      );
+      setFilteredDesignations(filtered);
+    } else {
+      setFilteredDesignations([]);
+    }
+  }, [values.jobInfo?.department, designations]);
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-4">Job Details</h2>
@@ -50,6 +65,37 @@ const JobDetailsStep = ({ values, errors, touched, departments = [], managers = 
           <ErrorMessage name="jobInfo.department" component="div" className="text-red-500 text-sm mt-1" />
         </div>
 
+        {/* Designation */}
+        <div>
+          <label htmlFor="jobInfo.designation" className="block text-sm font-medium text-gray-700 mb-1">
+            Designation
+          </label>
+          <Field
+            as="select"
+            id="jobInfo.designation"
+            name="jobInfo.designation"
+            disabled={!values.jobInfo?.department}
+            className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              errors.jobInfo?.designation && touched.jobInfo?.designation
+                ? 'border-red-500'
+                : 'border-gray-300'
+            } ${!values.jobInfo?.department ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+          >
+            <option value="">
+              {!values.jobInfo?.department ? 'Select department first' : 'Select designation (optional)'}
+            </option>
+            {filteredDesignations.map((designation) => (
+              <option key={designation.id} value={designation.id}>
+                {designation.title} ({designation.level})
+              </option>
+            ))}
+          </Field>
+          <ErrorMessage name="jobInfo.designation" component="div" className="text-red-500 text-sm mt-1" />
+          {values.jobInfo?.department && filteredDesignations.length === 0 && (
+            <p className="text-sm text-gray-500 mt-1">No designations available for this department</p>
+          )}
+        </div>
+
         {/* Manager */}
         <div>
           <label htmlFor="jobInfo.manager" className="block text-sm font-medium text-gray-700 mb-1">
@@ -68,7 +114,7 @@ const JobDetailsStep = ({ values, errors, touched, departments = [], managers = 
             <option value="">Select manager (optional)</option>
             {managers && Array.isArray(managers) && managers.map((manager) => (
               <option key={manager.id || manager._id} value={manager.id || manager._id}>
-                {manager.personalInfo?.firstName} {manager.personalInfo?.lastName}
+                {manager.firstName} {manager.lastName} - {manager.designation || 'No designation'}
               </option>
             ))}
           </Field>
@@ -109,10 +155,10 @@ const JobDetailsStep = ({ values, errors, touched, departments = [], managers = 
             }`}
           >
             <option value="">Select employment type</option>
-            <option value="Full-time">Full-time</option>
-            <option value="Part-time">Part-time</option>
-            <option value="Contract">Contract</option>
-            <option value="Intern">Intern</option>
+            <option value="full_time">Full-time</option>
+            <option value="part_time">Part-time</option>
+            <option value="contract">Contract</option>
+            <option value="intern">Intern</option>
           </Field>
           <ErrorMessage name="jobInfo.employmentType" component="div" className="text-red-500 text-sm mt-1" />
         </div>

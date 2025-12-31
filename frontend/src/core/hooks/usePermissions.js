@@ -54,7 +54,7 @@ const usePermissions = () => {
         if (!user) return false;
         
         // SuperAdmin, HR can access all
-        if ([ROLES.SUPER_ADMIN, ROLES.HR].includes(user.role)) {
+        if ([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER].includes(user.role)) {
           return true;
         }
 
@@ -72,10 +72,11 @@ const usePermissions = () => {
   const is = useMemo(
     () => ({
       superAdmin: () => user?.role === ROLES.SUPER_ADMIN,
-      hr: () => user?.role === ROLES.HR,
+      hrAdmin: () => user?.role === ROLES.HR_ADMIN,
+      hrManager: () => user?.role === ROLES.HR_MANAGER,
       employee: () => user?.role === ROLES.EMPLOYEE,
       adminRole: () =>
-        [ROLES.SUPER_ADMIN, ROLES.HR].includes(user?.role),
+        [ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER].includes(user?.role),
     }),
     [user]
   );

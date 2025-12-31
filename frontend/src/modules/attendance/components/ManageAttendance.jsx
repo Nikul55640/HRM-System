@@ -12,15 +12,10 @@ import { Calendar } from '../../../shared/ui/calendar';
 import { cn } from '../../../lib/utils';
 import { formatDate } from '../../../lib/date-utils.js';
 import AttendanceForm from './AttendanceForm';
+import api from '../../../services/api';
+import { getEmployeeFullName, getEmployeeInitials } from '../../../utils/employeeDataMapper';
 
-const statusOptions = [
-  { value: 'all', label: 'All Status' },
-  { value: 'present', label: 'Present' },
-  { value: 'absent', label: 'Absent' },
-  { value: 'late', label: 'Late' },
-  { value: 'on-leave', label: 'On Leave' },
-  { value: 'holiday', label: 'Holiday' },
-];
+
 
 const statusVariant = {
   present: 'bg-green-100 text-green-800',
@@ -50,6 +45,8 @@ const ManageAttendance = () => {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [statusOptions, setStatusOptions] = useState([]);
+  const [loadingOptions, setLoadingOptions] = useState(true);
   const [dateRange, setDateRange] = useState({
     from: new Date(new Date().setDate(1)),
     to: new Date(),
@@ -57,6 +54,32 @@ const ManageAttendance = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+
+  useEffect(() => {
+    loadStatusOptions();
+  }, []);
+
+  const loadStatusOptions = async () => {
+    try {
+      const response = await api.get('/admin/attendance-status/filters');
+      if (response.data.success) {
+        setStatusOptions(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error loading status options:', error);
+      // Fallback to hardcoded options
+      setStatusOptions([
+        { value: 'all', label: 'All Status' },
+        { value: 'present', label: 'Present' },
+        { value: 'absent', label: 'Absent' },
+        { value: 'late', label: 'Late' },
+        { value: 'on-leave', label: 'On Leave' },
+        { value: 'holiday', label: 'Holiday' },
+      ]);
+    } finally {
+      setLoadingOptions(false);
+    }
+  };
   const [showActionMenu, setShowActionMenu] = useState(null);
 
   // Fetch attendance data on component mount and when filters change
@@ -313,17 +336,21 @@ const ManageAttendance = () => {
                   safeAttendance.map((record) => (
                     <TableRow key={record.id}>
                       <TableCell className="font-medium">
-                        <div className="flex items-center space-x-2">
-                          <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-                            {record.employee?.name?.charAt(0) || 'U'}
-                          </div>
-                          <div>
-                            <div className="font-medium">{record.employee?.name || 'Unknown'}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {record.employee?.employeeId || '--'}
-                            </div>
-                          </div>
-                        </div>
+                      <div className="flex items-center space-x-2">
+    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center font-semibold">
+      {getEmployeeInitials(record.employee)}
+    </div>
+
+    <div>
+      <div className="font-medium">
+        {getEmployeeFullName(record.employee)}
+      </div>
+
+      <div className="text-xs text-muted-foreground">
+        {record.employee?.employeeId || '--'}
+      </div>
+    </div>
+  </div>
                       </TableCell>
                       <TableCell>{format(parseISO(record.date), 'MMM d, yyyy')}</TableCell>
                       <TableCell>{getStatusBadge(record.status)}</TableCell>

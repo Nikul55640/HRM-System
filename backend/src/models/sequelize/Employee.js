@@ -49,13 +49,31 @@ const Employee = sequelize.define('Employee', {
   },
 
   // Job Information (Read-only for employees)
+  designationId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'designations',
+      key: 'id',
+    },
+  },
   designation: {
     type: DataTypes.STRING,
     allowNull: true,
+    comment: 'Deprecated: Use designationId instead'
+  },
+  departmentId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'departments',
+      key: 'id',
+    },
   },
   department: {
     type: DataTypes.STRING,
     allowNull: true,
+    comment: 'Deprecated: Use departmentId instead'
   },
   joiningDate: {
     type: DataTypes.DATEONLY,
@@ -64,6 +82,14 @@ const Employee = sequelize.define('Employee', {
   employmentType: {
     type: DataTypes.ENUM('full_time', 'part_time', 'contract', 'intern'),
     defaultValue: 'full_time',
+  },
+  salary: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
+  currency: {
+    type: DataTypes.STRING(3),
+    defaultValue: 'USD',
   },
   reportingManager: {
     type: DataTypes.INTEGER,
@@ -120,7 +146,8 @@ const Employee = sequelize.define('Employee', {
     { fields: ['employeeId'], unique: true },
     { fields: ['email'], unique: true },
     { fields: ['status'] },
-    { fields: ['department'] },
+    { fields: ['designationId'] },
+    { fields: ['departmentId'] },
     { fields: ['reportingManager'] },
   ],
 });

@@ -101,9 +101,9 @@ const LeaveBalancesPage = () => {
 
   const filteredEmployees = (employees || []).filter(item => {
     const employee = item.employee || {};
-    const fullName = `${employee.firstName || ''} ${employee.lastName || ''}`.trim();
+    const fullName = `${employee.personalInfo?.firstName || employee.firstName || ''} ${employee.personalInfo?.lastName || employee.lastName || ''}`.trim();
     const employeeId = employee.employeeId || '';
-    const department = employee.department || '';
+    const department = employee.jobInfo?.departmentInfo?.name || employee.jobInfo?.department?.name || employee.department || '';
     
     return fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
            employeeId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -240,7 +240,7 @@ const LeaveBalancesPage = () => {
               {filteredEmployees.map((item) => {
                 const employee = item.employee || {};
                 const balances = item.balances || {};
-                const fullName = `${employee.firstName || ''} ${employee.lastName || ''}`.trim();
+                const fullName = `${employee.personalInfo?.firstName || employee.firstName || ''} ${employee.personalInfo?.lastName || employee.lastName || ''}`.trim();
                 
                 return (
                 <div
@@ -252,8 +252,8 @@ const LeaveBalancesPage = () => {
                       <h3 className="font-medium text-gray-900">{fullName}</h3>
                       <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
                         <span>ID: {employee.employeeId}</span>
-                        <span>Department: {employee.department}</span>
-                        <span>Designation: {employee.designation}</span>
+                        <span>Department: {employee.jobInfo?.departmentInfo?.name || employee.jobInfo?.department?.name || employee.department || 'N/A'}</span>
+                        <span>Designation: {employee.jobInfo?.designation || employee.jobInfo?.jobTitle || employee.designation || 'N/A'}</span>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -333,7 +333,7 @@ const LeaveBalancesPage = () => {
                   <option value="">Select Employee</option>
                   {(employees || []).map((item) => {
                     const emp = item.employee || {};
-                    const fullName = `${emp.firstName || ''} ${emp.lastName || ''}`.trim();
+                    const fullName = `${emp.personalInfo?.firstName || emp.firstName || ''} ${emp.personalInfo?.lastName || emp.lastName || ''}`.trim();
                     return (
                     <option key={emp.id} value={emp.id}>
                       {fullName} ({emp.employeeId})

@@ -226,6 +226,7 @@ const useEmployeeStore = create(
 
       // ------------------ CLEAR + RESET ------------------
       clearCurrentEmployee: () => set({ currentEmployee: null }),
+      setCurrentEmployee: (employee) => set({ currentEmployee: employee }),
 
       reset: () =>
         set({

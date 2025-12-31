@@ -21,3 +21,4 @@ export { default as calendarService } from "./calendarService";
 // Feature-specific services (8 Core Features)
 export { default as shiftService } from "./shiftService"; // Feature 6: Shift Management
 export { default as auditLogService } from "./auditLogService"; // Feature 8: Audit Logs
+export { default as helpSupportService } from "./helpSupportService"; // Help & Support

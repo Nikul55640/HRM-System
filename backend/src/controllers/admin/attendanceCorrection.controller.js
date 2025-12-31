@@ -1,4 +1,4 @@
-import { AttendanceRecord, Employee, AuditLog } from '../../models/index.js';
+import { AttendanceRecord, Employee, AuditLog, AttendanceCorrectionRequest, User } from '../../models/index.js';
 import auditService from '../../services/audit/audit.service.js';
 import { Op } from 'sequelize';
 
@@ -27,8 +27,8 @@ class AttendanceCorrectionController {
         where: whereClause,
         include: [{
           model: Employee,
-          as: 'employeeInfo',
-          attributes: ['id', 'employeeId']
+          as: 'employee',
+          attributes: ['id', 'employeeId', 'firstName', 'lastName']
         }],
         order: [['date', 'DESC']],
         limit: parseInt(limit),
@@ -69,8 +69,8 @@ class AttendanceCorrectionController {
       const record = await AttendanceRecord.findByPk(recordId, {
         include: [{ 
           model: Employee,
-          as: 'employeeInfo',
-          attributes: ['id', 'employeeId']
+          as: 'employee',
+          attributes: ['id', 'employeeId', 'firstName', 'lastName']
         }]
       });
 
@@ -83,36 +83,37 @@ class AttendanceCorrectionController {
 
       // Store original values for audit
       const originalData = {
-        checkIn: record.checkIn,
-        checkOut: record.checkOut,
-        breakTime: record.breakTime,
+        clockIn: record.clockIn,
+        clockOut: record.clockOut,
+        totalBreakMinutes: record.totalBreakMinutes,
         workHours: record.workHours,
-        workedMinutes: record.workedMinutes
+        totalWorkedMinutes: record.totalWorkedMinutes
       };
 
       // Calculate new work hours
-      const newCheckIn = checkIn ? new Date(checkIn) : record.checkIn;
-      const newCheckOut = checkOut ? new Date(checkOut) : record.checkOut;
+      const newClockIn = checkIn ? new Date(checkIn) : record.clockIn;
+      const newClockOut = checkOut ? new Date(checkOut) : record.clockOut;
+      const newBreakTime = breakTime !== undefined ? parseInt(breakTime) : record.totalBreakMinutes;
       let newWorkHours = 0;
       let newWorkedMinutes = 0;
 
-      if (newCheckIn && newCheckOut) {
-        const timeDiff = newCheckOut - newCheckIn;
+      if (newClockIn && newClockOut) {
+        const timeDiff = newClockOut - newClockIn;
         const totalMinutes = timeDiff / (1000 * 60);
-        newWorkedMinutes = Math.max(0, totalMinutes - (breakTime || record.breakTime || 0));
+        newWorkedMinutes = Math.max(0, totalMinutes - (newBreakTime || 0));
         newWorkHours = Math.round((newWorkedMinutes / 60) * 100) / 100;
       }
 
       // Update the record
       await record.update({
-        checkIn: newCheckIn,
-        checkOut: newCheckOut,
-        breakTime: breakTime !== undefined ? breakTime : record.breakTime,
+        clockIn: newClockIn,
+        clockOut: newClockOut,
+        totalBreakMinutes: newBreakTime,
         workHours: newWorkHours,
-        workedMinutes: newWorkedMinutes,
+        totalWorkedMinutes: newWorkedMinutes,
         status: 'present', // Reset to present after correction
         correctionReason: reason,
-        correctionType,
+        correctionStatus: 'approved',
         correctedBy: req.user.id,
         correctedAt: new Date()
       });
@@ -128,11 +129,11 @@ class AttendanceCorrectionController {
           date: record.date,
           originalData,
           newData: {
-            checkIn: newCheckIn,
-            checkOut: newCheckOut,
-            breakTime: breakTime !== undefined ? breakTime : record.breakTime,
+            clockIn: newClockIn,
+            clockOut: newClockOut,
+            totalBreakMinutes: newBreakTime,
             workHours: newWorkHours,
-            workedMinutes: newWorkedMinutes
+            totalWorkedMinutes: newWorkedMinutes
           },
           reason,
           correctionType
@@ -178,8 +179,8 @@ class AttendanceCorrectionController {
         include: [
           {
             model: Employee,
-            as: 'employeeInfo',
-            attributes: ['id', 'employeeId']
+            as: 'employee',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName']
           }
         ],
         order: [['correctedAt', 'DESC']],
@@ -250,6 +251,245 @@ class AttendanceCorrectionController {
       res.status(500).json({
         success: false,
         message: 'Failed to flag attendance for correction'
+      });
+    }
+  }
+
+  // Get employee correction requests (pending and processed)
+  async getEmployeeCorrectionRequests(req, res) {
+    try {
+      const { page = 1, limit = 20, employeeId, dateFrom, dateTo, status } = req.query;
+      const offset = (page - 1) * limit;
+
+      const whereClause = {};
+
+      if (employeeId) {
+        whereClause.employeeId = employeeId;
+      }
+
+      if (status) {
+        whereClause.status = status;
+      }
+
+      if (dateFrom && dateTo) {
+        whereClause.date = {
+          [Op.between]: [new Date(dateFrom), new Date(dateTo)]
+        };
+      }
+
+      const requests = await AttendanceCorrectionRequest.findAndCountAll({
+        where: whereClause,
+        include: [
+          {
+            model: Employee,
+            as: 'employee',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName']
+          },
+          {
+            model: User,
+            as: 'processor',
+            attributes: ['id', 'firstName', 'lastName'],
+            required: false
+          },
+          {
+            model: AttendanceRecord,
+            as: 'attendanceRecord',
+            attributes: ['id', 'date', 'clockIn', 'clockOut', 'totalBreakMinutes', 'workHours'],
+            required: false
+          }
+        ],
+        order: [['createdAt', 'DESC']],
+        limit: parseInt(limit),
+        offset
+      });
+
+      res.json({
+        success: true,
+        data: requests.rows,
+        pagination: {
+          total: requests.count,
+          page: parseInt(page),
+          limit: parseInt(limit),
+          totalPages: Math.ceil(requests.count / limit)
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching employee correction requests:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to fetch employee correction requests'
+      });
+    }
+  }
+
+  // Approve employee correction request
+  async approveEmployeeCorrectionRequest(req, res) {
+    try {
+      const { requestId } = req.params;
+      const { adminNotes } = req.body;
+
+      const request = await AttendanceCorrectionRequest.findByPk(requestId, {
+        include: [
+          {
+            model: Employee,
+            as: 'employee',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName']
+          }
+        ]
+      });
+
+      if (!request) {
+        return res.status(404).json({
+          success: false,
+          message: 'Correction request not found'
+        });
+      }
+
+      if (request.status !== 'pending') {
+        return res.status(400).json({
+          success: false,
+          message: 'Request has already been processed'
+        });
+      }
+
+      // Update the request
+      await request.update({
+        status: 'approved',
+        processedBy: req.user.id,
+        processedAt: new Date(),
+        adminNotes: adminNotes || null
+      });
+
+      // If there's an associated attendance record, apply the correction
+      if (request.attendanceRecordId) {
+        const attendanceRecord = await AttendanceRecord.findByPk(request.attendanceRecordId);
+        if (attendanceRecord) {
+          const updateData = {};
+          
+          if (request.requestedClockIn) {
+            updateData.clockIn = new Date(request.requestedClockIn);
+          }
+          
+          if (request.requestedClockOut) {
+            updateData.clockOut = new Date(request.requestedClockOut);
+          }
+          
+          if (request.requestedBreakMinutes !== null) {
+            updateData.totalBreakMinutes = request.requestedBreakMinutes;
+          }
+
+          // Recalculate work hours if both clock in and out are available
+          if (updateData.clockIn || updateData.clockOut) {
+            const clockIn = updateData.clockIn || attendanceRecord.clockIn;
+            const clockOut = updateData.clockOut || attendanceRecord.clockOut;
+            const breakMinutes = updateData.totalBreakMinutes !== undefined ? updateData.totalBreakMinutes : attendanceRecord.totalBreakMinutes;
+            
+            if (clockIn && clockOut) {
+              const timeDiff = clockOut - clockIn;
+              const totalMinutes = timeDiff / (1000 * 60);
+              const workedMinutes = Math.max(0, totalMinutes - (breakMinutes || 0));
+              updateData.workHours = Math.round((workedMinutes / 60) * 100) / 100;
+              updateData.totalWorkedMinutes = workedMinutes;
+            }
+          }
+
+          updateData.correctionReason = request.reason;
+          updateData.correctedBy = req.user.id;
+          updateData.correctedAt = new Date();
+          updateData.status = 'present';
+
+          await attendanceRecord.update(updateData);
+        }
+      }
+
+      // Create audit log
+      await auditService.logAction({
+        userId: req.user.id,
+        action: 'CORRECTION_REQUEST_APPROVED',
+        resource: 'AttendanceCorrectionRequest',
+        resourceId: requestId,
+        details: {
+          employeeId: request.employeeId,
+          date: request.date,
+          adminNotes
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Correction request approved successfully',
+        data: request
+      });
+    } catch (error) {
+      console.error('Error approving correction request:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to approve correction request'
+      });
+    }
+  }
+
+  // Reject employee correction request
+  async rejectEmployeeCorrectionRequest(req, res) {
+    try {
+      const { requestId } = req.params;
+      const { adminNotes } = req.body;
+
+      const request = await AttendanceCorrectionRequest.findByPk(requestId, {
+        include: [
+          {
+            model: Employee,
+            as: 'employee',
+            attributes: ['id', 'employeeId', 'firstName', 'lastName']
+          }
+        ]
+      });
+
+      if (!request) {
+        return res.status(404).json({
+          success: false,
+          message: 'Correction request not found'
+        });
+      }
+
+      if (request.status !== 'pending') {
+        return res.status(400).json({
+          success: false,
+          message: 'Request has already been processed'
+        });
+      }
+
+      // Update the request
+      await request.update({
+        status: 'rejected',
+        processedBy: req.user.id,
+        processedAt: new Date(),
+        adminNotes: adminNotes || null
+      });
+
+      // Create audit log
+      await auditService.logAction({
+        userId: req.user.id,
+        action: 'CORRECTION_REQUEST_REJECTED',
+        resource: 'AttendanceCorrectionRequest',
+        resourceId: requestId,
+        details: {
+          employeeId: request.employeeId,
+          date: request.date,
+          adminNotes
+        }
+      });
+
+      res.json({
+        success: true,
+        message: 'Correction request rejected',
+        data: request
+      });
+    } catch (error) {
+      console.error('Error rejecting correction request:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reject correction request'
       });
     }
   }
