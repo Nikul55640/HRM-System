@@ -82,13 +82,33 @@ const authenticate = async (req, res, next) => {
     // Note: Password change tracking not implemented in current Sequelize model
     // This can be added later if needed
 
-    // SUCCESS
+    // SUCCESS - Load employee data if exists
+    let employeeData = null;
+    try {
+      // Try to get employee data through the new relationship
+      const { Employee } = await import('../models/sequelize/index.js');
+      const employee = await Employee.findOne({ 
+        where: { userId: user.id },
+        attributes: ['id', 'employeeId', 'firstName', 'lastName']
+      });
+      
+      if (employee) {
+        employeeData = {
+          id: employee.id,
+          employeeId: employee.employeeId,
+          fullName: `${employee.firstName} ${employee.lastName}`
+        };
+      }
+    } catch (error) {
+      console.warn('Could not load employee data:', error.message);
+    }
+
     req.user = {
       id: user.id,
       email: user.email,
       role: user.role,
       assignedDepartments: user.assignedDepartments || [],
-      employeeId: user.employeeId,
+      employee: employeeData, // New structure
     };
 
     next();
@@ -125,12 +145,32 @@ const optionalAuthenticate = async (req, res, next) => {
     const user = await User.findByPk(decoded.id);
 
     if (user && user.isActive) {
+      // Try to get employee data for optional auth too
+      let employeeData = null;
+      try {
+        const { Employee } = await import('../models/sequelize/index.js');
+        const employee = await Employee.findOne({ 
+          where: { userId: user.id },
+          attributes: ['id', 'employeeId', 'firstName', 'lastName']
+        });
+        
+        if (employee) {
+          employeeData = {
+            id: employee.id,
+            employeeId: employee.employeeId,
+            fullName: `${employee.firstName} ${employee.lastName}`
+          };
+        }
+      } catch (error) {
+        console.warn('Could not load employee data:', error.message);
+      }
+
       req.user = {
         id: user.id,
         email: user.email,
         role: user.role,
         assignedDepartments: user.assignedDepartments || [],
-        employeeId: user.employeeId,
+        employee: employeeData,
       };
     }
 

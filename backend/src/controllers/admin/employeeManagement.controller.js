@@ -5,7 +5,7 @@
  */
 
 import employeeService from '../../services/admin/employee.service.js';
-import { Department, Designation, User } from '../../models/sequelize/index.js';
+import { Department, Designation, User } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
 import { ROLES } from '../../config/rolePermissions.js';
@@ -66,11 +66,10 @@ const employeeManagementController = {
         return sendResponse(res, false, "Invalid department selected", null, 400);
       }
 
-      // Prepare employee data
+      // Prepare employee data (email is now stored in User table)
       const employeeData = {
         firstName: personalInfo.firstName,
         lastName: personalInfo.lastName,
-        email: contactInfo.email.toLowerCase(),
         phone: contactInfo.phoneNumber || null,
         dateOfBirth: personalInfo.dateOfBirth || null,
         gender: personalInfo.gender || null,
@@ -91,35 +90,63 @@ const employeeManagementController = {
         userAgent: req.headers["user-agent"],
       };
 
-      // Create employee
+      // Create user account first if system role is specified
+      let userAccount = null;
+      if (systemRole && systemRole !== 'none') {
+        try {
+          // Create user account first
+          const userData = {
+            email: contactInfo.email.toLowerCase(),
+            password: 'TempPassword123!', // Should be changed on first login
+            role: systemRole,
+            assignedDepartments: systemRole === ROLES.HR_ADMIN ? assignedDepartments : [],
+            isActive: true
+          };
+
+          userAccount = await User.create(userData);
+          
+          // Add userId to employee data
+          employeeData.userId = userAccount.id;
+          
+        } catch (roleError) {
+          logger.warn(`Failed to create user account:`, roleError);
+          return sendResponse(res, false, "Failed to create user account: " + roleError.message, null, 400);
+        }
+      } else {
+        // If no system role, we still need to create a basic user account for the relationship
+        try {
+          const userData = {
+            email: contactInfo.email.toLowerCase(),
+            password: 'TempPassword123!', // Should be changed on first login
+            role: 'Employee', // Default role
+            isActive: false // Inactive until system access is granted
+          };
+
+          userAccount = await User.create(userData);
+          employeeData.userId = userAccount.id;
+          
+        } catch (roleError) {
+          logger.warn(`Failed to create basic user account:`, roleError);
+          return sendResponse(res, false, "Failed to create user account: " + roleError.message, null, 400);
+        }
+      }
+
+      // Create employee with userId
       const result = await employeeService.createEmployee(employeeData, req.user, metadata);
 
       if (!result.success) {
+        // If employee creation fails, clean up the user account
+        if (userAccount) {
+          try {
+            await userAccount.destroy();
+          } catch (cleanupError) {
+            logger.warn('Failed to cleanup user account after employee creation failure:', cleanupError);
+          }
+        }
         return sendResponse(res, false, result.message, null, 400);
       }
 
       const employee = result.data;
-
-      // Create user account with system role if specified
-      let userAccount = null;
-      if (systemRole && systemRole !== 'none') {
-        try {
-          const roleResult = await employeeService.assignRole(employee.id, systemRole, req.user, metadata);
-          if (roleResult.success) {
-            userAccount = roleResult.data;
-            
-            // If HR role, assign departments
-            if (systemRole === ROLES.HR_ADMIN && assignedDepartments.length > 0) {
-              await User.update(
-                { assignedDepartments },
-                { where: { id: userAccount.id } }
-              );
-            }
-          }
-        } catch (roleError) {
-          logger.warn(`Failed to assign role to employee ${employee.id}:`, roleError);
-        }
-      }
 
       // Update designation employee count
       if (designationId) {
@@ -230,23 +257,34 @@ const employeeManagementController = {
       if (systemRole !== undefined) {
         if (systemRole === 'none' || systemRole === null) {
           // Remove user account
-          const existingUser = await User.findOne({ where: { employeeId: id } });
+          const existingUser = await User.findOne({ where: { id: employee.userId } });
           if (existingUser) {
+            await employee.update({ userId: null });
             await existingUser.destroy();
           }
         } else {
-          // Assign or update role
-          const roleResult = await employeeService.assignRole(id, systemRole, req.user, metadata);
-          if (roleResult.success) {
-            userAccount = roleResult.data;
-            
-            // If HR role, assign departments
-            if (systemRole === ROLES.HR_ADMIN && assignedDepartments.length > 0) {
-              await User.update(
-                { assignedDepartments },
-                { where: { id: userAccount.id } }
-              );
-            }
+          // Find existing user or create new one
+          let existingUser = employee.userId ? await User.findByPk(employee.userId) : null;
+          
+          if (existingUser) {
+            // Update existing user
+            await existingUser.update({
+              role: systemRole,
+              assignedDepartments: systemRole === ROLES.HR_ADMIN ? assignedDepartments : []
+            });
+            userAccount = existingUser;
+          } else {
+            // Create new user account
+            const userData = {
+              email: updateData.email || employee.email,
+              password: 'TempPassword123!', // Should be changed on first login
+              role: systemRole,
+              assignedDepartments: systemRole === ROLES.HR_ADMIN ? assignedDepartments : [],
+              isActive: true
+            };
+
+            userAccount = await User.create(userData);
+            await employee.update({ userId: userAccount.id });
           }
         }
       }
@@ -298,7 +336,26 @@ const employeeManagementController = {
         order: [['level', 'ASC'], ['title', 'ASC']]
       });
 
-      return sendResponse(res, true, "Designations retrieved successfully", designations);
+      // Format response to ensure frontend gets expected data structure
+      const formatted = designations.map(d => ({
+        id: d.id,
+        title: d.title,
+        description: d.description,
+        level: d.level,
+        isActive: Boolean(d.isActive),
+        departmentId: d.departmentId,
+        department: d.department,
+        employeeCount: d.employeeCount || 0,
+        minSalary: d.minSalary,
+        maxSalary: d.maxSalary,
+        responsibilities: d.responsibilities || [],
+        requirements: d.requirements || [],
+        skills: d.skills || [],
+        createdAt: d.createdAt,
+        updatedAt: d.updatedAt
+      }));
+
+      return sendResponse(res, true, "Designations retrieved successfully", formatted);
 
     } catch (error) {
       logger.error("Controller: Get Designations Error", error);
@@ -367,7 +424,36 @@ const employeeManagementController = {
       }
 
       const { id } = req.params;
-      const updateData = { ...req.body, updatedBy: req.user.id };
+      
+      // Extract and validate data from request body
+      const { 
+        title, 
+        description, 
+        level, 
+        departmentId, 
+        requirements, 
+        responsibilities, 
+        skills,
+        minSalary,
+        maxSalary,
+        isActive 
+      } = req.body;
+
+      const updateData = {
+        updatedBy: req.user.id
+      };
+
+      // Only include fields that are provided
+      if (title !== undefined) updateData.title = title;
+      if (description !== undefined) updateData.description = description;
+      if (level !== undefined) updateData.level = level;
+      if (departmentId !== undefined) updateData.departmentId = departmentId;
+      if (requirements !== undefined) updateData.requirements = requirements;
+      if (responsibilities !== undefined) updateData.responsibilities = responsibilities;
+      if (skills !== undefined) updateData.skills = skills;
+      if (minSalary !== undefined) updateData.minSalary = minSalary;
+      if (maxSalary !== undefined) updateData.maxSalary = maxSalary;
+      if (isActive !== undefined) updateData.isActive = Boolean(isActive);
 
       const designation = await Designation.findByPk(id);
       if (!designation) {
@@ -400,7 +486,18 @@ const employeeManagementController = {
 
       await designation.update(updateData);
 
-      return sendResponse(res, true, "Designation updated successfully", designation);
+      // Reload with associations for proper response
+      const updatedDesignation = await Designation.findByPk(id, {
+        include: [
+          {
+            model: Department,
+            as: 'department',
+            attributes: ['id', 'name']
+          }
+        ]
+      });
+
+      return sendResponse(res, true, "Designation updated successfully", updatedDesignation);
 
     } catch (error) {
       logger.error("Controller: Update Designation Error", error);
@@ -518,7 +615,7 @@ const employeeManagementController = {
 
       // Get user account information
       const userAccount = await User.findOne({
-        where: { employeeId: id },
+        where: { id: employee.userId },
         attributes: ['id', 'email', 'role', 'isActive', 'assignedDepartments', 'lastLogin']
       });
 

@@ -4,13 +4,14 @@ import Employee from './Employee.js';
 import Department from './Department.js';
 import Designation from './Designation.js';
 
-// User - Employee relationship
-User.belongsTo(Employee, { 
-  foreignKey: 'employeeId', 
+// User - Employee relationship (CORRECTED)
+// User is created first, Employee profile is attached later
+User.hasOne(Employee, { 
+  foreignKey: 'userId', 
   as: 'employee' 
 });
-Employee.hasOne(User, { 
-  foreignKey: 'employeeId', 
+Employee.belongsTo(User, { 
+  foreignKey: 'userId', 
   as: 'user' 
 });
 

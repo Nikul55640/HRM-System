@@ -8,7 +8,7 @@
 // ===================================================
 export const ROLES = {
   SUPER_ADMIN: "SuperAdmin",
-  HR_ADMIN: "HR Administrator",
+  HR_ADMIN: "HR", // Updated to match database enum
   HR_MANAGER: "HR Manager",
   PAYROLL_OFFICER: "Payroll Officer",
   MANAGER: "Manager",

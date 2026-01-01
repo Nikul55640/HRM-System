@@ -11,7 +11,6 @@ import { Calendar, Clock, User, AlertTriangle, CheckCircle, Edit3, Loader2 } fro
 import { format, parseISO } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import api from '../../../services/api';
-import DebugUserRole from '../../../components/DebugUserRole';
 
 const AttendanceCorrections = () => {
   const [pendingRequests, setPendingRequests] = useState([]);
@@ -73,7 +72,7 @@ const AttendanceCorrections = () => {
       
       if (response.data.success) {
         // Filter out pending requests for processed tab
-        const processedData = response.data.data.filter(req => req.status !== 'pending');
+        const processedData = response.data.data.filter(req => req.status !== 'pending_correction');
         setProcessedRequests(processedData);
       } else {
         toast.error(response.data.message || 'Failed to fetch processed requests');
@@ -163,7 +162,6 @@ const AttendanceCorrections = () => {
 
   return (
     <div className="space-y-6">
-      <DebugUserRole />
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Attendance Corrections</h1>
       </div>
@@ -204,13 +202,13 @@ const AttendanceCorrections = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="pending_correction">Pending</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
               </SelectContent>
             </Select>
             <Button 
-              onClick={() => activeTab === 'pending' ? fetchPendingRequests() : fetchProcessedRequests()}
+              onClick={() => activeTab === 'pending_correction' ? fetchPendingRequests() : fetchProcessedRequests()}
               disabled={loading}
             >
               Apply Filters
@@ -221,7 +219,7 @@ const AttendanceCorrections = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="pending">Pending Requests</TabsTrigger>
+          <TabsTrigger value="pending_correction">Pending Requests</TabsTrigger>
           <TabsTrigger value="processed">Processed Requests</TabsTrigger>
         </TabsList>
 

@@ -1,4 +1,4 @@
-import { EmployeeShift, Shift, Employee } from '../../models/sequelize/index.js';
+import { EmployeeShift, Shift, Employee } from '../../models/index.js';
 import { Op } from 'sequelize';
 
 // Get employee's shift assignments

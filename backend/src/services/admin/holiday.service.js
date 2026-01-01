@@ -3,7 +3,7 @@
  * Handles all business logic for holiday management
  */
 
-import { Holiday, User, AuditLog } from '../../models/sequelize/index.js';
+import { Holiday, User, AuditLog } from '../../models/index.js';
 import { Op } from 'sequelize';
 
 class HolidayService {

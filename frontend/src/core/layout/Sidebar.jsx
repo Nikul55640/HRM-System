@@ -107,6 +107,32 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           icon: "CalendarRange",
           showIf: () => can.do(MODULES.CALENDAR.VIEW),
         },
+        {
+          name: "Settings",
+          path: "/employee/settings",
+          icon: "Settings",
+          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+          subItems: [
+            {
+              name: "Profile",
+              path: "/employee/settings/profile",
+              icon: "User",
+              showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+            },
+            {
+              name: "Security",
+              path: "/employee/settings/security",
+              icon: "Shield",
+              showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+            },
+            {
+              name: "Emergency Contacts",
+              path: "/employee/settings/emergency-contacts",
+              icon: "Phone",
+              showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+            },
+          ],
+        },
       ],
     },
 
@@ -198,7 +224,7 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
         // Calendar Management
         {
           name: "Calendar Management",
-          path: "/admin/calendar",
+          path: "/admin/calendar/management",
           icon: "CalendarCog",
           showIf: () => can.do(MODULES.CALENDAR.MANAGE),
         },
@@ -226,19 +252,19 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
       items: [
         {
           name: "User Management",
-          path: "/users",
+          path: "admin/users",
           icon: "UserCog",
           showIf: () => can.do(MODULES.USER.VIEW),
         },
         {
           name: "System Policies",
-          path: "/system-policies",
+          path: "admin/system-policies",
           icon: "Settings",
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
         },
         {
           name: "Audit Logs",
-          path: "/audit-logs",
+          path: "admin/audit-logs",
           icon: "ListChecks",
           showIf: () => can.do(MODULES.SYSTEM.VIEW_AUDIT_LOGS),
         },
@@ -404,32 +430,85 @@ const handleMouseLeave = () => {
               {(!group.collapsible || openSections.includes(group.section)) && (
                 <div className="space-y-1 mt-1">
                   {group.items.map((item) => (
-                    <Link
-                      key={item.path}
-                      to={item.path}
-                      onClick={handleNavClick}
-                      className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
-                        isSidebarExpanded
-                          ? "gap-3 px-3 justify-start"
-                          : "justify-center"
-                      } ${
-                        isActive(item.path)
-                          ? "bg-blue-50 text-blue-700 font-medium"
-                          : "text-gray-600 hover:bg-gray-50"
-                      }`}
-                    >
-                      <Icon name={item.icon} className="w-5 h-5" />
-                      {isSidebarExpanded && (
-                        <>
-                          <span>{item.name}</span>
-                          {item.badge && item.badge > 0 && (
-                            <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                              {item.badge}
-                            </span>
+                    <div key={item.path}>
+                      {/* Main Item */}
+                      {item.subItems ? (
+                        // Item with sub-items (Settings)
+                        <div>
+                          <div
+                            className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
+                              isSidebarExpanded
+                                ? "gap-3 px-3 justify-start"
+                                : "justify-center"
+                            } ${
+                              location.pathname.startsWith(item.path)
+                                ? "bg-blue-50 text-blue-700 font-medium"
+                                : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            <Icon name={item.icon} className="w-5 h-5" />
+                            {isSidebarExpanded && (
+                              <span>{item.name}</span>
+                            )}
+                          </div>
+                          
+                          {/* Sub-items */}
+                          {isSidebarExpanded && (
+                            <div className="ml-8 mt-1 space-y-1">
+                              {item.subItems
+                                .filter((subItem) => {
+                                  if (subItem.showIf && typeof subItem.showIf === "function") {
+                                    return subItem.showIf();
+                                  }
+                                  return true;
+                                })
+                                .map((subItem) => (
+                                  <Link
+                                    key={subItem.path}
+                                    to={subItem.path}
+                                    onClick={handleNavClick}
+                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                                      isActive(subItem.path)
+                                        ? "bg-blue-50 text-blue-700 font-medium"
+                                        : "text-gray-600 hover:bg-gray-50"
+                                    }`}
+                                  >
+                                    <Icon name={subItem.icon} className="w-4 h-4" />
+                                    <span>{subItem.name}</span>
+                                  </Link>
+                                ))}
+                            </div>
                           )}
-                        </>
+                        </div>
+                      ) : (
+                        // Regular item without sub-items
+                        <Link
+                          to={item.path}
+                          onClick={handleNavClick}
+                          className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
+                            isSidebarExpanded
+                              ? "gap-3 px-3 justify-start"
+                              : "justify-center"
+                          } ${
+                            isActive(item.path)
+                              ? "bg-blue-50 text-blue-700 font-medium"
+                              : "text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          <Icon name={item.icon} className="w-5 h-5" />
+                          {isSidebarExpanded && (
+                            <>
+                              <span>{item.name}</span>
+                              {item.badge && item.badge > 0 && (
+                                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                                  {item.badge}
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </Link>
                       )}
-                    </Link>
+                    </div>
                   ))}
                 </div>
               )}

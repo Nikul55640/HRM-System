@@ -3,7 +3,7 @@
  * Handles all business logic for attendance management with break and late tracking
  */
 
-import { AttendanceRecord, Employee, Shift, EmployeeShift, User, AuditLog, Holiday } from '../../models/sequelize/index.js';
+import { AttendanceRecord, Employee, Shift, EmployeeShift, User, AuditLog, Holiday } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
 import { ROLES } from '../../config/rolePermissions.js';

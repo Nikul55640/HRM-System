@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Designations API</title>
+</head>
+<body>
+    <h1>Test Designations API</h1>
+    <button onclick="testLogin()">1. Login as HR</button>
+    <button onclick="testDesignations()">2. Get Designations</button>
+    <button onclick="testCreateDesignation()">3. Create Designation</button>
+    
+    <div id="results" style="margin-top: 20px; padding: 10px; background: #f5f5f5; white-space: pre-wrap;"></div>
+
+    <script>
+        let token = null;
+        const API_BASE = 'http://localhost:5000/api';
+        
+        function log(message) {
+            const results = document.getElementById('results');
+            results.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+        }
+
+        async function testLogin() {
+            try {
+                log('🔐 Testing login...');
+                const response = await fetch(`${API_BASE}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: 'hr@hrm.com',
+                        password: 'hr123'
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    token = data.data.accessToken;
+                    log('✅ Login successful! Token: ' + token.substring(0, 20) + '...');
+                } else {
+                    log('❌ Login failed: ' + data.message);
+                }
+            } catch (error) {
+                log('❌ Login error: ' + error.message);
+            }
+        }
+
+        async function testDesignations() {
+            if (!token) {
+                log('⚠️ Please login first');
+                return;
+            }
+
+            try {
+                log('📋 Testing get designations...');
+                const response = await fetch(`${API_BASE}/admin/designations`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                log('Response status: ' + response.status);
+                log('Response data: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success) {
+                    log('✅ Designations retrieved! Count: ' + (data.data?.length || 0));
+                } else {
+                    log('❌ Designations failed: ' + data.message);
+                }
+            } catch (error) {
+                log('❌ Designations error: ' + error.message);
+            }
+        }
+
+        async function testCreateDesignation() {
+            if (!token) {
+                log('⚠️ Please login first');
+                return;
+            }
+
+            try {
+                log('➕ Testing create designation...');
+                const response = await fetch(`${API_BASE}/admin/designations`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        title: 'Frontend Test Developer',
+                        description: 'A test designation created from frontend',
+                        level: 'mid',
+                        departmentId: 1,
+                        isActive: true
+                    })
+                });
+
+                const data = await response.json();
+                log('Response status: ' + response.status);
+                log('Response data: ' + JSON.stringify(data, null, 2));
+                
+                if (data.success) {
+                    log('✅ Designation created successfully!');
+                } else {
+                    log('❌ Designation creation failed: ' + data.message);
+                }
+            } catch (error) {
+                log('❌ Designation creation error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

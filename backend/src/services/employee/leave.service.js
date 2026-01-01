@@ -1,4 +1,4 @@
-import { LeaveRequest, LeaveBalance, Employee } from '../../models/sequelize/index.js';
+import { LeaveRequest, LeaveBalance, Employee } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
 

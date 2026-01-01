@@ -7,10 +7,21 @@ const Employee = sequelize.define('Employee', {
     autoIncrement: true,
     primaryKey: true,
   },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    unique: true,
+    references: {
+      model: 'users',
+      key: 'id',
+    },
+    comment: 'Links to User table for authentication'
+  },
   employeeId: {
     type: DataTypes.STRING,
     unique: true,
     allowNull: false,
+    comment: 'Employee code like EMP-001'
   },
   // Personal Information
   firstName: {
@@ -21,13 +32,13 @@ const Employee = sequelize.define('Employee', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  email: {
-    type: DataTypes.STRING,
-    unique: true,
-    allowNull: false,
-  },
+  // Note: email is now in User table for authentication
   phone: {
     type: DataTypes.STRING,
+    allowNull: true,
+  },
+  country: {
+    type: DataTypes.STRING(50),
     allowNull: true,
   },
   dateOfBirth: {
@@ -38,6 +49,18 @@ const Employee = sequelize.define('Employee', {
     type: DataTypes.ENUM('male', 'female', 'other'),
     allowNull: true,
   },
+  maritalStatus: {
+    type: DataTypes.ENUM('single', 'married', 'divorced', 'widowed'),
+    allowNull: true,
+  },
+  nationality: {
+    type: DataTypes.STRING(50),
+    allowNull: true,
+  },
+  bloodGroup: {
+    type: DataTypes.ENUM('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'),
+    allowNull: true,
+  },
   address: {
     type: DataTypes.JSON,
     defaultValue: {},
@@ -46,6 +69,20 @@ const Employee = sequelize.define('Employee', {
   profilePicture: {
     type: DataTypes.STRING,
     allowNull: true,
+  },
+  profilePhoto: {
+    type: DataTypes.VIRTUAL,
+    get() {
+      return this.getDataValue('profilePicture');
+    },
+    set(value) {
+      this.setDataValue('profilePicture', value);
+    }
+  },
+  about: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+    comment: 'Employee bio/about section'
   },
 
   // Job Information (Read-only for employees)
@@ -143,12 +180,15 @@ const Employee = sequelize.define('Employee', {
   tableName: 'employees',
   timestamps: true,
   indexes: [
+    { fields: ['userId'], unique: true },
     { fields: ['employeeId'], unique: true },
-    { fields: ['email'], unique: true },
     { fields: ['status'] },
     { fields: ['designationId'] },
     { fields: ['departmentId'] },
     { fields: ['reportingManager'] },
+    { fields: ['maritalStatus'] },
+    { fields: ['nationality'] },
+    { fields: ['bloodGroup'] },
   ],
 });
 
@@ -172,18 +212,25 @@ Employee.prototype.toPublicJSON = function () {
 // Transform to frontend expected structure
 Employee.prototype.toFrontendJSON = function () {
   const values = this.get();
+  const user = this.user || {}; // Get associated user data
+  
   return {
     id: values.id,
     employeeId: values.employeeId,
+    userId: values.userId,
     personalInfo: {
       firstName: values.firstName,
       lastName: values.lastName,
       dateOfBirth: values.dateOfBirth,
       gender: values.gender,
+      maritalStatus: values.maritalStatus,
+      nationality: values.nationality,
+      bloodGroup: values.bloodGroup,
+      about: values.about,
       profilePhoto: values.profilePicture
     },
     contactInfo: {
-      email: values.email,
+      email: user.email, // Now comes from User table
       phone: values.phone,
       address: values.address
     },
@@ -193,6 +240,11 @@ Employee.prototype.toFrontendJSON = function () {
       joiningDate: values.joiningDate,
       employmentType: values.employmentType,
       reportingManager: values.reportingManager
+    },
+    systemAccess: {
+      role: user.role,
+      isActive: user.isActive,
+      lastLogin: user.lastLogin
     },
     bankDetails: values.bankDetails,
     emergencyContact: values.emergencyContact,

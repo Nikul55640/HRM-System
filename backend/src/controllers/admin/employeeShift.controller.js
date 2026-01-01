@@ -1,4 +1,4 @@
-import { EmployeeShift, Employee, Shift, User } from '../../models/sequelize/index.js';
+import { EmployeeShift, Employee, Shift, User } from '../../models/index.js';
 import { Op } from 'sequelize';
 import auditService from '../../services/audit/audit.service.js';
 

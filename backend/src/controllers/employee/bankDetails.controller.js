@@ -1,4 +1,4 @@
-import { Employee } from '../../models/sequelize/index.js';
+import { Employee } from '../../models/index.js';
 import { validateIFSC } from '../../validators/bankDetailsValidator.js';
 
 /**
@@ -17,14 +17,14 @@ const maskAccountNumber = (accountNumber) => {
  */
 const getBankDetails = async (req, res) => {
   try {
-    const { employeeId, role } = req.user;
+    const { employee, role } = req.user;
 
     console.log('🏦 [BANK DETAILS] Full req.user:', req.user);
-    console.log('🏦 [BANK DETAILS] Fetching for employeeId:', employeeId);
+    console.log('🏦 [BANK DETAILS] Employee data:', employee);
     console.log('🏦 [BANK DETAILS] User role:', role);
 
-    // Special case for SuperAdmin who might not have an employeeId
-    if (!employeeId) {
+    // Special case for SuperAdmin who might not have an employee profile
+    if (!employee) {
       if (role === 'SuperAdmin') {
         return res.status(200).json({
           success: true,
@@ -44,17 +44,17 @@ const getBankDetails = async (req, res) => {
       
       return res.status(400).json({
         success: false,
-        message: 'Employee ID not found in user profile. Please contact HR to link your account.',
+        message: 'Employee profile not found. Please contact HR to create your employee profile.',
       });
     }
 
-    const employee = await Employee.findByPk(employeeId);
+    const employeeRecord = await Employee.findByPk(employee.id);
 
-    console.log('🏦 [BANK DETAILS] Employee found:', !!employee);
-    console.log('🏦 [BANK DETAILS] Bank details exist:', !!employee?.bankDetails);
-    console.log('🏦 [BANK DETAILS] Bank details content:', employee?.bankDetails);
+    console.log('🏦 [BANK DETAILS] Employee found:', !!employeeRecord);
+    console.log('🏦 [BANK DETAILS] Bank details exist:', !!employeeRecord?.bankDetails);
+    console.log('🏦 [BANK DETAILS] Bank details content:', employeeRecord?.bankDetails);
 
-    if (!employee) {
+    if (!employeeRecord) {
       return res.status(404).json({
         success: false,
         message: 'Employee record not found',
@@ -62,7 +62,7 @@ const getBankDetails = async (req, res) => {
     }
 
     // If no bank details exist, return empty structure instead of 404
-    if (!employee.bankDetails || Object.keys(employee.bankDetails).length === 0) {
+    if (!employeeRecord.bankDetails || Object.keys(employeeRecord.bankDetails).length === 0) {
       return res.status(200).json({
         success: true,
         message: 'No bank details found',
@@ -81,15 +81,15 @@ const getBankDetails = async (req, res) => {
 
     // Return bank details with masked account number
 const bankDetails = {
-  accountNumber: employee.bankDetails.accountNumber, // REAL
-  maskedAccountNumber: maskAccountNumber(employee.bankDetails.accountNumber), // DISPLAY
-  bankName: employee.bankDetails.bankName,
-  ifscCode: employee.bankDetails.ifscCode,
-  accountHolderName: employee.bankDetails.accountHolderName,
-  accountType: employee.bankDetails.accountType,
-  branchName: employee.bankDetails.branchName,
-  isVerified: employee.bankDetails.isVerified || false,
-  verifiedAt: employee.bankDetails.verifiedAt,
+  accountNumber: employeeRecord.bankDetails.accountNumber, // REAL
+  maskedAccountNumber: maskAccountNumber(employeeRecord.bankDetails.accountNumber), // DISPLAY
+  bankName: employeeRecord.bankDetails.bankName,
+  ifscCode: employeeRecord.bankDetails.ifscCode,
+  accountHolderName: employeeRecord.bankDetails.accountHolderName,
+  accountType: employeeRecord.bankDetails.accountType,
+  branchName: employeeRecord.bankDetails.branchName,
+  isVerified: employeeRecord.bankDetails.isVerified || false,
+  verifiedAt: employeeRecord.bankDetails.verifiedAt,
 };
 
     console.log('✅ [BANK DETAILS] Returning masked details');
@@ -114,7 +114,7 @@ const bankDetails = {
  */
 const updateBankDetails = async (req, res) => {
   try {
-    const { employeeId, id: userId, role } = req.user;
+    const { employee, id: userId, role } = req.user;
     const {
       accountNumber,
       bankName,
@@ -124,8 +124,8 @@ const updateBankDetails = async (req, res) => {
       branchName,
     } = req.body;
 
-    // Special case for SuperAdmin who might not have an employeeId
-    if (!employeeId) {
+    // Special case for SuperAdmin who might not have an employee profile
+    if (!employee) {
       if (role === 'SuperAdmin') {
         return res.status(400).json({
           success: false,
@@ -135,7 +135,7 @@ const updateBankDetails = async (req, res) => {
       
       return res.status(400).json({
         success: false,
-        message: 'Employee ID not found in user profile. Please contact HR to link your account.',
+        message: 'Employee profile not found. Please contact HR to create your employee profile.',
       });
     }
 
@@ -156,9 +156,9 @@ const updateBankDetails = async (req, res) => {
     }
 
     // Find employee
-    const employee = await Employee.findByPk(employeeId);
+    const employeeRecord = await Employee.findByPk(employee.id);
 
-    if (!employee) {
+    if (!employeeRecord) {
       return res.status(404).json({
         success: false,
         message: 'Employee not found',
@@ -178,7 +178,7 @@ const updateBankDetails = async (req, res) => {
       verifiedBy: null,
     };
 
-    await employee.update({
+    await employeeRecord.update({
       bankDetails,
       updatedBy: userId
     });
@@ -212,18 +212,25 @@ const updateBankDetails = async (req, res) => {
  */
 const requestVerification = async (req, res) => {
   try {
-    const { employeeId } = req.user;
+    const { employee } = req.user;
 
-    const employee = await Employee.findByPk(employeeId);
+    if (!employee) {
+      return res.status(400).json({
+        success: false,
+        message: 'Employee profile not found.',
+      });
+    }
 
-    if (!employee || !employee.bankDetails || Object.keys(employee.bankDetails).length === 0) {
+    const employeeRecord = await Employee.findByPk(employee.id);
+
+    if (!employeeRecord || !employeeRecord.bankDetails || Object.keys(employeeRecord.bankDetails).length === 0) {
       return res.status(404).json({
         success: false,
         message: 'Bank details not found. Please add bank details first.',
       });
     }
 
-    if (employee.bankDetails.isVerified) {
+    if (employeeRecord.bankDetails.isVerified) {
       return res.status(400).json({
         success: false,
         message: 'Bank details are already verified',

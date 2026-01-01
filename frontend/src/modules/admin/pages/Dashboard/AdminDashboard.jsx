@@ -87,7 +87,7 @@ const AdminDashboard = () => {
       value: stats.totalEmployees || 0,
       icon: Users,
       color: 'blue',
-      change: '+5 this month',
+      change: 'Employees ',
     },
     {
       title: 'Active Employees',
@@ -278,7 +278,7 @@ const AdminDashboard = () => {
               <span className="text-sm text-gray-700">Manage Users</span>
             </button>
             <button
-              onClick={() => navigate('/admin/leave-requests')}
+              onClick={() => navigate('/admin/leave')}
               className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
             >
               <Calendar className="w-6 h-6 text-green-600 mx-auto mb-2" />
@@ -292,7 +292,7 @@ const AdminDashboard = () => {
               <span className="text-sm text-gray-700">Payroll</span>
             </button>
             <button
-              onClick={() => navigate('/admin/logs')}
+              onClick={() => navigate('/admin/audit-logs')}
               className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
             >
               <FileText className="w-6 h-6 text-orange-600 mx-auto mb-2" />

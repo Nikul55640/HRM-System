@@ -3,7 +3,7 @@
  * Handles all business logic for shift management
  */
 
-import { Shift, EmployeeShift, Employee, User, AuditLog } from '../../models/sequelize/index.js';
+import { Shift, EmployeeShift, Employee, User, AuditLog } from '../../models/index.js';
 import { Op } from 'sequelize';
 
 class ShiftService {

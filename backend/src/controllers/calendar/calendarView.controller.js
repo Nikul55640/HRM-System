@@ -1,16 +1,32 @@
 import { CompanyEvent, Employee, LeaveRequest, AttendanceRecord, Holiday } from "../../models/sequelize/index.js";
 import { Op } from "sequelize";
 import logger from "../../utils/logger.js";
+import {
+  normalizeCompanyEvent,
+  normalizeHoliday,
+  normalizeLeaveRequest,
+  normalizeBirthday,
+  normalizeAnniversary,
+  normalizeAttendance,
+  filterEventsByDateRange,
+  sortEventsByPriorityAndDate,
+  groupEventsByDate,
+  getEventsForDate,
+  isEventInDateRange,
+  buildDateRangeFilter,
+  buildEventDateRangeFilter,
+  convertToLegacyFormat
+} from "../../utils/calendarEventNormalizer.js";
 
 /**
  * Enhanced Calendar View Controller
- * Provides comprehensive calendar data for different user roles
- * Based on the working companyCalendarController approach
+ * Provides comprehensive calendar data using unified event model
+ * All events are normalized and filtered using date-range comparison
  */
 
 /**
  * Get Monthly Calendar Data
- * Returns events, leaves, attendance, holidays for a specific month
+ * Returns events, leaves, attendance, holidays for a specific month using unified event model
  */
 const getMonthlyCalendarData = async (req, res) => {
   try {
@@ -22,117 +38,71 @@ const getMonthlyCalendarData = async (req, res) => {
     const startDate = new Date(currentYear, currentMonth - 1, 1);
     const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
 
-    const calendarData = {
-      year: currentYear,
-      month: currentMonth,
-      events: [],
-      leaves: [],
-      holidays: [],
-      birthdays: [],
-      anniversaries: [],
-      attendance: [],
-      summary: {}
-    };
-
-    // Build filters based on user role and permissions
     const isHROrAdmin = ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(req.user.role);
     const isManager = req.user.role === 'Manager';
 
-    // 1. Get Company Events (meetings, trainings, company events)
+    // Collect all normalized events
+    const allNormalizedEvents = [];
+
+    // 1. Get and normalize Company Events
     const eventFilters = {
-      [Op.or]: [
-        {
-          startDate: { [Op.between]: [startDate, endDate] }
-        },
-        {
-          endDate: { [Op.between]: [startDate, endDate] }
-        },
-        {
-          [Op.and]: [
-            { startDate: { [Op.lte]: startDate } },
-            { endDate: { [Op.gte]: endDate } }
-          ]
-        }
-      ],
+      ...buildEventDateRangeFilter(startDate, endDate),
       status: 'scheduled',
-      eventType: { [Op.ne]: 'holiday' } // Exclude holidays from CompanyEvent
+      eventType: { [Op.ne]: 'holiday' }
     };
 
     if (!isHROrAdmin) {
-      eventFilters[Op.or] = [
-        { isPublic: true },
-        { createdBy: req.user.id },
-        { organizer: req.user.id }
+      eventFilters[Op.and] = [
+        eventFilters[Op.and] || {},
+        {
+          [Op.or]: [
+            { isPublic: true },
+            { createdBy: req.user.id },
+            { organizer: req.user.id }
+          ]
+        }
       ];
     }
 
-    const events = await CompanyEvent.findAll({
+    const companyEvents = await CompanyEvent.findAll({
       where: eventFilters,
-      attributes: ['id', 'title', 'description', 'startDate', 'endDate', 'eventType', 'isAllDay', 'color', 'location', 'priority'],
+      attributes: ['id', 'title', 'description', 'startDate', 'endDate', 'eventType', 'isAllDay', 'color', 'location', 'priority', 'organizer', 'isPublic', 'status'],
       order: [['startDate', 'ASC']]
     });
 
-    calendarData.events = events.map(event => ({
-      id: event.id,
-      title: event.title,
-      description: event.description,
-      startDate: event.startDate,
-      endDate: event.endDate,
-      eventType: event.eventType,
-      isAllDay: event.isAllDay,
-      color: event.color || '#3498db',
-      location: event.location,
-      priority: event.priority
-    }));
+    companyEvents.forEach(event => {
+      allNormalizedEvents.push(normalizeCompanyEvent(event));
+    });
 
-    // 1.5. Get Holidays from Holiday model
-    const holidayFilters = {
-      date: { [Op.between]: [startDate, endDate] },
-      isActive: true
-    };
+    // 2. Get and normalize Holidays
+    const holidayFilters = buildDateRangeFilter(startDate, endDate, 'date');
+    holidayFilters.isActive = true;
 
     const holidays = await Holiday.findAll({
       where: holidayFilters,
-      attributes: ['id', 'name', 'date', 'type', 'description', 'color', 'isPaid', 'isRecurring'],
+      attributes: ['id', 'name', 'date', 'type', 'description', 'color', 'isPaid', 'isRecurring', 'recurrencePattern', 'isActive'],
       order: [['date', 'ASC']]
     });
 
-    calendarData.holidays = holidays.map(holiday => ({
-      id: holiday.id,
-      title: holiday.name,
-      name: holiday.name,
-      date: holiday.date,
-      startDate: holiday.date,
-      endDate: holiday.date,
-      eventType: 'holiday',
-      type: holiday.type,
-      description: holiday.description,
-      color: holiday.color || '#dc2626',
-      isPaid: holiday.isPaid,
-      isRecurring: holiday.isRecurring,
-      isAllDay: true
-    }));
+    holidays.forEach(holiday => {
+      allNormalizedEvents.push(normalizeHoliday(holiday));
+    });
 
-    // 2. Get Leave Requests - Using simple approach without Department association
-    const leaveFilters = {
-      startDate: { [Op.lte]: endDate },
-      endDate: { [Op.gte]: startDate },
-      status: 'approved'
-    };
+    // 3. Get and normalize Leave Requests
+    const leaveFilters = buildEventDateRangeFilter(startDate, endDate);
+    leaveFilters.status = 'approved';
 
     // Apply role-based filtering for leaves
     if (!isHROrAdmin) {
       if (isManager) {
-        // Managers can see their team's leaves
         const teamEmployees = await Employee.findAll({
           where: { reportingManager: req.user.id },
           attributes: ['id']
         });
         const teamIds = teamEmployees.map(emp => emp.id);
-        teamIds.push(req.user.employeeId); // Include manager's own leaves
+        teamIds.push(req.user.employeeId);
         leaveFilters.employeeId = { [Op.in]: teamIds };
       } else {
-        // Employees can only see their own leaves
         leaveFilters.employeeId = req.user.employeeId;
       }
     }
@@ -141,7 +111,6 @@ const getMonthlyCalendarData = async (req, res) => {
       leaveFilters.employeeId = employeeId;
     }
 
-    // Simple leave query without problematic Department association
     const leaves = await LeaveRequest.findAll({
       where: leaveFilters,
       include: [{
@@ -152,27 +121,11 @@ const getMonthlyCalendarData = async (req, res) => {
       order: [['startDate', 'ASC']]
     });
 
-    calendarData.leaves = leaves.map(leave => ({
-      id: leave.id,
-      employeeId: leave.employeeId,
-      employeeName: `${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''}`.trim(),
-      employeeCode: leave.employee?.employeeId,
-      department: leave.employee?.department || 'N/A',
-      leaveType: leave.leaveType,
-      startDate: leave.startDate,
-      endDate: leave.endDate,
-      totalDays: leave.totalDays,
-      isHalfDay: leave.isHalfDay,
-      halfDayPeriod: leave.halfDayPeriod,
-      reason: leave.reason,
-      status: leave.status,
-      eventType: 'leave',
-      title: `${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''} - ${leave.leaveType}`.trim(),
-      color: '#f59e0b', // Orange color for leaves
-      isAllDay: true
-    }));
+    leaves.forEach(leave => {
+      allNormalizedEvents.push(normalizeLeaveRequest(leave));
+    });
 
-    // 3. Get Birthdays and Anniversaries
+    // 4. Get and normalize Employee Birthdays and Anniversaries
     const employeeFilters = { status: 'Active' };
     if (departmentId) {
       employeeFilters.department = departmentId;
@@ -184,57 +137,29 @@ const getMonthlyCalendarData = async (req, res) => {
     });
 
     employees.forEach(employee => {
-      // Birthdays
+      // Generate birthday events
       if (employee.dateOfBirth) {
-        const dob = new Date(employee.dateOfBirth);
-        if (dob.getMonth() === currentMonth - 1) {
-          const birthdayThisYear = new Date(currentYear, dob.getMonth(), dob.getDate());
-          calendarData.birthdays.push({
-            id: `birthday-${employee.id}`,
-            employeeId: employee.id,
-            employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
-            employeeCode: employee.employeeId,
-            date: birthdayThisYear,
-            startDate: birthdayThisYear,
-            endDate: birthdayThisYear,
-            age: currentYear - dob.getFullYear(),
-            eventType: 'birthday',
-            title: `🎂 ${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
-            color: '#ec4899', // Pink color for birthdays
-            isAllDay: true
-          });
+        const birthdayEvent = normalizeBirthday(employee, currentYear);
+        if (isEventInDateRange(birthdayEvent, startDate, endDate)) {
+          allNormalizedEvents.push(birthdayEvent);
         }
       }
 
-      // Work Anniversaries
+      // Generate anniversary events
       if (employee.joiningDate) {
-        const joinDate = new Date(employee.joiningDate);
-        if (joinDate.getMonth() === currentMonth - 1 && joinDate.getFullYear() < currentYear) {
-          const anniversaryThisYear = new Date(currentYear, joinDate.getMonth(), joinDate.getDate());
-          const years = currentYear - joinDate.getFullYear();
-          calendarData.anniversaries.push({
-            id: `anniversary-${employee.id}`,
-            employeeId: employee.id,
-            employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
-            employeeCode: employee.employeeId,
-            date: anniversaryThisYear,
-            startDate: anniversaryThisYear,
-            endDate: anniversaryThisYear,
-            years: years,
-            eventType: 'anniversary',
-            title: `🎊 ${employee.firstName || ''} ${employee.lastName || ''} - ${years} years`.trim(),
-            color: '#8b5cf6', // Purple color for anniversaries
-            isAllDay: true
-          });
+        const joinYear = new Date(employee.joiningDate).getFullYear();
+        if (joinYear < currentYear) {
+          const anniversaryEvent = normalizeAnniversary(employee, currentYear);
+          if (isEventInDateRange(anniversaryEvent, startDate, endDate)) {
+            allNormalizedEvents.push(anniversaryEvent);
+          }
         }
       }
     });
 
-    // 4. Get Attendance Data (if requested and user has permission)
+    // 5. Get and normalize Attendance Data (if requested and user has permission)
     if (includeAttendance === 'true' && (isHROrAdmin || isManager)) {
-      const attendanceFilters = {
-        date: { [Op.between]: [startDate, endDate] }
-      };
+      const attendanceFilters = buildDateRangeFilter(startDate, endDate, 'date');
 
       if (!isHROrAdmin) {
         if (isManager) {
@@ -263,46 +188,45 @@ const getMonthlyCalendarData = async (req, res) => {
         order: [['date', 'ASC']]
       });
 
-      calendarData.attendance = attendance.map(record => ({
-        id: record.id,
-        employeeId: record.employeeId,
-        employeeName: `${record.employee?.firstName || ''} ${record.employee?.lastName || ''}`.trim(),
-        employeeCode: record.employee?.employeeId,
-        date: record.date,
-        checkIn: record.checkIn,
-        checkOut: record.checkOut,
-        status: record.status,
-        workHours: record.workHours,
-        isLate: record.isLate,
-        isEarlyDeparture: record.isEarlyDeparture,
-        lateMinutes: record.lateMinutes,
-        earlyExitMinutes: record.earlyExitMinutes
-      }));
+      attendance.forEach(record => {
+        allNormalizedEvents.push(normalizeAttendance(record));
+      });
     }
 
-    // 5. Generate Summary Statistics
-    calendarData.summary = {
-      totalEvents: calendarData.events.length,
-      totalHolidays: calendarData.holidays.length,
-      totalLeaves: calendarData.leaves.length,
-      totalBirthdays: calendarData.birthdays.length,
-      totalAnniversaries: calendarData.anniversaries.length,
-      leavesByType: calendarData.leaves.reduce((acc, leave) => {
+    // Sort all events by priority and date
+    const sortedEvents = sortEventsByPriorityAndDate(allNormalizedEvents);
+
+    // Convert to legacy format for frontend compatibility
+    const legacyFormat = convertToLegacyFormat(sortedEvents);
+
+    // Generate summary statistics
+    const summary = {
+      totalEvents: legacyFormat.events.length,
+      totalHolidays: legacyFormat.holidays.length,
+      totalLeaves: legacyFormat.leaves.length,
+      totalBirthdays: legacyFormat.birthdays.length,
+      totalAnniversaries: legacyFormat.anniversaries.length,
+      leavesByType: legacyFormat.leaves.reduce((acc, leave) => {
         acc[leave.leaveType] = (acc[leave.leaveType] || 0) + 1;
         return acc;
       }, {}),
-      attendanceSummary: calendarData.attendance.length > 0 ? {
-        totalRecords: calendarData.attendance.length,
-        presentDays: calendarData.attendance.filter(a => a.status === 'present').length,
-        absentDays: calendarData.attendance.filter(a => a.status === 'absent').length,
-        lateDays: calendarData.attendance.filter(a => a.isLate).length,
-        earlyDepartures: calendarData.attendance.filter(a => a.isEarlyDeparture).length
+      attendanceSummary: legacyFormat.attendance.length > 0 ? {
+        totalRecords: legacyFormat.attendance.length,
+        presentDays: legacyFormat.attendance.filter(a => a.status === 'present').length,
+        absentDays: legacyFormat.attendance.filter(a => a.status === 'absent').length,
+        lateDays: legacyFormat.attendance.filter(a => a.isLate).length,
+        earlyDepartures: legacyFormat.attendance.filter(a => a.isEarlyDeparture).length
       } : null
     };
 
     res.json({
       success: true,
-      data: calendarData
+      data: {
+        year: currentYear,
+        month: currentMonth,
+        ...legacyFormat,
+        summary
+      }
     });
 
   } catch (error) {
@@ -317,7 +241,7 @@ const getMonthlyCalendarData = async (req, res) => {
 
 /**
  * Get Daily Calendar Data
- * Returns detailed information for a specific date
+ * Returns detailed information for a specific date using unified event model
  */
 const getDailyCalendarData = async (req, res) => {
   try {
@@ -337,55 +261,54 @@ const getDailyCalendarData = async (req, res) => {
     const isHROrAdmin = ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(req.user.role);
     const isManager = req.user.role === 'Manager';
 
-    const dailyData = {
-      date: date,
-      events: [],
-      leaves: [],
-      attendance: [],
-      holidays: []
-    };
+    // Collect all normalized events for the day
+    const allNormalizedEvents = [];
 
-    // Get events for the day
+    // 1. Get and normalize Company Events
     const eventFilters = {
-      [Op.or]: [
-        {
-          startDate: { [Op.between]: [startOfDay, endOfDay] }
-        },
-        {
-          endDate: { [Op.between]: [startOfDay, endOfDay] }
-        },
-        {
-          [Op.and]: [
-            { startDate: { [Op.lte]: startOfDay } },
-            { endDate: { [Op.gte]: endOfDay } }
-          ]
-        }
-      ],
-      status: 'scheduled'
+      ...buildEventDateRangeFilter(startOfDay, endOfDay),
+      status: 'scheduled',
+      eventType: { [Op.ne]: 'holiday' }
     };
 
     if (!isHROrAdmin) {
-      eventFilters[Op.or] = [
-        { isPublic: true },
-        { createdBy: req.user.id },
-        { organizer: req.user.id }
+      eventFilters[Op.and] = [
+        eventFilters[Op.and] || {},
+        {
+          [Op.or]: [
+            { isPublic: true },
+            { createdBy: req.user.id },
+            { organizer: req.user.id }
+          ]
+        }
       ];
     }
 
-    const events = await CompanyEvent.findAll({
+    const companyEvents = await CompanyEvent.findAll({
       where: eventFilters,
       order: [['startDate', 'ASC']]
     });
 
-    dailyData.events = events.filter(e => e.eventType !== 'holiday');
-    dailyData.holidays = events.filter(e => e.eventType === 'holiday');
+    companyEvents.forEach(event => {
+      allNormalizedEvents.push(normalizeCompanyEvent(event));
+    });
 
-    // Get leaves for the day
-    const leaveFilters = {
-      startDate: { [Op.lte]: endOfDay },
-      endDate: { [Op.gte]: startOfDay },
-      status: 'approved'
-    };
+    // 2. Get and normalize Holidays
+    const holidayFilters = buildDateRangeFilter(startOfDay, endOfDay, 'date');
+    holidayFilters.isActive = true;
+
+    const holidays = await Holiday.findAll({
+      where: holidayFilters,
+      order: [['date', 'ASC']]
+    });
+
+    holidays.forEach(holiday => {
+      allNormalizedEvents.push(normalizeHoliday(holiday));
+    });
+
+    // 3. Get and normalize Leave Requests
+    const leaveFilters = buildEventDateRangeFilter(startOfDay, endOfDay);
+    leaveFilters.status = 'approved';
 
     if (!isHROrAdmin) {
       if (isManager) {
@@ -410,26 +333,46 @@ const getDailyCalendarData = async (req, res) => {
       include: [{
         model: Employee,
         as: 'employee',
-        attributes: ['id', 'employeeId', 'firstName', 'lastName']
+        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department']
       }]
     });
 
-    dailyData.leaves = leaves.map(leave => ({
-      id: leave.id,
-      employeeId: leave.employeeId,
-      employeeName: `${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''}`.trim(),
-      employeeCode: leave.employee?.employeeId,
-      leaveType: leave.leaveType,
-      isHalfDay: leave.isHalfDay,
-      halfDayPeriod: leave.halfDayPeriod,
-      reason: leave.reason
-    }));
+    leaves.forEach(leave => {
+      allNormalizedEvents.push(normalizeLeaveRequest(leave));
+    });
 
-    // Get attendance for the day
+    // 4. Get and normalize Employee Birthdays and Anniversaries
+    const employees = await Employee.findAll({
+      where: { status: 'Active' },
+      attributes: ['id', 'employeeId', 'firstName', 'lastName', 'dateOfBirth', 'joiningDate', 'department']
+    });
+
+    const targetYear = targetDate.getFullYear();
+
+    employees.forEach(employee => {
+      // Check for birthdays on this date
+      if (employee.dateOfBirth) {
+        const birthdayEvent = normalizeBirthday(employee, targetYear);
+        if (isEventInDateRange(birthdayEvent, startOfDay, endOfDay)) {
+          allNormalizedEvents.push(birthdayEvent);
+        }
+      }
+
+      // Check for anniversaries on this date
+      if (employee.joiningDate) {
+        const joinYear = new Date(employee.joiningDate).getFullYear();
+        if (joinYear < targetYear) {
+          const anniversaryEvent = normalizeAnniversary(employee, targetYear);
+          if (isEventInDateRange(anniversaryEvent, startOfDay, endOfDay)) {
+            allNormalizedEvents.push(anniversaryEvent);
+          }
+        }
+      }
+    });
+
+    // 5. Get and normalize Attendance for the day
     if (isHROrAdmin || isManager || employeeId === req.user.employeeId) {
-      const attendanceFilters = {
-        date: startOfDay
-      };
+      const attendanceFilters = buildDateRangeFilter(startOfDay, endOfDay, 'date');
 
       if (!isHROrAdmin) {
         if (isManager) {
@@ -457,27 +400,24 @@ const getDailyCalendarData = async (req, res) => {
         }]
       });
 
-      dailyData.attendance = attendance.map(record => ({
-        id: record.id,
-        employeeId: record.employeeId,
-        employeeName: `${record.employee?.firstName || ''} ${record.employee?.lastName || ''}`.trim(),
-        employeeCode: record.employee?.employeeId,
-        checkIn: record.checkIn,
-        checkOut: record.checkOut,
-        status: record.status,
-        workHours: record.workHours,
-        breakTime: record.breakTime,
-        isLate: record.isLate,
-        isEarlyDeparture: record.isEarlyDeparture,
-        lateMinutes: record.lateMinutes,
-        earlyExitMinutes: record.earlyExitMinutes,
-        sessions: record.sessions
-      }));
+      attendance.forEach(record => {
+        allNormalizedEvents.push(normalizeAttendance(record));
+      });
     }
+
+    // Sort all events by priority and date
+    const sortedEvents = sortEventsByPriorityAndDate(allNormalizedEvents);
+
+    // Convert to legacy format for frontend compatibility
+    const legacyFormat = convertToLegacyFormat(sortedEvents);
 
     res.json({
       success: true,
-      data: dailyData
+      data: {
+        date: date,
+        ...legacyFormat,
+        totalEvents: sortedEvents.length
+      }
     });
 
   } catch (error) {
@@ -552,8 +492,7 @@ const applyLeaveFromCalendar = async (req, res) => {
 
 /**
  * Get Unified Calendar Events
- * Returns all calendar events (holidays, company events, leaves, etc.) in a unified format
- * This is the main endpoint used by /calendar/events
+ * Returns all calendar events in a normalized, unified format
  */
 const getEvents = async (req, res) => {
   try {
@@ -580,92 +519,58 @@ const getEvents = async (req, res) => {
     const isHROrAdmin = ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(req.user.role);
     const isManager = req.user.role === 'Manager';
 
-    const calendarData = {
-      events: [],
-      holidays: [],
-      leaves: [],
-      birthdays: [],
-      anniversaries: []
-    };
+    // Collect all normalized events
+    const allNormalizedEvents = [];
 
-    // 1. Get Company Events
+    // 1. Get and normalize Company Events
     const eventFilters = {
-      [Op.or]: [
-        { startDate: { [Op.between]: [rangeStart, rangeEnd] } },
-        { endDate: { [Op.between]: [rangeStart, rangeEnd] } },
-        {
-          [Op.and]: [
-            { startDate: { [Op.lte]: rangeStart } },
-            { endDate: { [Op.gte]: rangeEnd } }
-          ]
-        }
-      ],
+      ...buildEventDateRangeFilter(rangeStart, rangeEnd),
       status: 'scheduled',
       eventType: { [Op.ne]: 'holiday' }
     };
 
     if (!isHROrAdmin) {
-      eventFilters[Op.or] = [
-        { isPublic: true },
-        { createdBy: req.user.id },
-        { organizer: req.user.id }
+      eventFilters[Op.and] = [
+        eventFilters[Op.and] || {},
+        {
+          [Op.or]: [
+            { isPublic: true },
+            { createdBy: req.user.id },
+            { organizer: req.user.id }
+          ]
+        }
       ];
     }
 
-    const events = await CompanyEvent.findAll({
+    const companyEvents = await CompanyEvent.findAll({
       where: eventFilters,
-      attributes: ['id', 'title', 'description', 'startDate', 'endDate', 'eventType', 'isAllDay', 'color', 'location', 'priority'],
+      attributes: ['id', 'title', 'description', 'startDate', 'endDate', 'eventType', 'isAllDay', 'color', 'location', 'priority', 'organizer', 'isPublic', 'status'],
       order: [['startDate', 'ASC']]
     });
 
-    calendarData.events = events.map(event => ({
-      id: event.id,
-      title: event.title,
-      description: event.description,
-      startDate: event.startDate,
-      endDate: event.endDate,
-      eventType: event.eventType,
-      isAllDay: event.isAllDay,
-      color: event.color || '#3498db',
-      location: event.location,
-      priority: event.priority
-    }));
+    companyEvents.forEach(event => {
+      allNormalizedEvents.push(normalizeCompanyEvent(event));
+    });
 
-    // 2. Get Holidays from Holiday model
-    const holidayFilters = {
-      date: { [Op.between]: [rangeStart, rangeEnd] },
-      isActive: true
-    };
+    // 2. Get and normalize Holidays
+    const holidayFilters = buildDateRangeFilter(rangeStart, rangeEnd, 'date');
+    holidayFilters.isActive = true;
 
     const holidays = await Holiday.findAll({
       where: holidayFilters,
-      attributes: ['id', 'name', 'date', 'type', 'description', 'color', 'isPaid', 'isRecurring'],
+      attributes: ['id', 'name', 'date', 'type', 'description', 'color', 'isPaid', 'isRecurring', 'recurrencePattern', 'isActive'],
       order: [['date', 'ASC']]
     });
 
-    calendarData.holidays = holidays.map(holiday => ({
-      id: holiday.id,
-      title: holiday.name,
-      name: holiday.name,
-      date: holiday.date,
-      startDate: holiday.date,
-      endDate: holiday.date,
-      eventType: 'holiday',
-      type: holiday.type,
-      description: holiday.description,
-      color: holiday.color || '#dc2626',
-      isPaid: holiday.isPaid,
-      isRecurring: holiday.isRecurring,
-      isAllDay: true
-    }));
+    holidays.forEach(holiday => {
+      allNormalizedEvents.push(normalizeHoliday(holiday));
+    });
 
-    // 3. Get Leave Requests
-    const leaveFilters = {
-      startDate: { [Op.lte]: rangeEnd },
-      endDate: { [Op.gte]: rangeStart },
-      status: 'approved'
-    };
+    // 3. Get and normalize Leave Requests
+    const leaveFilters = buildEventDateRangeFilter(rangeStart, rangeEnd);
+    leaveFilters.status = 'approved';
 
+    // Apply role-based filtering for leaves
     if (!isHROrAdmin) {
       if (isManager) {
         const teamEmployees = await Employee.findAll({
@@ -694,27 +599,11 @@ const getEvents = async (req, res) => {
       order: [['startDate', 'ASC']]
     });
 
-    calendarData.leaves = leaves.map(leave => ({
-      id: leave.id,
-      employeeId: leave.employeeId,
-      employeeName: `${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''}`.trim(),
-      employeeCode: leave.employee?.employeeId,
-      department: leave.employee?.department || 'N/A',
-      leaveType: leave.leaveType,
-      startDate: leave.startDate,
-      endDate: leave.endDate,
-      totalDays: leave.totalDays,
-      isHalfDay: leave.isHalfDay,
-      halfDayPeriod: leave.halfDayPeriod,
-      reason: leave.reason,
-      status: leave.status,
-      eventType: 'leave',
-      title: `${leave.employee?.firstName || ''} ${leave.employee?.lastName || ''} - ${leave.leaveType}`.trim(),
-      color: '#f59e0b',
-      isAllDay: true
-    }));
+    leaves.forEach(leave => {
+      allNormalizedEvents.push(normalizeLeaveRequest(leave));
+    });
 
-    // 4. Get Birthdays and Anniversaries
+    // 4. Get and normalize Employee Birthdays and Anniversaries
     const employeeFilters = { status: 'Active' };
     if (departmentId) {
       employeeFilters.department = departmentId;
@@ -725,67 +614,56 @@ const getEvents = async (req, res) => {
       attributes: ['id', 'employeeId', 'firstName', 'lastName', 'dateOfBirth', 'joiningDate', 'department']
     });
 
-    const currentYear = rangeStart.getFullYear();
-    const currentMonth = rangeStart.getMonth();
+    const targetYear = rangeStart.getFullYear();
 
     employees.forEach(employee => {
-      // Birthdays
+      // Generate birthday events
       if (employee.dateOfBirth) {
-        const dob = new Date(employee.dateOfBirth);
-        if (dob.getMonth() === currentMonth) {
-          const birthdayThisYear = new Date(currentYear, dob.getMonth(), dob.getDate());
-          if (birthdayThisYear >= rangeStart && birthdayThisYear <= rangeEnd) {
-            calendarData.birthdays.push({
-              id: `birthday-${employee.id}`,
-              employeeId: employee.id,
-              employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
-              employeeCode: employee.employeeId,
-              date: birthdayThisYear,
-              startDate: birthdayThisYear,
-              endDate: birthdayThisYear,
-              age: currentYear - dob.getFullYear(),
-              eventType: 'birthday',
-              title: `🎂 ${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
-              color: '#ec4899',
-              isAllDay: true
-            });
-          }
+        const birthdayEvent = normalizeBirthday(employee, targetYear);
+        if (isEventInDateRange(birthdayEvent, rangeStart, rangeEnd)) {
+          allNormalizedEvents.push(birthdayEvent);
         }
       }
 
-      // Work Anniversaries
+      // Generate anniversary events
       if (employee.joiningDate) {
-        const joinDate = new Date(employee.joiningDate);
-        if (joinDate.getMonth() === currentMonth && joinDate.getFullYear() < currentYear) {
-          const anniversaryThisYear = new Date(currentYear, joinDate.getMonth(), joinDate.getDate());
-          if (anniversaryThisYear >= rangeStart && anniversaryThisYear <= rangeEnd) {
-            const years = currentYear - joinDate.getFullYear();
-            calendarData.anniversaries.push({
-              id: `anniversary-${employee.id}`,
-              employeeId: employee.id,
-              employeeName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim(),
-              employeeCode: employee.employeeId,
-              date: anniversaryThisYear,
-              startDate: anniversaryThisYear,
-              endDate: anniversaryThisYear,
-              years: years,
-              eventType: 'anniversary',
-              title: `🎊 ${employee.firstName || ''} ${employee.lastName || ''} - ${years} years`.trim(),
-              color: '#8b5cf6',
-              isAllDay: true
-            });
+        const joinYear = new Date(employee.joiningDate).getFullYear();
+        if (joinYear < targetYear) {
+          const anniversaryEvent = normalizeAnniversary(employee, targetYear);
+          if (isEventInDateRange(anniversaryEvent, rangeStart, rangeEnd)) {
+            allNormalizedEvents.push(anniversaryEvent);
           }
         }
       }
     });
+
+    // Sort all events by priority and date
+    const sortedEvents = sortEventsByPriorityAndDate(allNormalizedEvents);
+
+    // Convert to legacy format for frontend compatibility
+    const legacyFormat = convertToLegacyFormat(sortedEvents);
 
     res.json({
       success: true,
-      data: calendarData
+      data: legacyFormat,
+      meta: {
+        totalEvents: sortedEvents.length,
+        dateRange: {
+          start: rangeStart,
+          end: rangeEnd
+        },
+        eventsByType: {
+          companyEvents: legacyFormat.events.length,
+          holidays: legacyFormat.holidays.length,
+          leaves: legacyFormat.leaves.length,
+          birthdays: legacyFormat.birthdays.length,
+          anniversaries: legacyFormat.anniversaries.length
+        }
+      }
     });
 
   } catch (error) {
-    logger.error("Error fetching calendar events:", error);
+    logger.error("Error fetching unified calendar events:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching calendar events",

@@ -50,7 +50,6 @@ export const adminRoutes = [
 
   // Attendance Management
   { path: "admin/attendance", element: <ManageAttendance />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/attendance/manage", element: <ManageAttendance />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/attendance/corrections", element: <AttendanceCorrections />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/attendance/live", element: <LiveAttendanceDashboard />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
 
@@ -79,9 +78,9 @@ export const adminRoutes = [
   },
 
   // System Administration
-  { path: "users", element: <UserManagement />, roles: ["SuperAdmin"] },
-  { path: "system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
+  { path: "admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },
+  { path: "admin/system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
 
   // Audit Logs
-  { path: "audit-logs", element: <AuditLogsPage />, roles: ["SuperAdmin"] },
+  { path: "admin/audit-logs", element: <AuditLogsPage />, roles: ["SuperAdmin"] },
 ];

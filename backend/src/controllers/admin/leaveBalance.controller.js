@@ -6,7 +6,7 @@
 
 import leaveBalanceService from '../../services/admin/leaveBalance.service.js';
 import logger from '../../utils/logger.js';
-import { AuditLog, Employee, LeaveBalance, User } from '../../models/sequelize/index.js';
+import { AuditLog, Employee, LeaveBalance, User } from '../../models/index.js';
 import { Op } from 'sequelize';
 import { ROLES } from '../../config/rolePermissions.js';
 

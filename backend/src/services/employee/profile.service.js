@@ -1,4 +1,4 @@
-import { Employee, User } from '../../models/sequelize/index.js';
+import { Employee, User } from '../../models/index.js';
 import logger from '../../utils/logger.js';
 
 const getProfile = async (employeeId) => {

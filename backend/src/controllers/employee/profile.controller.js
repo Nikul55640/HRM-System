@@ -1,346 +1,304 @@
-import multer from "multer";
-import crypto from "crypto";
-import fs from "fs";
-import { encryptFile } from "../../utils/encryption.js";
-import { decryptFile } from "../../utils/encryption.js";
-import { Employee, Department } from "../../models/sequelize/index.js";
+import { Employee, User } from '../../models/sequelize/index.js';
+import bcrypt from 'bcryptjs';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import logger from '../../utils/logger.js';
 
-// Configure multer for file uploads
+// Configure multer for profile photo uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "uploads/documents/");
+    const uploadDir = 'uploads/profile-photos';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, `profile-${req.user.employeeId}-${uniqueSuffix}${path.extname(file.originalname)}`);
+  }
+});
+
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only JPG and PNG files are allowed'), false);
+  }
+};
+
+export const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2MB
   },
 });
 
-const upload = multer({ storage });
-
 // Get employee profile
-const getProfile = async (req, res) => {
+export const getProfile = async (req, res) => {
   try {
-    const { employeeId } = req.user;
-
-    if (!employeeId) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Employee profile not found. Please contact HR to link your account.",
-      });
-    }
-
-    // Get the full employee record
-    const employee = await Employee.findByPk(employeeId);
+    const employee = await Employee.findOne({
+      where: { id: req.user.employeeId },
+      attributes: [
+        'id', 'employeeId', 'firstName', 'lastName', 'gender', 
+        'dateOfBirth', 'maritalStatus', 'about', 'phone', 
+        'country', 'address', 'profilePicture'
+      ],
+    });
 
     if (!employee) {
       return res.status(404).json({
         success: false,
-        message: "Employee profile not found",
+        message: 'Employee profile not found',
       });
     }
-
-    // Return the raw employee data for proper extraction
-    res.json({
-      success: true,
-      data: employee.toJSON(), // Ensure we get plain object
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching profile",
-      error: error.message,
-    });
-  }
-};
-
-
-
-
-export const updateProfile = async (req, res) => {
-  try {
-    const { employeeId } = req.user;
-    const updateData = req.body;
-
-    if (!employeeId) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee profile not found",
-      });
-    }
-
-    const employee = await Employee.findByPk(employeeId);
-
-    if (!employee) {
-      return res.status(404).json({
-        success: false,
-        message: "Employee not found",
-      });
-    }
-
-    // Update personalInfo fields if provided
-    if (updateData.personalInfo) {
-      const currentPersonalInfo = employee.personalInfo || {};
-      employee.personalInfo = {
-        ...currentPersonalInfo,
-        ...updateData.personalInfo,
-      };
-    }
-
-    // Update emergencyContact if provided
-    if (updateData.emergencyContact) {
-      const currentEmergencyContact = employee.emergencyContact || {};
-      employee.emergencyContact = {
-        ...currentEmergencyContact,
-        ...updateData.emergencyContact,
-      };
-    }
-
-    // Update metadata
-    employee.updatedBy = req.user.id || req.user._id;
-
-    await employee.save();
 
     res.json({
       success: true,
-      message: "Profile updated successfully",
       data: employee,
     });
   } catch (error) {
-    console.error('Profile update error:', error);
+    logger.error('Error fetching employee profile:', error);
     res.status(500).json({
       success: false,
-      message: "Failed to update profile",
+      message: 'Failed to fetch profile',
       error: error.message,
     });
   }
 };
 
-// Get my profile (alias for getProfile)
-export const getMyProfile = async (req, res) => {
-  return getProfile(req, res);
-};
-
-// Get change history
-export const getChangeHistory = async (req, res) => {
+// Update employee profile
+export const updateProfile = async (req, res) => {
   try {
-    const { employeeId } = req.user;
+    const { personalInfo, contactInfo } = req.body;
+    const employeeId = req.user.employeeId;
 
-    if (!employeeId) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee profile not found",
-      });
-    }
-
-    // For now, return empty array as we don't have change history implemented
-    // This can be enhanced later to track profile changes
-    res.json({
-      success: true,
-      data: [],
-      message: "Change history not implemented yet"
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching change history",
-      error: error.message
-    });
-  }
-};
-
-// Get documents
-export const getDocuments = async (req, res) => {
-  try {
-    const { employeeId } = req.user;
-
-    if (!employeeId) {
-      return res.status(400).json({
-        success: false,
-        message: "Employee profile not found",
-      });
-    }
-
-    // For now, return empty array as Document model is not implemented
-    const documents = [];
-
-    res.json({
-      success: true,
-      data: documents,
-      message: "Documents retrieved successfully"
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching documents",
-      error: error.message,
-    });
-  }
-};
-
-// Upload document
-export const uploadDocument = [
-  upload.single("file"),
-  async (req, res) => {
-    try {
-      const { employeeId } = req.user;
-      const { type, category } = req.body;
-      const { file } = req;
-
-      if (!file) {
-        return res.status(400).json({
-          success: false,
-          message: "No file uploaded"
-        });
-      }
-
-      // Encrypt sensitive documents
-      const sensitiveTypes = ["id_proof", "bank_proof", "address_proof"];
-      let encryptedPath = file.path;
-      let encryptionKey = null;
-
-      if (sensitiveTypes.includes(type)) {
-        // Generate unique encryption key for this document
-        encryptionKey = crypto.randomBytes(32).toString("hex");
-        encryptedPath = `${file.path}.encrypted`;
-
-        try {
-          await encryptFile(file.path, encryptedPath, encryptionKey);
-          // Delete original unencrypted file
-          await fs.promises.unlink(file.path);
-        } catch (encryptError) {
-          return res.status(500).json({
-            success: false,
-            message: "Error encrypting document",
-            error: encryptError.message,
-          });
-        }
-      }
-
-      const document = await Document.create({
-        employeeId,
-        fileName: file.filename,
-        originalName: file.originalname,
-        fileType: file.originalname.split(".").pop().toUpperCase(),
-        fileSize: file.size,
-        mimeType: file.mimetype,
-        documentType: type || "Other",
-        storagePath: encryptedPath,
-        encryptionKey,
-        uploadedBy: req.user.id,
-        uploadedAt: new Date(),
-      });
-
-      // Update employee with document reference
-      const employee = await Employee.findByPk(employeeId);
-      if (employee) {
-        const currentDocs = employee.documentsList || [];
-        currentDocs.push({
-          id: document.id,
-          type,
-          fileName: file.originalname,
-          fileUrl: encryptedPath,
-          uploadedAt: new Date(),
-          status: "pending",
-        });
-        employee.documentsList = currentDocs;
-        await employee.save();
-      }
-
-      res.json({
-        success: true,
-        message: "Document uploaded successfully",
-        data: document,
-      });
-    } catch (error) {
-      console.error('Document upload error:', error);
-      res.status(500).json({
-        success: false,
-        message: "Error uploading document",
-        error: error.message,
-      });
-    }
-  },
-];
-
-// Download document
-export const downloadDocument = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { employeeId } = req.user;
-
-    const document = await Document.findOne({
-      where: {
-        id,
-        employeeId
-      }
+    const employee = await Employee.findOne({
+      where: { id: employeeId },
     });
 
-    if (!document) {
+    if (!employee) {
       return res.status(404).json({
         success: false,
-        message: "Document not found"
+        message: 'Employee profile not found',
       });
     }
 
-    let filePath = document.storagePath;
-
-    // Decrypt if encrypted
-    if (document.encryptionKey) {
-      const decryptedPath = `${filePath}.decrypted`;
-      try {
-        await decryptFile(filePath, decryptedPath, document.encryptionKey);
-        filePath = decryptedPath;
-      } catch (decryptError) {
-        return res.status(500).json({
-          success: false,
-          message: "Error decrypting document",
-          error: decryptError.message,
-        });
-      }
+    // Prepare update data
+    const updateData = {};
+    
+    if (personalInfo) {
+      if (personalInfo.firstName) updateData.firstName = personalInfo.firstName;
+      if (personalInfo.lastName) updateData.lastName = personalInfo.lastName;
+      if (personalInfo.gender) updateData.gender = personalInfo.gender;
+      if (personalInfo.dateOfBirth) updateData.dateOfBirth = personalInfo.dateOfBirth;
+      if (personalInfo.maritalStatus) updateData.maritalStatus = personalInfo.maritalStatus;
+      if (personalInfo.about !== undefined) updateData.about = personalInfo.about;
     }
 
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({
-        success: false,
-        message: "File not found on server"
-      });
+    if (contactInfo) {
+      if (contactInfo.phone) updateData.phone = contactInfo.phone;
+      if (contactInfo.country) updateData.country = contactInfo.country;
+      if (contactInfo.address !== undefined) updateData.address = contactInfo.address;
     }
 
-    // Set appropriate headers
-    res.setHeader('Content-Disposition', `attachment; filename="${document.originalName}"`);
-    res.setHeader('Content-Type', document.mimeType);
+    updateData.updatedBy = req.user.id;
 
-    // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
+    // Update employee record
+    await employee.update(updateData);
 
-    // Clean up decrypted file if it was created
-    if (document.encryptionKey) {
-      fileStream.on('end', () => {
-        fs.unlink(filePath, (err) => {
-          if (err) console.error('Error cleaning up decrypted file:', err);
-        });
-      });
-    }
+    // Fetch updated employee data
+    const updatedEmployee = await Employee.findOne({
+      where: { id: employeeId },
+      attributes: [
+        'id', 'employeeId', 'firstName', 'lastName', 'gender', 
+        'dateOfBirth', 'maritalStatus', 'about', 'phone', 
+        'country', 'address', 'profilePicture'
+      ],
+    });
 
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: updatedEmployee,
+    });
   } catch (error) {
-    console.error('Document download error:', error);
+    logger.error('Error updating employee profile:', error);
     res.status(500).json({
       success: false,
-      message: "Error downloading document",
+      message: 'Failed to update profile',
       error: error.message,
     });
   }
 };
 
-export default {
-  getProfile,
-  getMyProfile,
-  updateProfile,
-  getChangeHistory,
-  getDocuments,
-  uploadDocument,
-  downloadDocument,
+// Upload profile photo
+export const uploadProfilePhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded',
+      });
+    }
+
+    const employeeId = req.user.employeeId;
+    const employee = await Employee.findOne({
+      where: { id: employeeId },
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found',
+      });
+    }
+
+    // Delete old profile photo if exists
+    if (employee.profilePicture) {
+      const oldPhotoPath = path.join(process.cwd(), employee.profilePicture);
+      if (fs.existsSync(oldPhotoPath)) {
+        fs.unlinkSync(oldPhotoPath);
+      }
+    }
+
+    // Update employee with new photo path
+    const photoPath = req.file.path.replace(/\\/g, '/'); // Normalize path separators
+    await employee.update({
+      profilePicture: photoPath,
+      updatedBy: req.user.id,
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile photo uploaded successfully',
+      data: {
+        profilePhoto: `/${photoPath}`, // Return web-accessible path
+      },
+    });
+  } catch (error) {
+    logger.error('Error uploading profile photo:', error);
+    
+    // Clean up uploaded file on error
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to upload profile photo',
+      error: error.message,
+    });
+  }
+};
+
+// Delete profile photo
+export const deleteProfilePhoto = async (req, res) => {
+  try {
+    const employeeId = req.user.employeeId;
+    const employee = await Employee.findOne({
+      where: { id: employeeId },
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found',
+      });
+    }
+
+    // Delete photo file if exists
+    if (employee.profilePicture) {
+      const photoPath = path.join(process.cwd(), employee.profilePicture);
+      if (fs.existsSync(photoPath)) {
+        fs.unlinkSync(photoPath);
+      }
+    }
+
+    // Update employee record
+    await employee.update({
+      profilePicture: null,
+      updatedBy: req.user.id,
+    });
+
+    res.json({
+      success: true,
+      message: 'Profile photo deleted successfully',
+    });
+  } catch (error) {
+    logger.error('Error deleting profile photo:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete profile photo',
+      error: error.message,
+    });
+  }
+};
+
+// Change password
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    // Validate required fields
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password and new password are required',
+      });
+    }
+
+    // Get user record
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Current password is incorrect',
+      });
+    }
+
+    // Check if new password is different from current
+    const isSamePassword = await bcrypt.compare(newPassword, user.password);
+    if (isSamePassword) {
+      return res.status(400).json({
+        success: false,
+        message: 'New password must be different from current password',
+      });
+    }
+
+    // Hash new password
+    const saltRounds = 12;
+    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update password
+    await user.update({
+      password: hashedNewPassword,
+      updatedBy: userId,
+    });
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully',
+    });
+  } catch (error) {
+    logger.error('Error changing password:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to change password',
+      error: error.message,
+    });
+  }
 };

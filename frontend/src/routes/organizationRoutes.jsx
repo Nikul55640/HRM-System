@@ -11,10 +11,6 @@ const CompanyDocumentsPage = lazy(() =>
 );
 
 export const organizationRoutes = [
-  {
-    path: "departments",
-    element: <DepartmentPage />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
-  },
-  
+  // Organization routes are now consolidated into adminRoutes
+  // This file is kept for legacy compatibility but routes are empty
 ];

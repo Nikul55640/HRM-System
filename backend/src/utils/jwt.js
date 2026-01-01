@@ -32,7 +32,7 @@ const generateTokens = (user) => {
     email: user.email,
     role: user.role,
     assignedDepartments: user.assignedDepartments || [],
-    employeeId: user.employeeId,
+    // Note: employeeId removed - employee data is now loaded via relationship
   };
 
   const accessToken = generateAccessToken(payload);

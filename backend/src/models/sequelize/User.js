@@ -9,33 +9,23 @@ const User = sequelize.define('User', {
     autoIncrement: true,
     primaryKey: true,
   },
-  name: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
   email: {
     type: DataTypes.STRING,
     unique: true,
     allowNull: false,
+    comment: 'Primary authentication email'
   },
   password: {
     type: DataTypes.STRING,
     allowNull: false,
   },
   role: {
-    type: DataTypes.ENUM('SuperAdmin', 'HR Administrator', 'HR Manager', 'Payroll Officer', 'Manager', 'Employee'),
+    type: DataTypes.ENUM('SuperAdmin', 'HR', 'Employee'),
     defaultValue: 'Employee',
   },
   isActive: {
     type: DataTypes.BOOLEAN,
     defaultValue: true,
-  },
-  employeeId: {
-    type: DataTypes.INTEGER,
-    references: {
-      model: 'employees',
-      key: 'id',
-    },
   },
   lastLogin: {
     type: DataTypes.DATE,
@@ -52,6 +42,7 @@ const User = sequelize.define('User', {
   assignedDepartments: {
     type: DataTypes.JSON,
     defaultValue: [],
+    comment: 'For HR users - which departments they can manage'
   },
 }, {
   tableName: 'users',
@@ -110,6 +101,14 @@ User.prototype.toJSON = function () {
   delete values.refreshToken;
   delete values.passwordResetToken;
   return values;
+};
+
+// Helper method to get full name from associated employee
+User.prototype.getFullName = function () {
+  if (this.employee) {
+    return `${this.employee.firstName} ${this.employee.lastName}`;
+  }
+  return this.email; // Fallback to email if no employee record
 };
 
 export default User;

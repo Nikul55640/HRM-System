@@ -1,19 +1,29 @@
 import express from 'express';
+import {
+  getProfile,
+  updateProfile,
+  uploadProfilePhoto,
+  deleteProfilePhoto,
+  changePassword,
+  upload,
+} from '../../controllers/employee/profile.controller.js';
 import { authenticate } from '../../middleware/authenticate.js';
-import profileController from '../../controllers/employee/profile.controller.js';
+import { validateProfileUpdate, validatePasswordChange } from '../../validators/profileValidator.js';
 
 const router = express.Router();
 
-// Use regular authenticate - controllers will check for employeeId
-// Profile routes
-router.get('/me', authenticate, profileController.getMyProfile);
-router.get('/profile', authenticate, profileController.getProfile);
-router.put('/profile', authenticate, profileController.updateProfile);
-router.get('/profile/history', authenticate, profileController.getChangeHistory);
+// Apply authentication to all routes
+router.use(authenticate);
 
-// Document routes
-router.post('/profile/documents', authenticate, profileController.uploadDocument);
-router.get('/profile/documents', authenticate, profileController.getDocuments);
-router.get('/profile/documents/:id/download', authenticate, profileController.downloadDocument);
+// Profile routes
+router.get('/', getProfile);
+router.put('/', validateProfileUpdate, updateProfile);
+
+// Profile photo routes
+router.post('/photo', upload.single('profilePhoto'), uploadProfilePhoto);
+router.delete('/photo', deleteProfilePhoto);
+
+// Password change route
+router.put('/change-password', validatePasswordChange, changePassword);
 
 export default router;

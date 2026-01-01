@@ -1,4 +1,4 @@
-import { User } from '../../models/sequelize/index.js';
+import { User } from '../../models/index.js';
 import logger from '../../utils/logger.js';
 
 /**

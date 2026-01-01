@@ -160,12 +160,15 @@ const login = async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
-    // Fetch employee data if employeeId exists
+    // Fetch employee data using the new relationship
     let employeeData = null;
-    if (user.employeeId) {
-      employeeData = await Employee.findByPk(user.employeeId, {
-        attributes: ['firstName', 'lastName', 'employeeId', 'designation', 'department'],
+    try {
+      employeeData = await Employee.findOne({
+        where: { userId: user.id },
+        attributes: ['id', 'firstName', 'lastName', 'employeeId', 'designation', 'department'],
       });
+    } catch (error) {
+      console.warn('Could not fetch employee data:', error.message);
     }
 
     // Return success response
@@ -177,10 +180,17 @@ const login = async (req, res) => {
           email: user.email,
           role: user.role,
           assignedDepartments: user.assignedDepartments,
-          employeeId: user.employeeId,
+          employee: employeeData ? {
+            id: employeeData.id,
+            employeeId: employeeData.employeeId,
+            fullName: `${employeeData.firstName || ''} ${employeeData.lastName || ''}`.trim(),
+            department: employeeData.department,
+            position: employeeData.designation,
+          } : null,
+          // Legacy fields for backward compatibility
           fullName: employeeData
             ? `${employeeData.firstName || ''} ${employeeData.lastName || ''}`.trim()
-            : user.name || user.email.split("@")[0], // Fallback to name or email username
+            : user.email.split("@")[0], // Fallback to email username
           employeeNumber: employeeData?.employeeId,
           department: employeeData?.department,
           position: employeeData?.designation,
@@ -616,15 +626,8 @@ const changePassword = async (req, res) => {
  */
 const getMe = async (req, res) => {
   try {
-    const user = await User.findByPk(req.user.id, {
-      include: [
-        {
-          model: Employee,
-          as: 'employee',
-        },
-      ],
-    });
-
+    const user = await User.findByPk(req.user.id);
+    
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -636,10 +639,30 @@ const getMe = async (req, res) => {
       });
     }
 
+    // Get employee data using new relationship
+    let employeeData = null;
+    try {
+      employeeData = await Employee.findOne({
+        where: { userId: user.id },
+        include: [
+          {
+            model: Department,
+            as: 'employeeDepartment',
+            attributes: ['id', 'name']
+          }
+        ]
+      });
+    } catch (error) {
+      console.warn('Could not fetch employee data:', error.message);
+    }
+
     res.status(200).json({
       success: true,
       data: {
-        user,
+        user: {
+          ...user.toJSON(),
+          employee: employeeData
+        },
       },
     });
   } catch (error) {

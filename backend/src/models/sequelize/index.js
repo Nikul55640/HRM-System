@@ -17,9 +17,9 @@ import SystemPolicy from './SystemPolicy.js';
 
 // Define associations
 
-// User-Employee relationship
-User.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
-Employee.hasOne(User, { foreignKey: 'employeeId', as: 'user' });
+// User-Employee relationship (CORRECTED)
+User.hasOne(Employee, { foreignKey: 'userId', as: 'employee' });
+Employee.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
 // Department relationships
 Department.belongsTo(Department, { foreignKey: 'parentDepartment', as: 'parent' });

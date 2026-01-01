@@ -19,6 +19,20 @@ const AttendanceCorrectionRequests = lazy(() =>
 // Feature 3: Leave Management
 const LeavePage = lazy(() => import("../modules/leave/employee/LeavePage"));
 
+// Feature 4: Employee Settings
+const EmployeeSettings = lazy(() =>
+  import("../modules/employee/settings/pages/EmployeeSettings")
+);
+const ProfileSettings = lazy(() =>
+  import("../modules/employee/settings/pages/ProfileSettings")
+);
+const SecuritySettings = lazy(() =>
+  import("../modules/employee/settings/pages/SecuritySettings")
+);
+const EmergencyContacts = lazy(() =>
+  import("../modules/employee/settings/pages/EmergencyContacts")
+);
+
 // Feature 5: Lead Management (Employee)
 const EmployeeLeadsPage = lazy(() =>
   import("../modules/employee/pages/LeadsPage")
@@ -39,6 +53,12 @@ export const essRoutes = [
   // Profile & Bank Details
   { path: "employee/profile", element: <ProfilePage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
   { path: "employee/bank-details", element: <BankDetailsPage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+
+  // Employee Settings
+  { path: "employee/settings", element: <EmployeeSettings />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/settings/profile", element: <ProfileSettings />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/settings/security", element: <SecuritySettings />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/settings/emergency-contacts", element: <EmergencyContacts />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
 
   // Attendance
   { path: "employee/attendance", element: <AttendancePage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },

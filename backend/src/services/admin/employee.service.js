@@ -28,18 +28,13 @@ class EmployeeService {
         throw { message: "First name and last name are required", statusCode: 400 };
       }
 
-      if (!employeeData.email) {
-        throw { message: "Email is required", statusCode: 400 };
+      // Validate required fields (email is now handled by User creation)
+      if (!employeeData.firstName || !employeeData.lastName) {
+        throw { message: "First name and last name are required", statusCode: 400 };
       }
 
-      // Check email uniqueness
-      const emailLower = employeeData.email.toLowerCase();
-      const existingEmployee = await Employee.findOne({
-        where: { email: emailLower }
-      });
-
-      if (existingEmployee) {
-        throw { message: "Employee with this email already exists", statusCode: 409 };
+      if (!employeeData.userId) {
+        throw { message: "User ID is required - User must be created first", statusCode: 400 };
       }
 
       // Generate employee ID
@@ -55,19 +50,21 @@ class EmployeeService {
 
       const employeeId = `EMP-${new Date().getFullYear()}-${String(nextNumber).padStart(4, "0")}`;
 
-      // Create employee with new model structure
+      // Create employee with new model structure (email is now in User table)
       const employee = await Employee.create({
         employeeId,
+        userId: employeeData.userId, // Link to User table
         firstName: employeeData.firstName,
         lastName: employeeData.lastName,
-        email: emailLower,
         phone: employeeData.phone || null,
         dateOfBirth: employeeData.dateOfBirth || null,
         gender: employeeData.gender || null,
         address: employeeData.address || {},
         profilePicture: employeeData.profilePicture || null,
         designation: employeeData.designation || null,
+        designationId: employeeData.designationId || null,
         department: employeeData.department || null,
+        departmentId: employeeData.departmentId || null,
         joiningDate: employeeData.joiningDate || new Date(),
         employmentType: employeeData.employmentType || 'full_time',
         reportingManager: employeeData.reportingManager || null,

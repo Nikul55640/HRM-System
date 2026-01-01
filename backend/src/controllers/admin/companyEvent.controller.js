@@ -1,4 +1,4 @@
-import { CompanyEvent, User } from '../../models/sequelize/index.js';
+import { CompanyEvent, User } from '../../models/index.js';
 import { auditLogger } from '../../utils/auditLogger.js';
 import { Op } from 'sequelize';
 

@@ -3,7 +3,7 @@
  * Handles leave balance assignment, adjustment, and management
  */
 
-import { LeaveBalance, Employee, User, AuditLog } from '../../models/sequelize/index.js';
+import { LeaveBalance, Employee, User, AuditLog } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
 import { ROLES } from '../../config/rolePermissions.js';

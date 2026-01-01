@@ -11,7 +11,7 @@ import { MODULES } from '../../config/rolePermissions.js';
 import attendanceController from '../../controllers/admin/attendance.controller.js';
 import liveAttendanceController from '../../controllers/admin/liveAttendance.controller.js';
 import employeeAttendanceController from '../../controllers/employee/attendance.controller.js';
-import { AttendanceRecord } from '../../models/sequelize/index.js';
+import { AttendanceRecord } from '../../models/index.js';
 import {
   preventHistoricalModification,
   checkConsistencyBeforeSave,

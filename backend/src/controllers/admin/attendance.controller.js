@@ -6,7 +6,7 @@
 
 import attendanceService from '../../services/admin/attendance.service.js';
 import logger from '../../utils/logger.js';
-import { AuditLog } from '../../models/sequelize/index.js';
+import { AuditLog } from '../../models/index.js';
 
 /**
  * Wrapper for consistent API responses

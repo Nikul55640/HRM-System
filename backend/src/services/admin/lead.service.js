@@ -3,7 +3,7 @@
  * Handles all business logic for lead management using followUpNotes JSON
  */
 
-import { Lead, Employee, User } from '../../models/sequelize/index.js';
+import { Lead, Employee, User } from '../../models/index.js';
 import { Op } from 'sequelize';
 import sequelize from '../../config/sequelize.js';
 import logger from '../../utils/logger.js';
