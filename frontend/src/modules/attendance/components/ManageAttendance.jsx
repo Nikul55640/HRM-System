@@ -14,16 +14,7 @@ import { formatDate } from '../../../lib/date-utils.js';
 import AttendanceForm from './AttendanceForm';
 import api from '../../../services/api';
 import { getEmployeeFullName, getEmployeeInitials } from '../../../utils/employeeDataMapper';
-
-
-
-const statusVariant = {
-  present: 'bg-green-100 text-green-800',
-  absent: 'bg-red-100 text-red-800',
-  late: 'bg-yellow-100 text-yellow-800',
-  'on-leave': 'bg-blue-100 text-blue-800',
-  holiday: 'bg-purple-100 text-purple-800',
-};
+import { mapAttendanceRecord, getStatusDisplay, getStatusColor, formatTime } from '../../../utils/attendanceDataMapper';
 
 const ManageAttendance = () => {
   const { 
@@ -46,7 +37,6 @@ const ManageAttendance = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [statusOptions, setStatusOptions] = useState([]);
-  const [loadingOptions, setLoadingOptions] = useState(true);
   const [dateRange, setDateRange] = useState({
     from: new Date(new Date().setDate(1)),
     to: new Date(),
@@ -54,6 +44,7 @@ const ManageAttendance = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [showActionMenu, setShowActionMenu] = useState(null);
 
   useEffect(() => {
     loadStatusOptions();
@@ -73,14 +64,15 @@ const ManageAttendance = () => {
         { value: 'present', label: 'Present' },
         { value: 'absent', label: 'Absent' },
         { value: 'late', label: 'Late' },
+        { value: 'incomplete', label: 'Incomplete' }, // ✅ NEW: Incomplete status filter
         { value: 'on-leave', label: 'On Leave' },
         { value: 'holiday', label: 'Holiday' },
+        { value: 'pending_correction', label: 'Pending Correction' },
       ]);
     } finally {
-      setLoadingOptions(false);
+      // Remove setLoadingOptions since we removed the variable
     }
   };
-  const [showActionMenu, setShowActionMenu] = useState(null);
 
   // Fetch attendance data on component mount and when filters change
   useEffect(() => {
@@ -166,15 +158,20 @@ const ManageAttendance = () => {
     }
   };
 
-  const getStatusBadge = (status) => (
-    <Badge className={cn('capitalize', statusVariant[status] || 'bg-gray-100 text-gray-800')}>
-      {status.replace('-', ' ')}
-    </Badge>
-  );
+  const getStatusBadge = (record) => {
+    const mappedRecord = mapAttendanceRecord(record);
+    const statusDisplay = getStatusDisplay(record.status, record.isLate, record.lateMinutes);
+    const statusColor = getStatusColor(record.status, record.isLate);
+    
+    return (
+      <Badge className={cn('capitalize', statusColor)}>
+        {statusDisplay}
+      </Badge>
+    );
+  };
 
-  const formatTime = (timeString) => {
-    if (!timeString) return '--:--';
-    return format(parseISO(timeString), 'hh:mm a');
+  const formatTimeDisplay = (timeString) => {
+    return formatTime(timeString);
   };
 
   return (
@@ -320,6 +317,7 @@ const ManageAttendance = () => {
                   <TableHead>Status</TableHead>
                   <TableHead>Clock In</TableHead>
                   <TableHead>Clock Out</TableHead>
+                  <TableHead>Late Minutes</TableHead>
                   <TableHead>Working Hours</TableHead>
                   <TableHead className="w-[100px]">Actions</TableHead>
                 </TableRow>
@@ -327,101 +325,127 @@ const ManageAttendance = () => {
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center">
+                    <TableCell colSpan={8} className="h-24 text-center">
                       <Loader2 className="mx-auto h-8 w-8 animate-spin" />
                       <p className="mt-2">Loading attendance records...</p>
                     </TableCell>
                   </TableRow>
                 ) : safeAttendance.length > 0 ? (
-                  safeAttendance.map((record) => (
-                    <TableRow key={record.id}>
-                      <TableCell className="font-medium">
-                      <div className="flex items-center space-x-2">
-    <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center font-semibold">
-      {getEmployeeInitials(record.employee)}
-    </div>
-
-    <div>
-      <div className="font-medium">
-        {getEmployeeFullName(record.employee)}
-      </div>
-
-      <div className="text-xs text-muted-foreground">
-        {record.employee?.employeeId || '--'}
-      </div>
-    </div>
-  </div>
-                      </TableCell>
-                      <TableCell>{format(parseISO(record.date), 'MMM d, yyyy')}</TableCell>
-                      <TableCell>{getStatusBadge(record.status)}</TableCell>
-                      <TableCell>{formatTime(record.clockIn)}</TableCell>
-                      <TableCell>{formatTime(record.clockOut)}</TableCell>
-                      <TableCell>{record.workingHours || '--:--'}</TableCell>
-                      <TableCell>
-                        <div className="relative">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setShowActionMenu(showActionMenu === record.id ? null : record.id)}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                          {showActionMenu === record.id && (
-                            <div className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                              <div className="py-1">
-                                <button
-                                  onClick={() => {
-                                    setSelectedRecord(record);
-                                    setShowActionMenu(null);
-                                    setShowAddModal(true);
-                                  }}
-                                  className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                                >
-                                  Edit
-                                </button>
-                                {record.correctionRequested && (
-                                  <>
-                                    <button
-                                      onClick={() => {
-                                        handleApproveCorrection(record._id || record.id);
-                                        setShowActionMenu(null);
-                                      }}
-                                      className="block w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50"
-                                    >
-                                      Approve Correction
-                                    </button>
-                                    <button
-                                      onClick={() => {
-                                        handleRejectCorrection(record._id || record.id);
-                                        setShowActionMenu(null);
-                                      }}
-                                      className="block w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
-                                    >
-                                      Reject Correction
-                                    </button>
-                                  </>
-                                )}
-                                <button
-                                  onClick={() => {
-                                    if (window.confirm('Are you sure you want to delete this record?')) {
-                                      deleteAttendanceRecord(record._id || record.id);
-                                    }
-                                    setShowActionMenu(null);
-                                  }}
-                                  className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                                >
-                                  Delete
-                                </button>
+                  safeAttendance.map((record) => {
+                    const mappedRecord = mapAttendanceRecord(record);
+                    return (
+                      <TableRow key={record.id} className={record.status === 'incomplete' ? 'bg-orange-50' : record.isLate ? 'bg-red-50' : ''}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center space-x-2">
+                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center font-semibold">
+                              {getEmployeeInitials(record.employee)}
+                            </div>
+                            <div>
+                              <div className="font-medium">
+                                {getEmployeeFullName(record.employee)}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {record.employee?.employeeId || '--'}
                               </div>
                             </div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{format(parseISO(record.date), 'MMM d, yyyy')}</TableCell>
+                        <TableCell>{getStatusBadge(record)}</TableCell>
+                        <TableCell>
+                          <div className={record.isLate ? 'text-red-600 font-medium' : ''}>
+                            {formatTimeDisplay(record.clockIn)}
+                            {record.isLate && (
+                              <div className="text-xs text-red-500">
+                                {record.lateMinutes}m late
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className={record.status === 'incomplete' ? 'text-orange-600 font-medium' : ''}>
+                            {record.clockOut ? formatTimeDisplay(record.clockOut) : (
+                              record.status === 'incomplete' ? (
+                                <span className="text-orange-600">Missing</span>
+                              ) : '--:--'
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {record.isLate ? (
+                            <span className="text-red-600 font-medium">{record.lateMinutes}m</span>
+                          ) : (
+                            <span className="text-green-600">0m</span>
                           )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
+                        </TableCell>
+                        <TableCell>
+                          {mappedRecord.workingHours}
+                        </TableCell>
+                        <TableCell>
+                          <div className="relative">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setShowActionMenu(showActionMenu === record.id ? null : record.id)}
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                            {showActionMenu === record.id && (
+                              <div className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                <div className="py-1">
+                                  <button
+                                    onClick={() => {
+                                      setSelectedRecord(record);
+                                      setShowActionMenu(null);
+                                      setShowAddModal(true);
+                                    }}
+                                    className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                                  >
+                                    Edit
+                                  </button>
+                                  {record.correctionRequested && (
+                                    <>
+                                      <button
+                                        onClick={() => {
+                                          handleApproveCorrection(record.id);
+                                          setShowActionMenu(null);
+                                        }}
+                                        className="block w-full px-4 py-2 text-left text-sm text-green-600 hover:bg-green-50"
+                                      >
+                                        Approve Correction
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          handleRejectCorrection(record.id);
+                                          setShowActionMenu(null);
+                                        }}
+                                        className="block w-full px-4 py-2 text-left text-red-600 hover:bg-red-50"
+                                      >
+                                        Reject Correction
+                                      </button>
+                                    </>
+                                  )}
+                                  <button
+                                    onClick={() => {
+                                      if (window.confirm('Are you sure you want to delete this record?')) {
+                                        deleteAttendanceRecord(record.id);
+                                      }
+                                      setShowActionMenu(null);
+                                    }}
+                                    className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                       No attendance records found.
                     </TableCell>
                   </TableRow>
@@ -472,13 +496,23 @@ const ManageAttendance = () => {
           onSubmit={async (data) => {
             try {
               if (selectedRecord) {
-                await updateAttendanceRecord(selectedRecord._id || selectedRecord.id, data);
+                await updateAttendanceRecord(selectedRecord.id, data);
               } else {
                 // For creating new records, we'll need to implement this in the store
                 alert('Creating new records is not yet implemented');
               }
               setShowAddModal(false);
               setSelectedRecord(null);
+              // Refresh the data
+              const params = {
+                page: safePagination.page || 1,
+                limit: safePagination.limit || 10,
+                search: searchQuery,
+                status: statusFilter !== 'all' ? statusFilter : undefined,
+                startDate: formatDate(dateRange.from),
+                endDate: formatDate(dateRange.to),
+              };
+              fetchAttendanceRecords(params);
             } catch (error) {
               alert('Failed to save record');
             }

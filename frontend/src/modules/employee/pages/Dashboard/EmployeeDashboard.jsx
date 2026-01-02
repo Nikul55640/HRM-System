@@ -134,6 +134,7 @@ const EmployeeDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       const res = await employeeDashboardService.getDashboardData();
+      console.log("DASHBOARD API DATA 👉", res.data);
       if (res.success) {
         setDashboardData(res.data);
       } else {
@@ -255,21 +256,41 @@ const EmployeeDashboard = () => {
     try {
       const res = await leaveService.getMyLeaveBalance();
       if (res.success) {
-        setLeaveBalance(res.data);
+        console.log('✅ [DASHBOARD] Leave balance API response:', res.data);
+        
+        // Transform leaveTypes array to flat structure for easier access
+        const transformedData = {};
+        if (res.data?.leaveTypes && Array.isArray(res.data.leaveTypes)) {
+          res.data.leaveTypes.forEach(leaveType => {
+            const typeKey = leaveType.type.toLowerCase();
+            transformedData[typeKey] = {
+              remaining: leaveType.remaining,
+              allocated: leaveType.allocated,
+              used: leaveType.used,
+              pending: leaveType.pending,
+              available: leaveType.available,
+              carryForward: leaveType.carryForward
+            };
+          });
+        }
+        
+        setLeaveBalance(transformedData);
       } else {
         console.warn('Leave balance API returned error:', res.message);
         // Set empty data instead of fallback
         setLeaveBalance({
-          casualLeave: { remaining: 0 },
-          sickLeave: { remaining: 0 }
+          casual: { remaining: 0, allocated: 0, used: 0 },
+          sick: { remaining: 0, allocated: 0, used: 0 },
+          annual: { remaining: 0, allocated: 0, used: 0 }
         });
       }
     } catch (error) {
       console.error('Leave balance API error:', error);
       // Set empty data instead of fallback
       setLeaveBalance({
-        casualLeave: { remaining: 0 },
-        sickLeave: { remaining: 0 }
+        casual: { remaining: 0, allocated: 0, used: 0 },
+        sick: { remaining: 0, allocated: 0, used: 0 },
+        annual: { remaining: 0, allocated: 0, used: 0 }
       });
     }
   };
@@ -278,7 +299,15 @@ const EmployeeDashboard = () => {
     try {
       const res = await employeeDashboardService.getAttendanceSummary();
       if (res.success) {
-        setAttendanceSummary(res.data);
+        console.log('✅ [DASHBOARD] Attendance summary API response:', res.data);
+        // Normalize attendance summary after API call
+        setAttendanceSummary({
+          presentDays: res.data.presentDays ?? res.data.present ?? 0,
+          absentDays: res.data.absentDays ?? res.data.absent ?? 0,
+          lateDays: res.data.lateDays ?? res.data.late ?? 0,
+          totalHours: res.data.totalHours ?? res.data.workedHours ?? 0,
+          requiredHours: res.data.requiredHours ?? 160
+        });
       } else {
         console.warn('Attendance summary API returned error:', res.message);
         // Set empty data instead of fallback
@@ -287,7 +316,7 @@ const EmployeeDashboard = () => {
           absentDays: 0,
           lateDays: 0,
           totalHours: 0,
-          requiredHours: 0
+          requiredHours: 160
         });
       }
     } catch (error) {
@@ -298,7 +327,7 @@ const EmployeeDashboard = () => {
         absentDays: 0,
         lateDays: 0,
         totalHours: 0,
-        requiredHours: 0
+        requiredHours: 160
       });
     }
   };
@@ -421,10 +450,10 @@ const EmployeeDashboard = () => {
     ? Math.round((attendanceStats.workedHours / attendanceStats.requiredHours) * 100)
     : 0;
 
-  // Real leave balance data with safe fallbacks
+  // Real leave balance data with safe fallbacks - now using transformed data structure
   const leaveBalanceData = {
-    casual: leaveBalance?.casualLeave?.remaining || leaveBalance?.casual?.remaining || 0,
-    sick: leaveBalance?.sickLeave?.remaining || leaveBalance?.sick?.remaining || 0,
+    casual: leaveBalance?.casual?.remaining ?? 0,
+    sick: leaveBalance?.sick?.remaining ?? 0,
   };
 
 

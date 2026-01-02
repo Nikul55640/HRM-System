@@ -169,6 +169,38 @@ const departmentController = {
       );
     }
   },
+
+  toggleDepartmentStatus: async (req, res, next) => {
+    try {
+      const { id } = req.params;
+      const metadata = {
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"],
+      };
+
+      const department = await departmentService.toggleDepartmentStatus(
+        id,
+        req.user,
+        metadata
+      );
+
+      return sendResponse(
+        res,
+        true,
+        `Department ${department.isActive ? 'activated' : 'deactivated'} successfully`,
+        department
+      );
+    } catch (error) {
+      logger.error("Controller: Toggle Department Status Error", error);
+      return sendResponse(
+        res,
+        false,
+        error.message || "Failed to toggle department status",
+        { code: error.code },
+        error.statusCode || 500
+      );
+    }
+  },
 };
 
 export default departmentController;

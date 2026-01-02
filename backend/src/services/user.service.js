@@ -153,16 +153,9 @@ const updateUser = async (userId, updateData, currentUser, metadata = {}) => {
       }
     }
 
-    if (updateData.employeeId !== undefined) {
-      if (user.employeeId?.toString() !== updateData.employeeId?.toString()) {
-        changes.push({
-          field: 'employeeId',
-          oldValue: user.employeeId,
-          newValue: updateData.employeeId,
-        });
-        user.employeeId = updateData.employeeId;
-      }
-    }
+    // Note: employeeId is not a direct property of User model
+    // Employee records are linked via userId in the Employee model
+    // If you need to update employee data, use the Employee service instead
 
     if (updateData.isActive !== undefined && user.isActive !== updateData.isActive) {
       changes.push({

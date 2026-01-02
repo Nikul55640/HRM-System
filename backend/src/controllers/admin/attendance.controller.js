@@ -337,6 +337,42 @@ const attendanceController = {
             logger.error("Controller: Export Attendance Data Error", error);
             return sendResponse(res, false, "Internal server error", null, 500);
         }
+    },
+
+    /**
+     * Process end-of-day attendance (SuperAdmin only)
+     */
+    processEndOfDayAttendance: async (req, res) => {
+        try {
+            const result = await attendanceService.processEndOfDayAttendance();
+
+            if (!result.success) {
+                return sendResponse(res, false, result.message, null, 400);
+            }
+
+            return sendResponse(res, true, result.message, result.data);
+        } catch (error) {
+            logger.error("Controller: Process End-of-Day Attendance Error", error);
+            return sendResponse(res, false, "Internal server error", null, 500);
+        }
+    },
+
+    /**
+     * Check absent employees (SuperAdmin only)
+     */
+    checkAbsentEmployees: async (req, res) => {
+        try {
+            const result = await attendanceService.checkAbsentEmployees();
+
+            if (!result.success) {
+                return sendResponse(res, false, result.message, null, 400);
+            }
+
+            return sendResponse(res, true, result.message, result.data);
+        } catch (error) {
+            logger.error("Controller: Check Absent Employees Error", error);
+            return sendResponse(res, false, "Internal server error", null, 500);
+        }
     }
 };
 

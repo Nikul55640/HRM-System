@@ -116,7 +116,7 @@ class LeaveBalanceService {
         try {
             // Convert both to strings for comparison to avoid type mismatch
             const requestedEmployeeId = employeeId?.toString();
-            const userEmployeeId = user.employeeId?.toString();
+            const userEmployeeId = user.employee?.id?.toString();
 
             // Permission check
             if (user.role === ROLES.EMPLOYEE && userEmployeeId !== requestedEmployeeId) {
@@ -432,7 +432,7 @@ class LeaveBalanceService {
     async getLeaveBalanceHistory(employeeId, filters = {}, user) {
         try {
             // Permission check
-            if (user.role === ROLES.EMPLOYEE && user.employeeId.toString() !== employeeId) {
+            if (user.role === ROLES.EMPLOYEE && user.employee?.id.toString() !== employeeId) {
                 throw { message: "You can only view your own leave balance history", statusCode: 403 };
             }
 
@@ -460,13 +460,13 @@ class LeaveBalanceService {
                     {
                         model: User,
                         as: 'creator',
-                        attributes: ['id', 'name', 'email'],
+                        attributes: ['id', 'email'],
                         required: false
                     },
                     {
                         model: User,
                         as: 'updater',
-                        attributes: ['id', 'name', 'email'],
+                        attributes: ['id', 'email'],
                         required: false
                     }
                 ],

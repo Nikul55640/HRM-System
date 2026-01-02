@@ -1,12 +1,23 @@
-import { EmergencyContact } from '../../models/index.js';
+import { EmergencyContact, Employee } from '../../models/index.js';
 import logger from '../../utils/logger.js';
 
 // Get all emergency contacts for the authenticated employee
 export const getEmergencyContacts = async (req, res) => {
   try {
-    const employeeId = req.user.employeeId;
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
 
-    const contacts = await EmergencyContact.getByEmployeeId(employeeId);
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found',
+      });
+    }
+
+    const contacts = await EmergencyContact.getByEmployeeId(employee.id);
 
     res.json({
       success: true,
@@ -26,12 +37,24 @@ export const getEmergencyContacts = async (req, res) => {
 export const getEmergencyContact = async (req, res) => {
   try {
     const { id } = req.params;
-    const employeeId = req.user.employeeId;
+    
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found',
+      });
+    }
 
     const contact = await EmergencyContact.findOne({
       where: {
         id,
-        employeeId, // Ensure employee can only access their own contacts
+        employeeId: employee.id, // Ensure employee can only access their own contacts
       },
     });
 
@@ -60,7 +83,19 @@ export const getEmergencyContact = async (req, res) => {
 export const createEmergencyContact = async (req, res) => {
   try {
     const { name, relationship, phone, alternatePhone, address, isPrimary } = req.body;
-    const employeeId = req.user.employeeId;
+    
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found',
+      });
+    }
 
     // Validate required fields
     if (!name || !relationship || !phone) {
@@ -72,14 +107,14 @@ export const createEmergencyContact = async (req, res) => {
 
     // Check if this is the first contact for the employee
     const existingContacts = await EmergencyContact.findAll({
-      where: { employeeId },
+      where: { employeeId: employee.id },
     });
 
     // If this is the first contact, make it primary automatically
     const shouldBePrimary = isPrimary || existingContacts.length === 0;
 
     const contactData = {
-      employeeId,
+      employeeId: employee.id,
       name: name.trim(),
       relationship,
       phone: phone.trim(),
@@ -120,12 +155,24 @@ export const updateEmergencyContact = async (req, res) => {
   try {
     const { id } = req.params;
     const { name, relationship, phone, alternatePhone, address, isPrimary } = req.body;
-    const employeeId = req.user.employeeId;
+    
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found',
+      });
+    }
 
     const contact = await EmergencyContact.findOne({
       where: {
         id,
-        employeeId, // Ensure employee can only update their own contacts
+        employeeId: employee.id, // Ensure employee can only update their own contacts
       },
     });
 
@@ -181,12 +228,24 @@ export const updateEmergencyContact = async (req, res) => {
 export const deleteEmergencyContact = async (req, res) => {
   try {
     const { id } = req.params;
-    const employeeId = req.user.employeeId;
+    
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found',
+      });
+    }
 
     const contact = await EmergencyContact.findOne({
       where: {
         id,
-        employeeId, // Ensure employee can only delete their own contacts
+        employeeId: employee.id, // Ensure employee can only delete their own contacts
       },
     });
 
@@ -217,13 +276,25 @@ export const deleteEmergencyContact = async (req, res) => {
 export const setPrimaryEmergencyContact = async (req, res) => {
   try {
     const { id } = req.params;
-    const employeeId = req.user.employeeId;
+    
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found',
+      });
+    }
 
     // Verify the contact belongs to the employee
     const contact = await EmergencyContact.findOne({
       where: {
         id,
-        employeeId,
+        employeeId: employee.id,
       },
     });
 
@@ -235,7 +306,7 @@ export const setPrimaryEmergencyContact = async (req, res) => {
     }
 
     // Set as primary using the static method
-    const updatedContact = await EmergencyContact.setPrimary(id, employeeId);
+    const updatedContact = await EmergencyContact.setPrimary(id, employee.id);
 
     res.json({
       success: true,

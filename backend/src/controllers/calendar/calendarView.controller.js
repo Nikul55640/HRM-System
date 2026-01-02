@@ -100,10 +100,10 @@ const getMonthlyCalendarData = async (req, res) => {
           attributes: ['id']
         });
         const teamIds = teamEmployees.map(emp => emp.id);
-        teamIds.push(req.user.employeeId);
+        teamIds.push(req.user.employee?.id);
         leaveFilters.employeeId = { [Op.in]: teamIds };
       } else {
-        leaveFilters.employeeId = req.user.employeeId;
+        leaveFilters.employeeId = req.user.employee?.id;
       }
     }
 
@@ -170,7 +170,7 @@ const getMonthlyCalendarData = async (req, res) => {
           const teamIds = teamEmployees.map(emp => emp.id);
           attendanceFilters.employeeId = { [Op.in]: teamIds };
         } else {
-          attendanceFilters.employeeId = req.user.employeeId;
+          attendanceFilters.employeeId = req.user.employee?.id;
         }
       }
 
@@ -317,10 +317,10 @@ const getDailyCalendarData = async (req, res) => {
           attributes: ['id']
         });
         const teamIds = teamEmployees.map(emp => emp.id);
-        teamIds.push(req.user.employeeId);
+        teamIds.push(req.user.employee?.id);
         leaveFilters.employeeId = { [Op.in]: teamIds };
       } else {
-        leaveFilters.employeeId = req.user.employeeId;
+        leaveFilters.employeeId = req.user.employee?.id;
       }
     }
 
@@ -371,7 +371,7 @@ const getDailyCalendarData = async (req, res) => {
     });
 
     // 5. Get and normalize Attendance for the day
-    if (isHROrAdmin || isManager || employeeId === req.user.employeeId) {
+    if (isHROrAdmin || isManager || employeeId === req.user.employee?.id) {
       const attendanceFilters = buildDateRangeFilter(startOfDay, endOfDay, 'date');
 
       if (!isHROrAdmin) {
@@ -383,7 +383,7 @@ const getDailyCalendarData = async (req, res) => {
           const teamIds = teamEmployees.map(emp => emp.id);
           attendanceFilters.employeeId = { [Op.in]: teamIds };
         } else {
-          attendanceFilters.employeeId = req.user.employeeId;
+          attendanceFilters.employeeId = req.user.employee?.id;
         }
       }
 
@@ -452,7 +452,7 @@ const applyLeaveFromCalendar = async (req, res) => {
     const totalDays = isHalfDay ? 0.5 : Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 
     // Check for overlapping leaves
-    const hasOverlap = await LeaveRequest.hasOverlap(req.user.employeeId, start, end);
+    const hasOverlap = await LeaveRequest.hasOverlap(req.user.employee?.id, start, end);
     if (hasOverlap) {
       return res.status(400).json({
         success: false,
@@ -462,7 +462,7 @@ const applyLeaveFromCalendar = async (req, res) => {
 
     // Create leave request
     const leaveRequest = await LeaveRequest.create({
-      employeeId: req.user.employeeId,
+      employeeId: req.user.employee?.id,
       leaveType,
       startDate: start,
       endDate: end,
@@ -578,10 +578,10 @@ const getEvents = async (req, res) => {
           attributes: ['id']
         });
         const teamIds = teamEmployees.map(emp => emp.id);
-        teamIds.push(req.user.employeeId);
+        teamIds.push(req.user.employee?.id);
         leaveFilters.employeeId = { [Op.in]: teamIds };
       } else {
-        leaveFilters.employeeId = req.user.employeeId;
+        leaveFilters.employeeId = req.user.employee?.id;
       }
     }
 

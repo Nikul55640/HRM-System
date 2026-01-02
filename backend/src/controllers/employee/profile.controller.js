@@ -14,9 +14,21 @@ const storage = multer.diskStorage({
     }
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, `profile-${req.user.employeeId}-${uniqueSuffix}${path.extname(file.originalname)}`);
+  filename: async (req, file, cb) => {
+    try {
+      // Get employee data from user ID
+      const employee = await Employee.findOne({
+        where: { userId: req.user.id },
+        attributes: ['id']
+      });
+      
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const employeeId = employee ? employee.id : 'unknown';
+      cb(null, `profile-${employeeId}-${uniqueSuffix}${path.extname(file.originalname)}`);
+    } catch (error) {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, `profile-${req.user.id}-${uniqueSuffix}${path.extname(file.originalname)}`);
+    }
   }
 });
 
@@ -41,12 +53,20 @@ export const upload = multer({
 export const getProfile = async (req, res) => {
   try {
     const employee = await Employee.findOne({
-      where: { id: req.user.employeeId },
+      where: { userId: req.user.id },
       attributes: [
         'id', 'employeeId', 'firstName', 'lastName', 'gender', 
         'dateOfBirth', 'maritalStatus', 'about', 'phone', 
-        'country', 'address', 'profilePicture'
+        'country', 'address', 'profilePicture', 'nationality', 'bloodGroup'
       ],
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'email', 'role', 'isActive'],
+          required: true
+        }
+      ]
     });
 
     if (!employee) {
@@ -74,10 +94,9 @@ export const getProfile = async (req, res) => {
 export const updateProfile = async (req, res) => {
   try {
     const { personalInfo, contactInfo } = req.body;
-    const employeeId = req.user.employeeId;
 
     const employee = await Employee.findOne({
-      where: { id: employeeId },
+      where: { userId: req.user.id },
     });
 
     if (!employee) {
@@ -96,6 +115,8 @@ export const updateProfile = async (req, res) => {
       if (personalInfo.gender) updateData.gender = personalInfo.gender;
       if (personalInfo.dateOfBirth) updateData.dateOfBirth = personalInfo.dateOfBirth;
       if (personalInfo.maritalStatus) updateData.maritalStatus = personalInfo.maritalStatus;
+      if (personalInfo.nationality) updateData.nationality = personalInfo.nationality;
+      if (personalInfo.bloodGroup) updateData.bloodGroup = personalInfo.bloodGroup;
       if (personalInfo.about !== undefined) updateData.about = personalInfo.about;
     }
 
@@ -112,12 +133,20 @@ export const updateProfile = async (req, res) => {
 
     // Fetch updated employee data
     const updatedEmployee = await Employee.findOne({
-      where: { id: employeeId },
+      where: { userId: req.user.id },
       attributes: [
         'id', 'employeeId', 'firstName', 'lastName', 'gender', 
         'dateOfBirth', 'maritalStatus', 'about', 'phone', 
-        'country', 'address', 'profilePicture'
+        'country', 'address', 'profilePicture', 'nationality', 'bloodGroup'
       ],
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'email', 'role', 'isActive'],
+          required: true
+        }
+      ]
     });
 
     res.json({
@@ -145,9 +174,8 @@ export const uploadProfilePhoto = async (req, res) => {
       });
     }
 
-    const employeeId = req.user.employeeId;
     const employee = await Employee.findOne({
-      where: { id: employeeId },
+      where: { userId: req.user.id },
     });
 
     if (!employee) {
@@ -198,9 +226,8 @@ export const uploadProfilePhoto = async (req, res) => {
 // Delete profile photo
 export const deleteProfilePhoto = async (req, res) => {
   try {
-    const employeeId = req.user.employeeId;
     const employee = await Employee.findOne({
-      where: { id: employeeId },
+      where: { userId: req.user.id },
     });
 
     if (!employee) {

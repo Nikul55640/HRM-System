@@ -181,11 +181,14 @@ const adminLeaveService = {
    */
   assignLeaveBalance: async (employeeId, data) => {
     try {
-      const response = await api.post(`/admin/leave/assign/${employeeId}`, {
-        leaveType: data.leaveType,
-        balance: data.balance,
+      const response = await api.post(`/admin/leave-balances/employee/${employeeId}/assign`, {
         year: data.year || new Date().getFullYear(),
-        ...data
+        leaveBalances: [
+          {
+            leaveType: data.leaveType,
+            allocated: data.balance
+          }
+        ]
       });
       return response.data;
     } catch (error) {
@@ -202,7 +205,20 @@ const adminLeaveService = {
    */
   updateLeaveBalance: async (employeeId, data) => {
     try {
-      const response = await api.put(`/admin/leave/balances/${employeeId}`, data);
+      // Find the leave balance ID first
+      const balancesResponse = await api.get(`/admin/leave-balances/employee/${employeeId}`, {
+        params: { year: data.year || new Date().getFullYear() }
+      });
+      
+      const balance = balancesResponse.data.data.find(b => b.leaveType === data.leaveType);
+      if (!balance) {
+        throw new Error('Leave balance not found');
+      }
+
+      const response = await api.patch(`/admin/leave-balances/${balance.id}/adjust`, {
+        adjustment: data.adjustment,
+        reason: data.reason || 'Manual adjustment'
+      });
       return response.data;
     } catch (error) {
       console.error(`Error updating leave balance for employee ${employeeId}:`, error);

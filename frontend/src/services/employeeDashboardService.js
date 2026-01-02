@@ -114,15 +114,17 @@ const employeeDashboardService = {
         }
       });
 
-      // Build dashboard data structure
+      // Build dashboard data structure with fullName
       const dashboardData = {
         personalInfo: {
-          firstName: profileData?.personalInfo?.firstName || '',
-          lastName: profileData?.personalInfo?.lastName || '',
+          firstName: profileData?.firstName || profileData?.personalInfo?.firstName || '',
+          lastName: profileData?.lastName || profileData?.personalInfo?.lastName || '',
         },
+        // Add fullName for backward compatibility
+        fullName: `${profileData?.firstName || profileData?.personalInfo?.firstName || ''} ${profileData?.lastName || profileData?.personalInfo?.lastName || ''}`.trim(),
         employeeId: profileData?.employeeId || '--',
         jobInfo: {
-          jobTitle: profileData?.jobInfo?.jobTitle || 'Employee',
+          jobTitle: profileData?.designation || profileData?.jobInfo?.jobTitle || 'Employee',
         },
         stats: {
           attendanceRate: Math.round(attendanceRate),

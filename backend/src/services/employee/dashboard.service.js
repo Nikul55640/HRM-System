@@ -1,4 +1,4 @@
-import { Employee, AuditLog, LeaveBalance } from '../../models/sequelize/index.js';
+import { Employee, User, AuditLog, LeaveBalance } from '../../models/sequelize/index.js';
 import logger from '../../utils/logger.js';
 
 // ------------------------------
@@ -7,7 +7,7 @@ import logger from '../../utils/logger.js';
 
 const getEmployeeProfileSummary = async (user) => {
   try {
-    if (!user.employeeId) {
+    if (!user.employee?.id) {
       return {
         fullName: user.email.split('@')[0],
         email: user.email,
@@ -17,7 +17,17 @@ const getEmployeeProfileSummary = async (user) => {
       };
     }
 
-    const employee = await Employee.findByPk(user.employeeId);
+    // Find employee by userId instead of using user.employee.id
+    const employee = await Employee.findOne({
+      where: { userId: user.id },
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['email']
+        }
+      ]
+    });
 
     if (!employee) {
       throw {
@@ -31,7 +41,7 @@ const getEmployeeProfileSummary = async (user) => {
       employeeId: employee.employeeId,
       fullName: `${employee.firstName || ''} ${employee.lastName || ''}`.trim() || 'Unknown',
       profilePhoto: employee.profilePicture || null,
-      email: employee.email || '',
+      email: employee.user?.email || user.email,
       phoneNumber: employee.phone || '',
       jobTitle: employee.designation || '',
       department: employee.department || '',
@@ -49,37 +59,42 @@ const getEmployeeProfileSummary = async (user) => {
 
 const getLeaveBalance = async (user) => {
   try {
-    if (!user.employeeId) {
+    if (!user.employee?.id) {
       return { message: 'Leave tracking not applicable for system users' };
     }
 
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return { message: 'Employee profile not found' };
+    }
+
     const currentYear = new Date().getFullYear();
-    let leaveBalance = await LeaveBalance.findOne({
+    
+    // Get all leave balance records for the employee and year
+    const leaveBalances = await LeaveBalance.findAll({
       where: {
-        employeeId: user.employeeId,
+        employeeId: employee.id,
         year: currentYear
       }
     });
 
-    if (!leaveBalance) {
-      leaveBalance = await LeaveBalance.create({
-        employeeId: user.employeeId,
-        year: currentYear,
-        leaveTypes: [
-          { type: 'annual', allocated: 20, used: 0, pending: 0, available: 20 },
-          { type: 'sick', allocated: 10, used: 0, pending: 0, available: 10 },
-          { type: 'personal', allocated: 5, used: 0, pending: 0, available: 5 },
-        ],
-      });
+    if (!leaveBalances || leaveBalances.length === 0) {
+      return { message: 'No leave balances assigned' };
     }
 
+    // Transform to the expected format
     const data = {};
-    leaveBalance.leaveTypes.forEach((type) => {
-      data[type.type] = {
-        total: type.allocated,
-        used: type.used,
-        pending: type.pending,
-        remaining: type.available,
+    leaveBalances.forEach((balance) => {
+      data[balance.leaveType.toLowerCase()] = {
+        total: balance.allocated,
+        used: balance.used,
+        pending: balance.pending,
+        remaining: balance.remaining,
       };
     });
 
@@ -92,7 +107,7 @@ const getLeaveBalance = async (user) => {
 
 const getAttendanceRecords = async (user, options = {}) => {
   try {
-    if (!user.employeeId) {
+    if (!user.employee?.id) {
       return {
         records: [],
         summary: { totalDays: 0, presentDays: 0, absentDays: 0, lateDays: 0 },
@@ -133,8 +148,18 @@ const getRecentActivity = async (user, options = {}) => {
   try {
     const { limit = 20, offset = 0 } = options;
 
-    const whereClause = user.employeeId
-      ? { targetType: 'Employee', targetId: user.employeeId }
+    // Find employee by userId if needed
+    let employeeId = null;
+    if (user.employee?.id) {
+      const employee = await Employee.findOne({
+        where: { userId: user.id },
+        attributes: ['id']
+      });
+      employeeId = employee?.id;
+    }
+
+    const whereClause = employeeId
+      ? { targetType: 'Employee', targetId: employeeId }
       : {};
 
     const { rows: logs, count: total } = await AuditLog.findAndCountAll({

@@ -1,4 +1,4 @@
-import { EmployeeShift, Employee, Shift, User } from '../../models/index.js';
+import { EmployeeShift, Employee, Shift, User } from '../../models/sequelize/index.js';
 import { Op } from 'sequelize';
 import auditService from '../../services/audit/audit.service.js';
 
@@ -40,7 +40,14 @@ const EmployeeShiftController = {
           {
             model: Employee,
             as: 'employee',
-            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email', 'designation', 'department']
+            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'designation', 'department'],
+            include: [
+              {
+                model: User,
+                as: 'user',
+                attributes: ['id', 'email']
+              }
+            ]
           },
           {
             model: Shift,
@@ -216,7 +223,14 @@ const EmployeeShiftController = {
           {
             model: Employee,
             as: 'employee',
-            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email', 'designation', 'department']
+            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'designation', 'department'],
+            include: [
+              {
+                model: User,
+                as: 'user',
+                attributes: ['id', 'email']
+              }
+            ]
           },
           {
             model: Shift,
@@ -285,7 +299,14 @@ const EmployeeShiftController = {
           {
             model: Employee,
             as: 'employee',
-            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email', 'designation', 'department']
+            attributes: ['id', 'employeeId', 'firstName', 'lastName', 'designation', 'department'],
+            include: [
+              {
+                model: User,
+                as: 'user',
+                attributes: ['id', 'email']
+              }
+            ]
           },
           {
             model: Shift,

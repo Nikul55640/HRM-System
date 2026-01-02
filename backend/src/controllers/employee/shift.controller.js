@@ -4,7 +4,7 @@ import { Op } from 'sequelize';
 // Get employee's shift assignments
 export const getMyShifts = async (req, res) => {
     try {
-        const employeeId = req.user.employeeId;
+        const employeeId = req.user.employee?.id;
 
         const shiftAssignments = await EmployeeShift.findAll({
             where: { employeeId },
@@ -41,7 +41,7 @@ export const getMyShifts = async (req, res) => {
 // Get current active shift
 export const getCurrentShift = async (req, res) => {
     try {
-        const employeeId = req.user.employeeId;
+        const employeeId = req.user.employee?.id;
         const today = new Date();
 
         const currentShift = await EmployeeShift.findOne({
@@ -98,7 +98,7 @@ export const getCurrentShift = async (req, res) => {
 // Get shift schedule (weekly/monthly view)
 export const getShiftSchedule = async (req, res) => {
     try {
-        const employeeId = req.user.employeeId;
+        const employeeId = req.user.employee?.id;
         const { startDate, endDate, view = 'weekly' } = req.query;
 
         let dateRange = {};
@@ -174,7 +174,7 @@ export const getShiftSchedule = async (req, res) => {
 // Request shift change
 export const requestShiftChange = async (req, res) => {
     try {
-        const employeeId = req.user.employeeId;
+        const employeeId = req.user.employee?.id;
         const { requestedShiftId, effectiveDate, reason } = req.body;
 
         // Validation

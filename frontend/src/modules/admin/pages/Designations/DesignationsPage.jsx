@@ -26,6 +26,7 @@ const DesignationsPage = () => {
   const [selectedDesignation, setSelectedDesignation] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -36,6 +37,7 @@ const DesignationsPage = () => {
   const [stats, setStats] = useState({
     total: 0,
     active: 0,
+    inactive: 0,
     byDepartment: {}
   });
 
@@ -50,13 +52,14 @@ const DesignationsPage = () => {
         // Calculate stats
         const total = result.data.length;
         const active = result.data.filter(d => d.isActive).length;
+        const inactive = result.data.filter(d => !d.isActive).length;
         const byDepartment = result.data.reduce((acc, d) => {
           const deptName = d.department?.name || 'Unknown';
           acc[deptName] = (acc[deptName] || 0) + 1;
           return acc;
         }, {});
         
-        setStats({ total, active, byDepartment });
+        setStats({ total, active, inactive, byDepartment });
       }
     } catch (error) {
       toast.error('Failed to fetch designations');
@@ -177,11 +180,17 @@ const DesignationsPage = () => {
     }
   };
 
-  const filteredDesignations = designations.filter(designation =>
-    designation.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (designation.department?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (designation.description || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredDesignations = designations.filter(designation => {
+    const matchesSearch = designation.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (designation.department?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (designation.description || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesFilter = filterStatus === 'all' || 
+      (filterStatus === 'active' && designation.isActive) ||
+      (filterStatus === 'inactive' && !designation.isActive);
+    
+    return matchesSearch && matchesFilter;
+  });
 
   const getLevelBadge = (level) => {
     const levelConfig = {
@@ -215,7 +224,7 @@ const DesignationsPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -242,6 +251,17 @@ const DesignationsPage = () => {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
+                <p className="text-sm text-gray-600">Inactive Designations</p>
+                <p className="text-2xl font-bold">{stats.inactive}</p>
+              </div>
+              <AlertCircle className="w-8 h-8 text-red-600" />
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
                 <p className="text-sm text-gray-600">Departments</p>
                 <p className="text-2xl font-bold">{Object.keys(stats.byDepartment).length}</p>
               </div>
@@ -251,17 +271,28 @@ const DesignationsPage = () => {
         </Card>
       </div>
 
-      {/* Search */}
+      {/* Search and Filter */}
       <Card>
         <CardContent className="p-4">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-            <Input
-              placeholder="Search designations..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+          <div className="flex gap-4">
+            <div className="flex-1 relative">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+              <Input
+                placeholder="Search designations..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Designations</option>
+              <option value="active">Active Only</option>
+              <option value="inactive">Inactive Only</option>
+            </select>
           </div>
         </CardContent>
       </Card>

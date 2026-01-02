@@ -12,8 +12,14 @@ const leaveService = {
 
   // Get logged-in employee leave balance
   getMyLeaveBalance: async () => {
-    const response = await api.get("/employee/leave-balance");
-    return response.data;
+    try {
+      const response = await api.get("/employee/leave-balance");
+      console.log('🍃 [LEAVE SERVICE] Leave balance API response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('🍃 [LEAVE SERVICE] Leave balance API error:', error);
+      throw error;
+    }
   },
 
   // Get logged-in employee leave history

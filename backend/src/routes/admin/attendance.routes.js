@@ -250,6 +250,28 @@ router.get(
 );
 
 /* -----------------------------------
+   PROCESS END-OF-DAY ATTENDANCE
+   Permission: SuperAdmin only (for automated jobs)
+----------------------------------- */
+router.post(
+  '/process-end-of-day',
+  authenticate,
+  checkPermission(MODULES.ATTENDANCE.EDIT_ANY),
+  attendanceController.processEndOfDayAttendance
+);
+
+/* -----------------------------------
+   CHECK ABSENT EMPLOYEES
+   Permission: SuperAdmin only (for automated jobs)
+----------------------------------- */
+router.post(
+  '/check-absent',
+  authenticate,
+  checkPermission(MODULES.ATTENDANCE.EDIT_ANY),
+  attendanceController.checkAbsentEmployees
+);
+
+/* -----------------------------------
    DEBUG ENDPOINTS (DEVELOPMENT ONLY)
 ----------------------------------- */
 
@@ -298,6 +320,116 @@ router.get(
 
     } catch (error) {
       console.error('🧪 [DEBUG ENDPOINT] Error:', error);
+      res.status(500).json({
+        success: false,
+        error: error.message
+      });
+    }
+  }
+);
+
+// DEBUG: Create test attendance data
+router.post(
+  '/debug/create-test-data',
+  authenticate,
+  checkPermission(MODULES.ATTENDANCE.VIEW_ALL),
+  async (req, res) => {
+    try {
+      console.log('🧪 [DEBUG ENDPOINT] Creating test attendance data...');
+
+      // Get first two employees
+      const employees = await AttendanceRecord.sequelize.models.Employee.findAll({
+        limit: 2,
+        include: [{
+          model: AttendanceRecord.sequelize.models.User,
+          as: 'user',
+          attributes: ['id', 'email']
+        }]
+      });
+
+      if (employees.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'No employees found in database'
+        });
+      }
+
+      const today = new Date();
+      const dateOnly = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      );
+
+      const createdRecords = [];
+
+      for (let i = 0; i < employees.length; i++) {
+        const employee = employees[i];
+        
+        // Check if record already exists
+        const existingRecord = await AttendanceRecord.findOne({
+          where: {
+            employeeId: employee.id,
+            date: dateOnly
+          }
+        });
+
+        if (existingRecord) {
+          // Update existing record to make it active
+          await existingRecord.update({
+            clockOut: null,
+            status: 'present',
+            totalWorkedMinutes: 0,
+            workHours: 0
+          });
+          createdRecords.push({
+            id: existingRecord.id,
+            employee: `${employee.firstName} ${employee.lastName}`,
+            action: 'updated'
+          });
+        } else {
+          // Create new record
+          const clockInTime = new Date(Date.now() - (i + 2) * 60 * 60 * 1000); // 2-3 hours ago
+          
+          const testRecord = await AttendanceRecord.create({
+            employeeId: employee.id,
+            date: dateOnly,
+            clockIn: clockInTime,
+            clockOut: null, // Active session
+            status: 'present',
+            isLate: i === 1, // Make second employee late
+            lateMinutes: i === 1 ? 15 : 0,
+            totalBreakMinutes: i === 1 ? 30 : 0,
+            totalWorkedMinutes: 0,
+            workHours: 0,
+            breakSessions: i === 1 ? [
+              {
+                breakIn: new Date(Date.now() - 1 * 60 * 60 * 1000),
+                breakOut: new Date(Date.now() - 30 * 60 * 1000)
+              }
+            ] : [],
+            location: {
+              workLocation: 'office',
+              address: `Main Office - Floor ${i + 2}`
+            }
+          });
+
+          createdRecords.push({
+            id: testRecord.id,
+            employee: `${employee.firstName} ${employee.lastName}`,
+            action: 'created'
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        message: 'Test attendance data created successfully',
+        records: createdRecords
+      });
+
+    } catch (error) {
+      console.error('🧪 [DEBUG ENDPOINT] Error creating test data:', error);
       res.status(500).json({
         success: false,
         error: error.message

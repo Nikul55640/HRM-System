@@ -38,9 +38,11 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
       setStatusOptions([
         { value: 'present', label: 'Present' },
         { value: 'absent', label: 'Absent' },
-        { value: 'late', label: 'Late' },
-        { value: 'on-leave', label: 'On Leave' },
+        { value: 'leave', label: 'On Leave' },
+        { value: 'half_day', label: 'Half Day' },
         { value: 'holiday', label: 'Holiday' },
+        { value: 'incomplete', label: 'Incomplete' },
+        { value: 'pending_correction', label: 'Pending Correction' },
       ]);
     } finally {
       setLoadingOptions(false);
@@ -54,7 +56,7 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
       status: record?.status || 'present',
       clockIn: record?.clockIn ? format(parseISO(record.clockIn), 'HH:mm') : '09:00',
       clockOut: record?.clockOut ? format(parseISO(record.clockOut), 'HH:mm') : '18:00',
-      notes: record?.notes || '',
+      notes: record?.remarks || '',
     },
   });
 
@@ -67,7 +69,7 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
         status: record.status || 'present',
         clockIn: record.clockIn ? format(parseISO(record.clockIn), 'HH:mm') : '09:00',
         clockOut: record.clockOut ? format(parseISO(record.clockOut), 'HH:mm') : '18:00',
-        notes: record.notes || '',
+        notes: record.remarks || '',
       });
     }
   }, [record, reset]);
@@ -190,6 +192,7 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
         date: formatDate(data.date),
         clockIn: data.status === 'present' && data.clockIn ? `${data.clockIn}:00` : null,
         clockOut: data.status === 'present' && data.clockOut ? `${data.clockOut}:00` : null,
+        remarks: data.notes, // Map notes to remarks field
       };
       
       console.log('Submitting attendance data:', formattedData);

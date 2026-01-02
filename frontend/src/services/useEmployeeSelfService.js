@@ -19,10 +19,12 @@ export const useProfile = () => {
     setProfileError(null);
     try {
       const result = await employeeSelfService.profile.get();
+      console.log('👤 [USE PROFILE] Profile API response:', result);
 
-      // ⭐ FIX: extract actual profile object
-      const userProfile = result?.data || result;
+      // ⭐ FIX: extract actual profile object with multiple fallback patterns
+      const userProfile = result?.data?.data || result?.data || result;
 
+      console.log('👤 [USE PROFILE] Extracted profile:', userProfile);
       setProfile(userProfile);
       return userProfile;
     } catch (error) {
@@ -71,8 +73,14 @@ export const useBankDetails = () => {
     setBankDetailsError(null);
     try {
       const result = await employeeSelfService.bankDetails.get();
-      setBankDetails(result);
-      return result;
+      console.log('🏦 [USE BANK DETAILS] Bank details API response:', result);
+      
+      // Handle multiple response structures
+      const bankData = result?.data?.data || result?.data || result;
+      console.log('🏦 [USE BANK DETAILS] Extracted bank data:', bankData);
+      
+      setBankDetails(bankData);
+      return bankData;
     } catch (error) {
       setBankDetailsError(error.message);
       throw error;
@@ -305,8 +313,12 @@ export const useAttendance = () => {
     setAttendanceError(null);
     try {
       const result = await employeeSelfService.attendance.getRecords(params);
-      // Extract the data array from the response
-      const records = Array.isArray(result?.data) ? result.data : [];
+      console.log('⏰ [USE ATTENDANCE] Records API response:', result);
+      
+      // Extract the data array from the response with multiple fallback patterns
+      const records = result?.data?.data || result?.data || (Array.isArray(result) ? result : []);
+      console.log('⏰ [USE ATTENDANCE] Extracted records:', records);
+      
       setAttendanceRecords(records);
       return records;
     } catch (error) {
@@ -325,10 +337,34 @@ export const useAttendance = () => {
         month,
         year
       );
-      // Extract the data from the response
-      const summary = result?.data || result;
-      setAttendanceSummary(summary);
-      return summary;
+      console.log('📊 [USE ATTENDANCE] Summary API response:', result);
+      
+      // Extract the data from the response with multiple fallback patterns
+      const summary = result?.data?.data || result?.data || result;
+      console.log('📊 [USE ATTENDANCE] Extracted summary:', summary);
+      
+      // Normalize attendance summary to handle different field names
+      const normalizedSummary = {
+        presentDays: summary?.presentDays ?? summary?.present ?? 0,
+        absentDays: summary?.absentDays ?? summary?.absent ?? 0,
+        lateDays: summary?.lateDays ?? summary?.late ?? 0,
+        totalHours: summary?.totalWorkHours ?? summary?.totalHours ?? summary?.workedHours ?? 0,
+        requiredHours: summary?.requiredHours ?? 160,
+        totalWorkedMinutes: summary?.totalWorkedMinutes ?? (summary?.totalWorkHours * 60) ?? (summary?.totalHours * 60) ?? 0,
+        averageWorkHours: summary?.averageWorkHours ?? (summary?.totalWorkHours / Math.max(summary?.presentDays ?? 1, 1)) ?? 0,
+        totalDays: summary?.totalDays ?? (summary?.presentDays ?? 0) + (summary?.absentDays ?? 0),
+        earlyDepartures: summary?.earlyDepartures ?? 0,
+        // Add missing fields that AttendanceSummary component expects
+        totalBreakMinutes: summary?.totalBreakMinutes ?? 0,
+        overtimeHours: summary?.totalOvertimeHours ?? summary?.overtimeHours ?? 0,
+        incompleteDays: summary?.incompleteDays ?? 0,
+        totalLateMinutes: summary?.totalLateMinutes ?? 0,
+        totalEarlyExitMinutes: summary?.totalEarlyExitMinutes ?? 0
+      };
+      
+      console.log('📊 [USE ATTENDANCE] Normalized summary:', normalizedSummary);
+      setAttendanceSummary(normalizedSummary);
+      return normalizedSummary;
     } catch (error) {
       setAttendanceError(error.message);
       throw error;
@@ -451,7 +487,12 @@ export const useNotifications = () => {
     setNotificationsError(null);
     try {
       const result = await employeeSelfService.notifications.list(params);
-      const list = Array.isArray(result?.data) ? result.data : [];
+      console.log('🔔 [USE NOTIFICATIONS] Notifications API response:', result);
+      
+      // Extract notifications array with multiple fallback patterns
+      const list = result?.data?.data || result?.data || (Array.isArray(result) ? result : []);
+      console.log('🔔 [USE NOTIFICATIONS] Extracted notifications:', list);
+      
       setNotifications(list);
       return list;
     } catch (error) {

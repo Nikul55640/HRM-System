@@ -189,7 +189,7 @@ const employeeAttendanceController = {
       const { year, month } = req.params;
 
       const result = await attendanceService.getMonthlyAttendanceSummary(
-        req.user.employeeId,
+        req.user.employee?.id,
         parseInt(year),
         parseInt(month),
         req.user
@@ -218,7 +218,7 @@ const employeeAttendanceController = {
       }
 
       const filters = {
-        employeeId: req.user.employeeId,
+        employeeId: req.user.employee?.id,
         dateFrom: startDate,
         dateTo: endDate
       };
@@ -257,7 +257,7 @@ const employeeAttendanceController = {
       const targetDate = date || new Date().toISOString().split('T')[0];
 
       const filters = {
-        employeeId: req.user.employeeId,
+        employeeId: req.user.employee?.id,
         date: targetDate
       };
 
@@ -304,7 +304,7 @@ const employeeAttendanceController = {
       const month = currentDate.getMonth() + 1;
 
       const result = await attendanceService.getMonthlyAttendanceSummary(
-        req.user.employeeId,
+        req.user.employee?.id,
         year,
         month,
         req.user

@@ -59,14 +59,28 @@ class LeadService {
                     {
                         model: Employee,
                         as: 'assignedEmployee',
-                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email'],
-                        required: false
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName'],
+                        required: false,
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['id', 'email']
+                            }
+                        ]
                     },
                     {
                         model: Employee,
                         as: 'creatorEmployee',
-                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email'],
-                        required: false
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName'],
+                        required: false,
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['id', 'email']
+                            }
+                        ]
                     }
                 ],
                 limit: parseInt(limit),
@@ -106,14 +120,28 @@ class LeadService {
                     {
                         model: Employee,
                         as: 'assignedEmployee',
-                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email'],
-                        required: false
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName'],
+                        required: false,
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['id', 'email']
+                            }
+                        ]
                     },
                     {
                         model: Employee,
                         as: 'creatorEmployee',
-                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email'],
-                        required: false
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName'],
+                        required: false,
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['id', 'email']
+                            }
+                        ]
                     }
                 ]
             });
@@ -397,8 +425,15 @@ class LeadService {
                     {
                         model: Employee,
                         as: 'creatorEmployee',
-                        attributes: ['id', 'firstName', 'lastName', 'email'],
-                        required: false
+                        attributes: ['id', 'firstName', 'lastName'],
+                        required: false,
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['id', 'email']
+                            }
+                        ]
                     }
                 ],
                 order: [['updatedAt', 'DESC']]

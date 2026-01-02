@@ -37,6 +37,7 @@ import employeeManagementRoutes from "./routes/admin/employeeManagement.routes.j
 import auditLogRoutes from "./routes/admin/auditLog.routes.js";
 import systemPolicyRoutes from "./routes/admin/systemPolicy.routes.js";
 import leaveBalanceRoutes from "./routes/admin/leaveBalance.routes.js";
+import leaveBalanceRolloverRoutes from "./routes/admin/leaveBalanceRollover.routes.js";
 import companyEventRoutes from "./routes/admin/companyEvent.routes.js";
 import helpSupportRoutes from "./routes/admin/helpSupport.routes.js";
 import eventTypesRoutes from "./routes/admin/eventTypes.routes.js";
@@ -135,6 +136,7 @@ app.get("/health", (req, res) => {
 app.use("/api/admin/dashboard", adminDashboardRoutes);
 app.use("/api/admin/leave", adminLeaveRoutes);
 app.use("/api/admin/leave-balances", leaveBalanceRoutes);
+app.use("/api/admin/leave-balance-rollover", leaveBalanceRolloverRoutes);
 app.use("/api/admin/holidays", adminHolidayRoutes);
 app.use("/api/admin/events", companyEventRoutes);
 app.use("/api/admin/departments", departmentRoutes);

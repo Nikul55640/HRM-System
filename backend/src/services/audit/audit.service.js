@@ -220,7 +220,7 @@ const getAuditLogs = async (query = {}) => {
       include: [
         {
           association: 'user',
-          attributes: ['id', 'name', 'email', 'role'],
+          attributes: ['id', 'email', 'role'],
           required: false
         }
       ]
@@ -265,7 +265,7 @@ const getAuditLogById = async (id) => {
       include: [
         {
           association: 'user',
-          attributes: ['id', 'name', 'email', 'role'],
+          attributes: ['id', 'email', 'role'],
           required: false
         }
       ]

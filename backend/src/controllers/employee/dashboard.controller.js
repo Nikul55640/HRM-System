@@ -19,16 +19,16 @@ const getDashboard = async (req, res, next) => {
       userId: user.id,
       email: user.email,
       role: user.role,
-      hasEmployeeId: !!user.employeeId,
+      hasEmployeeId: !!user.employee?.id,
     });
 
     // Check if user has employee profile
-    if (!user.employeeId) {
+    if (!user.employee?.id) {
       console.log('⚠️ [DASHBOARD] User has no employee profile');
       return res.status(200).json({
         success: true,
         data: {
-          hasEmployeeProfile: !!user.employeeId,
+          hasEmployeeProfile: !!user.employee?.id,
           user: {
             email: user.email,
             role: user.role,
@@ -44,7 +44,7 @@ const getDashboard = async (req, res, next) => {
       activityLimit: parseInt(req.query.activityLimit, 10) || 20,
     };
 
-    console.log('🔍 [DASHBOARD] Fetching dashboard data for employee:', user.employeeId);
+    console.log('🔍 [DASHBOARD] Fetching dashboard data for employee:', user.employee?.id);
     const dashboardData = await dashboardService.getDashboardData(user, options);
     console.log('✅ [DASHBOARD] Dashboard data retrieved successfully');
 

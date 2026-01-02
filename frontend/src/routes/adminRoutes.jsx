@@ -14,6 +14,7 @@ const  CompanyDocumentsPage = lazy(() => import("../modules/organization/pages/C
 // Feature 3: Leave Management (Admin)
 const LeaveManagement = lazy(() => import("../modules/leave/hr/LeaveManagement"));
 const LeaveBalancesPage = lazy(() => import("../modules/leave/Admin/LeaveBalancesPage"));
+const LeaveBalanceRolloverPage = lazy(() => import("../modules/leave/Admin/LeaveBalanceRolloverPage"));
 
 // Feature 4: Employee Management (Admin)
 const EmployeeList = lazy(() => import("../modules/employees/pages/EmployeeList"));
@@ -56,6 +57,7 @@ export const adminRoutes = [
   // Leave Management
   { path: "admin/leave", element: <LeaveManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
   { path: "admin/leave-balances", element: <LeaveBalancesPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "admin/leave-balance-rollover", element: <LeaveBalanceRolloverPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
 
   // Lead Management
   { path: "admin/leads", element: <LeadManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },

@@ -177,7 +177,7 @@ const applyDepartmentScope = (req, res, next) => {
 
   // Employees can only see their own profile
   if (req.user.role === 'Employee') {
-    if (!req.user.employeeId) {
+    if (!req.user.employee?.id) {
       return res.status(403).json({
         success: false,
         error: {
@@ -190,7 +190,7 @@ const applyDepartmentScope = (req, res, next) => {
 
     // Add employee filter to query
     req.employeeFilter = {
-      _id: req.user.employeeId,
+      _id: req.user.employee?.id,
     };
   }
 
@@ -213,7 +213,7 @@ const checkSelfOrAdmin = (paramName = 'id') => async (req, res, next) => {
     // Employees can only access their own resources
     if (req.user.role === 'Employee') {
       // Check if the resource belongs to the user
-      if (req.user.employeeId && req.user.employeeId.toString() === resourceId) {
+      if (req.user.employee?.id && req.user.employee?.id.toString() === resourceId) {
         return next();
       }
 

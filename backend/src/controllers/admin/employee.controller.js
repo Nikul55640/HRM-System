@@ -268,7 +268,7 @@ const employeeController = {
       };
 
       // Employees can only update their own bank details
-      if (req.user.role === 'Employee' && req.user.employeeId.toString() !== id) {
+      if (req.user.role === 'Employee' && req.user.employee?.id.toString() !== id) {
         return sendResponse(res, false, "You can only update your own bank details", null, 403);
       }
 
@@ -308,7 +308,7 @@ const employeeController = {
       };
 
       // Employees can only update their own profile picture
-      if (req.user.role === 'Employee' && req.user.employeeId.toString() !== id) {
+      if (req.user.role === 'Employee' && req.user.employee?.id.toString() !== id) {
         return sendResponse(res, false, "You can only update your own profile picture", null, 403);
       }
 
@@ -349,7 +349,7 @@ const employeeController = {
       };
 
       // Employees can only update their own emergency contact
-      if (req.user.role === 'Employee' && req.user.employeeId.toString() !== id) {
+      if (req.user.role === 'Employee' && req.user.employee?.id.toString() !== id) {
         return sendResponse(res, false, "You can only update your own emergency contact", null, 403);
       }
 

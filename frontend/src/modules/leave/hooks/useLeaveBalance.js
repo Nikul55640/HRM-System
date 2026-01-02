@@ -22,9 +22,26 @@ export const useLeaveBalance = (options = {}) => {
       setLoading(true);
       setError(null);
       
+      console.log('🍃 [USE LEAVE BALANCE] Fetching leave balance...');
       const response = await employeeSelfService.leave.getBalance();
       
+      console.log('🍃 [USE LEAVE BALANCE] API Response:', response);
+      console.log('🍃 [USE LEAVE BALANCE] Response type:', typeof response);
+      console.log('🍃 [USE LEAVE BALANCE] Response keys:', Object.keys(response || {}));
+      
       if (response.success) {
+        console.log('✅ [USE LEAVE BALANCE] Success response received');
+        console.log('🔍 [USE LEAVE BALANCE] Response data:', response.data);
+        console.log('🔍 [USE LEAVE BALANCE] Data type:', typeof response.data);
+        console.log('🔍 [USE LEAVE BALANCE] Data keys:', Object.keys(response.data || {}));
+        
+        if (response.data?.leaveTypes) {
+          console.log('✅ [USE LEAVE BALANCE] Found leaveTypes array:', response.data.leaveTypes.length, 'types');
+          console.log('🔍 [USE LEAVE BALANCE] Leave types sample:', response.data.leaveTypes[0]);
+        } else {
+          console.warn('⚠️ [USE LEAVE BALANCE] No leaveTypes found in response.data');
+        }
+        
         setLeaveBalance(response.data);
         setLastFetched(new Date());
         
@@ -32,9 +49,17 @@ export const useLeaveBalance = (options = {}) => {
           toast.success('Leave balance updated');
         }
       } else {
+        console.warn('⚠️ [USE LEAVE BALANCE] API returned error:', response.message);
         throw new Error(response.message || 'Failed to fetch leave balance');
       }
     } catch (err) {
+      console.error('❌ [USE LEAVE BALANCE] Error fetching leave balance:', err);
+      console.error('❌ [USE LEAVE BALANCE] Error details:', {
+        message: err.message,
+        response: err.response?.data,
+        status: err.response?.status
+      });
+      
       const errorMessage = err.message || 'Failed to load leave balance';
       setError(errorMessage);
       

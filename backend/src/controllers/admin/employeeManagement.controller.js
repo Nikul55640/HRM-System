@@ -148,6 +148,25 @@ const employeeManagementController = {
 
       const employee = result.data;
 
+      // Automatically assign default leave balances for the new employee
+      try {
+        const { default: DefaultLeaveBalanceService } = await import('../../services/admin/defaultLeaveBalance.service.js');
+        const leaveBalanceResult = await DefaultLeaveBalanceService.assignDefaultBalancesToEmployee(
+          employee.id,
+          new Date().getFullYear(),
+          req.user.id
+        );
+
+        if (leaveBalanceResult.success) {
+          logger.info(`Default leave balances assigned to new employee ${employee.id}: ${leaveBalanceResult.created.length} balances created`);
+        } else {
+          logger.warn(`Failed to assign default leave balances to new employee ${employee.id}:`, leaveBalanceResult.error);
+        }
+      } catch (leaveError) {
+        logger.warn('Failed to assign default leave balances to new employee:', leaveError);
+        // Don't fail the employee creation if leave balance assignment fails
+      }
+
       // Update designation employee count
       if (designationId) {
         await Designation.increment('employeeCount', { where: { id: designationId } });
@@ -221,7 +240,6 @@ const employeeManagementController = {
 
       if (contactInfo) {
         Object.assign(updateData, {
-          email: contactInfo.email?.toLowerCase(),
           phone: contactInfo.phoneNumber,
           address: contactInfo.currentAddress,
           emergencyContact: contactInfo.emergencyContacts?.[0] || employee.emergencyContact,
@@ -268,15 +286,22 @@ const employeeManagementController = {
           
           if (existingUser) {
             // Update existing user
-            await existingUser.update({
+            const userUpdateData = {
               role: systemRole,
               assignedDepartments: systemRole === ROLES.HR_ADMIN ? assignedDepartments : []
-            });
+            };
+            
+            // Update email if provided in contactInfo
+            if (contactInfo?.email) {
+              userUpdateData.email = contactInfo.email.toLowerCase();
+            }
+            
+            await existingUser.update(userUpdateData);
             userAccount = existingUser;
           } else {
             // Create new user account
             const userData = {
-              email: updateData.email || employee.email,
+              email: contactInfo?.email || employee.user?.email || `${employee.firstName}.${employee.lastName}@company.com`.toLowerCase(),
               password: 'TempPassword123!', // Should be changed on first login
               role: systemRole,
               assignedDepartments: systemRole === ROLES.HR_ADMIN ? assignedDepartments : [],
@@ -314,15 +339,17 @@ const employeeManagementController = {
    */
   getDesignations: async (req, res) => {
     try {
-      const { departmentId, includeInactive = false } = req.query;
+      const { departmentId, includeInactive = true } = req.query; // Changed default to true
       
       const where = {};
-      if (!includeInactive) {
+      if (!includeInactive || includeInactive === 'false') {
         where.isActive = true;
       }
       if (departmentId) {
         where.departmentId = departmentId;
       }
+
+      console.log('🔍 [DESIGNATIONS] Query where clause:', where);
 
       const designations = await Designation.findAll({
         where,
@@ -335,6 +362,8 @@ const employeeManagementController = {
         ],
         order: [['level', 'ASC'], ['title', 'ASC']]
       });
+
+      console.log('🔍 [DESIGNATIONS] Found designations:', designations.length);
 
       // Format response to ensure frontend gets expected data structure
       const formatted = designations.map(d => ({

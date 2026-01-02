@@ -18,8 +18,8 @@ class AttendanceService {
      */
     async clockIn(clockInData, user, metadata = {}) {
         try {
-            if (!user.employeeId) {
-                throw { message: "No employee profile linked to this user", statusCode: 404 };
+            if (!user.employee?.id) {
+                throw { message: "No employee profile linked to this user", statusCode: 400 };
             }
 
             const today = new Date().toISOString().split('T')[0];
@@ -27,7 +27,7 @@ class AttendanceService {
             // Check if already clocked in today
             let attendanceRecord = await AttendanceRecord.findOne({
                 where: {
-                    employeeId: user.employeeId,
+                    employeeId: user.employee?.id,
                     date: today
                 }
             });
@@ -37,7 +37,7 @@ class AttendanceService {
             }
 
             // Get employee's assigned shift
-            const employee = await Employee.findByPk(user.employeeId, {
+            const employee = await Employee.findByPk(user.employee?.id, {
                 include: [{
                     model: EmployeeShift,
                     as: 'shiftAssignments',
@@ -63,7 +63,7 @@ class AttendanceService {
             // Create or update attendance record
             if (!attendanceRecord) {
                 attendanceRecord = await AttendanceRecord.create({
-                    employeeId: user.employeeId,
+                    employeeId: user.employee?.id,
                     shiftId: assignedShift?.id || null,
                     date: today,
                     clockIn: clockInTime,
@@ -81,6 +81,42 @@ class AttendanceService {
                     updatedBy: user.id
                 });
             }
+
+            // ✅ STEP 1: CALCULATE LATE AT CLOCK-IN (MANDATORY)
+            // This is the ONLY place late should be calculated - immediately on clock-in
+            if (assignedShift) {
+                const today = clockInTime.toISOString().split('T')[0];
+                const shiftStartTime = new Date(`${today} ${assignedShift.shiftStartTime}`);
+                const gracePeriodMs = (assignedShift.gracePeriodMinutes || 0) * 60 * 1000;
+                const lateThreshold = new Date(shiftStartTime.getTime() + gracePeriodMs);
+
+                let lateMinutes = 0;
+                let isLate = false;
+
+                if (clockInTime > lateThreshold) {
+                    lateMinutes = Math.floor((clockInTime - shiftStartTime) / (1000 * 60));
+                    isLate = true;
+                }
+
+                // Update immediately - late status must be visible right after clock-in
+                await attendanceRecord.update({
+                    lateMinutes: lateMinutes,
+                    isLate: isLate,
+                    status: 'present', // Always present when clocked in
+                    updatedBy: user.id
+                });
+
+                logger.info(`Clock-in processed: Employee ${user.employee?.id}, Late: ${isLate}, Minutes: ${lateMinutes}`);
+            }
+
+            // Reload to get updated data with shift information
+            await attendanceRecord.reload({
+                include: [{
+                    model: Shift,
+                    as: 'shift',
+                    attributes: ['shiftName', 'shiftStartTime', 'shiftEndTime', 'gracePeriodMinutes']
+                }]
+            });
 
             // Log clock in action
             await AuditLog.logAction({
@@ -119,7 +155,7 @@ class AttendanceService {
      */
     async clockOut(clockOutData, user, metadata = {}) {
         try {
-            if (!user.employeeId) {
+            if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
@@ -127,7 +163,7 @@ class AttendanceService {
 
             const attendanceRecord = await AttendanceRecord.findOne({
                 where: {
-                    employeeId: user.employeeId,
+                    employeeId: user.employee?.id,
                     date: today
                 }
             });
@@ -191,7 +227,7 @@ class AttendanceService {
      */
     async startBreak(user, metadata = {}) {
         try {
-            if (!user.employeeId) {
+            if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
@@ -199,7 +235,7 @@ class AttendanceService {
 
             const attendanceRecord = await AttendanceRecord.findOne({
                 where: {
-                    employeeId: user.employeeId,
+                    employeeId: user.employee?.id,
                     date: today
                 }
             });
@@ -209,20 +245,97 @@ class AttendanceService {
             }
 
             const breakInTime = new Date();
-            const breakSessions = attendanceRecord.breakSessions || [];
+            let breakSessions = attendanceRecord.breakSessions || [];
+            
+            // Ensure breakSessions is an array (sometimes JSON fields can be strings)
+            if (typeof breakSessions === 'string') {
+                try {
+                    breakSessions = JSON.parse(breakSessions);
+                } catch (e) {
+                    breakSessions = [];
+                }
+            }
+            
+            if (!Array.isArray(breakSessions)) {
+                breakSessions = [];
+            }
 
-            breakSessions.push({
+            console.log('🔍 [BACKEND] Before adding break session:', {
+                currentBreakSessions: breakSessions,
+                breakSessionsLength: breakSessions.length
+            });
+
+            const newBreakSession = {
                 breakIn: breakInTime,
-                breakOut: null
+                breakOut: null,
+                duration: 0
+            };
+            
+            breakSessions.push(newBreakSession);
+
+            console.log('🔍 [BACKEND] After adding break session:', {
+                updatedBreakSessions: breakSessions,
+                breakSessionsLength: breakSessions.length,
+                newSession: newBreakSession
             });
 
-            await attendanceRecord.update({
-                breakSessions,
-                updatedBy: user.id
-            });
+            // 🔥 FIX: Use direct SQL update to ensure JSON field is properly updated
+            try {
+                const [affectedRows] = await attendanceRecord.sequelize.query(
+                    `UPDATE attendance_records 
+                     SET breakSessions = :breakSessions, 
+                         updatedBy = :updatedBy, 
+                         updatedAt = NOW()
+                     WHERE id = :recordId`,
+                    {
+                        replacements: {
+                            breakSessions: JSON.stringify(breakSessions),
+                            updatedBy: user.id,
+                            recordId: attendanceRecord.id
+                        }
+                    }
+                );
 
-            // Reload the record to get the updated data
-            await attendanceRecord.reload();
+                console.log('🔍 [BACKEND] Direct SQL update result:', affectedRows);
+
+                // Reload the record to get the updated data
+                await attendanceRecord.reload();
+
+                console.log('🔍 [BACKEND] After reload:', {
+                    reloadedBreakSessions: attendanceRecord.breakSessions,
+                    reloadedLength: attendanceRecord.breakSessions?.length,
+                    reloadedIsArray: Array.isArray(attendanceRecord.breakSessions)
+                });
+
+            } catch (sqlError) {
+                console.error('🔍 [BACKEND] SQL update failed, trying Sequelize method:', sqlError);
+                
+                // 🔥 FIX: Try a more direct Sequelize approach
+                try {
+                    // Mark the field as changed to force update
+                    attendanceRecord.changed('breakSessions', true);
+                    attendanceRecord.breakSessions = breakSessions;
+                    attendanceRecord.updatedBy = user.id;
+                    
+                    const saveResult = await attendanceRecord.save({
+                        fields: ['breakSessions', 'updatedBy']
+                    });
+                    
+                    console.log('🔍 [BACKEND] Sequelize save result:', saveResult ? 'success' : 'failed');
+                    
+                    // Force reload to verify
+                    await attendanceRecord.reload();
+                    
+                    console.log('🔍 [BACKEND] After Sequelize save and reload:', {
+                        breakSessions: attendanceRecord.breakSessions,
+                        length: attendanceRecord.breakSessions?.length
+                    });
+                    
+                } catch (sequelizeError) {
+                    console.error('🔍 [BACKEND] Sequelize fallback also failed:', sequelizeError);
+                    throw sequelizeError;
+                }
+            }
 
             // Log break start action
             await AuditLog.logAction({
@@ -260,7 +373,7 @@ class AttendanceService {
      */
     async endBreak(user, metadata = {}) {
         try {
-            if (!user.employeeId) {
+            if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
@@ -268,7 +381,7 @@ class AttendanceService {
 
             const attendanceRecord = await AttendanceRecord.findOne({
                 where: {
-                    employeeId: user.employeeId,
+                    employeeId: user.employee?.id,
                     date: today
                 }
             });
@@ -278,8 +391,31 @@ class AttendanceService {
             }
 
             const breakOutTime = new Date();
-            const breakSessions = [...attendanceRecord.breakSessions];
+            let breakSessions = attendanceRecord.breakSessions || [];
+            
+            // Ensure breakSessions is an array
+            if (typeof breakSessions === 'string') {
+                try {
+                    breakSessions = JSON.parse(breakSessions);
+                } catch (e) {
+                    breakSessions = [];
+                }
+            }
+            
+            if (!Array.isArray(breakSessions)) {
+                breakSessions = [];
+            }
+            
+            // Create a copy to avoid mutation issues
+            breakSessions = [...breakSessions];
+            
             const activeBreakIndex = breakSessions.findIndex(session => session.breakIn && !session.breakOut);
+
+            console.log('🔍 [BACKEND] End break - before update:', {
+                breakSessions: breakSessions,
+                activeBreakIndex: activeBreakIndex,
+                breakSessionsLength: breakSessions.length
+            });
 
             if (activeBreakIndex !== -1) {
                 breakSessions[activeBreakIndex].breakOut = breakOutTime;
@@ -294,14 +430,53 @@ class AttendanceService {
                     return total + (session.duration || 0);
                 }, 0);
 
-                await attendanceRecord.update({
-                    breakSessions,
-                    totalBreakMinutes,
-                    updatedBy: user.id
+                console.log('🔍 [BACKEND] End break - calculated values:', {
+                    breakDuration: breakDuration,
+                    totalBreakMinutes: totalBreakMinutes,
+                    updatedSession: breakSessions[activeBreakIndex]
                 });
 
-                // Reload the record to get the updated data
-                await attendanceRecord.reload();
+                // 🔥 FIX: Use direct SQL update for endBreak as well
+                try {
+                    const [affectedRows] = await attendanceRecord.sequelize.query(
+                        `UPDATE attendance_records 
+                         SET breakSessions = :breakSessions, 
+                             totalBreakMinutes = :totalBreakMinutes,
+                             updatedBy = :updatedBy, 
+                             updatedAt = NOW()
+                         WHERE id = :recordId`,
+                        {
+                            replacements: {
+                                breakSessions: JSON.stringify(breakSessions),
+                                totalBreakMinutes: totalBreakMinutes,
+                                updatedBy: user.id,
+                                recordId: attendanceRecord.id
+                            }
+                        }
+                    );
+
+                    console.log('🔍 [BACKEND] End break - SQL update result:', affectedRows);
+
+                    // Reload the record to get the updated data
+                    await attendanceRecord.reload();
+
+                    console.log('🔍 [BACKEND] End break - after reload:', {
+                        reloadedBreakSessions: attendanceRecord.breakSessions,
+                        reloadedTotalBreakMinutes: attendanceRecord.totalBreakMinutes,
+                        reloadedLength: attendanceRecord.breakSessions?.length
+                    });
+
+                } catch (sqlError) {
+                    console.error('🔍 [BACKEND] End break SQL update failed, trying Sequelize:', sqlError);
+                    
+                    // Fallback to Sequelize method
+                    attendanceRecord.breakSessions = breakSessions;
+                    attendanceRecord.totalBreakMinutes = totalBreakMinutes;
+                    attendanceRecord.updatedBy = user.id;
+                    await attendanceRecord.save();
+                    
+                    console.log('🔍 [BACKEND] End break Sequelize fallback completed');
+                }
             }
 
             // Log break end action
@@ -339,7 +514,7 @@ class AttendanceService {
      */
     async getTodayAttendance(user) {
         try {
-            if (!user.employeeId) {
+            if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
@@ -347,7 +522,7 @@ class AttendanceService {
 
             const attendanceRecord = await AttendanceRecord.findOne({
                 where: {
-                    employeeId: user.employeeId,
+                    employeeId: user.employee?.id,
                     date: today
                 },
                 include: [
@@ -358,6 +533,17 @@ class AttendanceService {
                     }
                 ]
             });
+
+            // Debug logging
+            if (attendanceRecord) {
+                console.log('🔍 [BACKEND] Raw attendance record:', {
+                    id: attendanceRecord.id,
+                    breakSessions: attendanceRecord.breakSessions,
+                    breakSessionsType: typeof attendanceRecord.breakSessions,
+                    breakSessionsLength: attendanceRecord.breakSessions?.length,
+                    dataValues: attendanceRecord.dataValues?.breakSessions
+                });
+            }
 
             return {
                 success: true,
@@ -383,7 +569,7 @@ class AttendanceService {
      */
     async getEmployeeOwnAttendanceRecords(filters = {}, user, pagination = {}) {
         try {
-            if (!user.employeeId) {
+            if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
@@ -396,7 +582,7 @@ class AttendanceService {
             const offset = (page - 1) * limit;
 
             const whereClause = {
-                employeeId: user.employeeId // Only allow viewing own records
+                employeeId: user.employee?.id // Only allow viewing own records
             };
 
             // Apply additional filters
@@ -572,7 +758,7 @@ class AttendanceService {
             }
 
             // Employees can only request correction for their own records
-            if (user.role === ROLES.EMPLOYEE && attendanceRecord.employeeId !== user.employeeId) {
+            if (user.role === ROLES.EMPLOYEE && attendanceRecord.employeeId !== user.employee?.id) {
                 throw { message: "You can only request correction for your own attendance", statusCode: 403 };
             }
 
@@ -813,7 +999,7 @@ class AttendanceService {
     async getMonthlyAttendanceSummary(employeeId, year, month, user) {
         try {
             // Employees can only view their own summary
-            if (user.role === ROLES.EMPLOYEE && parseInt(user.employeeId) !== parseInt(employeeId)) {
+            if (user.role === ROLES.EMPLOYEE && parseInt(user.employee?.id) !== parseInt(employeeId)) {
                 throw { message: "You can only view your own attendance summary", statusCode: 403 };
             }
 
@@ -836,6 +1022,224 @@ class AttendanceService {
             return {
                 success: false,
                 message: error.message || 'Failed to get monthly summary',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * ✅ STEP 3: HANDLE "FORGOT CLOCK-OUT" (CRITICAL CORPORATE RULE)
+     * Process end-of-day attendance - Mark as incomplete/absent if no clock-out
+     * This should be called by a scheduled job at the end of each day
+     */
+    async processEndOfDayAttendance() {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            
+            // Find all attendance records that are clocked in but not clocked out
+            const incompleteRecords = await AttendanceRecord.findAll({
+                where: {
+                    date: today,
+                    clockIn: { [Op.ne]: null },
+                    clockOut: null,
+                    status: 'present' // Only process records still marked as present
+                },
+                include: [{
+                    model: Shift,
+                    as: 'shift',
+                    attributes: ['shiftName', 'shiftStartTime', 'shiftEndTime', 'gracePeriodMinutes']
+                }, {
+                    model: Employee,
+                    as: 'employee',
+                    attributes: ['id', 'firstName', 'lastName', 'employeeId']
+                }]
+            });
+
+            const results = [];
+
+            for (const record of incompleteRecords) {
+                if (record.shift) {
+                    const now = new Date();
+                    const shiftEndTime = new Date(`${today} ${record.shift.shiftEndTime}`);
+                    
+                    // ✅ CORPORATE RULE: If past shift end time, mark as incomplete
+                    // No grace period for missing clock-out - this is a policy violation
+                    if (now > shiftEndTime) {
+                        await record.update({
+                            status: 'incomplete',
+                            statusReason: 'Missing clock-out - Auto-marked incomplete',
+                            notes: `Auto-processed at ${now.toISOString()} - Employee failed to clock out`,
+                            updatedBy: 1 // System user
+                        });
+
+                        results.push({
+                            employeeId: record.employee.employeeId,
+                            employeeName: `${record.employee.firstName} ${record.employee.lastName}`,
+                            action: 'marked_incomplete',
+                            reason: 'Missing clock-out after shift end',
+                            shiftEndTime: record.shift.shiftEndTime,
+                            processedAt: now.toISOString()
+                        });
+
+                        // Log the action for audit trail
+                        await AuditLog.logAction({
+                            userId: 1, // System user
+                            action: 'attendance_auto_incomplete',
+                            module: 'attendance',
+                            targetType: 'AttendanceRecord',
+                            targetId: record.id,
+                            description: `Auto-marked as incomplete due to missing clock-out for ${record.employee.firstName} ${record.employee.lastName} (Shift ended: ${record.shift.shiftEndTime})`,
+                            severity: 'medium'
+                        });
+                    }
+                } else {
+                    // No shift assigned - mark as incomplete after 8 hours from clock-in
+                    const clockInTime = new Date(record.clockIn);
+                    const eightHoursLater = new Date(clockInTime.getTime() + (8 * 60 * 60 * 1000));
+                    const now = new Date();
+                    
+                    if (now > eightHoursLater) {
+                        await record.update({
+                            status: 'incomplete',
+                            statusReason: 'Missing clock-out - No shift assigned',
+                            notes: `Auto-processed at ${now.toISOString()} - No shift assigned, 8+ hours since clock-in`,
+                            updatedBy: 1
+                        });
+
+                        results.push({
+                            employeeId: record.employee.employeeId,
+                            employeeName: `${record.employee.firstName} ${record.employee.lastName}`,
+                            action: 'marked_incomplete',
+                            reason: 'Missing clock-out - No shift assigned (8+ hours)',
+                            processedAt: now.toISOString()
+                        });
+                    }
+                }
+            }
+
+            return {
+                success: true,
+                message: `Processed ${results.length} incomplete attendance records`,
+                data: results
+            };
+        } catch (error) {
+            logger.error('Error processing end-of-day attendance:', error);
+            return {
+                success: false,
+                message: 'Failed to process end-of-day attendance',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * ✅ STEP 4: CHECK FOR ABSENT EMPLOYEES (CORPORATE RULE)
+     * Check if employee should be marked absent for not clocking in
+     * This should be called periodically during the day
+     */
+    async checkAbsentEmployees() {
+        try {
+            const today = new Date().toISOString().split('T')[0];
+            const now = new Date();
+            
+            // Get all active employees with their shifts
+            const employees = await Employee.findAll({
+                where: { 
+                    status: 'active',
+                    isActive: true 
+                },
+                include: [{
+                    model: EmployeeShift,
+                    as: 'shiftAssignments',
+                    where: { isActive: true },
+                    required: false,
+                    include: [{
+                        model: Shift,
+                        as: 'shift'
+                    }]
+                }]
+            });
+
+            const results = [];
+
+            for (const employee of employees) {
+                // Check if employee has attendance record for today
+                const attendanceRecord = await AttendanceRecord.findOne({
+                    where: {
+                        employeeId: employee.id,
+                        date: today
+                    }
+                });
+
+                // If no attendance record exists, check if they should be working
+                if (!attendanceRecord) {
+                    let shouldBeWorking = false;
+                    let shift = null;
+
+                    if (employee.shiftAssignments && employee.shiftAssignments.length > 0) {
+                        shift = employee.shiftAssignments[0].shift;
+                    } else {
+                        // Get default shift if no specific assignment
+                        shift = await Shift.findOne({ where: { isDefault: true } });
+                    }
+
+                    if (shift) {
+                        const shiftStartTime = new Date(`${today} ${shift.shiftStartTime}`);
+                        const gracePeriodMs = (shift.gracePeriodMinutes || 0) * 60 * 1000;
+                        // Corporate rule: Mark absent 1 hour after grace period ends
+                        const absentThreshold = new Date(shiftStartTime.getTime() + gracePeriodMs + (60 * 60 * 1000));
+
+                        if (now > absentThreshold) {
+                            shouldBeWorking = true;
+                        }
+                    }
+
+                    if (shouldBeWorking) {
+                        // Create absent record
+                        await AttendanceRecord.create({
+                            employeeId: employee.id,
+                            shiftId: shift?.id || null,
+                            date: today,
+                            status: 'absent',
+                            statusReason: 'Auto-marked absent - No clock-in recorded',
+                            notes: `Auto-processed at ${now.toISOString()} - Employee did not clock in within required timeframe`,
+                            createdBy: 1 // System user
+                        });
+
+                        results.push({
+                            employeeId: employee.employeeId,
+                            employeeName: `${employee.firstName} ${employee.lastName}`,
+                            action: 'marked_absent',
+                            reason: 'No clock-in recorded',
+                            shiftStartTime: shift?.shiftStartTime,
+                            absentThreshold: absentThreshold.toISOString(),
+                            processedAt: now.toISOString()
+                        });
+
+                        // Log the action
+                        await AuditLog.logAction({
+                            userId: 1, // System user
+                            action: 'attendance_auto_absent',
+                            module: 'attendance',
+                            targetType: 'AttendanceRecord',
+                            targetId: null,
+                            description: `Auto-marked as absent due to no clock-in for ${employee.firstName} ${employee.lastName} (Shift: ${shift?.shiftStartTime}, Threshold: ${absentThreshold.toLocaleTimeString()})`,
+                            severity: 'medium'
+                        });
+                    }
+                }
+            }
+
+            return {
+                success: true,
+                message: `Processed ${results.length} absent employees`,
+                data: results
+            };
+        } catch (error) {
+            logger.error('Error checking absent employees:', error);
+            return {
+                success: false,
+                message: 'Failed to check absent employees',
                 error: error.message
             };
         }

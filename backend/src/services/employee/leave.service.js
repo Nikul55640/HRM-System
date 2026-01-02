@@ -13,19 +13,17 @@ const submitLeaveRequest = async (employeeId, leaveData) => {
 
     // Check leave balance
     const currentYear = new Date().getFullYear();
-    const leaveBalance = await LeaveBalance.findOne({
-      where: {
-        employeeId,
-        year: currentYear
-      }
-    });
+    const leaveBalances = await getLeaveBalance(employeeId, currentYear);
 
-    if (leaveBalance) {
-      const typeBalance = leaveBalance.leaveTypes.find(t => t.type === leaveType);
+    if (leaveBalances && leaveBalances.length > 0) {
+      const typeBalance = leaveBalances.find(balance => 
+        balance.type.toLowerCase() === leaveType.toLowerCase()
+      );
+      
       if (typeBalance && typeBalance.available < days) {
         throw {
           code: 'INSUFFICIENT_BALANCE',
-          message: `Insufficient ${leaveType} leave balance`,
+          message: `Insufficient ${leaveType} leave balance. Available: ${typeBalance.available}, Requested: ${days}`,
           statusCode: 400
         };
       }
@@ -84,27 +82,31 @@ const getLeaveBalance = async (employeeId, year = null) => {
   try {
     const targetYear = year || new Date().getFullYear();
     
-    let leaveBalance = await LeaveBalance.findOne({
+    // Get all leave balance records for the employee and year
+    const leaveBalances = await LeaveBalance.findAll({
       where: {
         employeeId,
         year: targetYear
       }
     });
 
-    if (!leaveBalance) {
-      // Create default leave balance
-      leaveBalance = await LeaveBalance.create({
-        employeeId,
-        year: targetYear,
-        leaveTypes: [
-          { type: 'annual', allocated: 20, used: 0, pending: 0, available: 20 },
-          { type: 'sick', allocated: 10, used: 0, pending: 0, available: 10 },
-          { type: 'personal', allocated: 5, used: 0, pending: 0, available: 5 },
-        ]
-      });
+    // If no balances exist, return empty array (don't auto-create)
+    if (!leaveBalances || leaveBalances.length === 0) {
+      return [];
     }
 
-    return leaveBalance;
+    // Transform to match expected format
+    const formattedBalances = leaveBalances.map(balance => ({
+      type: balance.leaveType.toLowerCase(),
+      allocated: balance.allocated,
+      used: balance.used,
+      pending: balance.pending,
+      remaining: balance.remaining,
+      available: balance.remaining, // available is same as remaining
+      carryForward: balance.carryForward
+    }));
+
+    return formattedBalances;
   } catch (error) {
     logger.error('Error getting leave balance:', error);
     throw error;

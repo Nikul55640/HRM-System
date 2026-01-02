@@ -79,7 +79,7 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
 
   // Status
   status: {
-    type: DataTypes.ENUM('present', 'absent', 'leave', 'half_day', 'holiday', 'pending_correction'),
+    type: DataTypes.ENUM('present', 'absent', 'leave', 'half_day', 'holiday', 'incomplete', 'pending_correction'),
     defaultValue: 'present',
   },
   statusReason: {
@@ -252,6 +252,47 @@ AttendanceRecord.getMonthlySummary = async function (employeeId, year, month) {
     raw: true,
   });
 
+  // Calculate incomplete days (records with clockIn but no clockOut)
+  const incompleteDays = records.filter(r => r.clockIn && !r.clockOut).length;
+  
+  // Calculate total break minutes from all records
+  const totalBreakMinutes = records.reduce((sum, r) => sum + (r.totalBreakMinutes || 0), 0);
+  
+  // Calculate total worked minutes from all records (including current session for incomplete days)
+  const totalWorkedMinutes = records.reduce((sum, r) => {
+    if (r.totalWorkedMinutes && r.totalWorkedMinutes > 0) {
+      // Use existing calculated worked minutes for completed days
+      return sum + r.totalWorkedMinutes;
+    } else if (r.clockIn && !r.clockOut) {
+      // For incomplete days, calculate current worked time
+      const clockInTime = new Date(r.clockIn);
+      const currentTime = new Date();
+      const workedMinutes = Math.floor((currentTime - clockInTime) / (1000 * 60));
+      const breakMinutes = r.totalBreakMinutes || 0;
+      const netWorkedMinutes = Math.max(0, workedMinutes - breakMinutes);
+      return sum + netWorkedMinutes;
+    }
+    return sum;
+  }, 0);
+
+  // Calculate total work hours (including current session)
+  const totalWorkHours = records.reduce((sum, r) => {
+    if (r.workHours && parseFloat(r.workHours) > 0) {
+      // Use existing work hours for completed days
+      return sum + parseFloat(r.workHours);
+    } else if (r.clockIn && !r.clockOut) {
+      // For incomplete days, calculate current work hours
+      const clockInTime = new Date(r.clockIn);
+      const currentTime = new Date();
+      const workedMinutes = Math.floor((currentTime - clockInTime) / (1000 * 60));
+      const breakMinutes = r.totalBreakMinutes || 0;
+      const netWorkedMinutes = Math.max(0, workedMinutes - breakMinutes);
+      const workHours = netWorkedMinutes / 60;
+      return sum + workHours;
+    }
+    return sum;
+  }, 0);
+
   return {
     totalDays: records.length,
     presentDays: records.filter(r => r.status === 'present').length,
@@ -259,45 +300,40 @@ AttendanceRecord.getMonthlySummary = async function (employeeId, year, month) {
     halfDays: records.filter(r => r.status === 'half_day').length,
     leaveDays: records.filter(r => r.status === 'leave').length,
     holidayDays: records.filter(r => r.status === 'holiday').length,
-    totalWorkHours: records.reduce((sum, r) => sum + (parseFloat(r.workHours) || 0), 0),
+    totalWorkHours: totalWorkHours,
     totalOvertimeHours: records.reduce((sum, r) => sum + (parseFloat(r.overtimeHours) || 0), 0),
     lateDays: records.filter(r => r.isLate).length,
     earlyDepartures: records.filter(r => r.isEarlyDeparture).length,
     totalLateMinutes: records.reduce((sum, r) => sum + (r.lateMinutes || 0), 0),
     totalEarlyExitMinutes: records.reduce((sum, r) => sum + (r.earlyExitMinutes || 0), 0),
+    // Add missing fields for frontend compatibility
+    incompleteDays,
+    totalBreakMinutes,
+    totalWorkedMinutes,
+    averageWorkHours: records.length > 0 ? totalWorkHours / records.length : 0
   };
 };
 
 // Hooks for automatic calculations
+// ❌ REMOVE DUPLICATE LATE CALCULATION FROM beforeSave HOOK
+// Late should ONLY be calculated at clock-in, not when saving complete records
 AttendanceRecord.beforeSave(async (record) => {
   if (record.clockIn && record.clockOut) {
     // Calculate working hours
     record.calculateWorkingHours();
 
-    // Get shift information for late/early calculations
+    // Get shift information for early exit and overtime calculations ONLY
     if (record.shiftId) {
       const { Shift } = await import('./index.js');
       const shift = await Shift.findByPk(record.shiftId);
 
       if (shift) {
-        // Calculate late minutes
-        const shiftStartTime = new Date(record.clockIn);
-        const [shiftHour, shiftMinute] = shift.shiftStartTime.split(':');
-        shiftStartTime.setHours(parseInt(shiftHour), parseInt(shiftMinute), 0, 0);
-
-        const clockInTime = new Date(record.clockIn);
-        const gracePeriodMs = (shift.gracePeriodMinutes || 0) * 60 * 1000;
-
-        if (clockInTime > new Date(shiftStartTime.getTime() + gracePeriodMs)) {
-          record.lateMinutes = Math.floor((clockInTime - shiftStartTime) / (1000 * 60));
-          record.isLate = true;
-        }
+        // ❌ REMOVED: Late calculation (now done at clock-in only)
+        // Late minutes and isLate are set at clock-in and should not be recalculated
 
         // Calculate early exit minutes
-        const shiftEndTime = new Date(record.clockOut);
-        const [endHour, endMinute] = shift.shiftEndTime.split(':');
-        shiftEndTime.setHours(parseInt(endHour), parseInt(endMinute), 0, 0);
-
+        const today = record.date;
+        const shiftEndTime = new Date(`${today} ${shift.shiftEndTime}`);
         const clockOutTime = new Date(record.clockOut);
         const earlyThresholdMs = (shift.earlyDepartureThresholdMinutes || 0) * 60 * 1000;
 

@@ -4,6 +4,7 @@ import {
   Employee,
 } from "../../models/sequelize/index.js";
 import { Op } from "sequelize";
+import sequelize from "../../config/sequelize.js";
 import logger from "../../utils/logger.js";
 
 /**
@@ -178,7 +179,7 @@ const updateDepartment = async (
 };
 
 /**
- * Get departments
+ * Get departments with real-time employee counts
  */
 const getDepartments = async (filters = {}, options = {}) => {
   try {
@@ -198,16 +199,37 @@ const getDepartments = async (filters = {}, options = {}) => {
       ];
     }
 
-    const { count, rows } = await Department.findAndCountAll({
+    // First get departments with basic info
+    const departments = await Department.findAll({
       where,
       order: [["name", "ASC"]],
       limit: limitNum,
       offset: (pageNum - 1) * limitNum,
     });
 
+    // Then get employee counts for each department
+    const departmentsWithCounts = await Promise.all(
+      departments.map(async (dept) => {
+        const employeeCount = await Employee.count({
+          where: { 
+            departmentId: dept.id,
+            status: { [Op.ne]: 'Terminated' }
+          }
+        });
+        
+        return {
+          ...dept.toJSON(),
+          employeeCount
+        };
+      })
+    );
+
+    // Get total count for pagination
+    const totalCount = await Department.count({ where });
+
     return {
-      departments: rows,
-      pagination: { page: pageNum, limit: limitNum, total: count },
+      departments: departmentsWithCounts,
+      pagination: { page: pageNum, limit: limitNum, total: totalCount },
     };
   } catch (error) {
     logger.error("Error fetching departments:", error);
@@ -326,6 +348,61 @@ const searchDepartments = async (searchTerm) => {
   });
 };
 
+/**
+ * Toggle department activation status
+ */
+const toggleDepartmentStatus = async (departmentId, user, metadata = {}) => {
+  try {
+    const department = await Department.findByPk(departmentId);
+    if (!department) {
+      throw {
+        code: "DEPARTMENT_NOT_FOUND",
+        message: "Department not found.",
+        statusCode: 404,
+      };
+    }
+
+    // If deactivating, check for active employees
+    if (department.isActive) {
+      const employeeCount = await Employee.count({
+        where: { departmentId, status: { [Op.ne]: "Terminated" } },
+      });
+
+      if (employeeCount > 0) {
+        throw {
+          code: "DEPARTMENT_HAS_EMPLOYEES",
+          message: "Cannot deactivate department with active employees.",
+          statusCode: 400,
+        };
+      }
+    }
+
+    const oldStatus = department.isActive;
+    department.isActive = !department.isActive;
+    await department.save();
+
+    await AuditLog.logAction({
+      action: department.isActive ? "ACTIVATE" : "DEACTIVATE",
+      entityType: "Department",
+      entityId: department.id,
+      userId: user.id,
+      userRole: user.role,
+      changes: [{ 
+        field: "isActive", 
+        oldValue: oldStatus, 
+        newValue: department.isActive 
+      }],
+      ipAddress: metadata.ipAddress,
+      userAgent: metadata.userAgent,
+    });
+
+    return department;
+  } catch (error) {
+    logger.error("Error toggling department status:", error);
+    throw error;
+  }
+};
+
 export default {
   createDepartment,
   updateDepartment,
@@ -333,5 +410,6 @@ export default {
   getDepartmentById,
   getDepartmentHierarchy,
   deleteDepartment,
+  toggleDepartmentStatus,
   searchDepartments,
 };

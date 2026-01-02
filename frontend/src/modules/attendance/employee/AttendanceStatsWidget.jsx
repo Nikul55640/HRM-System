@@ -3,16 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/car
 import { Clock, Coffee, MapPin, TrendingUp } from 'lucide-react';
 
 const AttendanceStatsWidget = ({ todayRecord }) => {
-  if (!todayRecord || !todayRecord.sessions || todayRecord.sessions.length === 0) {
+  if (!todayRecord) {
     return null;
   }
 
-  // Calculate stats
-  const totalSessions = todayRecord.sessions.length;
-  const completedSessions = todayRecord.sessions.filter(s => s.status === 'completed').length;
-  const totalBreaks = todayRecord.sessions.reduce((sum, s) => sum + (s.breaks?.length || 0), 0);
-  const totalBreakMinutes = todayRecord.sessions.reduce((sum, s) => sum + (s.totalBreakMinutes || 0), 0);
-  const totalWorkedMinutes = todayRecord.sessions.reduce((sum, s) => sum + (s.workedMinutes || 0), 0);
+  // Calculate stats from the attendance record
+  const totalBreaks = todayRecord.breakSessions?.length || 0;
+  const totalBreakMinutes = todayRecord.totalBreakMinutes || 0;
+  const totalWorkedMinutes = todayRecord.totalWorkedMinutes || 0;
+  const workHours = todayRecord.workHours || 0;
 
   const formatDuration = (minutes) => {
     const hours = Math.floor(minutes / 60);
@@ -30,8 +29,8 @@ const AttendanceStatsWidget = ({ todayRecord }) => {
     },
     {
       icon: TrendingUp,
-      label: 'Sessions',
-      value: `${completedSessions}/${totalSessions}`,
+      label: 'Work Hours',
+      value: `${workHours}h`,
       color: 'text-green-600',
       bgColor: 'bg-green-50',
     },
@@ -44,8 +43,8 @@ const AttendanceStatsWidget = ({ todayRecord }) => {
     },
     {
       icon: MapPin,
-      label: 'Locations',
-      value: new Set(todayRecord.sessions.map(s => s.workLocation)).size,
+      label: 'Breaks Taken',
+      value: totalBreaks,
       color: 'text-purple-600',
       bgColor: 'bg-purple-50',
     },

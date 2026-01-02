@@ -204,6 +204,12 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           icon: "Scale",
           showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCE),
         },
+        {
+          name: "Leave Balance Rollover",
+          path: "/admin/leave-balance-rollover",
+          icon: "RefreshCw",
+          showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCE),
+        },
 
         // Lead Management
         {

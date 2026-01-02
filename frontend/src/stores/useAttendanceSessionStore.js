@@ -43,14 +43,34 @@ const useAttendanceSessionStore = create(
           // Use the dedicated today endpoint for better accuracy
           const response = await api.get('/employee/attendance/today');
 
+          console.log('🔍 [STORE] Raw API response:', response.data);
+
           if (response.data?.success && response.data.data) {
+            const todayRecord = response.data.data;
+            console.log('🔍 [STORE] Today record received:', todayRecord);
+            console.log('🔍 [STORE] Break sessions in record:', todayRecord.breakSessions);
+            console.log('🔍 [STORE] Break sessions type:', typeof todayRecord.breakSessions);
+            console.log('🔍 [STORE] Break sessions length:', todayRecord.breakSessions?.length);
+            
+            // 🔥 DEBUG: Test the getAttendanceStatus immediately after setting the record
             set({
-              todayRecord: response.data.data,
+              todayRecord: todayRecord,
               isLoading: false,
               lastUpdated: new Date(),
               error: null,
             });
+            
+            // Test the status calculation
+            const status = get().getAttendanceStatus();
+            console.log('🔍 [STORE] Calculated attendance status:', {
+              isClockedIn: status.isClockedIn,
+              isOnBreak: status.isOnBreak,
+              hasLegacyClockIn: status.hasLegacyClockIn,
+              activeSessionBreaks: status.activeSession?.breaks?.length || 0,
+              activeSessionStatus: status.activeSession?.status
+            });
           } else {
+            console.warn('🔍 [STORE] No data in response or success=false');
             set({
               todayRecord: null,
               isLoading: false,
@@ -59,6 +79,7 @@ const useAttendanceSessionStore = create(
             });
           }
         } catch (error) {
+          console.error('🔍 [STORE] Fetch error:', error);
           set({ 
             isLoading: false,
             error: error.response?.data?.message || 'Failed to fetch attendance data'
@@ -141,24 +162,31 @@ const useAttendanceSessionStore = create(
         try {
           set({ isLoading: true });
 
-          const response = await api.post(
-            '/employee/attendance/break-in'
-          );
+          console.log('🔍 [STORE] Starting break...');
+          const response = await api.post('/employee/attendance/break-in');
+          console.log('🔍 [STORE] Break-in response:', response.data);
 
           if (response.data?.success) {
+            console.log('🔍 [STORE] Break started successfully, refreshing data...');
             // Add a small delay to ensure database update is complete
             await new Promise(resolve => setTimeout(resolve, 500));
             await get().fetchTodayRecord(true);
+            
+            // Check the updated state
+            const updatedState = get();
+            console.log('🔍 [STORE] Updated state after break start:', updatedState.todayRecord);
+            console.log('🔍 [STORE] Break sessions after refresh:', updatedState.todayRecord?.breakSessions);
+            
             return { success: true, data: response.data };
           }
 
           return { success: false, error: 'Start break failed' };
         } catch (error) {
+          console.error('🔍 [STORE] Start break error:', error);
           set({ isLoading: false });
           return {
             success: false,
-            error:
-              error.response?.data?.message || 'Start break failed',
+            error: error.response?.data?.message || 'Start break failed',
           };
         }
       },
@@ -167,24 +195,31 @@ const useAttendanceSessionStore = create(
         try {
           set({ isLoading: true });
 
-          const response = await api.post(
-            '/employee/attendance/break-out'
-          );
+          console.log('🔍 [STORE] Ending break...');
+          const response = await api.post('/employee/attendance/break-out');
+          console.log('🔍 [STORE] Break-out response:', response.data);
 
           if (response.data?.success) {
+            console.log('🔍 [STORE] Break ended successfully, refreshing data...');
             // Add a small delay to ensure database update is complete
             await new Promise(resolve => setTimeout(resolve, 500));
             await get().fetchTodayRecord(true);
+            
+            // Check the updated state
+            const updatedState = get();
+            console.log('🔍 [STORE] Updated state after break end:', updatedState.todayRecord);
+            console.log('🔍 [STORE] Break sessions after refresh:', updatedState.todayRecord?.breakSessions);
+            
             return { success: true, data: response.data };
           }
 
           return { success: false, error: 'End break failed' };
         } catch (error) {
+          console.error('🔍 [STORE] End break error:', error);
           set({ isLoading: false });
           return {
             success: false,
-            error:
-              error.response?.data?.message || 'End break failed',
+            error: error.response?.data?.message || 'End break failed',
           };
         }
       },
@@ -218,18 +253,29 @@ const useAttendanceSessionStore = create(
           (!todayRecord.sessions ||
             todayRecord.sessions.length === 0);
 
-        // Check for active break session in breakSessions array
-        const activeBreakSession = todayRecord.breakSessions?.find(
+        // 🔥 FIX: Always read breaks from legacy breakSessions and convert to session format
+        const legacyBreakSessions = todayRecord.breakSessions || [];
+        
+        // Convert legacy break sessions to session format
+        const sessionBreaks = legacyBreakSessions.map(session => ({
+          startTime: session.breakIn,
+          endTime: session.breakOut,
+          duration: session.duration || 0
+        }));
+
+        // Find active break session
+        const activeBreakSession = legacyBreakSessions.find(
           session => session.breakIn && !session.breakOut
         );
 
         // Determine if clocked in (either new session format or legacy)
         const isClockedIn = 
           activeSession?.status === 'active' ||
+          activeSession?.status === 'on_break' ||
           hasLegacyClockIn ||
           (todayRecord.clockIn && !todayRecord.clockOut);
 
-        // Determine if on break (check both session format and breakSessions array)
+        // 🔥 FIX: Determine if on break using legacy breakSessions
         const isOnBreak = 
           activeSession?.status === 'on_break' ||
           !!activeBreakSession;
@@ -238,14 +284,14 @@ const useAttendanceSessionStore = create(
           isClockedIn,
           isOnBreak,
           hasLegacyClockIn,
-          activeSession: activeSession || (activeBreakSession ? {
+          activeSession: activeSession || (todayRecord.clockIn && !todayRecord.clockOut ? {
             checkIn: todayRecord.clockIn,
             workLocation: todayRecord.location || 'office',
             locationDetails: todayRecord.location,
-            breaks: todayRecord.breakSessions || [],
+            breaks: sessionBreaks, // 🔥 FIX: Use converted session breaks
             totalBreakMinutes: todayRecord.totalBreakMinutes || 0,
             workedMinutes: todayRecord.totalWorkedMinutes || 0,
-            status: activeBreakSession ? 'on_break' : 'active'
+            status: isOnBreak ? 'on_break' : 'active'
           } : null),
           hasCompletedSessions:
             todayRecord.sessions?.some(

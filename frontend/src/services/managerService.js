@@ -95,14 +95,32 @@ const managerService = {
   },
 
   // Attendance Approvals
-  approveAttendance: async (id, data) => {
-    const response = await api.put(`/manager/attendance/${id}/approve`, data);
-    return response.data;
+  approveAttendanceCorrection: async (id, data) => {
+    try {
+      console.log('✅ [MANAGER] Approving attendance correction:', id, data);
+      const response = await api.put(`/manager/attendance-correction/${id}/approve`, data);
+      console.log('✅ [MANAGER] Attendance correction approved:', response.data);
+      toast.success('Attendance correction approved successfully');
+      return response.data;
+    } catch (error) {
+      console.error('❌ [MANAGER] Failed to approve attendance correction:', error);
+      toast.error(error.message || 'Failed to approve attendance correction');
+      throw error;
+    }
   },
 
-  rejectAttendance: async (id, data) => {
-    const response = await api.put(`/manager/attendance/${id}/reject`, data);
-    return response.data;
+  rejectAttendanceCorrection: async (id, data) => {
+    try {
+      console.log('❌ [MANAGER] Rejecting attendance correction:', id, data);
+      const response = await api.put(`/manager/attendance-correction/${id}/reject`, data);
+      console.log('✅ [MANAGER] Attendance correction rejected:', response.data);
+      toast.success('Attendance correction rejected');
+      return response.data;
+    } catch (error) {
+      console.error('❌ [MANAGER] Failed to reject attendance correction:', error);
+      toast.error(error.message || 'Failed to reject attendance correction');
+      throw error;
+    }
   },
 
   // Expense Approvals

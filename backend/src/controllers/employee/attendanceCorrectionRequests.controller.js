@@ -7,12 +7,23 @@ import { validationResult } from 'express-validator';
  */
 const getAttendanceIssues = async (req, res) => {
   try {
-    const employeeId = req.user.employeeId;
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found'
+      });
+    }
     
     // Get attendance records with potential issues
     const attendanceRecords = await AttendanceRecord.findAll({
       where: {
-        employeeId,
+        employeeId: employee.id,
         [Op.or]: [
           { clockIn: null },
           { clockOut: null },
@@ -64,10 +75,21 @@ const getAttendanceIssues = async (req, res) => {
  */
 const getCorrectionRequests = async (req, res) => {
   try {
-    const employeeId = req.user.employeeId;
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found'
+      });
+    }
     
     const requests = await AttendanceCorrectionRequest.findAll({
-      where: { employeeId },
+      where: { employeeId: employee.id },
       include: [
         {
           model: Employee,
@@ -108,7 +130,19 @@ const submitCorrectionRequest = async (req, res) => {
       });
     }
 
-    const employeeId = req.user.employeeId;
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found'
+      });
+    }
+
     const {
       date,
       expectedClockIn,
@@ -121,7 +155,7 @@ const submitCorrectionRequest = async (req, res) => {
     // Check if there's already a pending request for this date
     const existingRequest = await AttendanceCorrectionRequest.findOne({
       where: {
-        employeeId,
+        employeeId: employee.id,
         date,
         status: 'pending'
       }
@@ -142,7 +176,7 @@ const submitCorrectionRequest = async (req, res) => {
 
     // Create the correction request
     const correctionRequest = await AttendanceCorrectionRequest.create({
-      employeeId,
+      employeeId: employee.id,
       date,
       requestedClockIn,
       requestedClockOut,
@@ -188,12 +222,24 @@ const submitCorrectionRequest = async (req, res) => {
 const getCorrectionRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const employeeId = req.user.employeeId;
+    
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found'
+      });
+    }
 
     const request = await AttendanceCorrectionRequest.findOne({
       where: { 
         id, 
-        employeeId // Ensure employee can only see their own requests
+        employeeId: employee.id // Ensure employee can only see their own requests
       },
       include: [
         {
@@ -233,12 +279,24 @@ const getCorrectionRequest = async (req, res) => {
 const cancelCorrectionRequest = async (req, res) => {
   try {
     const { id } = req.params;
-    const employeeId = req.user.employeeId;
+    
+    // Find employee by userId
+    const employee = await Employee.findOne({
+      where: { userId: req.user.id },
+      attributes: ['id']
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee profile not found'
+      });
+    }
 
     const request = await AttendanceCorrectionRequest.findOne({
       where: { 
         id, 
-        employeeId,
+        employeeId: employee.id,
         status: 'pending' // Can only cancel pending requests
       }
     });

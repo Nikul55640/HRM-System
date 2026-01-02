@@ -30,11 +30,27 @@ const ShiftDetails = ({ shiftId, onClose }) => {
   const fetchAssignedEmployees = async () => {
     try {
       const response = await api.get('/admin/shifts/assignments/list', {
-        params: { shiftId, limit: 100 }
+        params: { shiftId, limit: 100, isActive: true }
       });
-      setAssignedEmployees(response.data.data || []);
+      
+      console.log('🔍 [SHIFT DETAILS] Assignments Response:', response);
+      
+      // Handle different response structures
+      let assignmentsData = [];
+      
+      if (response?.data?.data && Array.isArray(response.data.data)) {
+        assignmentsData = response.data.data;
+      } else if (response?.data && Array.isArray(response.data)) {
+        assignmentsData = response.data;
+      }
+      
+      console.log('✅ [SHIFT DETAILS] Extracted assignments:', assignmentsData.length, 'assignments');
+      setAssignedEmployees(assignmentsData);
+      
     } catch (error) {
       console.error('Failed to fetch assigned employees:', error);
+      setAssignedEmployees([]); // Ensure empty array on error
+      // Don't show toast error for this as it's not critical
     }
   };
 
@@ -228,7 +244,7 @@ const ShiftDetails = ({ shiftId, onClose }) => {
                     <p className="font-medium text-gray-900">
                       {emp.employee?.firstName} {emp.employee?.lastName}
                     </p>
-                    <p className="text-sm text-gray-600">{emp.employee?.email}</p>
+                    <p className="text-sm text-gray-600">{emp.employee?.user?.email}</p>
                     <p className="text-xs text-gray-500">ID: {emp.employee?.employeeId}</p>
                   </div>
                   <Button

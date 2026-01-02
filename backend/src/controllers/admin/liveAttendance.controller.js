@@ -5,6 +5,7 @@
 
 import AttendanceRecord from "../../models/sequelize/AttendanceRecord.js";
 import Employee from "../../models/sequelize/Employee.js";
+import User from "../../models/sequelize/User.js";
 import AuditLog from "../../models/sequelize/AuditLog.js";
 
 // Helper: get user ID
@@ -43,11 +44,17 @@ export const getLiveAttendance = async (req, res) => {
             "employeeId",
             "firstName",
             "lastName",
-            "email",
             "designation",
             "department",
             "status",
           ],
+          include: [
+            {
+              model: User,
+              as: 'user',
+              attributes: ['id', 'email']
+            }
+          ]
         },
       ],
     });
@@ -115,9 +122,14 @@ export const getLiveAttendance = async (req, res) => {
           `${record.employee.firstName || ""} ${
             record.employee.lastName || ""
           }`.trim() || "Unknown",
-        email: record.employee.email || "",
+        email: record.employee.user?.email || "",
         department: employeeDepartment,
         position: record.employee.designation || "",
+        // ✅ ENHANCED: Include late status from attendance record
+        isLate: record.isLate || false,
+        lateMinutes: record.lateMinutes || 0,
+        status: record.status || 'present',
+        shift: record.shift || null, // Include shift information if available
         currentSession: {
           sessionId: `session-${record.id}`,
           checkInTime: record.clockIn,
@@ -128,6 +140,9 @@ export const getLiveAttendance = async (req, res) => {
           totalWorkedMinutes: currentWorkedMinutes,
           totalBreakMinutes: record.totalBreakMinutes || 0,
           breakCount: breakSessions.length,
+          // Include late status in session as well for compatibility
+          isLate: record.isLate || false,
+          lateMinutes: record.lateMinutes || 0,
         },
       });
     });
@@ -212,6 +227,14 @@ export const getLiveAttendance = async (req, res) => {
         onBreak: liveAttendance.filter(
           (e) => e.currentSession.status === "on_break"
         ).length,
+        // ✅ ENHANCED: Include late and incomplete counts
+        late: liveAttendance.filter(e => e.isLate).length,
+        overtime: liveAttendance.filter(e => {
+          // Check if employee is in overtime (simplified logic)
+          const workedHours = e.currentSession.totalWorkedMinutes / 60;
+          return workedHours > 8; // Assuming 8-hour standard workday
+        }).length,
+        incomplete: 0, // Live attendance shows active sessions, incomplete would be from previous days
       },
       meta: {
         usingMockData: isDev && records.length === 0,
@@ -255,11 +278,17 @@ export const getEmployeeLiveStatus = async (req, res) => {
             "employeeId",
             "firstName",
             "lastName",
-            "email",
             "designation",
             "department",
             "status",
           ],
+          include: [
+            {
+              model: User,
+              as: 'user',
+              attributes: ['id', 'email']
+            }
+          ]
         },
       ],
     });
@@ -325,7 +354,7 @@ export const getEmployeeLiveStatus = async (req, res) => {
         `${record.employee.firstName || ""} ${
           record.employee.lastName || ""
         }`.trim() || "Unknown",
-      email: record.employee.email || "",
+      email: record.employee.user?.email || "",
       department: record.employee.department || "",
       position: record.employee.designation || "",
       currentSession: {

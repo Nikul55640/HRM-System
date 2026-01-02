@@ -18,6 +18,15 @@ const server = app.listen(PORT, () => {
     }).catch(() => {
       logger.warn('Cron jobs not initialized. Run "npm install" in backend directory to enable scheduled tasks.');
     });
+
+    // Initialize leave balance rollover cron job
+    import('./services/cron/leaveBalanceRollover.service.js').then((mod) => {
+      if (mod && mod.default && mod.default.initialize) {
+        mod.default.initialize();
+      }
+    }).catch((error) => {
+      logger.warn('Leave balance rollover cron job not initialized:', error.message);
+    });
   } catch (error) {
     logger.warn('Cron jobs not initialized. Run "npm install" in backend directory to enable scheduled tasks.');
   }

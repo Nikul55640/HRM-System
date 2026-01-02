@@ -4,6 +4,7 @@ import { Button } from "../../../../shared/ui/button";
 import { Badge } from "../../../../shared/ui/badge";
 import { Input } from "../../../../shared/ui/input";
 import { Textarea } from "../../../../shared/ui/textarea";
+import { Switch } from "../../../../shared/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../../../shared/ui/dialog";
 import { Icon, LoadingSpinner } from "../../../../shared/components";
 import { useToast } from "../../../../core/hooks/use-toast";
@@ -17,8 +18,11 @@ const DepartmentsPage = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    manager: "",
-    parentDepartment: ""
+    code: "",
+    managerId: "",
+    parentDepartmentId: "",
+    location: "",
+    budget: ""
   });
   const { toast } = useToast();
 
@@ -29,37 +33,25 @@ const DepartmentsPage = () => {
   const fetchDepartments = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/admin/departments');
+      const response = await api.get('/admin/departments?includeInactive=true');
       
-      // Debug: Log the actual response structure
       console.log('🔍 [DEPARTMENTS] API Response:', response);
       
       // Handle different response structures
       let departmentsData = [];
       
       if (response?.data?.data && Array.isArray(response.data.data)) {
-        // Structure: { success: true, data: [...] }
         departmentsData = response.data.data;
       } else if (response?.data && Array.isArray(response.data)) {
-        // Structure: [...]
         departmentsData = response.data;
-      } else if (response?.departments && Array.isArray(response.departments)) {
-        // Structure: { success: true, departments: [...] }
-        departmentsData = response.departments;
       }
-      
-      // Ensure each department has a valid employeeCount
-      departmentsData = departmentsData.map(dept => ({
-        ...dept,
-        employeeCount: dept.employeeCount || 0
-      }));
       
       console.log('✅ [DEPARTMENTS] Extracted departments:', departmentsData.length, 'departments');
       setDepartments(departmentsData);
       
     } catch (error) {
       console.error('Failed to fetch departments:', error);
-      setDepartments([]); // Ensure empty array on error
+      setDepartments([]);
       toast({
         title: "Error",
         description: "Failed to load departments",
@@ -74,13 +66,20 @@ const DepartmentsPage = () => {
     e.preventDefault();
     
     try {
+      const submitData = {
+        ...formData,
+        budget: formData.budget ? parseFloat(formData.budget) : null,
+        managerId: formData.managerId || null,
+        parentDepartmentId: formData.parentDepartmentId || null
+      };
+
       if (editingDepartment) {
-        // TODO: Replace with actual API call
-        // await api.put(`/admin/departments/${editingDepartment.id}`, formData);
+        const response = await api.put(`/admin/departments/${editingDepartment.id}`, submitData);
         
+        // Update local state
         setDepartments(departments.map(dept => 
           dept.id === editingDepartment.id 
-            ? { ...dept, ...formData }
+            ? { ...dept, ...response.data.data }
             : dept
         ));
         
@@ -89,18 +88,10 @@ const DepartmentsPage = () => {
           description: "Department updated successfully",
         });
       } else {
-        // TODO: Replace with actual API call
-        // const response = await api.post('/admin/departments', formData);
+        const response = await api.post('/admin/departments', submitData);
         
-        const newDepartment = {
-          id: Date.now(),
-          ...formData,
-          employeeCount: 0,
-          isActive: true,
-          createdAt: new Date().toISOString().split('T')[0]
-        };
-        
-        setDepartments([...departments, newDepartment]);
+        // Add new department to local state
+        setDepartments([...departments, response.data.data]);
         
         toast({
           title: "Success",
@@ -110,11 +101,12 @@ const DepartmentsPage = () => {
       
       setShowAddModal(false);
       setEditingDepartment(null);
-      setFormData({ name: "", description: "", manager: "", parentDepartment: "" });
+      resetForm();
     } catch (error) {
+      console.error('Error saving department:', error);
       toast({
         title: "Error",
-        description: "Failed to save department",
+        description: error.response?.data?.message || "Failed to save department",
         variant: "destructive",
       });
     }
@@ -123,10 +115,13 @@ const DepartmentsPage = () => {
   const handleEdit = (department) => {
     setEditingDepartment(department);
     setFormData({
-      name: department.name,
-      description: department.description,
-      manager: department.manager,
-      parentDepartment: department.parentDepartment || ""
+      name: department.name || "",
+      description: department.description || "",
+      code: department.code || "",
+      managerId: department.managerId || "",
+      parentDepartmentId: department.parentDepartmentId || "",
+      location: department.location || "",
+      budget: department.budget || ""
     });
     setShowAddModal(true);
   };
@@ -135,9 +130,9 @@ const DepartmentsPage = () => {
     if (!confirm("Are you sure you want to delete this department?")) return;
     
     try {
-      // TODO: Replace with actual API call
-      // await api.delete(`/admin/departments/${departmentId}`);
+      await api.delete(`/admin/departments/${departmentId}`);
       
+      // Remove from local state
       setDepartments(departments.filter(dept => dept.id !== departmentId));
       
       toast({
@@ -145,21 +140,62 @@ const DepartmentsPage = () => {
         description: "Department deleted successfully",
       });
     } catch (error) {
+      console.error('Error deleting department:', error);
       toast({
         title: "Error",
-        description: "Failed to delete department",
+        description: error.response?.data?.message || "Failed to delete department",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleToggleStatus = async (departmentId, currentStatus) => {
+    try {
+      const response = await api.patch(`/admin/departments/${departmentId}/toggle-status`);
+      
+      // Update local state
+      setDepartments(departments.map(dept => 
+        dept.id === departmentId 
+          ? { ...dept, isActive: response.data.data.isActive }
+          : dept
+      ));
+      
+      toast({
+        title: "Success",
+        description: `Department ${response.data.data.isActive ? 'activated' : 'deactivated'} successfully`,
+      });
+    } catch (error) {
+      console.error('Error toggling department status:', error);
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to update department status",
         variant: "destructive",
       });
     }
   };
 
   const resetForm = () => {
-    setFormData({ name: "", description: "", manager: "", parentDepartment: "" });
+    setFormData({
+      name: "",
+      description: "",
+      code: "",
+      managerId: "",
+      parentDepartmentId: "",
+      location: "",
+      budget: ""
+    });
     setEditingDepartment(null);
   };
 
-  const parentDepartments = departments.filter(dept => !dept.parentDepartment);
-  const childDepartments = departments.filter(dept => dept.parentDepartment);
+  // Filter departments for hierarchy display
+  const activeDepartments = departments.filter(dept => dept.isActive);
+  const parentDepartments = activeDepartments.filter(dept => !dept.parentDepartmentId);
+  const childDepartments = activeDepartments.filter(dept => dept.parentDepartmentId);
+
+  // Calculate totals
+  const totalEmployees = departments.reduce((sum, dept) => sum + (dept.employeeCount || 0), 0);
+  const activeDepartmentCount = activeDepartments.length;
+  const inactiveDepartmentCount = departments.filter(dept => !dept.isActive).length;
 
   if (loading) {
     return <LoadingSpinner message="Loading departments..." />;
@@ -179,21 +215,33 @@ const DepartmentsPage = () => {
               Add Department
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>
                 {editingDepartment ? "Edit Department" : "Add New Department"}
               </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Department Name</label>
-                <Input
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="Enter department name"
-                  required
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Department Name *</label>
+                  <Input
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Enter department name"
+                    required
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Department Code</label>
+                  <Input
+                    value={formData.code}
+                    onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                    placeholder="e.g., IT, HR, FIN"
+                    maxLength={10}
+                  />
+                </div>
               </div>
               
               <div>
@@ -206,29 +254,44 @@ const DepartmentsPage = () => {
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-1">Manager</label>
-                <Input
-                  value={formData.manager}
-                  onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
-                  placeholder="Enter manager name"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Parent Department</label>
+                  <select
+                    value={formData.parentDepartmentId}
+                    onChange={(e) => setFormData({ ...formData, parentDepartmentId: e.target.value })}
+                    className="w-full border rounded-md px-3 py-2"
+                  >
+                    <option value="">None (Top Level)</option>
+                    {parentDepartments
+                      .filter(dept => dept.id !== editingDepartment?.id)
+                      .map(dept => (
+                        <option key={dept.id} value={dept.id}>
+                          {dept.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Location</label>
+                  <Input
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    placeholder="Department location"
+                  />
+                </div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Parent Department</label>
-                <select
-                  value={formData.parentDepartment}
-                  onChange={(e) => setFormData({ ...formData, parentDepartment: e.target.value })}
-                  className="w-full border rounded-md px-3 py-2"
-                >
-                  <option value="">None (Top Level)</option>
-                  {parentDepartments.map(dept => (
-                    <option key={dept.id} value={dept.name}>
-                      {dept.name}
-                    </option>
-                  ))}
-                </select>
+                <label className="block text-sm font-medium mb-1">Budget</label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={formData.budget}
+                  onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                  placeholder="Department budget"
+                />
               </div>
               
               <div className="flex gap-2 pt-4">
@@ -257,8 +320,8 @@ const DepartmentsPage = () => {
                 <Icon name="Building2" className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Departments</p>
-                <p className="text-2xl font-bold">{departments.length}</p>
+                <p className="text-sm text-gray-600">Active Departments</p>
+                <p className="text-2xl font-bold">{activeDepartmentCount}</p>
               </div>
             </div>
           </CardContent>
@@ -272,9 +335,7 @@ const DepartmentsPage = () => {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Total Employees</p>
-                <p className="text-2xl font-bold">
-                  {departments.reduce((sum, dept) => sum + (dept.employeeCount || 0), 0)}
-                </p>
+                <p className="text-2xl font-bold">{totalEmployees}</p>
               </div>
             </div>
           </CardContent>
@@ -297,12 +358,12 @@ const DepartmentsPage = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-orange-100 rounded-lg">
-                <Icon name="GitBranch" className="w-5 h-5 text-orange-600" />
+              <div className="p-2 bg-red-100 rounded-lg">
+                <Icon name="XCircle" className="w-5 h-5 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Sub Departments</p>
-                <p className="text-2xl font-bold">{childDepartments.length}</p>
+                <p className="text-sm text-gray-600">Inactive Departments</p>
+                <p className="text-2xl font-bold">{inactiveDepartmentCount}</p>
               </div>
             </div>
           </CardContent>
@@ -311,7 +372,7 @@ const DepartmentsPage = () => {
 
       {/* Department Hierarchy */}
       <div className="space-y-4">
-        {/* Parent Departments */}
+        {/* Active Parent Departments */}
         {parentDepartments.map((parentDept) => (
           <Card key={parentDept.id}>
             <CardHeader>
@@ -319,7 +380,14 @@ const DepartmentsPage = () => {
                 <div className="flex items-center gap-3">
                   <Icon name="Building2" className="w-6 h-6 text-blue-600" />
                   <div>
-                    <CardTitle className="text-lg">{parentDept.name}</CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      {parentDept.name}
+                      {parentDept.code && (
+                        <Badge variant="outline" className="text-xs">
+                          {parentDept.code}
+                        </Badge>
+                      )}
+                    </CardTitle>
                     <p className="text-sm text-gray-600">{parentDept.description}</p>
                   </div>
                 </div>
@@ -327,6 +395,15 @@ const DepartmentsPage = () => {
                   <Badge variant="outline">
                     {parentDept.employeeCount || 0} employees
                   </Badge>
+                  <div className="flex items-center gap-1">
+                    <Switch
+                      checked={parentDept.isActive}
+                      onCheckedChange={() => handleToggleStatus(parentDept.id, parentDept.isActive)}
+                    />
+                    <span className="text-xs text-gray-500">
+                      {parentDept.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
                   <Button
                     size="sm"
                     variant="outline"
@@ -345,14 +422,22 @@ const DepartmentsPage = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Manager</label>
-                  <p className="font-medium">{parentDept.manager || "Not assigned"}</p>
+                  <label className="text-sm font-medium text-gray-500">Location</label>
+                  <p className="font-medium">{parentDept.location || "Not specified"}</p>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Budget</label>
+                  <p className="font-medium">
+                    {parentDept.budget ? `$${parseFloat(parentDept.budget).toLocaleString()}` : "Not set"}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Created</label>
-                  <p className="font-medium">{parentDept.createdAt}</p>
+                  <p className="font-medium">
+                    {new Date(parentDept.createdAt).toLocaleDateString()}
+                  </p>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-gray-500">Status</label>
@@ -377,7 +462,14 @@ const DepartmentsPage = () => {
                           <div className="flex items-center gap-3">
                             <Icon name="GitBranch" className="w-4 h-4 text-gray-500" />
                             <div>
-                              <h5 className="font-medium">{childDept.name}</h5>
+                              <h5 className="font-medium flex items-center gap-2">
+                                {childDept.name}
+                                {childDept.code && (
+                                  <Badge variant="outline" className="text-xs">
+                                    {childDept.code}
+                                  </Badge>
+                                )}
+                              </h5>
                               <p className="text-sm text-gray-600">{childDept.description}</p>
                             </div>
                           </div>
@@ -385,6 +477,13 @@ const DepartmentsPage = () => {
                             <Badge variant="outline" size="sm">
                               {childDept.employeeCount || 0} employees
                             </Badge>
+                            <div className="flex items-center gap-1">
+                              <Switch
+                                checked={childDept.isActive}
+                                onCheckedChange={() => handleToggleStatus(childDept.id, childDept.isActive)}
+                                size="sm"
+                              />
+                            </div>
                             <Button
                               size="sm"
                               variant="outline"
@@ -409,32 +508,46 @@ const DepartmentsPage = () => {
           </Card>
         ))}
 
-        {/* Standalone Child Departments (if any) */}
-        {childDepartments.filter(child => !parentDepartments.find(parent => parent.id === child.parentDepartmentId)).length > 0 && (
+        {/* Inactive Departments */}
+        {inactiveDepartmentCount > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>Other Departments</CardTitle>
+              <CardTitle className="text-lg text-gray-600">Inactive Departments</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {childDepartments
-                  .filter(child => !parentDepartments.find(parent => parent.id === child.parentDepartmentId))
+                {departments
+                  .filter(dept => !dept.isActive)
                   .map((dept) => (
                     <div
                       key={dept.id}
-                      className="flex items-center justify-between p-3 border rounded-lg"
+                      className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
                     >
                       <div className="flex items-center gap-3">
-                        <Icon name="Building2" className="w-5 h-5 text-gray-500" />
+                        <Icon name="Building2" className="w-5 h-5 text-gray-400" />
                         <div>
-                          <h5 className="font-medium">{dept.name}</h5>
-                          <p className="text-sm text-gray-600">{dept.description}</p>
+                          <h5 className="font-medium text-gray-600 flex items-center gap-2">
+                            {dept.name}
+                            {dept.code && (
+                              <Badge variant="outline" className="text-xs">
+                                {dept.code}
+                              </Badge>
+                            )}
+                          </h5>
+                          <p className="text-sm text-gray-500">{dept.description}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">
+                        <Badge variant="secondary">
                           {dept.employeeCount || 0} employees
                         </Badge>
+                        <div className="flex items-center gap-1">
+                          <Switch
+                            checked={dept.isActive}
+                            onCheckedChange={() => handleToggleStatus(dept.id, dept.isActive)}
+                          />
+                          <span className="text-xs text-gray-500">Inactive</span>
+                        </div>
                         <Button
                           size="sm"
                           variant="outline"

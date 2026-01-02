@@ -102,4 +102,16 @@ router.get(
   departmentController.searchDepartments
 );
 
+// --------------------------------------
+// TOGGLE DEPARTMENT STATUS (ACTIVATE/DEACTIVATE)
+// Permission: DEPARTMENT.UPDATE
+// Roles: HR Admin, SuperAdmin
+// --------------------------------------
+router.patch(
+  "/:id/toggle-status",
+  authenticate,
+  checkPermission(MODULES.DEPARTMENT.UPDATE),
+  departmentController.toggleDepartmentStatus
+);
+
 export default router;

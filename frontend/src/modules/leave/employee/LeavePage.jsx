@@ -17,6 +17,7 @@ import leaveService from "../../../services/leaveService";
 import LeaveRequestModal from "./LeaveRequestModal";
 import LeaveBalanceCards from "../components/LeaveBalanceCards";
 import useLeaveBalance from "../hooks/useLeaveBalance";
+import LeaveHistoryTable from "../../leave/components/LeaveHistoryTable";
 
 const LeavePage = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
@@ -331,6 +332,10 @@ const LeavePage = () => {
           )}
         </div>
       </div>
+<LeaveHistoryTable
+  history={leaveRequests}
+  onRefresh={fetchLeaveHistory}
+/>
 
       {/* Leave Request Modal */}
       {showModal && (

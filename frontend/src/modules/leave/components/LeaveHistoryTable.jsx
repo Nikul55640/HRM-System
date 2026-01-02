@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import PropTypes from "prop-types";
 import {
   Card,
@@ -14,14 +14,22 @@ import {
   Clock,
   FileText,
   X,
+  ChevronDown,
+  ChevronUp,
   CheckCircle,
   XCircle,
+  User,
 } from "lucide-react";
 import { toast } from "react-toastify";
 import leaveService from "../../../services/leaveService";
 
 const LeaveHistoryTable = ({ history, onRefresh }) => {
+  const [expandedId, setExpandedId] = useState(null);
   const [cancellingId, setCancellingId] = useState(null);
+
+  const toggleExpand = (id) => {
+    setExpandedId((prev) => (prev === id ? null : id));
+  };
 
   const handleCancelRequest = async (requestId) => {
     if (
@@ -30,12 +38,10 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
       return;
     }
 
-    // Prompt for cancellation reason
-    const reason = window.prompt('Please provide a reason for cancellation (optional):');
-    if (reason === null) {
-      // User clicked cancel on the prompt
-      return;
-    }
+    const reason = window.prompt(
+      "Please provide a reason for cancellation (optional):",
+    );
+    if (reason === null) return;
 
     try {
       setCancellingId(requestId);
@@ -44,7 +50,7 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
       onRefresh?.();
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Failed to cancel leave request"
+        error.response?.data?.message || "Failed to cancel leave request",
       );
     } finally {
       setCancellingId(null);
@@ -53,7 +59,7 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
 
   if (!history || history.length === 0) {
     return (
-      <div className="text-center py-10 text-muted-foreground">
+      <div className="text-center py-10 text-gray-500">
         No leave history available.
       </div>
     );
@@ -62,143 +68,150 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
   return (
     <div className="space-y-4">
       {history.map((item) => {
-        const requestId = item.id || item._id;
+        const isExpanded = expandedId === item.id;
 
         return (
-          <Card key={requestId} className="hover:shadow-md transition-shadow">
-            <CardHeader className="pb-2">
+          <Card
+            key={item.id}
+            className="border border-gray-200 rounded-xl transition"
+          >
+            {/* ===== HEADER (ALWAYS VISIBLE) ===== */}
+            <CardHeader className="pb-3">
               <div className="flex justify-between items-center">
-                <CardTitle className="flex items-center gap-2 capitalize text-lg">
+                <CardTitle className="flex items-center gap-2 text-lg">
                   <FileText className="h-5 w-5 text-primary" />
                   {item.leaveType}
                 </CardTitle>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <ApprovalStatusBadge status={item.status} />
 
-                  {/* PENDING → Cancel - Check for both "pending" and empty string without approvedAt */}
-                  {(item.status === "pending" || (item.status === "" && !item.approvedAt && !item.cancelledAt)) && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleCancelRequest(requestId)}
-                      disabled={cancellingId === requestId}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
-                    >
-                      {cancellingId === requestId ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-1" />
-                          Cancelling...
-                        </>
-                      ) : (
-                        <>
-                          <X className="h-4 w-4 mr-1" />
-                          Cancel
-                        </>
-                      )}
-                    </Button>
-                  )}
-
-                  {/* APPROVED - Check for both "approved" and empty string with approvedAt */}
-                  {(item.status === "approved" || (item.status === "" && item.approvedAt)) && (
-                    <span className="flex items-center gap-1 text-sm text-green-600">
-                      <CheckCircle className="h-4 w-4" />
-                      Approved
-                    </span>
-                  )}
-
-                  {/* REJECTED */}
-                  {item.status === "rejected" && (
-                    <span className="flex items-center gap-1 text-sm text-red-600">
-                      <XCircle className="h-4 w-4" />
-                      Rejected
-                    </span>
-                  )}
-
-                  {/* CANCELLED */}
-                  {item.status === "cancelled" && (
-                    <span className="flex items-center gap-1 text-sm text-gray-600">
-                      <XCircle className="h-4 w-4" />
-                      Cancelled
-                    </span>
-                  )}
-
-                  {/* PENDING - Show for empty status without approvedAt or explicit pending */}
-                  {(item.status === "pending" || (item.status === "" && !item.approvedAt && !item.cancelledAt)) && (
-                    <span className="flex items-center gap-1 text-sm text-yellow-600">
-                      <Clock className="h-4 w-4" />
-                      Pending
-                    </span>
-                  )}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => toggleExpand(item.id)}
+                  >
+                    {isExpanded ? (
+                      <>
+                        <ChevronUp className="h-4 w-4 mr-1" />
+                        Hide
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4 mr-1" />
+                        View
+                      </>
+                    )}
+                  </Button>
                 </div>
               </div>
             </CardHeader>
 
-            <CardContent>
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    From:
-                  </span>
-                  <span>{formatDate(item.startDate)}</span>
-                </div>
+            {/* ===== BASIC INFO ===== */}
+            <CardContent className="text-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <span className="text-gray-500 flex items-center gap-1">
+                  <Calendar className="h-4 w-4" /> From
+                </span>
+                <div>{formatDate(item.startDate)}</div>
+              </div>
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    To:
-                  </span>
-                  <span>{formatDate(item.endDate)}</span>
-                </div>
+              <div>
+                <span className="text-gray-500 flex items-center gap-1">
+                  <Calendar className="h-4 w-4" /> To
+                </span>
+                <div>{formatDate(item.endDate)}</div>
+              </div>
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    Duration:
-                  </span>
-                  <span className="font-medium">
-                    {item.days} {item.days === 1 ? "day" : "days"}
-                  </span>
+              <div>
+                <span className="text-gray-500 flex items-center gap-1">
+                  <Clock className="h-4 w-4" /> Duration
+                </span>
+                <div className="font-medium">
+                  {item.totalDays} {item.totalDays === 1 ? "day" : "days"}
                 </div>
+              </div>
+            </CardContent>
 
+            {/* ===== EXPANDED DETAILS ===== */}
+            {isExpanded && (
+              <CardContent className="border-t bg-gray-50 space-y-4 text-sm">
                 {/* Reason */}
                 {item.reason && (
-                  <div className="space-y-1">
-                    <span className="text-muted-foreground text-sm">
-                      Reason:
-                    </span>
-                    <p className="text-sm bg-muted/50 p-2 rounded-md">
+                  <div>
+                    <span className="text-gray-500">Reason</span>
+                    <p className="mt-1 bg-white p-3 rounded-md border">
                       {item.reason}
                     </p>
                   </div>
                 )}
 
-                {/* Rejection Reason */}
-                {item.status === "rejected" && item.rejectionReason && (
-                  <div className="space-y-1">
-                    <span className="text-sm text-red-600">
-                      Rejection Reason:
-                    </span>
-                    <p className="text-sm bg-red-50 p-2 rounded-md text-red-700">
-                      {item.rejectionReason}
-                    </p>
+                {/* Approved */}
+                {item.status === "approved" && (
+                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <CheckCircle className="h-4 w-4" />
+                      Approved
+                    </div>
+                    <div className="mt-1 text-xs text-green-700">
+                      By: {item.approver?.email || "HR"}
+                    </div>
+                    <div className="text-xs text-green-600">
+                      On:{" "}
+                      {item.approvedAt
+                        ? new Date(item.approvedAt).toLocaleString()
+                        : "-"}
+                    </div>
                   </div>
                 )}
 
-                {/* Cancellation Reason */}
-                {item.status === "cancelled" && item.cancellationReason && (
-                  <div className="space-y-1">
-                    <span className="text-sm text-gray-600">
-                      Cancellation Reason:
-                    </span>
-                    <p className="text-sm bg-gray-50 p-2 rounded-md text-gray-700">
-                      {item.cancellationReason}
-                    </p>
+                {/* Rejected */}
+                {item.status === "rejected" && item.rejectionReason && (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                    <div className="flex items-center gap-2 text-red-700">
+                      <XCircle className="h-4 w-4" />
+                      Rejected
+                    </div>
+                    <p className="mt-1 text-red-700">{item.rejectionReason}</p>
                   </div>
                 )}
-              </div>
-            </CardContent>
+
+                {/* Cancelled */}
+                {item.status === "cancelled" && item.cancellationReason && (
+                  <div className="bg-gray-100 border rounded-md p-3">
+                    <span className="font-medium text-gray-700">
+                      Cancellation Reason
+                    </span>
+                    <p className="mt-1">{item.cancellationReason}</p>
+                  </div>
+                )}
+
+                {/* Cancel Button */}
+                {item.canCancel && (
+                  <div className="flex justify-end">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleCancelRequest(item.id)}
+                      disabled={cancellingId === item.id}
+                      className="border-red-200 text-red-600 hover:bg-red-50"
+                    >
+                      {cancellingId === item.id ? (
+                        <>
+                          <span className="w-4 h-4 border-2 border-red-600 border-t-transparent rounded-full animate-spin mr-1" />
+                          Cancelling...
+                        </>
+                      ) : (
+                        <>
+                          <X className="h-4 w-4 mr-1" />
+                          Cancel Leave
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            )}
           </Card>
         );
       })}
@@ -207,13 +220,8 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
 };
 
 LeaveHistoryTable.propTypes = {
-  history: PropTypes.array,
+  history: PropTypes.array.isRequired,
   onRefresh: PropTypes.func,
-};
-
-LeaveHistoryTable.defaultProps = {
-  history: [],
-  onRefresh: null,
 };
 
 export default LeaveHistoryTable;

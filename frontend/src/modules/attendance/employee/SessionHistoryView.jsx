@@ -222,6 +222,8 @@ const SessionHistoryView = () => {
                               ? 'bg-green-100 text-green-700'
                               : record.status === 'half_day'
                               ? 'bg-yellow-100 text-yellow-700'
+                              : record.status === 'incomplete'
+                              ? 'bg-orange-100 text-orange-700'
                               : 'bg-gray-100 text-gray-700'
                           }`}
                         >
@@ -229,99 +231,73 @@ const SessionHistoryView = () => {
                         </span>
                       </div>
 
-                      {/* Sessions */}
-                      {record.sessions && record.sessions.length > 0 && (
-                        <div className="space-y-2">
-                          {record.sessions.map((session, idx) => (
-                            <div
-                              key={session.sessionId || session.id || `session-${record.id || record._id}-${idx}`}
-                              className="bg-muted/50 rounded-md p-3 space-y-2"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  {getLocationIcon(session.workLocation)}
-                                  <span className="text-sm font-medium">
-                                    {getLocationLabel(session.workLocation)}
+                      {/* Main Session Info */}
+                      <div className="bg-muted/50 rounded-md p-3 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="h-4 w-4" />
+                            <span className="text-sm font-medium">Office</span>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          <div>
+                            <div className="text-muted-foreground text-xs">
+                              Clock In
+                            </div>
+                            <div className="font-medium">
+                              {record.clockIn ? formatTime(record.clockIn) : '-'}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground text-xs">
+                              Clock Out
+                            </div>
+                            <div className="font-medium">
+                              {record.clockOut ? formatTime(record.clockOut) : '-'}
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-muted-foreground text-xs">
+                              Worked
+                            </div>
+                            <div className="font-medium">
+                              {formatDuration(record.totalWorkedMinutes || 0)}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Breaks */}
+                        {record.breakSessions && record.breakSessions.length > 0 && (
+                          <div className="pt-2 border-t">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                              <Coffee className="h-3 w-3" />
+                              <span>
+                                {record.breakSessions.length} break(s) -{' '}
+                                {formatDuration(record.totalBreakMinutes || 0)}
+                              </span>
+                            </div>
+                            <div className="space-y-1">
+                              {record.breakSessions.map((breakItem, bIdx) => (
+                                <div
+                                  key={`break-${record.id || record._id}-${bIdx}`}
+                                  className="text-xs flex items-center justify-between"
+                                >
+                                  <span>
+                                    {formatTime(breakItem.breakIn)} -{' '}
+                                    {breakItem.breakOut
+                                      ? formatTime(breakItem.breakOut)
+                                      : 'ongoing'}
+                                  </span>
+                                  <span className="text-muted-foreground">
+                                    {formatDuration(breakItem.duration || 0)}
                                   </span>
                                 </div>
-                                <span className="text-xs text-muted-foreground">
-                                  Session {idx + 1}
-                                </span>
-                              </div>
-
-                              <div className="grid grid-cols-3 gap-2 text-sm">
-                                <div>
-                                  <div className="text-muted-foreground text-xs">
-                                    Clock In
-                                  </div>
-                                  <div className="font-medium">
-                                    {formatTime(session.checkIn)}
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="text-muted-foreground text-xs">
-                                    Clock Out
-                                  </div>
-                                  <div className="font-medium">
-                                    {session.checkOut
-                                      ? formatTime(session.checkOut)
-                                      : '-'}
-                                  </div>
-                                </div>
-                                <div>
-                                  <div className="text-muted-foreground text-xs">
-                                    Worked
-                                  </div>
-                                  <div className="font-medium">
-                                    {formatDuration(session.workedMinutes || 0)}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Breaks */}
-                              {session.breaks && session.breaks.length > 0 && (
-                                <div className="pt-2 border-t">
-                                  <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                                    <Coffee className="h-3 w-3" />
-                                    <span>
-                                      {session.breaks.length} break(s) -{' '}
-                                      {formatDuration(
-                                        session.totalBreakMinutes || 0
-                                      )}
-                                    </span>
-                                  </div>
-                                  <div className="space-y-1">
-                                    {session.breaks.map((breakItem, bIdx) => (
-                                      <div
-                                        key={breakItem.breakId || breakItem.id || `break-${session.sessionId || session.id}-${bIdx}`}
-                                        className="text-xs flex items-center justify-between"
-                                      >
-                                        <span>
-                                          {formatTime(breakItem.startTime)} -{' '}
-                                          {breakItem.endTime
-                                            ? formatTime(breakItem.endTime)
-                                            : 'ongoing'}
-                                        </span>
-                                        <span className="text-muted-foreground">
-                                          {formatDuration(
-                                            breakItem.durationMinutes || 0
-                                          )}
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {session.locationDetails && (
-                                <div className="text-xs text-muted-foreground">
-                                  📍 {session.locationDetails}
-                                </div>
-                              )}
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

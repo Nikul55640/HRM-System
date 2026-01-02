@@ -48,7 +48,10 @@ const getBankDetails = async (req, res) => {
       });
     }
 
-    const employeeRecord = await Employee.findByPk(employee.id);
+    // Find employee by userId instead of employee.id
+    const employeeRecord = await Employee.findOne({
+      where: { userId: req.user.id }
+    });
 
     console.log('🏦 [BANK DETAILS] Employee found:', !!employeeRecord);
     console.log('🏦 [BANK DETAILS] Bank details exist:', !!employeeRecord?.bankDetails);
@@ -155,8 +158,10 @@ const updateBankDetails = async (req, res) => {
       });
     }
 
-    // Find employee
-    const employeeRecord = await Employee.findByPk(employee.id);
+    // Find employee by userId
+    const employeeRecord = await Employee.findOne({
+      where: { userId: req.user.id }
+    });
 
     if (!employeeRecord) {
       return res.status(404).json({
@@ -221,7 +226,10 @@ const requestVerification = async (req, res) => {
       });
     }
 
-    const employeeRecord = await Employee.findByPk(employee.id);
+    // Find employee by userId
+    const employeeRecord = await Employee.findOne({
+      where: { userId: req.user.id }
+    });
 
     if (!employeeRecord || !employeeRecord.bankDetails || Object.keys(employeeRecord.bankDetails).length === 0) {
       return res.status(404).json({
@@ -310,7 +318,14 @@ const getPendingVerifications = async (req, res) => {
       where: {
         '$bankDetails.isVerified$': false,
       },
-      attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email', 'bankDetails', 'updatedAt']
+      attributes: ['id', 'employeeId', 'firstName', 'lastName', 'bankDetails', 'updatedAt'],
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'email']
+        }
+      ]
     });
 
     const pendingList = employees
@@ -319,7 +334,7 @@ const getPendingVerifications = async (req, res) => {
         employeeId: employee.id,
         employeeCode: employee.employeeId,
         employeeName: `${employee.firstName} ${employee.lastName}`,
-        email: employee.email,
+        email: employee.user?.email,
         bankName: employee.bankDetails?.bankName,
         ifscCode: employee.bankDetails?.ifscCode,
         accountHolderName: employee.bankDetails?.accountHolderName,

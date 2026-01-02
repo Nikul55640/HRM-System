@@ -54,7 +54,7 @@ const employeeLeaveController = {
   getMyLeaveRequests: async (req, res) => {
     try {
       const result = await leaveRequestService.getEmployeeLeaveRequests(
-        req.user.employeeId,
+        req.user.employee?.id,
         req.query,
         req.user,
         req.query
@@ -78,7 +78,7 @@ const employeeLeaveController = {
     try {
       const { year } = req.query;
       const result = await leaveBalanceService.getEmployeeLeaveBalances(
-        req.user.employeeId,
+        req.user.employee?.id,
         year,
         req.user
       );
@@ -130,7 +130,7 @@ const employeeLeaveController = {
 
       // First check if this request belongs to the current user
       const result = await leaveRequestService.getEmployeeLeaveRequests(
-        req.user.employeeId,
+        req.user.employee?.id,
         { requestId: id },
         req.user,
         { limit: 1 }
@@ -162,7 +162,7 @@ const employeeLeaveController = {
       const filters = year ? { year: parseInt(year) } : {};
 
       const result = await leaveRequestService.getEmployeeLeaveRequests(
-        req.user.employeeId,
+        req.user.employee?.id,
         filters,
         req.user,
         { ...req.query, limit: 100 }
@@ -215,7 +215,7 @@ const employeeLeaveController = {
   getMyLeaveBalanceHistory: async (req, res) => {
     try {
       const result = await leaveBalanceService.getLeaveBalanceHistory(
-        req.user.employeeId,
+        req.user.employee?.id,
         req.query,
         req.user
       );
@@ -249,7 +249,7 @@ const employeeLeaveController = {
 
       // Get current leave balance
       const balanceResult = await leaveBalanceService.getEmployeeLeaveBalances(
-        req.user.employeeId,
+        req.user.employee?.id,
         new Date().getFullYear(),
         req.user
       );
@@ -296,7 +296,7 @@ const employeeLeaveController = {
       };
 
       const result = await leaveRequestService.getEmployeeLeaveRequests(
-        req.user.employeeId,
+        req.user.employee?.id,
         filters,
         req.user,
         req.query
@@ -321,7 +321,7 @@ const employeeLeaveController = {
       const { year = new Date().getFullYear() } = req.query;
       
       const result = await leaveBalanceService.getEmployeeLeaveBalances(
-        req.user.employeeId,
+        req.user.employee?.id,
         year,
         req.user
       );

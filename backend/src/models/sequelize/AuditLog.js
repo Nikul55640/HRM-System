@@ -224,7 +224,7 @@ AuditLog.getFilteredLogs = async function (filters = {}) {
             {
                 model: sequelize.models.User,
                 as: 'user',
-                attributes: ['id', 'name', 'email', 'role']
+                attributes: ['id', 'email', 'role']
             }
         ],
         order: [['createdAt', 'DESC']],
@@ -252,7 +252,7 @@ AuditLog.getSuspiciousActivities = async function (timeframe = 24) {
             {
                 model: sequelize.models.User,
                 as: 'user',
-                attributes: ['id', 'name', 'email', 'role']
+                attributes: ['id', 'email', 'role']
             }
         ],
         order: [['createdAt', 'DESC']]

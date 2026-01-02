@@ -45,12 +45,12 @@ class HolidayService {
                     {
                         model: User,
                         as: 'creator',
-                        attributes: ['id', 'name', 'email']
+                        attributes: ['id', 'email']
                     },
                     {
                         model: User,
                         as: 'updater',
-                        attributes: ['id', 'name', 'email']
+                        attributes: ['id', 'email']
                     }
                 ],
                 limit: parseInt(limit),
@@ -89,12 +89,12 @@ class HolidayService {
                     {
                         model: User,
                         as: 'creator',
-                        attributes: ['id', 'name', 'email']
+                        attributes: ['id', 'email']
                     },
                     {
                         model: User,
                         as: 'updater',
-                        attributes: ['id', 'name', 'email']
+                        attributes: ['id', 'email']
                     }
                 ]
             });
@@ -195,7 +195,7 @@ class HolidayService {
                     {
                         model: User,
                         as: 'creator',
-                        attributes: ['id', 'name', 'email']
+                        attributes: ['id', 'email']
                     }
                 ]
             });
@@ -276,12 +276,12 @@ class HolidayService {
                     {
                         model: User,
                         as: 'creator',
-                        attributes: ['id', 'name', 'email']
+                        attributes: ['id', 'email']
                     },
                     {
                         model: User,
                         as: 'updater',
-                        attributes: ['id', 'name', 'email']
+                        attributes: ['id', 'email']
                     }
                 ]
             });

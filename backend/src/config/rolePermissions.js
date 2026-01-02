@@ -442,7 +442,7 @@ export const canAccessEmployee = (user, employeeId, employeeDepartment) => {
   // Employee can only access own record
   if (user.role === ROLES.EMPLOYEE) {
     return (
-      user.employeeId && user.employeeId.toString() === employeeId.toString()
+      user.employee?.id && user.employee?.id.toString() === employeeId.toString()
     );
   }
 

@@ -18,7 +18,7 @@ class LeaveRequestService {
      */
     async applyForLeave(leaveRequestData, user, metadata = {}) {
         try {
-            if (!user.employeeId) {
+            if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
@@ -40,7 +40,7 @@ class LeaveRequestService {
             const currentYear = new Date().getFullYear();
             const leaveBalance = await LeaveBalance.findOne({
                 where: {
-                    employeeId: user.employeeId,
+                    employeeId: user.employee?.id,
                     leaveType,
                     year: currentYear
                 }
@@ -60,7 +60,7 @@ class LeaveRequestService {
             // Check for overlapping leave requests
             const overlappingRequest = await LeaveRequest.findOne({
                 where: {
-                    employeeId: user.employeeId,
+                    employeeId: user.employee?.id,
                     status: { [Op.in]: ['pending', 'approved'] },
                     [Op.or]: [
                         {
@@ -89,7 +89,7 @@ class LeaveRequestService {
 
             // Create leave request
             const leaveRequest = await LeaveRequest.create({
-                employeeId: user.employeeId,
+                employeeId: user.employee?.id,
                 leaveType,
                 startDate,
                 endDate,
@@ -103,7 +103,7 @@ class LeaveRequestService {
 
             // Update leave balance - mark as pending
             await LeaveBalance.adjustBalanceForLeave(
-                user.employeeId,
+                user.employee?.id,
                 leaveType,
                 totalDays,
                 'pending'
@@ -128,7 +128,14 @@ class LeaveRequestService {
                     {
                         model: Employee,
                         as: 'employee',
-                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email']
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName'],
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['id', 'email']
+                            }
+                        ]
                     }
                 ]
             });
@@ -218,14 +225,21 @@ class LeaveRequestService {
                     {
                         model: Employee,
                         as: 'employee',
-                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email', 'department'],
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department'],
                         where: employeeFilter,
-                        required: Object.keys(employeeFilter).length > 0 // Only require if filtering
+                        required: Object.keys(employeeFilter).length > 0, // Only require if filtering
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['id', 'email']
+                            }
+                        ]
                     },
                     {
                         model: User,
                         as: 'approver',
-                        attributes: ['id', 'name', 'email'],
+                        attributes: ['id', 'email'],
                         required: false
                     }
                 ],
@@ -354,12 +368,19 @@ class LeaveRequestService {
                     {
                         model: Employee,
                         as: 'employee',
-                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'email']
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName'],
+                        include: [
+                            {
+                                model: User,
+                                as: 'user',
+                                attributes: ['id', 'email']
+                            }
+                        ]
                     },
                     {
                         model: User,
                         as: 'approver',
-                        attributes: ['id', 'name', 'email'],
+                        attributes: ['id', 'email'],
                         required: false
                     }
                 ]
@@ -407,7 +428,7 @@ class LeaveRequestService {
             // Check permissions
             if (user.role === ROLES.EMPLOYEE) {
                 // Employees can only cancel their own requests
-                if (leaveRequest.employeeId !== user.employeeId) {
+                if (leaveRequest.employeeId !== user.employee?.id) {
                     throw { message: "You can only cancel your own leave requests", statusCode: 403 };
                 }
                 // Check if request can be cancelled
@@ -496,7 +517,7 @@ class LeaveRequestService {
         try {
             // Convert both to strings for comparison to avoid type mismatch
             const requestedEmployeeId = employeeId?.toString();
-            const userEmployeeId = user.employeeId?.toString();
+            const userEmployeeId = user.employee?.id?.toString();
 
             // Permission check
             if (user.role === ROLES.EMPLOYEE && userEmployeeId !== requestedEmployeeId) {
@@ -538,7 +559,7 @@ class LeaveRequestService {
                     {
                         model: User,
                         as: 'approver',
-                        attributes: ['id', 'name', 'email'],
+                        attributes: ['id', 'email'],
                         required: false
                     }
                 ],

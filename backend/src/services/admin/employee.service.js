@@ -129,33 +129,42 @@ class EmployeeService {
         };
       }
 
-      // Check email uniqueness if email is being updated
+      // Check email uniqueness if email is being updated (now handled at User level)
       if (updateData.email) {
         const emailLower = updateData.email.toLowerCase();
-        const currentEmail = employee.email?.toLowerCase();
-        if (emailLower !== currentEmail) {
-          const existingEmployee = await Employee.findOne({
-            where: {
-              email: emailLower,
-              id: { [Op.ne]: employeeId }
-            }
-          });
+        
+        // Check if user exists with this email
+        const existingUser = await User.findOne({
+          where: {
+            email: emailLower,
+            id: { [Op.ne]: employee.userId }
+          }
+        });
 
-          if (existingEmployee) {
-            throw {
-              code: "DUPLICATE_EMAIL",
-              message: "An employee with this email already exists.",
-              statusCode: 409,
-            };
+        if (existingUser) {
+          throw {
+            code: "DUPLICATE_EMAIL",
+            message: "A user with this email already exists.",
+            statusCode: 409,
+          };
+        }
+
+        // Update the associated user's email
+        if (employee.userId) {
+          const userRecord = await User.findByPk(employee.userId);
+          if (userRecord) {
+            await userRecord.update({ email: emailLower });
           }
         }
+        
+        // Remove email from employee update data since it's now in User table
+        delete updateData.email;
       }
 
       // Track changes for audit log
       const oldValues = {
         firstName: employee.firstName,
         lastName: employee.lastName,
-        email: employee.email,
         designation: employee.designation,
         department: employee.department,
         status: employee.status
@@ -164,7 +173,6 @@ class EmployeeService {
       // Update employee
       await employee.update({
         ...updateData,
-        email: updateData.email ? updateData.email.toLowerCase() : employee.email,
         updatedBy: user.id
       });
 
@@ -225,7 +233,7 @@ class EmployeeService {
         };
       } else if (user.role === ROLES.EMPLOYEE) {
         // Employees can only access their own profile
-        if (!user.employeeId || user.employeeId.toString() !== employeeId) {
+        if (!user.employee?.id || user.employee?.id.toString() !== employeeId) {
           throw {
             code: "FORBIDDEN",
             message: "You can only access your own profile.",
@@ -334,12 +342,15 @@ class EmployeeService {
       }
 
       if (filters.search) {
+        // Search in both Employee and User tables
+        const { Op } = await import('sequelize');
         where[Op.or] = [
           { firstName: { [Op.like]: `%${filters.search}%` } },
           { lastName: { [Op.like]: `%${filters.search}%` } },
-          { email: { [Op.like]: `%${filters.search}%` } },
           { employeeId: { [Op.like]: `%${filters.search}%` } },
-          { phone: { [Op.like]: `%${filters.search}%` } }
+          { phone: { [Op.like]: `%${filters.search}%` } },
+          // Search in associated User table
+          { '$user.email$': { [Op.like]: `%${filters.search}%` } }
         ];
       }
 
@@ -426,7 +437,7 @@ class EmployeeService {
       });
 
       // Also update associated user account if exists
-      const userAccount = await User.findOne({ where: { employeeId: employee.id } });
+      const userAccount = await User.findByPk(employee.userId);
       if (userAccount) {
         await userAccount.update({ isActive });
       }
@@ -484,18 +495,19 @@ class EmployeeService {
       }
 
       // Find or create user account
-      let userAccount = await User.findOne({ where: { employeeId: employee.id } });
+      let userAccount = await User.findByPk(employee.userId);
 
       if (!userAccount) {
         // Create user account if doesn't exist
         userAccount = await User.create({
-          name: `${employee.firstName} ${employee.lastName}`,
-          email: employee.email,
+          email: employee.user?.email || `${employee.firstName}.${employee.lastName}@company.com`.toLowerCase(),
           password: 'TempPassword123!', // Should be changed on first login
           role,
-          employeeId: employee.id,
           isActive: true
         });
+        
+        // Link user to employee
+        await employee.update({ userId: userAccount.id });
       } else {
         const oldRole = userAccount.role;
         await userAccount.update({ role });
@@ -538,7 +550,7 @@ class EmployeeService {
    */
   async getCurrentEmployee(user) {
     try {
-      if (!user.employeeId) {
+      if (!user.employee?.id) {
         throw {
           code: "NO_EMPLOYEE_PROFILE",
           message: "No employee profile is linked to this user account.",
@@ -546,7 +558,7 @@ class EmployeeService {
         };
       }
 
-      const employee = await Employee.findByPk(user.employeeId, {
+      const employee = await Employee.findByPk(user.employee?.id, {
         include: [
           {
             model: Employee,
@@ -590,7 +602,7 @@ class EmployeeService {
    */
   async selfUpdateEmployee(updateData, user, metadata = {}) {
     try {
-      if (!user.employeeId) {
+      if (!user.employee?.id) {
         throw {
           code: "NO_EMPLOYEE_PROFILE",
           message: "No employee profile is linked to this user account.",
@@ -598,7 +610,7 @@ class EmployeeService {
         };
       }
 
-      const employee = await Employee.findByPk(user.employeeId);
+      const employee = await Employee.findByPk(user.employee?.id);
 
       if (!employee) {
         throw {
@@ -728,7 +740,9 @@ class EmployeeService {
         where[Op.or] = [
           { firstName: { [Op.like]: `%${filters.search}%` } },
           { lastName: { [Op.like]: `%${filters.search}%` } },
-          { designation: { [Op.like]: `%${filters.search}%` } }
+          { designation: { [Op.like]: `%${filters.search}%` } },
+          // Search in associated User table
+          { '$user.email$': { [Op.like]: `%${filters.search}%` } }
         ];
       }
 
@@ -740,11 +754,18 @@ class EmployeeService {
           "employeeId",
           "firstName",
           "lastName",
-          "email",
           "phone",
           "designation",
           "department",
           "profilePicture"
+        ],
+        include: [
+          {
+            model: User,
+            as: 'user',
+            attributes: ['email'],
+            required: false
+          }
         ],
         order: [[sortBy, sortOrder.toUpperCase()]],
         limit: parseInt(limit),
@@ -813,21 +834,31 @@ class EmployeeService {
       }
 
       // Add search criteria
+      // Add search criteria
       if (searchTerm && searchTerm.trim()) {
         const searchPattern = `%${searchTerm.trim()}%`;
 
         where[Op.or] = [
           { firstName: { [Op.like]: searchPattern } },
           { lastName: { [Op.like]: searchPattern } },
-          { email: { [Op.like]: searchPattern } },
           { employeeId: { [Op.like]: searchPattern } },
-          { phone: { [Op.like]: searchPattern } }
+          { phone: { [Op.like]: searchPattern } },
+          // Search in associated User table
+          { '$user.email$': { [Op.like]: searchPattern } }
         ];
       }
 
       // Count and fetch employees
       const { count: total, rows: employees } = await Employee.findAndCountAll({
         where,
+        include: [
+          {
+            model: User,
+            as: 'user',
+            attributes: ['id', 'email', 'role', 'isActive'],
+            required: false
+          }
+        ],
         order: [[sortBy, sortOrder.toUpperCase()]],
         limit: parseInt(limit),
         offset: parseInt(offset),
@@ -880,7 +911,7 @@ class EmployeeService {
           [Op.in]: user.assignedDepartments,
         };
       } else if (user.role === ROLES.EMPLOYEE) {
-        if (!user.employeeId || user.employeeId.toString() !== employeeId) {
+        if (!user.employee?.id || user.employee?.id.toString() !== employeeId) {
           throw {
             code: "FORBIDDEN",
             message: "You can only access your own profile.",
@@ -947,7 +978,7 @@ class EmployeeService {
   async getReportingStructure(employeeId, user) {
     try {
       // Role-based access control
-      if (user.role === ROLES.EMPLOYEE && user.employeeId.toString() !== employeeId) {
+      if (user.role === ROLES.EMPLOYEE && user.employee?.id.toString() !== employeeId) {
         throw {
           code: "FORBIDDEN",
           message: "You can only view your own reporting structure.",

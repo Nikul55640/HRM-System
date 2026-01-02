@@ -1,19 +1,21 @@
 import { Employee, User } from '../../models/index.js';
 import logger from '../../utils/logger.js';
 
-const getProfile = async (employeeId) => {
+const getProfile = async (userId) => {
   try {
-    const employee = await Employee.findByPk(employeeId, {
+    const employee = await Employee.findOne({
+      where: { userId },
       include: [
         {
-          model: Employee.associations.department?.target,
-          as: 'department',
-          attributes: ['name', 'code']
+          model: User,
+          as: 'user',
+          attributes: ['id', 'email', 'role', 'isActive']
         },
         {
           model: Employee.associations.manager?.target,
           as: 'manager',
-          attributes: ['employeeId', 'firstName', 'lastName', 'email']
+          attributes: ['employeeId', 'firstName', 'lastName'],
+          required: false
         }
       ]
     });
@@ -33,9 +35,11 @@ const getProfile = async (employeeId) => {
   }
 };
 
-const updateProfile = async (employeeId, updateData) => {
+const updateProfile = async (userId, updateData) => {
   try {
-    const employee = await Employee.findByPk(employeeId);
+    const employee = await Employee.findOne({
+      where: { userId }
+    });
     
     if (!employee) {
       throw {
@@ -47,10 +51,16 @@ const updateProfile = async (employeeId, updateData) => {
 
     // Filter allowed fields for employee self-update
     const allowedFields = [
-      'phoneNumber',
+      'phone',
       'emergencyContact',
       'address',
-      'profilePhoto'
+      'profilePicture',
+      'about',
+      'dateOfBirth',
+      'gender',
+      'maritalStatus',
+      'nationality',
+      'bloodGroup'
     ];
 
     const filteredData = {};

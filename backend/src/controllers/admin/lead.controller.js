@@ -37,7 +37,7 @@ const leadController = {
       };
 
       // Extract employee ID from user object, allow null if no employee record
-      const createdBy = req.user.employeeId || null;
+      const createdBy = req.user.employee?.id || null;
 
       const result = await leadService.createLead(req.body, createdBy, metadata);
 
@@ -105,7 +105,7 @@ const leadController = {
       };
 
       // Extract employee ID from user object
-      const updatedBy = req.user.employeeId || req.user.id;
+      const updatedBy = req.user.employee?.id || req.user.id;
 
       const result = await leadService.updateLead(id, req.body, updatedBy, metadata);
 
@@ -135,7 +135,7 @@ const leadController = {
       };
 
       // Extract employee ID from user object
-      const updatedBy = req.user.employeeId || req.user.id;
+      const updatedBy = req.user.employee?.id || req.user.id;
 
       const result = await leadService.assignLead(id, assignedTo, updatedBy, metadata);
 
@@ -169,7 +169,7 @@ const leadController = {
       }
 
       // Extract employee ID from user object
-      const createdBy = req.user.employeeId || req.user.id;
+      const createdBy = req.user.employee?.id || req.user.id;
 
       const result = await leadService.addFollowUpNote(id, note, createdBy, metadata);
 
@@ -199,7 +199,7 @@ const leadController = {
       };
 
       // Extract employee ID from user object
-      const updatedBy = req.user.employeeId || req.user.id;
+      const updatedBy = req.user.employee?.id || req.user.id;
 
       const result = await leadService.updateLeadStatus(id, status, nextFollowUpDate, updatedBy, metadata);
 
@@ -223,7 +223,7 @@ const leadController = {
     try {
       const filters = {
         ...req.query,
-        assignedTo: req.user.employeeId || req.user.id
+        assignedTo: req.user.employee?.id || req.user.id
       };
 
       const result = await leadService.getLeads(filters, req.query);
