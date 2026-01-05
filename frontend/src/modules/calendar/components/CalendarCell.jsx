@@ -72,34 +72,77 @@ const CalendarCell = ({
     }
   };
   
-  // Get attendance status color
-  const getAttendanceStatusColor = (status) => {
-    switch (status) {
+  // Get attendance status color and display text
+  const getAttendanceStatusColor = (record) => {
+    // ✅ ENHANCED: Check for late status first, then fallback to general status
+    if (record.isLate) {
+      return 'text-orange-600';
+    }
+    
+    switch (record.status) {
       case 'present':
         return 'text-green-600';
       case 'absent':
         return 'text-red-600';
-      case 'late':
-        return 'text-orange-600';
       case 'half_day':
         return 'text-blue-600';
+      case 'leave':
+        return 'text-purple-600';
+      case 'holiday':
+        return 'text-indigo-600';
+      case 'incomplete':
+        return 'text-amber-600';
       default:
         return 'text-gray-600';
     }
   };
   
-  const getAttendanceIcon = (status) => {
-    switch (status) {
+  const getAttendanceIcon = (record) => {
+    // ✅ ENHANCED: Check for late status first, then fallback to general status
+    if (record.isLate) {
+      return AlertCircle;
+    }
+    
+    switch (record.status) {
       case 'present':
         return CheckCircle;
       case 'absent':
         return XCircle;
-      case 'late':
-        return AlertCircle;
       case 'half_day':
+        return Clock;
+      case 'incomplete':
         return Clock;
       default:
         return Clock;
+    }
+  };
+
+  const getAttendanceTooltip = (record) => {
+    // ✅ ENHANCED: Show detailed late information in tooltip
+    if (record.isLate) {
+      return `Late by ${record.lateMinutes} minutes - Clocked in at ${
+        record.clockIn ? new Date(record.clockIn).toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        }) : 'N/A'
+      }`;
+    }
+    
+    switch (record.status) {
+      case 'present':
+        return `Present - ${record.clockIn ? 'Clocked in at ' + new Date(record.clockIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'On time'}`;
+      case 'absent':
+        return 'Absent';
+      case 'half_day':
+        return 'Half Day';
+      case 'leave':
+        return 'On Leave';
+      case 'holiday':
+        return 'Holiday';
+      case 'incomplete':
+        return 'Incomplete - Missing clock out';
+      default:
+        return record.status;
     }
   };
   
@@ -134,15 +177,16 @@ const CalendarCell = ({
         {attendance.length > 0 && (
           <div className="flex items-center space-x-1">
             {attendance.slice(0, 2).map((record, index) => {
-              const AttendanceIcon = getAttendanceIcon(record.status);
+              const AttendanceIcon = getAttendanceIcon(record);
               return (
-                <AttendanceIcon
-                  key={index}
-                  className={cn(
-                    "w-3 h-3",
-                    getAttendanceStatusColor(record.status)
-                  )}
-                />
+                <div key={index} title={getAttendanceTooltip(record)}>
+                  <AttendanceIcon
+                    className={cn(
+                      "w-3 h-3",
+                      getAttendanceStatusColor(record)
+                    )}
+                  />
+                </div>
               );
             })}
             {attendance.length > 2 && (

@@ -34,9 +34,13 @@ import {
   Target,
   Gift,
   AlertCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { leaveService } from "../../../../services";
 import useAttendanceSessionStore from "../../../../stores/useAttendanceSessionStore";
+import { calendarService } from "../../../../services";
+import { isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, subWeeks, subMonths } from "date-fns";
 
 
 
@@ -48,6 +52,11 @@ const EmployeeDashboard = () => {
   const [todayActivities, setTodayActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Calendar state
+  const [calendarView, setCalendarView] = useState('month'); // 'week' or 'month'
+  const [calendarDate, setCalendarDate] = useState(new Date());
+  const [calendarEvents, setCalendarEvents] = useState([]);
 
   // Use notifications hook for live data
   const {
@@ -79,6 +88,7 @@ const EmployeeDashboard = () => {
         fetchLeaveBalance(),
         fetchAttendanceSummary(),
         fetchTodayRecord(), // Fetch attendance data
+        fetchCalendarEvents(), // Fetch calendar events
       ]);
       setLoading(false);
     };
@@ -332,6 +342,111 @@ const EmployeeDashboard = () => {
     }
   };
 
+  // Calendar helper functions
+  const fetchCalendarEvents = async () => {
+    try {
+      const startDate = calendarView === 'week' 
+        ? startOfWeek(calendarDate).toISOString().split('T')[0]
+        : startOfMonth(calendarDate).toISOString().split('T')[0];
+      
+      const endDate = calendarView === 'week'
+        ? endOfWeek(calendarDate).toISOString().split('T')[0]
+        : endOfMonth(calendarDate).toISOString().split('T')[0];
+
+      const response = await calendarService.getEventsByDateRange(startDate, endDate);
+      
+      if (response && response.success) {
+        const calendarData = response.data || {};
+        
+        const allEvents = [
+          ...(calendarData.events || []).map(e => ({
+            ...e,
+            eventType: e.eventType || 'event',
+            color: e.color || '#3B82F6'
+          })),
+          ...(calendarData.holidays || []).map(h => ({
+            ...h,
+            eventType: 'holiday',
+            title: h.name || h.title,
+            startDate: h.date || h.startDate,
+            color: h.color || '#EF4444'
+          })),
+          ...(calendarData.leaves || []).map(l => ({
+            ...l,
+            eventType: 'leave',
+            title: l.title || `${l.employeeName} - ${l.leaveType}`,
+            color: l.color || '#F59E0B'
+          })),
+          ...(calendarData.birthdays || []).map(b => ({
+            ...b,
+            eventType: 'birthday',
+            title: b.title || `🎂 ${b.employeeName}`,
+            startDate: b.date || b.startDate,
+            color: b.color || '#10B981'
+          })),
+          ...(calendarData.anniversaries || []).map(a => ({
+            ...a,
+            eventType: 'anniversary',
+            title: a.title || `🎊 ${a.employeeName}`,
+            startDate: a.date || a.startDate,
+            color: a.color || '#8B5CF6'
+          }))
+        ];
+        
+        setCalendarEvents(allEvents);
+      } else {
+        setCalendarEvents([]);
+      }
+    } catch (error) {
+      console.error('Failed to fetch calendar events:', error);
+      setCalendarEvents([]);
+    }
+  };
+
+  const getWeekStart = (date) => {
+    return startOfWeek(date, { weekStartsOn: 0 });
+  };
+
+  const getWeekDays = (date) => {
+    const start = getWeekStart(date);
+    return Array.from({ length: 7 }, (_, i) => addDays(start, i));
+  };
+
+  const getMonthDays = (date) => {
+    const start = startOfMonth(date);
+    const end = endOfMonth(date);
+    const startDate = startOfWeek(start, { weekStartsOn: 0 });
+    const endDate = endOfWeek(end, { weekStartsOn: 0 });
+    
+    const days = [];
+    let current = startDate;
+    
+    while (current <= endDate) {
+      days.push(new Date(current));
+      current = addDays(current, 1);
+    }
+    
+    return days;
+  };
+
+  const navigateCalendar = (direction) => {
+    if (calendarView === 'week') {
+      setCalendarDate(prev => direction === 'next' ? addWeeks(prev, 1) : subWeeks(prev, 1));
+    } else {
+      setCalendarDate(prev => direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1));
+    }
+  };
+
+  const handleCalendarDateClick = (date) => {
+    // Navigate to full calendar page with selected date
+    navigate(`/employee/calendar?date=${date.toISOString().split('T')[0]}`);
+  };
+
+  // Fetch calendar events when view or date changes
+  useEffect(() => {
+    fetchCalendarEvents();
+  }, [calendarView, calendarDate]);
+
   // Refresh all dashboard data
   const refreshDashboard = async () => {
     setLoading(true);
@@ -341,7 +456,8 @@ const EmployeeDashboard = () => {
         fetchLeaveBalance(),
         fetchAttendanceSummary(),
         fetchTodayRecord(true),
-        getNotifications({ limit: 5 })
+        getNotifications({ limit: 5 }),
+        fetchCalendarEvents()
       ]);
       toast.success('Dashboard refreshed successfully');
     } catch (error) {
@@ -709,11 +825,11 @@ const EmployeeDashboard = () => {
                       onClick={() => navigate("/employee/leads")}
                     />
                   )}
-                  <QuickActionButton
+                  {/* <QuickActionButton
                     icon={<AlertCircle className="w-6 h-6" />}
                     label="API Test"
                     onClick={() => navigate("/api-test")}
-                  />
+                  /> */}
                 </div>
               </CardContent>
             </Card>
@@ -787,40 +903,153 @@ const EmployeeDashboard = () => {
               </CardContent>
             </Card>
 
-            {/* 🟢 MINI CALENDAR */}
+            {/* 🟢 ENHANCED CALENDAR */}
             <Card className="bg-white shadow-sm rounded-xl border-0">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Calendar className="w-5 h-5 text-purple-600" />
-                  {format(new Date(), "MMMM yyyy")}
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Calendar className="w-5 h-5 text-purple-600" />
+                    Calendar
+                  </CardTitle>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setCalendarView('week')}
+                      className={`px-2 py-1 text-xs rounded ${
+                        calendarView === 'week' 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Week
+                    </button>
+                    <button
+                      onClick={() => setCalendarView('month')}
+                      className={`px-2 py-1 text-xs rounded ${
+                        calendarView === 'month' 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      Month
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                  <button
+                    onClick={() => navigateCalendar('prev')}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <h3 className="font-medium text-gray-900">
+                    {calendarView === 'week' 
+                      ? `Week of ${format(getWeekStart(calendarDate), "MMM dd, yyyy")}`
+                      : format(calendarDate, "MMMM yyyy")
+                    }
+                  </h3>
+                  <button
+                    onClick={() => navigateCalendar('next')}
+                    className="p-1 hover:bg-gray-100 rounded"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2">
-                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-                    <div key={day} className="font-medium text-gray-500 p-1">{day}</div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-7 gap-1">
-                  {Array.from({length: 35}, (_, i) => {
-                    const day = i - 6; // Adjust for month start
-                    const isToday = day === new Date().getDate();
-                    const isCurrentMonth = day > 0 && day <= 31;
-                    
-                    return (
-                      <div
-                        key={i}
-                        className={`aspect-square flex items-center justify-center text-xs rounded cursor-pointer ${
-                          isToday ? 'bg-blue-500 text-white font-bold' :
-                          isCurrentMonth ? 'hover:bg-gray-100 text-gray-700' :
-                          'text-gray-300'
-                        }`}
-                      >
-                        {isCurrentMonth ? day : ''}
-                      </div>
-                    );
-                  })}
-                </div>
+                {calendarView === 'month' ? (
+                  <>
+                    <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2">
+                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                        <div key={day} className="font-medium text-gray-500 p-1">{day}</div>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-7 gap-1">
+                      {getMonthDays(calendarDate).map((day, i) => {
+                        const isToday = day && isSameDay(day, new Date());
+                        const isCurrentMonth = day && day.getMonth() === calendarDate.getMonth();
+                        const hasEvents = day && calendarEvents.some(event => 
+                          isSameDay(new Date(event.startDate), day)
+                        );
+                        
+                        return (
+                          <div
+                            key={i}
+                            className={`aspect-square flex items-center justify-center text-xs rounded cursor-pointer relative ${
+                              isToday ? 'bg-blue-500 text-white font-bold' :
+                              isCurrentMonth ? 'hover:bg-gray-100 text-gray-700' :
+                              'text-gray-300'
+                            }`}
+                            onClick={() => day && handleCalendarDateClick(day)}
+                          >
+                            {day ? day.getDate() : ''}
+                            {hasEvents && (
+                              <div className="absolute bottom-0 right-0 w-1.5 h-1.5 bg-orange-400 rounded-full"></div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                ) : (
+                  <div className="space-y-2">
+                    {getWeekDays(calendarDate).map((day, i) => {
+                      const isToday = isSameDay(day, new Date());
+                      const dayEvents = calendarEvents.filter(event => 
+                        isSameDay(new Date(event.startDate), day)
+                      );
+                      
+                      return (
+                        <div
+                          key={i}
+                          className={`p-2 rounded cursor-pointer transition-colors ${
+                            isToday ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => handleCalendarDateClick(day)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-sm font-medium ${
+                                isToday ? 'text-blue-600' : 'text-gray-900'
+                              }`}>
+                                {format(day, 'EEE dd')}
+                              </span>
+                              {isToday && (
+                                <span className="text-xs bg-blue-500 text-white px-1.5 py-0.5 rounded">
+                                  Today
+                                </span>
+                              )}
+                            </div>
+                            {dayEvents.length > 0 && (
+                              <div className="flex items-center gap-1">
+                                {dayEvents.slice(0, 2).map((event, idx) => (
+                                  <div
+                                    key={idx}
+                                    className="w-2 h-2 rounded-full"
+                                    style={{ backgroundColor: event.color || '#3B82F6' }}
+                                    title={event.title}
+                                  />
+                                ))}
+                                {dayEvents.length > 2 && (
+                                  <span className="text-xs text-gray-500">+{dayEvents.length - 2}</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          {dayEvents.length > 0 && (
+                            <div className="mt-1 space-y-1">
+                              {dayEvents.slice(0, 2).map((event, idx) => (
+                                <div key={idx} className="text-xs text-gray-600 truncate">
+                                  {event.title}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                
                 <div className="mt-3 space-y-1 text-xs">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-red-200 rounded"></div>
@@ -830,7 +1059,18 @@ const EmployeeDashboard = () => {
                     <div className="w-3 h-3 bg-yellow-200 rounded"></div>
                     <span className="text-gray-600">On Leave</span>
                   </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-200 rounded"></div>
+                    <span className="text-gray-600">Events</span>
+                  </div>
                 </div>
+                
+                <button 
+                  className="w-full mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  onClick={() => navigate('/employee/calendar')}
+                >
+                  View Full Calendar →
+                </button>
               </CardContent>
             </Card>
           </div>

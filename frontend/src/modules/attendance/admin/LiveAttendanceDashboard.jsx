@@ -219,7 +219,7 @@ const LiveAttendanceDashboard = () => {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          {process.env.NODE_ENV !== 'production' && (
+          {/* {process.env.NODE_ENV !== 'production' && (
             <Button 
               variant="outline" 
               size="sm" 
@@ -228,7 +228,7 @@ const LiveAttendanceDashboard = () => {
             >
               🧪 Create Test Data
             </Button>
-          )}
+          )} */}
         </div>
       </div>
 

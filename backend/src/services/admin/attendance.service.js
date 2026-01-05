@@ -37,24 +37,32 @@ class AttendanceService {
             }
 
             // Get employee's assigned shift
-            const employee = await Employee.findByPk(user.employee?.id, {
-                include: [{
-                    model: EmployeeShift,
-                    as: 'shiftAssignments',
-                    where: { isActive: true },
-                    required: false,
-                    include: [{
-                        model: Shift,
-                        as: 'shift'
-                    }]
-                }]
-            });
-
             let assignedShift = null;
-            if (employee.shiftAssignments && employee.shiftAssignments.length > 0) {
-                assignedShift = employee.shiftAssignments[0].shift;
-            } else {
-                // Get default shift if no specific assignment
+            
+            try {
+                const employee = await Employee.findByPk(user.employee?.id, {
+                    include: [{
+                        model: EmployeeShift,
+                        as: 'shiftAssignments',
+                        where: { isActive: true },
+                        required: false,
+                        include: [{
+                            model: Shift,
+                            as: 'shift'
+                        }]
+                    }]
+                });
+
+                if (employee && employee.shiftAssignments && employee.shiftAssignments.length > 0) {
+                    assignedShift = employee.shiftAssignments[0].shift;
+                }
+            } catch (error) {
+                // If EmployeeShift association fails, just continue with default shift
+                logger.warn('EmployeeShift association not found, using default shift');
+            }
+            
+            // Fallback to default shift if no specific assignment
+            if (!assignedShift) {
                 assignedShift = await Shift.findOne({ where: { isDefault: true } });
             }
 
@@ -109,14 +117,8 @@ class AttendanceService {
                 logger.info(`Clock-in processed: Employee ${user.employee?.id}, Late: ${isLate}, Minutes: ${lateMinutes}`);
             }
 
-            // Reload to get updated data with shift information
-            await attendanceRecord.reload({
-                include: [{
-                    model: Shift,
-                    as: 'shift',
-                    attributes: ['shiftName', 'shiftStartTime', 'shiftEndTime', 'gracePeriodMinutes']
-                }]
-            });
+            // Reload to get updated data (without problematic associations)
+            await attendanceRecord.reload();
 
             // Log clock in action
             await AuditLog.logAction({
@@ -125,16 +127,37 @@ class AttendanceService {
                 module: 'attendance',
                 targetType: 'AttendanceRecord',
                 targetId: attendanceRecord.id,
-                description: `Clocked in at ${clockInTime.toLocaleTimeString()}`,
+                description: `Clocked in at ${clockInTime.toLocaleTimeString()}${attendanceRecord.isLate ? ` (Late by ${attendanceRecord.lateMinutes} minutes)` : ''}`,
                 ipAddress: metadata.ipAddress,
                 userAgent: metadata.userAgent,
                 severity: 'low'
             });
 
+            // ✅ STEP 2: RETURN IMMEDIATE LATE STATUS TO FRONTEND
+            // This gives the UI all the information needed to show late status immediately
+            const clockInResponse = {
+                ...attendanceRecord.toJSON(),
+                // Add computed fields for immediate display
+                clockInSummary: {
+                    clockInTime: clockInTime.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    }),
+                    shiftStartTime: assignedShift ? assignedShift.shiftStartTime : null,
+                    isLate: attendanceRecord.isLate,
+                    lateMinutes: attendanceRecord.lateMinutes,
+                    status: attendanceRecord.isLate ? `Late by ${attendanceRecord.lateMinutes} minutes` : 'On time',
+                    shiftName: assignedShift ? assignedShift.shiftName : null,
+                    gracePeriodMinutes: assignedShift ? assignedShift.gracePeriodMinutes || 0 : 0
+                }
+            };
+
             return {
                 success: true,
-                data: attendanceRecord,
-                message: 'Clocked in successfully'
+                data: clockInResponse,
+                message: attendanceRecord.isLate ? 
+                    `Clocked in successfully. You are late by ${attendanceRecord.lateMinutes} minutes.` : 
+                    'Clocked in successfully. You are on time!'
             };
         } catch (error) {
             logger.error('Error in clock in:', error);

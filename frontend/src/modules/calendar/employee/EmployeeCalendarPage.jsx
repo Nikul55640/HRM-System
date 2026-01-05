@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
+import { useSearchParams } from 'react-router-dom';
 import { calendarService } from '../../../services';
 import { getEventTypeConfig, sortEventsByPriority } from '../../../core/utils/calendarEventTypes';
 import EmployeeCalendarToolbar from './EmployeeCalendarToolbar';
@@ -7,8 +8,13 @@ import EmployeeCalendarView from './EmployeeCalendarView';
 import DayEventsDrawer from './DayEventsDrawer';
 
 const EmployeeCalendarPage = () => {
+  const [searchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState('month'); // today | week | month
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    // Check if date is provided in URL params
+    const dateParam = searchParams.get('date');
+    return dateParam ? new Date(dateParam) : new Date();
+  });
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedDayEvents, setSelectedDayEvents] = useState([]);

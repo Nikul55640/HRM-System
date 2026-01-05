@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/card';
 import { getEventColor } from '../../../../core/utils/calendarEventTypes';
 
 const MonthView = ({ date, events, onDateClick }) => {
+  const [hoveredDay, setHoveredDay] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const getDaysInMonth = (date) => {
     const year = date.getFullYear();
     const month = date.getMonth();
@@ -36,6 +38,22 @@ const MonthView = ({ date, events, onDateClick }) => {
       month === today.getMonth() &&
       year === today.getFullYear()
     );
+  };
+
+  const handleMouseEnter = (day, event) => {
+    const dayEvents = getEventsForDate(day);
+    if (dayEvents.length > 0) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setTooltipPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10
+      });
+      setHoveredDay(day);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredDay(null);
   };
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -87,9 +105,11 @@ const MonthView = ({ date, events, onDateClick }) => {
               <div
                 key={day}
                 onClick={() => onDateClick(dayDate)}
+                onMouseEnter={(e) => handleMouseEnter(day, e)}
+                onMouseLeave={handleMouseLeave}
                 className={`
                   aspect-square border rounded-lg p-2 cursor-pointer
-                  hover:bg-accent transition-colors
+                  hover:bg-accent transition-colors relative
                   ${isTodayDate ? 'border-primary border-2 bg-primary/5' : 'border-border'}
                 `}
               >
@@ -119,6 +139,39 @@ const MonthView = ({ date, events, onDateClick }) => {
             );
           })}
         </div>
+
+        {/* Hover Tooltip */}
+        {hoveredDay && (
+          <div
+            className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-w-xs pointer-events-none"
+            style={{
+              left: `${tooltipPosition.x}px`,
+              top: `${tooltipPosition.y}px`,
+              transform: 'translateX(-50%) translateY(-100%)'
+            }}
+          >
+            <div className="text-sm font-semibold mb-2">
+              {new Date(year, month, hoveredDay).toLocaleDateString('en-US', {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </div>
+            <div className="space-y-1">
+              {getEventsForDate(hoveredDay).map((event, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <div
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: event.color || getEventColor(event.eventType) }}
+                  ></div>
+                  <span className="text-xs text-gray-700 truncate">
+                    {event.title}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Legend */}
         <div className="mt-6 flex flex-wrap gap-4 justify-center">

@@ -314,6 +314,15 @@ AttendanceRecord.getMonthlySummary = async function (employeeId, year, month) {
   };
 };
 
+AttendanceRecord.prototype.toCalendarEvent = function () {
+  return {
+    title: this.status,
+    start: this.date,
+    allDay: true,
+    color: getColorByStatus(this.status)
+  };
+};
+
 // Hooks for automatic calculations
 // ❌ REMOVE DUPLICATE LATE CALCULATION FROM beforeSave HOOK
 // Late should ONLY be calculated at clock-in, not when saving complete records

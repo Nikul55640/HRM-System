@@ -64,7 +64,28 @@ const EnhancedClockInOut = () => {
       const result = await clockIn(locationData);
       
       if (result.success) {
-        toast.success('Clocked in successfully!');
+        // ✅ ENHANCED: Show detailed clock-in feedback with late status
+        const clockInSummary = result.data?.clockInSummary;
+        
+        if (clockInSummary) {
+          if (clockInSummary.isLate) {
+            toast.warning(
+              `⏰ Clocked in at ${clockInSummary.clockInTime} - Late by ${clockInSummary.lateMinutes} minutes\n` +
+              `Shift started at ${clockInSummary.shiftStartTime}`,
+              { autoClose: 5000 }
+            );
+          } else {
+            toast.success(
+              `✅ Clocked in at ${clockInSummary.clockInTime} - On time!\n` +
+              `Shift started at ${clockInSummary.shiftStartTime}`,
+              { autoClose: 3000 }
+            );
+          }
+        } else {
+          // Fallback message
+          toast.success('Clocked in successfully!');
+        }
+        
         setShowLocationModal(false);
       } else {
         // If already clocked in, just close modal and show info

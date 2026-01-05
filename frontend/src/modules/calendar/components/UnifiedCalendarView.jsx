@@ -38,6 +38,8 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [hoveredDay, setHoveredDay] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   
   // Modals
   const [eventModalOpen, setEventModalOpen] = useState(false);
@@ -275,6 +277,22 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
   const getEventColor = (type) => {
     const typeInfo = getEventTypeInfo(type);
     return typeInfo.color;
+  };
+
+  const handleMouseEnter = (day, event) => {
+    const dayEvents = getEventsForDate(day);
+    if (dayEvents.length > 0) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      setTooltipPosition({
+        x: rect.left + rect.width / 2,
+        y: rect.top - 10
+      });
+      setHoveredDay(day);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    setHoveredDay(null);
   };
 
   // Filter and search logic
@@ -562,7 +580,9 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                         handleCreateEvent(dateStr);
                       }
                     }}
-                    className={`aspect-square border rounded-lg p-2 hover:bg-gray-50 transition-colors ${
+                    onMouseEnter={(e) => handleMouseEnter(day, e)}
+                    onMouseLeave={handleMouseLeave}
+                    className={`aspect-square border rounded-lg p-2 hover:bg-gray-50 transition-colors relative ${
                       canManageCalendar ? 'cursor-pointer' : 'cursor-default'
                     } ${isToday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
                   >
@@ -601,6 +621,41 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                 );
               })}
             </div>
+
+            {/* Hover Tooltip */}
+            {hoveredDay && (
+              <div
+                className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-w-xs pointer-events-none"
+                style={{
+                  left: `${tooltipPosition.x}px`,
+                  top: `${tooltipPosition.y}px`,
+                  transform: 'translateX(-50%) translateY(-100%)'
+                }}
+              >
+                <div className="text-sm font-semibold mb-2">
+                  {new Date(currentDate.getFullYear(), currentDate.getMonth(), hoveredDay).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </div>
+                <div className="space-y-1">
+                  {getEventsForDate(hoveredDay).map((event, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <span className="text-sm">
+                        {event.type === 'holiday' ? '🎉' : 
+                         event.type === 'leave' ? '📅' : 
+                         event.type === 'birthday' ? '🎂' :
+                         event.type === 'anniversary' ? '🎊' : '📝'}
+                      </span>
+                      <span className="text-xs text-gray-700 truncate">
+                        {event.title || event.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Legend */}
             <div className="mt-6 flex flex-wrap gap-4 justify-center">

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
-import userService from '../../../services/userService';
-import departmentService from '../../../services/departmentService';
-import { LoadingSpinner } from '../../../shared/components';
-import UserModal from '../../../shared/ui/UserModal';
+import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import userService from "../../../services/userService";
+import departmentService from "../../../services/departmentService";
+import { LoadingSpinner } from "../../../shared/components";
+import UserModal from "../../../shared/ui/UserModal";
+import { Search, Plus, Edit2 } from "lucide-react";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -12,6 +13,7 @@ const UserManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     loadData();
@@ -20,47 +22,27 @@ const UserManagement = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [usersData, departmentsData] = await Promise.all([
+      const [usersRes, deptRes] = await Promise.all([
         userService.getUsers(),
         departmentService.getDepartments(),
       ]);
-      
-      // Debug: Log the actual response structures
-      console.log('🔍 [USER MANAGEMENT] Users API Response:', usersData);
-      console.log('🔍 [USER MANAGEMENT] Departments API Response:', departmentsData);
-      
-      // Extract users with robust fallback handling
-      let usersArray = [];
-      if (Array.isArray(usersData)) {
-        usersArray = usersData;
-      } else if (usersData?.data?.users && Array.isArray(usersData.data.users)) {
-        usersArray = usersData.data.users;
-      } else if (usersData?.data && Array.isArray(usersData.data)) {
-        usersArray = usersData.data;
-      } else if (usersData?.users && Array.isArray(usersData.users)) {
-        usersArray = usersData.users;
-      }
-      
-      // Extract departments with robust fallback handling
-      let departmentsArray = [];
-      if (Array.isArray(departmentsData)) {
-        departmentsArray = departmentsData;
-      } else if (departmentsData?.data && Array.isArray(departmentsData.data)) {
-        departmentsArray = departmentsData.data;
-      } else if (departmentsData?.departments && Array.isArray(departmentsData.departments)) {
-        departmentsArray = departmentsData.departments;
-      }
-      
-      console.log('✅ [USER MANAGEMENT] Extracted users:', usersArray.length, 'users');
-      console.log('✅ [USER MANAGEMENT] Extracted departments:', departmentsArray.length, 'departments');
-      
-      setUsers(usersArray);
-      setDepartments(departmentsArray);
-      
+
+      const usersData =
+        usersRes?.data?.users ||
+        usersRes?.data ||
+        usersRes ||
+        [];
+
+      const departmentsData =
+        deptRes?.data ||
+        deptRes?.departments ||
+        deptRes ||
+        [];
+
+      setUsers(usersData);
+      setDepartments(departmentsData);
     } catch (error) {
-      console.error('Failed to load user management data:', error);
-      toast.error(error.message || 'Failed to load data');
-      // Ensure state is set to empty arrays on error
+      toast.error(error.message || "Failed to load users");
       setUsers([]);
       setDepartments([]);
     } finally {
@@ -80,24 +62,17 @@ const UserManagement = () => {
 
   const handleToggleActive = async (user) => {
     try {
-      // Use 'id' instead of '_id' since we're using Sequelize (MySQL) not MongoDB
-      const userId = user.id || user._id;
-      
-      if (!userId) {
-        toast.error('User ID not found');
-        return;
-      }
-
+      const userId = user.id;
       if (user.isActive) {
         await userService.deactivateUser(userId);
-        toast.success(`User ${user.email} has been deactivated`);
+        toast.success("User deactivated");
       } else {
         await userService.activateUser(userId);
-        toast.success(`User ${user.email} has been activated`);
+        toast.success("User activated");
       }
       loadData();
     } catch (error) {
-      toast.error(error.message || 'Failed to update user status');
+      toast.error(error.message || "Failed to update status");
     }
   };
 
@@ -105,38 +80,35 @@ const UserManagement = () => {
     setIsSubmitting(true);
     try {
       if (selectedUser) {
-        // Update existing user - use 'id' instead of '_id'
-        const userId = selectedUser.id || selectedUser._id;
-        await userService.updateUser(userId, userData);
-        toast.success('User updated successfully');
+        await userService.updateUser(selectedUser.id, userData);
+        toast.success("User updated");
       } else {
-        // Create new user
         await userService.createUser(userData);
-        toast.success('User created successfully');
+        toast.success("User created");
       }
       setShowModal(false);
       loadData();
     } catch (error) {
-      toast.error(error.message || 'Failed to save user');
-      throw error;
+      toast.error(error.message || "Failed to save user");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleModalClose = () => {
-    setShowModal(false);
-    setSelectedUser(null);
-  };
+  const filteredUsers = users.filter(
+    (u) =>
+      u.email?.toLowerCase().includes(search.toLowerCase()) ||
+      u.role?.toLowerCase().includes(search.toLowerCase())
+  );
 
-  const getRoleBadgeColor = (role) => {
-    const colors = {
-      SuperAdmin: 'bg-purple-100 text-purple-800',
-      'HR Manager': 'bg-blue-100 text-blue-800',
-      'HR Administrator': 'bg-green-100 text-green-800',
-      Employee: 'bg-gray-100 text-gray-800',
+  const roleBadge = (role) => {
+    const map = {
+      SuperAdmin: "bg-purple-100 text-purple-700",
+      "HR Manager": "bg-blue-100 text-blue-700",
+      "HR Administrator": "bg-green-100 text-green-700",
+      Employee: "bg-gray-100 text-gray-700",
     };
-    return colors[role] || 'bg-gray-100 text-gray-800';
+    return map[role] || "bg-gray-100 text-gray-700";
   };
 
   if (loading) {
@@ -148,119 +120,153 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">User Management</h1>
-          <p className="text-gray-600 mt-1">Manage system users and their roles</p>
+          <h1 className="text-3xl font-bold">User Management</h1>
+          <p className="text-gray-500">Manage system users & roles</p>
         </div>
+
         <button
           onClick={handleCreateUser}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <Plus className="w-4 h-4" />
           Add User
         </button>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by email or role..."
+          className="pl-10 pr-4 py-2 w-full border rounded-lg text-sm"
+        />
+      </div>
+
+      {/* DESKTOP TABLE */}
+      <div className="hidden md:block bg-white rounded-lg border overflow-hidden">
+        <table className="min-w-full divide-y">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Role
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Departments
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Last Login
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
+              <th className="px-6 py-3 text-left text-xs text-gray-500">Email</th>
+              <th className="px-6 py-3 text-left text-xs text-gray-500">Role</th>
+              <th className="px-6 py-3 text-left text-xs text-gray-500">Departments</th>
+              <th className="px-6 py-3 text-left text-xs text-gray-500">Status</th>
+              <th className="px-6 py-3 text-left text-xs text-gray-500">Last Login</th>
+              <th className="px-6 py-3 text-right text-xs text-gray-500">Actions</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.length === 0 ? (
-              <tr>
-                <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
-                  No users found. Create your first user to get started.
+          <tbody className="divide-y">
+            {filteredUsers.map((user) => (
+              <tr key={user.id} className="hover:bg-gray-50">
+                <td className="px-6 py-4 text-sm">{user.email}</td>
+
+                <td className="px-6 py-4">
+                  <span className={`px-2 py-1 rounded-full text-xs ${roleBadge(user.role)}`}>
+                    {user.role}
+                  </span>
+                </td>
+
+                <td className="px-6 py-4 text-sm">
+                  {user.assignedDepartments?.length
+                    ? user.assignedDepartments.map((d) => (
+                        <span
+                          key={d.id}
+                          className="inline-block bg-gray-100 text-xs px-2 py-1 rounded mr-1"
+                        >
+                          {d.name}
+                        </span>
+                      ))
+                    : "-"}
+                </td>
+
+                <td className="px-6 py-4">
+                  <button
+                    onClick={() => handleToggleActive(user)}
+                    className={`h-6 w-11 rounded-full relative ${
+                      user.isActive ? "bg-green-600" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`h-4 w-4 bg-white rounded-full absolute top-1 transition ${
+                        user.isActive ? "left-6" : "left-1"
+                      }`}
+                    />
+                  </button>
+                </td>
+
+                <td className="px-6 py-4 text-sm text-gray-500">
+                  {user.lastLogin
+                    ? new Date(user.lastLogin).toLocaleDateString()
+                    : "Never"}
+                </td>
+
+                <td className="px-6 py-4 text-right">
+                  <button
+                    onClick={() => handleEditUser(user)}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
                 </td>
               </tr>
-            ) : (
-              users.map((user) => (
-                <tr key={user.id || user._id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900">{user.email}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getRoleBadgeColor(user.role)}`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    {user.role === 'HR Manager' && user.assignedDepartments?.length > 0 ? (
-                      <div className="text-sm text-gray-900">
-                        {user.assignedDepartments.map((dept) => (
-                          <span key={dept.id || dept._id || dept} className="inline-block bg-gray-100 rounded px-2 py-1 text-xs mr-1 mb-1">
-                            {dept.name || dept}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span className="text-sm text-gray-500">-</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => handleToggleActive(user)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        user.isActive ? 'bg-green-600' : 'bg-gray-300'
-                      }`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          user.isActive ? 'translate-x-6' : 'translate-x-1'
-                        }`}
-                      />
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleEditUser(user)}
-                      className="text-blue-600 hover:text-blue-900 mr-4"
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
+            ))}
           </tbody>
         </table>
       </div>
 
-      {/* User Modal */}
+      {/* MOBILE CARDS */}
+      <div className="md:hidden space-y-4">
+        {filteredUsers.map((user) => (
+          <div key={user.id} className="bg-white border rounded-lg p-4 space-y-2">
+            <div className="font-medium">{user.email}</div>
+
+            <span className={`inline-block px-2 py-1 text-xs rounded ${roleBadge(user.role)}`}>
+              {user.role}
+            </span>
+
+            <div className="text-sm text-gray-500">
+              Last login:{" "}
+              {user.lastLogin
+                ? new Date(user.lastLogin).toLocaleDateString()
+                : "Never"}
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <button
+                onClick={() => handleToggleActive(user)}
+                className={`text-xs px-3 py-1 rounded ${
+                  user.isActive
+                    ? "bg-green-100 text-green-700"
+                    : "bg-gray-200 text-gray-700"
+                }`}
+              >
+                {user.isActive ? "Active" : "Inactive"}
+              </button>
+
+              <button
+                onClick={() => handleEditUser(user)}
+                className="text-blue-600 text-sm"
+              >
+                Edit
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Modal */}
       {showModal && (
         <UserModal
           user={selectedUser}
           departments={departments}
           onSubmit={handleModalSubmit}
-          onClose={handleModalClose}
+          onClose={() => setShowModal(false)}
           isSubmitting={isSubmitting}
         />
       )}
