@@ -185,7 +185,7 @@ const EmployeeList = () => {
 
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
 
       {/* Scope Indicator */}
       {isScoped && (
@@ -200,9 +200,9 @@ const EmployeeList = () => {
 
       {/* Filters Section */}
       <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
-          <div>
+          <div className="sm:col-span-2 lg:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Search
             </label>
@@ -291,11 +291,11 @@ const EmployeeList = () => {
       </div>
 
       {/* ---------------- Header ---------------- */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Employees</h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Employees</h1>
 
         {/* Buttons */}
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
 
           {/* View Toggle */}
           <div className="flex bg-muted rounded-lg p-1">

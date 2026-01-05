@@ -2,11 +2,32 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/card';
-import { Users, DollarSign, Calendar, Clock, FileText, AlertCircle } from 'lucide-react';
+import { Button } from '../../../../shared/ui/button';
+import { HRMStatusBadge } from '../../../../shared/ui/HRMStatusBadge';
+import { Badge } from '../../../../shared/ui/badge';
+import { 
+  Users, 
+  DollarSign, 
+  Calendar, 
+  Clock, 
+  FileText, 
+  AlertCircle, 
+  TrendingUp, 
+  TrendingDown,
+  RefreshCw,
+  Building,
+  UserCheck,
+  UserX,
+  Activity,
+  BarChart3,
+  Settings,
+  Shield
+} from 'lucide-react';
 import { LoadingSpinner } from '../../../../shared/components';
 import useAuth from '../../../../core/hooks/useAuth';
 import { usePermissions } from '../../../../core/hooks';
 import { MODULES } from '../../../../core/utils/rolePermissions';
+import { cn, formatCurrency } from '../../../../lib/utils';
 import adminDashboardService from '../../../../services/adminDashboardService';
 
 const AdminDashboard = () => {
@@ -113,17 +134,17 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-semibold text-gray-800">Admin Dashboard</h1>
+        <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Admin Dashboard</h1>
         <p className="text-gray-500 text-sm mt-1">
           Welcome back, {user?.fullName || 'Admin'}
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           const colorClasses = {

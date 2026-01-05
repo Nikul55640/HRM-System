@@ -168,58 +168,59 @@ const LeadManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Lead Management</h1>
-        <Button onClick={handleCreateLead}>
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-xl sm:text-2xl font-bold">Lead Management</h1>
+        <Button onClick={handleCreateLead} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
-          Add Lead
+          <span className="hidden sm:inline">Add Lead</span>
+          <span className="sm:hidden">Add</span>
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Total Leads</p>
-                <p className="text-2xl font-bold">{stats.totalLeads || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Leads</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.totalLeads || 0}</p>
               </div>
-              <Users className="w-8 h-8 text-blue-600" />
+              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">New Leads</p>
-                <p className="text-2xl font-bold">{stats.statusStats?.new || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">New Leads</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.statusStats?.new || 0}</p>
               </div>
-              <AlertCircle className="w-8 h-8 text-yellow-600" />
+              <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-600" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Qualified</p>
-                <p className="text-2xl font-bold">{stats.statusStats?.qualified || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Qualified</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.statusStats?.qualified || 0}</p>
               </div>
-              <CheckCircle className="w-8 h-8 text-purple-600" />
+              <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-gray-600">Closed Won</p>
-                <p className="text-2xl font-bold">{stats.statusStats?.closed_won || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Closed Won</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.statusStats?.closed_won || 0}</p>
               </div>
-              <TrendingUp className="w-8 h-8 text-green-600" />
+              <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
@@ -228,20 +229,20 @@ const LeadManagement = () => {
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="w-5 h-5" />
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Filter className="w-4 h-4 sm:w-5 sm:h-5" />
             Filters
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
               <Input
                 placeholder="Search leads..."
                 value={filters.search}
                 onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                className="pl-10"
+                className="pl-10 text-sm"
               />
             </div>
             <Select 
@@ -302,7 +303,7 @@ const LeadManagement = () => {
       {/* Leads Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Leads ({pagination.total})</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Leads ({pagination.total})</CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -314,38 +315,40 @@ const LeadManagement = () => {
           ) : (
             <div className="space-y-4">
               {leads.map((lead) => (
-                <div key={lead.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start">
+                <div key={lead.id} className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50">
+                  <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
                     <div className="space-y-2 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-lg">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span className="font-medium text-base sm:text-lg">
                           {lead.firstName} {lead.lastName}
                         </span>
-                        <span className="text-gray-500">({lead.leadId})</span>
-                        {getStatusBadge(lead.status)}
-                        {getPriorityBadge(lead.priority)}
+                        <span className="text-xs sm:text-sm text-gray-500">({lead.leadId})</span>
+                        <div className="flex flex-wrap gap-2">
+                          {getStatusBadge(lead.status)}
+                          {getPriorityBadge(lead.priority)}
+                        </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
                         <div className="flex items-center gap-2">
-                          <Mail className="w-4 h-4 text-gray-400" />
-                          <span>{lead.email}</span>
+                          <Mail className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+                          <span className="truncate">{lead.email}</span>
                         </div>
                         {lead.phone && (
                           <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4 text-gray-400" />
+                            <Phone className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
                             <span>{lead.phone}</span>
                           </div>
                         )}
                         {lead.company && (
                           <div className="flex items-center gap-2">
-                            <Building className="w-4 h-4 text-gray-400" />
-                            <span>{lead.company}</span>
+                            <Building className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
+                            <span className="truncate">{lead.company}</span>
                           </div>
                         )}
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 text-xs sm:text-sm">
                         <div>
                           <span className="text-gray-500">Source:</span>
                           <div className="capitalize">{lead.source.replace('_', ' ')}</div>
@@ -360,7 +363,7 @@ const LeadManagement = () => {
                         </div>
                         <div>
                           <span className="text-gray-500">Assigned To:</span>
-                          <div>
+                          <div className="truncate">
                             {lead.assignedEmployee 
                               ? `${lead.assignedEmployee.personalInfo?.firstName || ''} ${lead.assignedEmployee.personalInfo?.lastName || ''}`.trim() || lead.assignedEmployee.employeeId
                               : 'Unassigned'
@@ -370,35 +373,40 @@ const LeadManagement = () => {
                       </div>
 
                       {lead.description && (
-                        <div className="text-sm">
+                        <div className="text-xs sm:text-sm">
                           <span className="text-gray-500">Description:</span>
-                          <div className="text-gray-700 mt-1">{lead.description}</div>
+                          <div className="text-gray-700 mt-1 line-clamp-2">{lead.description}</div>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex flex-row lg:flex-col gap-2 lg:ml-4">
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleViewLead(lead)}
+                        className="flex-1 lg:flex-none"
                       >
                         <Eye className="w-4 h-4" />
+                        <span className="ml-1 sm:hidden">View</span>
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEditLead(lead)}
+                        className="flex-1 lg:flex-none"
                       >
                         <Edit className="w-4 h-4" />
+                        <span className="ml-1 sm:hidden">Edit</span>
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleDeleteLead(lead.id)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 flex-1 lg:flex-none"
                       >
                         <Trash2 className="w-4 h-4" />
+                        <span className="ml-1 sm:hidden">Delete</span>
                       </Button>
                     </div>
                   </div>
@@ -409,21 +417,25 @@ const LeadManagement = () => {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="flex justify-center gap-2 mt-6">
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-2 mt-6">
               <Button
                 variant="outline"
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page - 1 }))}
                 disabled={pagination.page === 1}
+                size="sm"
+                className="w-full sm:w-auto"
               >
                 Previous
               </Button>
-              <span className="flex items-center px-4">
+              <span className="flex items-center px-4 text-sm">
                 Page {pagination.page} of {pagination.totalPages}
               </span>
               <Button
                 variant="outline"
                 onClick={() => setPagination(prev => ({ ...prev, page: prev.page + 1 }))}
                 disabled={pagination.page === pagination.totalPages}
+                size="sm"
+                className="w-full sm:w-auto"
               >
                 Next
               </Button>
@@ -434,9 +446,9 @@ const LeadManagement = () => {
 
       {/* Lead Form Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto mx-4">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">
               {selectedLead ? 'Edit Lead' : 'Create New Lead'}
             </DialogTitle>
           </DialogHeader>
@@ -454,9 +466,9 @@ const LeadManagement = () => {
 
       {/* Lead Details Dialog */}
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto mx-4">
           <DialogHeader>
-            <DialogTitle>Lead Details</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">Lead Details</DialogTitle>
           </DialogHeader>
           {selectedLead && (
             <LeadDetails

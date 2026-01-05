@@ -67,25 +67,25 @@ const Login = () => {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-[380px]">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+      <div className="w-full max-w-sm sm:max-w-md">
         <Card className="border-none shadow-xl rounded-2xl bg-white">
-          <CardContent className="px-6 py-5">
+          <CardContent className="px-6 sm:px-8 py-6 sm:py-8">
             {/* Header */}
-            <div className="text-center mb-5">
-              <div className="w-11 h-11 bg-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow">
-                <Building2 className="w-6 h-6 text-white" />
+            <div className="text-center mb-6 sm:mb-8">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow">
+                <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
               </div>
-              <h1 className="text-2xl font-semibold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">
                 Welcome Back
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm sm:text-base text-gray-600 mt-1">
                 Login to continue
               </p>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
               {/* Email */}
               <div>
                 <label className="text-sm font-medium text-gray-900">

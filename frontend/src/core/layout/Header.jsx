@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom';
-import { Bell, Search, Settings, User, LogOut, ChevronDown, HelpCircle, Mail } from 'lucide-react';
+import { Bell, Search, Settings, User, LogOut, ChevronDown, HelpCircle, Mail, Menu } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '../../shared/ui/button';
 import { Icon } from '../../shared/components';
 import useAuth from '../hooks/useAuth';
 
-const Header = () => {
+const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -134,18 +134,30 @@ const Header = () => {
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-    <div className="px-4 sm:px-6 w-full">
-
+      <div className="px-4 sm:px-6 w-full">
         <div className="flex justify-between items-center h-16">
-          {/* Left Section - Search */}
-          <div className="flex flex-1 max-w-xl">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
-              />
+          {/* Left Section - Mobile Menu + Search */}
+          <div className="flex items-center gap-4 flex-1">
+            {/* Mobile Menu Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+
+            {/* Search */}
+            <div className="flex-1 max-w-xl">
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                />
+              </div>
             </div>
           </div>
 
@@ -189,7 +201,7 @@ const Header = () => {
                     ></div>
                     
                     {/* Notification Panel */}
-                    <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg border border-gray-200 shadow-lg z-20">
+                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg border border-gray-200 shadow-lg z-20 max-h-[80vh] overflow-hidden">
                       {/* Header */}
                       <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
                         <h3 className="text-sm font-semibold text-gray-800">Notifications</h3>
@@ -204,7 +216,7 @@ const Header = () => {
                       </div>
 
                       {/* Notification List */}
-                      <div className="max-h-96 overflow-y-auto">
+                      <div className="max-h-80 overflow-y-auto">
                         {notifications.length === 0 ? (
                           <div className="px-4 py-8 text-center text-gray-500 text-sm">
                             No notifications
@@ -219,17 +231,17 @@ const Header = () => {
                               onClick={() => markAsRead(notification.id)}
                             >
                               <div className="flex items-start gap-3">
-                                <div className="mt-0.5">{getNotificationIcon(notification.type)}</div>
+                                <div className="mt-0.5 flex-shrink-0">{getNotificationIcon(notification.type)}</div>
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-start justify-between gap-2">
-                                    <h4 className="text-sm font-medium text-gray-800">
+                                    <h4 className="text-sm font-medium text-gray-800 line-clamp-2">
                                       {notification.title}
                                     </h4>
                                     {!notification.read && (
-                                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-1"></div>
+                                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-1 flex-shrink-0"></div>
                                     )}
                                   </div>
-                                  <p className="text-xs text-gray-600 mt-1">
+                                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                                     {notification.message}
                                   </p>
                                   <div className="flex items-center justify-between mt-2">
@@ -319,11 +331,11 @@ const Header = () => {
                     ></div>
                     
                     {/* Menu */}
-                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg border border-gray-200 shadow-lg py-2 z-20">
+                    <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-white rounded-lg border border-gray-200 shadow-lg py-2 z-20">
                       {/* User Info Header */}
                       <div className="px-4 py-3 border-b border-gray-200">
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 ${getAvatarColor(user?.role)} rounded-lg flex items-center justify-center`}>
+                          <div className={`w-10 h-10 ${getAvatarColor(user?.role)} rounded-lg flex items-center justify-center flex-shrink-0`}>
                             <span className="text-white font-medium">{getUserInitials()}</span>
                           </div>
                           <div className="flex-1 min-w-0">

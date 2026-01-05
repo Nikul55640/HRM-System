@@ -340,14 +340,14 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             {showManagementFeatures ? 'Calendar Management' : 'Calendar'}
           </h1>
-          <p className="text-gray-600">
+          <p className="text-sm sm:text-base text-gray-600">
             {showManagementFeatures 
               ? 'Manage holidays, events, and company calendar'
               : 'View holidays, leaves, and important dates'
@@ -550,11 +550,12 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
           </CardHeader>
           <CardContent>
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-2">
+            <div className="grid grid-cols-7 gap-1 sm:gap-2">
               {/* Day Headers */}
               {dayNames.map(day => (
                 <div key={day} className="text-center text-xs font-medium text-gray-600 py-2">
-                  {day}
+                  <span className="hidden sm:inline">{day}</span>
+                  <span className="sm:hidden">{day.slice(0, 1)}</span>
                 </div>
               ))}
 
@@ -582,38 +583,38 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                     }}
                     onMouseEnter={(e) => handleMouseEnter(day, e)}
                     onMouseLeave={handleMouseLeave}
-                    className={`aspect-square border rounded-lg p-2 hover:bg-gray-50 transition-colors relative ${
+                    className={`aspect-square border rounded-lg p-1 sm:p-2 hover:bg-gray-50 transition-colors relative ${
                       canManageCalendar ? 'cursor-pointer' : 'cursor-default'
                     } ${isToday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
                   >
-                    <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-800'}`}>
+                    <div className={`text-xs sm:text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-800'}`}>
                       {day}
                     </div>
                     
                     {/* Events for this day */}
                     <div className="mt-1 space-y-1">
-                      {dayEvents.slice(0, 2).map((event) => (
+                      {dayEvents.slice(0, window.innerWidth < 640 ? 1 : 2).map((event) => (
                         <div
                           key={event._id || event.id}
                           className={`text-xs px-1 py-0.5 rounded border cursor-pointer hover:opacity-80 ${getEventColor(event.type)}`}
                           title={event.title || event.name}
                         >
                           <div className="flex items-center gap-1">
-                            <span>
+                            <span className="text-xs">
                               {event.type === 'holiday' ? '🎉' : 
                                event.type === 'leave' ? '📅' : 
                                event.type === 'birthday' ? '🎂' :
                                event.type === 'anniversary' ? '🎊' : '📝'}
                             </span>
-                            <span className="truncate">{event.title || event.name}</span>
+                            <span className="truncate text-xs hidden sm:inline">{event.title || event.name}</span>
                           </div>
                         </div>
                       ))}
                       
-                      {/* Show "+X more" if there are more than 2 events */}
-                      {dayEvents.length > 2 && (
+                      {/* Show "+X more" if there are more events */}
+                      {dayEvents.length > (window.innerWidth < 640 ? 1 : 2) && (
                         <div className="text-xs text-gray-500 px-1">
-                          +{dayEvents.length - 2} more
+                          +{dayEvents.length - (window.innerWidth < 640 ? 1 : 2)} more
                         </div>
                       )}
                     </div>
@@ -658,30 +659,30 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
             )}
 
             {/* Legend */}
-            <div className="mt-6 flex flex-wrap gap-4 justify-center">
+            <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-4 justify-center text-xs sm:text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-red-50 border border-red-200 rounded"></div>
-                <span className="text-sm text-gray-600">Holiday</span>
+                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-50 border border-red-200 rounded"></div>
+                <span className="text-gray-600">Holiday</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-blue-50 border border-blue-200 rounded"></div>
-                <span className="text-sm text-gray-600">Event</span>
+                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-50 border border-blue-200 rounded"></div>
+                <span className="text-gray-600">Event</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-orange-50 border border-orange-200 rounded"></div>
-                <span className="text-sm text-gray-600">Leave</span>
+                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-orange-50 border border-orange-200 rounded"></div>
+                <span className="text-gray-600">Leave</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-pink-50 border border-pink-200 rounded"></div>
-                <span className="text-sm text-gray-600">Birthday</span>
+                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-pink-50 border border-pink-200 rounded"></div>
+                <span className="text-gray-600">Birthday</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-purple-50 border border-purple-200 rounded"></div>
-                <span className="text-sm text-gray-600">Anniversary</span>
+                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-purple-50 border border-purple-200 rounded"></div>
+                <span className="text-gray-600">Anniversary</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
-                <span className="text-sm text-gray-600">Meeting</span>
+                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-green-50 border border-green-200 rounded"></div>
+                <span className="text-gray-600">Meeting</span>
               </div>
             </div>
           </CardContent>

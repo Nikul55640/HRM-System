@@ -94,7 +94,7 @@ const EmployeeProfile = () => {
   };
 
   const handleEdit = () => {
-    navigate(`/employees/${id}/edit`);
+    navigate(`/admin/employees/${id}/edit`);
   };
 
   const getInitials = (firstName, lastName) => {
@@ -140,20 +140,20 @@ const EmployeeProfile = () => {
   ];
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
       {/* Header Section */}
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-6">
+      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 lg:gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 flex-1">
             {/* Profile Photo */}
             {currentEmployee.profilePicture ? (
               <img
                 src={currentEmployee.personalInfo?.profilePhoto || currentEmployee.profilePicture}
                 alt={`${currentEmployee.personalInfo?.firstName || currentEmployee.firstName} ${currentEmployee.personalInfo?.lastName || currentEmployee.lastName}`}
-                className="w-24 h-24 rounded-full object-cover"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-3xl font-semibold">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl sm:text-3xl font-semibold flex-shrink-0">
                 {getInitials(
                   currentEmployee.personalInfo?.firstName || currentEmployee.firstName,
                   currentEmployee.personalInfo?.lastName || currentEmployee.lastName
@@ -162,24 +162,24 @@ const EmployeeProfile = () => {
             )}
 
             {/* Basic Info */}
-            <div>
-              <h1 className="text-3xl font-bold text-gray-800">
+            <div className="text-center sm:text-left flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 break-words">
                 {currentEmployee.personalInfo?.firstName || currentEmployee.firstName}{" "}
                 {currentEmployee.personalInfo?.lastName || currentEmployee.lastName}
               </h1>
-              <p className="text-lg text-gray-600 mt-1">
+              <p className="text-base sm:text-lg text-gray-600 mt-1 break-words">
                 {currentEmployee.jobInfo?.designation || currentEmployee.jobInfo?.jobTitle || currentEmployee.designation}
               </p>
-              <div className="flex items-center gap-4 mt-2">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 mt-2">
                 <span
-                  className={`inline-block px-3 py-1 text-sm font-medium rounded-full ${getStatusColor(
+                  className={`inline-block px-3 py-1 text-xs sm:text-sm font-medium rounded-full ${getStatusColor(
                     currentEmployee.status
                   )}`}
                 >
                   {currentEmployee.status}
                 </span>
                 {currentEmployee.employeeId && (
-                  <span className="text-sm text-gray-600">
+                  <span className="text-xs sm:text-sm text-gray-600">
                     ID:{" "}
                     <span className="font-medium">
                       {currentEmployee.employeeId}
@@ -191,20 +191,21 @@ const EmployeeProfile = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto lg:flex-shrink-0">
             <button
               onClick={() => navigate("/admin/employees")}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base order-2 sm:order-1"
             >
-              Back to List
+              <span className="sm:hidden">Back</span>
+              <span className="hidden sm:inline">Back to List</span>
             </button>
             {canEdit() && (
               <button
                 onClick={handleEdit}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base order-1 sm:order-2"
               >
                 <svg
-                  className="w-5 h-5"
+                  className="w-4 h-4 sm:w-5 sm:h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -216,7 +217,8 @@ const EmployeeProfile = () => {
                     d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                   />
                 </svg>
-                Edit Profile
+                <span className="sm:hidden">Edit</span>
+                <span className="hidden sm:inline">Edit Profile</span>
               </button>
             )}
           </div>
@@ -226,19 +228,19 @@ const EmployeeProfile = () => {
       {/* Tabs */}
       <div className="bg-white rounded-lg shadow-md">
         <div className="border-b border-gray-200">
-          <nav className="flex -mb-px">
+          <nav className="flex -mb-px overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-6 py-4 border-b-2 font-medium text-sm transition-colors ${
+                className={`flex items-center gap-2 px-4 sm:px-6 py-3 sm:py-4 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab.id
                     ? "border-blue-600 text-blue-600"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
                 <svg
-                  className="w-5 h-5"
+                  className="w-4 h-4 sm:w-5 sm:h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -250,14 +252,19 @@ const EmployeeProfile = () => {
                     d={tab.icon}
                   />
                 </svg>
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">
+                  {tab.label === "Overview" ? "Info" : 
+                   tab.label === "Documents" ? "Docs" : 
+                   tab.label}
+                </span>
               </button>
             ))}
           </nav>
         </div>
 
         {/* Tab Content */}
-        <div className="p-6">
+        <div className="p-3 sm:p-6">
           {activeTab === "overview" && (
             <>
               {console.log('EmployeeProfile - Passing currentEmployee to OverviewTab:', currentEmployee)}

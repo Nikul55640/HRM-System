@@ -134,21 +134,24 @@ const ShiftManagement = () => {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Shift Management</h1>
-          <p className="text-gray-600 mt-1">Create and manage work shifts</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Shift Management</h1>
+          <p className="text-sm sm:text-base text-gray-600 mt-1">Create and manage work shifts</p>
         </div>
-        <Button onClick={handleCreateShift} className="bg-blue-600 hover:bg-blue-700">
+        <Button 
+          onClick={handleCreateShift} 
+          className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto btn-touch"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Create New Shift
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -156,8 +159,8 @@ const ShiftManagement = () => {
                 <Clock className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Shifts</p>
-                <p className="text-2xl font-bold">{stats.totalShifts || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Shifts</p>
+                <p className="text-xl sm:text-2xl font-bold">{stats.totalShifts || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -170,8 +173,8 @@ const ShiftManagement = () => {
                 <CheckCircle className="w-5 h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Active Shifts</p>
-                <p className="text-2xl font-bold">{stats.activeShifts || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Active Shifts</p>
+                <p className="text-xl sm:text-2xl font-bold">{stats.activeShifts || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -184,8 +187,8 @@ const ShiftManagement = () => {
                 <Users className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Assignments</p>
-                <p className="text-2xl font-bold">{stats.totalAssignments || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Assignments</p>
+                <p className="text-xl sm:text-2xl font-bold">{stats.totalAssignments || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -209,20 +212,20 @@ const ShiftManagement = () => {
       {/* Search and Filter */}
       <Card>
         <CardContent className="p-4">
-          <div className="flex gap-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1 relative">
               <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
               <Input
                 placeholder="Search by shift name or code..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-10 text-sm"
               />
             </div>
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 sm:px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm w-full sm:w-auto"
             >
               <option value="all">All Shifts</option>
               <option value="active">Active Only</option>
@@ -260,12 +263,12 @@ const ShiftManagement = () => {
               {getFilteredShifts().map((shift) => (
                 <div
                   key={shift.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition gap-3"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900">{shift.shiftName}</h3>
-                      <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                      <h3 className="font-semibold text-gray-900 text-sm sm:text-base">{shift.shiftName}</h3>
+                      <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 w-fit">
                         {shift.shiftCode}
                       </span>
                       <Badge className={shift.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
@@ -278,19 +281,21 @@ const ShiftManagement = () => {
                         </Badge>
                       )}
                     </div>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-xs sm:text-sm text-gray-600">
                       {shift.shiftStartTime} - {shift.shiftEndTime}
                     </p>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleViewShift(shift)}
                       title="View details"
+                      className="flex-1 sm:flex-none"
                     >
                       <Eye className="w-4 h-4" />
+                      <span className="ml-1 sm:hidden">View</span>
                     </Button>
                     <Button
                       size="sm"
@@ -300,17 +305,20 @@ const ShiftManagement = () => {
                         setShowAssignForm(true);
                       }}
                       title="Assign employees"
-                      className="bg-purple-50 hover:bg-purple-100 text-purple-600"
+                      className="bg-purple-50 hover:bg-purple-100 text-purple-600 flex-1 sm:flex-none"
                     >
                       <Users className="w-4 h-4" />
+                      <span className="ml-1 sm:hidden">Assign</span>
                     </Button>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleEditShift(shift)}
                       title="Edit shift"
+                      className="flex-1 sm:flex-none"
                     >
                       <Edit className="w-4 h-4" />
+                      <span className="ml-1 sm:hidden">Edit</span>
                     </Button>
                     {!shift.isDefault && (
                       <Button
@@ -318,18 +326,21 @@ const ShiftManagement = () => {
                         variant="outline"
                         onClick={() => handleSetDefault(shift.id)}
                         title="Set as default"
+                        className="flex-1 sm:flex-none"
                       >
                         <Star className="w-4 h-4" />
+                        <span className="ml-1 sm:hidden">Default</span>
                       </Button>
                     )}
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => handleDeleteShift(shift.id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 flex-1 sm:flex-none"
                       title="Delete shift"
                     >
                       <Trash2 className="w-4 h-4" />
+                      <span className="ml-1 sm:hidden">Delete</span>
                     </Button>
                   </div>
                 </div>

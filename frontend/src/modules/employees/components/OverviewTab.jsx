@@ -17,27 +17,27 @@ const OverviewTab = ({ employee }) => {
   };
 
   const InfoSection = ({ title, children }) => (
-    <div className="mb-6">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+    <div className="mb-4 sm:mb-6">
+      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 pb-2 border-b border-gray-200">
         {title}
       </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         {children}
       </div>
     </div>
   );
 
   const InfoItem = ({ label, value }) => (
-    <div>
-      <dt className="text-sm font-medium text-gray-500">{label}</dt>
-      <dd className="mt-1 text-sm text-gray-900">{value || 'N/A'}</dd>
+    <div className="break-words">
+      <dt className="text-xs sm:text-sm font-medium text-gray-500">{label}</dt>
+      <dd className="mt-1 text-sm sm:text-base text-gray-900 break-all">{value || 'N/A'}</dd>
     </div>
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {!emp || Object.keys(emp).length === 0 && (
-        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 sm:px-4 py-3 rounded text-sm">
           <strong>Notice:</strong> Employee data is loading...
         </div>
       )}
@@ -61,15 +61,15 @@ const OverviewTab = ({ employee }) => {
 
       {/* Address */}
       {contact?.address && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+        <div className="mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 pb-2 border-b border-gray-200">
             Current Address
           </h3>
-          <div className="text-sm text-gray-900">
+          <div className="text-sm sm:text-base text-gray-900 break-words">
             {contact.address.street && (
-              <div>{contact.address.street}</div>
+              <div className="mb-1">{contact.address.street}</div>
             )}
-            <div>
+            <div className="mb-1">
               {[
                 contact.address.city,
                 contact.address.state,
@@ -87,12 +87,12 @@ const OverviewTab = ({ employee }) => {
 
       {/* Emergency Contacts */}
       {emp?.emergencyContact && (
-        <div className="mb-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-200">
+        <div className="mb-4 sm:mb-6">
+          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 pb-2 border-b border-gray-200">
             Emergency Contact
           </h3>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <InfoItem label="Name" value={emp.emergencyContact.name} />
               <InfoItem label="Relationship" value={emp.emergencyContact.relationship} />
               <InfoItem label="Phone" value={emp.emergencyContact.phone} />

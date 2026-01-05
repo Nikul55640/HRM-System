@@ -202,13 +202,27 @@ const ProfilePage = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           {address && Object.keys(address).length > 0 ? (
-            Object.entries(address).map(([key, value]) => (
-              <InfoRow
-                key={key}
-                label={key.replace(/_/g, " ").toUpperCase()}
-                value={value}
-              />
-            ))
+            Object.entries(address).map(([key, value]) => {
+              // Format field labels properly
+              const formatLabel = (key) => {
+                const labelMap = {
+                  street: "Street Address",
+                  city: "City",
+                  state: "State/Province",
+                  zipCode: "ZIP/Postal Code",
+                  country: "Country"
+                };
+                return labelMap[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+              };
+
+              return (
+                <InfoRow
+                  key={key}
+                  label={formatLabel(key)}
+                  value={value}
+                />
+              );
+            })
           ) : (
             <p className="text-sm text-gray-500">
               No address information provided

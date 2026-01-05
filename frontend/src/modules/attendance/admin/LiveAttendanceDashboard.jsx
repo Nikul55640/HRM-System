@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
-import { Button } from '../../../shared/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '../../../shared/ui/select';
+  PageHeader,
+  StatsCard,
+  DataCard,
+  StatusBadge,
+  ActionButton,
+  FilterBar,
+  EmptyState
+} from '../../../shared/ui';
 import {
   Users,
   RefreshCw,
@@ -18,6 +18,7 @@ import {
   MapPin,
   AlertTriangle,
   Timer,
+  Loader2,
   Award,
 } from 'lucide-react';
 import { toast } from 'react-toastify';
@@ -199,192 +200,135 @@ const LiveAttendanceDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Live Attendance Dashboard</h1>
-          <p className="text-muted-foreground">
-            Real-time view of employee attendance with shift tracking
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
+      <PageHeader
+        title="Live Attendance Dashboard"
+        subtitle="Real-time view of employee attendance with shift tracking"
+        actions={[
+          <ActionButton
+            key="auto-refresh"
             variant="outline"
             size="sm"
             onClick={() => setAutoRefresh(!autoRefresh)}
           >
             {autoRefresh ? '⏸️ Pause' : '▶️ Resume'} Auto-Refresh
-          </Button>
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          </ActionButton>,
+          <ActionButton
+            key="refresh"
+            variant="outline"
+            size="sm"
+            icon={RefreshCw}
+            onClick={handleRefresh}
+            loading={loading}
+          >
             Refresh
-          </Button>
-          {/* {process.env.NODE_ENV !== 'production' && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleCreateTestData}
-              disabled={loading}
-            >
-              🧪 Create Test Data
-            </Button>
-          )} */}
-        </div>
-      </div>
+          </ActionButton>
+        ]}
+      />
 
       {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total Active</p>
-                <p className="text-3xl font-bold">{summary.totalActive || 0}</p>
-              </div>
-              <Users className="h-8 w-8 text-blue-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Working</p>
-                <p className="text-3xl font-bold text-green-600">{summary.working || 0}</p>
-              </div>
-              <Clock className="h-8 w-8 text-green-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">On Break</p>
-                <p className="text-3xl font-bold text-orange-600">{summary.onBreak || 0}</p>
-              </div>
-              <Coffee className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className={summary.late > 0 ? "border-yellow-300 bg-yellow-50" : ""}>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Late Today</p>
-                <p className="text-3xl font-bold text-yellow-600">{summary.late || 0}</p>
-                {summary.late > 0 && (
-                  <p className="text-xs text-yellow-600 mt-1">Requires attention</p>
-                )}
-              </div>
-              <AlertTriangle className="h-8 w-8 text-yellow-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">In Overtime</p>
-                <p className="text-3xl font-bold text-purple-600">{summary.overtime || 0}</p>
-              </div>
-              <Timer className="h-8 w-8 text-purple-500" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card className={summary.incomplete > 0 ? "border-orange-300 bg-orange-50" : ""}>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Incomplete</p>
-                <p className="text-3xl font-bold text-orange-600">{summary.incomplete || 0}</p>
-                {summary.incomplete > 0 && (
-                  <p className="text-xs text-orange-600 mt-1">Missing clock-out</p>
-                )}
-              </div>
-              <AlertTriangle className="h-8 w-8 text-orange-500" />
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <StatsCard
+          title="Total Active"
+          value={summary.totalActive || 0}
+          icon={Users}
+          color="blue"
+        />
+        <StatsCard
+          title="Working"
+          value={summary.working || 0}
+          icon={Clock}
+          color="green"
+        />
+        <StatsCard
+          title="On Break"
+          value={summary.onBreak || 0}
+          icon={Coffee}
+          color="yellow"
+        />
+        <StatsCard
+          title="Late Today"
+          value={summary.late || 0}
+          subtitle={summary.late > 0 ? "Requires attention" : ""}
+          icon={AlertTriangle}
+          color="red"
+        />
+        <StatsCard
+          title="In Overtime"
+          value={summary.overtime || 0}
+          icon={Timer}
+          color="purple"
+        />
+        <StatsCard
+          title="Incomplete"
+          value={summary.incomplete || 0}
+          subtitle={summary.incomplete > 0 ? "Missing clock-out" : ""}
+          icon={AlertTriangle}
+          color="orange"
+        />
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Select
-              value={filters.department}
-              onValueChange={(value) =>
-                setFilters({ ...filters, department: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Departments" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Departments</SelectItem>
-                <SelectItem value="Engineering">Engineering</SelectItem>
-                <SelectItem value="HR">HR</SelectItem>
-                <SelectItem value="Sales">Sales</SelectItem>
-                <SelectItem value="Marketing">Marketing</SelectItem>
-                <SelectItem value="Finance">Finance</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={filters.workLocation}
-              onValueChange={(value) =>
-                setFilters({ ...filters, workLocation: value })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="All Locations" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Locations</SelectItem>
-                <SelectItem value="office">Office</SelectItem>
-                <SelectItem value="wfh">Work From Home</SelectItem>
-                <SelectItem value="client_site">Client Site</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+      <FilterBar
+        filters={[
+          {
+            key: 'department',
+            label: 'Department',
+            options: [
+              { value: 'Engineering', label: 'Engineering' },
+              { value: 'HR', label: 'HR' },
+              { value: 'Sales', label: 'Sales' },
+              { value: 'Marketing', label: 'Marketing' },
+              { value: 'Finance', label: 'Finance' }
+            ]
+          },
+          {
+            key: 'workLocation',
+            label: 'Location',
+            options: [
+              { value: 'office', label: 'Office' },
+              { value: 'wfh', label: 'Work From Home' },
+              { value: 'client_site', label: 'Client Site' }
+            ]
+          }
+        ]}
+        activeFilters={filters}
+        onFilterChange={(key, value) => setFilters({ ...filters, [key]: value })}
+      />
 
       {/* Employee Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading && liveData.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-muted-foreground">
-            Loading live attendance...
+          <div className="col-span-full">
+            <EmptyState
+              icon={Loader2}
+              title="Loading live attendance..."
+              description="Please wait while we fetch the latest data"
+            />
           </div>
         ) : liveData.length === 0 ? (
           <div className="col-span-full">
-            <Card className="border-dashed border-2 border-gray-300">
-              <CardContent className="pt-6">
-                <div className="text-center py-12">
-                  <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Sessions</h3>
-                  <p className="text-gray-500 mb-4">
-                    No employees are currently clocked in
-                  </p>
-                  {process.env.NODE_ENV !== 'production' && (
-                    <div className="space-y-2">
-                      <p className="text-sm text-gray-400">
-                        Development Mode: You can create test data to see the dashboard in action
-                      </p>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={handleCreateTestData}
-                        disabled={loading}
-                      >
-                        🧪 Create Test Attendance Data
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            <EmptyState
+              icon={Users}
+              title="No Active Sessions"
+              description="No employees are currently clocked in"
+              action={
+                process.env.NODE_ENV !== 'production' && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-400">
+                      Development Mode: You can create test data to see the dashboard in action
+                    </p>
+                    <ActionButton
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCreateTestData}
+                      loading={loading}
+                    >
+                      🧪 Create Test Attendance Data
+                    </ActionButton>
+                  </div>
+                )
+              }
+            />
           </div>
         ) : (
           liveData.map((employee) => {
@@ -392,53 +336,45 @@ const LiveAttendanceDashboard = () => {
             const inOvertime = isInOvertime(employee);
             
             return (
-              <Card key={employee.employeeId} className={`hover:shadow-md transition-shadow ${employee.isLate ? 'border-yellow-300 bg-yellow-50' : ''}`}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="text-lg">{employee.fullName}</CardTitle>
-                      <p className="text-sm text-muted-foreground">
-                        {employee.department} • {employee.position}
-                      </p>
-                      {employee.shift && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Shift: {employee.shift.shiftName} ({employee.shift.shiftStartTime} - {employee.shift.shiftEndTime})
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          employee.currentSession?.status === 'on_break'
-                            ? 'bg-orange-100 text-orange-700'
-                            : 'bg-green-100 text-green-700'
-                        }`}
-                      >
-                        {employee.currentSession?.status === 'on_break'
-                          ? '☕ Break'
-                          : '🟢 Active'}
-                      </span>
-                      {/* Enhanced: More prominent late badge */}
-                      {employee.isLate && (
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-300">
-                          ⚠️ LATE ({employee.lateMinutes}m)
-                        </span>
-                      )}
-                      {inOvertime && (
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                          ⏱️ OT ({formatDuration(overtimeMinutes)})
-                        </span>
-                      )}
-                      {/* NEW: Incomplete status badge */}
-                      {employee.status === 'incomplete' && (
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-700 border border-orange-300">
-                          🔄 INCOMPLETE
-                        </span>
-                      )}
-                    </div>
+              <DataCard
+                key={employee.employeeId}
+                title={employee.fullName}
+                subtitle={`${employee.department} • ${employee.position}`}
+                className={employee.isLate ? 'border-yellow-300 bg-yellow-50' : ''}
+                actions={[
+                  <div key="status-badges" className="flex flex-col gap-1">
+                    <StatusBadge
+                      status={employee.currentSession?.status === 'on_break' ? 'warning' : 'success'}
+                      size="sm"
+                    >
+                      {employee.currentSession?.status === 'on_break' ? '☕ Break' : '🟢 Active'}
+                    </StatusBadge>
+                    {employee.isLate && (
+                      <StatusBadge status="error" size="sm">
+                        ⚠️ LATE ({employee.lateMinutes}m)
+                      </StatusBadge>
+                    )}
+                    {inOvertime && (
+                      <StatusBadge status="info" size="sm">
+                        ⏱️ OT ({formatDuration(overtimeMinutes)})
+                      </StatusBadge>
+                    )}
+                    {employee.status === 'incomplete' && (
+                      <StatusBadge status="warning" size="sm">
+                        🔄 INCOMPLETE
+                      </StatusBadge>
+                    )}
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
+                ]}
+              >
+                <div className="space-y-3">
+                  {/* Shift Info */}
+                  {employee.shift && (
+                    <div className="text-sm text-gray-600">
+                      <strong>Shift:</strong> {employee.shift.shiftName} ({employee.shift.shiftStartTime} - {employee.shift.shiftEndTime})
+                    </div>
+                  )}
+
                   {/* Location */}
                   <div className="flex items-center gap-2 text-sm">
                     <Building2 className="h-4 w-4" />
@@ -446,12 +382,11 @@ const LiveAttendanceDashboard = () => {
                   </div>
 
                   {/* Time Info */}
-                  <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <div className="text-muted-foreground text-xs">Clock In</div>
+                      <div className="text-gray-500 text-xs">Clock In</div>
                       <div className="font-medium">
                         {formatTimeDisplay(employee.currentSession?.checkInTime)}
-                        {/* Show late indicator next to time */}
                         {employee.isLate && (
                           <span className="ml-1 text-red-500 text-xs">
                             (+{employee.lateMinutes}m late)
@@ -465,7 +400,7 @@ const LiveAttendanceDashboard = () => {
                       )}
                     </div>
                     <div>
-                      <div className="text-muted-foreground text-xs">Worked</div>
+                      <div className="text-gray-500 text-xs">Worked</div>
                       <div className="font-medium">
                         {formatDurationDisplay(employee.currentSession?.totalWorkedMinutes || 0)}
                       </div>
@@ -489,19 +424,15 @@ const LiveAttendanceDashboard = () => {
 
                   {/* Break Info */}
                   {employee.currentSession?.breakCount > 0 && (
-                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-                      <span>
-                        {employee.currentSession.breakCount} break(s)
-                      </span>
-                      <span>
-                        {formatDurationDisplay(employee.currentSession?.totalBreakMinutes || 0)}
-                      </span>
+                    <div className="flex items-center justify-between text-sm text-gray-600 pt-2 border-t">
+                      <span>{employee.currentSession.breakCount} break(s)</span>
+                      <span>{formatDurationDisplay(employee.currentSession?.totalBreakMinutes || 0)}</span>
                     </div>
                   )}
 
                   {/* Current Break */}
                   {employee.currentSession?.currentBreak && (
-                    <div className="bg-orange-50 border border-orange-200 rounded p-2 text-xs">
+                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm">
                       <div className="flex items-center justify-between">
                         <span className="text-orange-700">On break since</span>
                         <span className="font-medium">
@@ -516,17 +447,17 @@ const LiveAttendanceDashboard = () => {
 
                   {/* Overtime Warning */}
                   {inOvertime && (
-                    <div className="bg-purple-50 border border-purple-200 rounded p-2 text-xs">
-                      <div className="flex items-center gap-1 text-purple-700">
-                        <Timer className="h-3 w-3" />
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-sm">
+                      <div className="flex items-center gap-2 text-purple-700">
+                        <Timer className="h-4 w-4" />
                         <span>In overtime: {formatDuration(overtimeMinutes)}</span>
                       </div>
                     </div>
                   )}
 
                   {/* Performance Indicators */}
-                  <div className="flex items-center justify-between text-xs pt-2 border-t">
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-between text-sm pt-2 border-t">
+                    <div className="flex items-center gap-2 flex-wrap">
                       {!employee.isLate && (
                         <span className="text-green-600 flex items-center gap-1">
                           <Award className="h-3 w-3" />
@@ -534,14 +465,12 @@ const LiveAttendanceDashboard = () => {
                         </span>
                       )}
                       {employee.currentSession?.status !== 'on_break' && (
-                        <span className="text-blue-600">
-                          🟢 Productive
-                        </span>
+                        <span className="text-blue-600">🟢 Productive</span>
                       )}
                     </div>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </DataCard>
             );
           })
         )}
@@ -549,9 +478,14 @@ const LiveAttendanceDashboard = () => {
 
       {/* Last Updated */}
       {!loading && liveData.length > 0 && (
-        <div className="text-center text-sm text-muted-foreground">
+        <div className="text-center text-xs sm:text-sm text-muted-foreground">
           Last updated: {new Date().toLocaleTimeString()}
-          {autoRefresh && ' • Auto-refreshing every 30 seconds'}
+          {autoRefresh && (
+            <>
+              <span className="hidden sm:inline"> • Auto-refreshing every 30 seconds</span>
+              <div className="sm:hidden mt-1">Auto-refreshing every 30s</div>
+            </>
+          )}
         </div>
       )}
     </div>

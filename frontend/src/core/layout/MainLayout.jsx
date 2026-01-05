@@ -6,20 +6,29 @@ import { useState } from "react";
 
 const MainLayout = () => {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-gray-50">
       
-      <Sidebar setLayoutSidebarExpanded={setSidebarExpanded} />
+      <Sidebar 
+        setLayoutSidebarExpanded={setSidebarExpanded}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+      />
 
-      <div
-        className="flex flex-col min-h-screen transition-all duration-300"
-        style={{ marginLeft: sidebarExpanded ? 250 : 70 }}
-      >
-        <Header />
+      <div className={`
+        flex flex-col min-h-screen transition-all duration-300
+        ${sidebarExpanded ? 'lg:ml-64' : 'lg:ml-20'}
+        ml-0
+      `}>
+        <Header 
+          mobileMenuOpen={mobileMenuOpen}
+          setMobileMenuOpen={setMobileMenuOpen}
+        />
 
         <main className="flex-1 overflow-auto">
-          <div className="max-w-7xl mx-auto px-6 py-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
             <Outlet />
           </div>
         </main>

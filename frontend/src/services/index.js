@@ -17,6 +17,7 @@ export { default as dashboardService } from "./dashboardService";
 export { default as userService } from "./userService";
 export { default as employeeSelfService } from "./employeeSelfService";
 export { default as calendarService } from "./calendarService";
+export { default as smartCalendarService } from "./smartCalendarService";
 
 // Feature-specific services (8 Core Features)
 export { default as shiftService } from "./shiftService"; // Feature 6: Shift Management

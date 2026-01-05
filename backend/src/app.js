@@ -43,9 +43,11 @@ import helpSupportRoutes from "./routes/admin/helpSupport.routes.js";
 import eventTypesRoutes from "./routes/admin/eventTypes.routes.js";
 import workLocationsRoutes from "./routes/admin/workLocations.routes.js";
 import attendanceStatusRoutes from "./routes/admin/attendanceStatus.routes.js";
+import workingRulesRoutes from "./routes/admin/workingRules.routes.js";
 
 // HRM Modules
 import calendarRoutes from "./routes/calendar.routes.js";
+import smartCalendarRoutes from "./routes/calendar/smartCalendar.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import configRoutes from "./routes/config.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
@@ -152,6 +154,7 @@ app.use("/api/admin/help-support", helpSupportRoutes);
 app.use("/api/admin/event-types", eventTypesRoutes);
 app.use("/api/admin/work-locations", workLocationsRoutes);
 app.use("/api/admin/attendance-status", attendanceStatusRoutes);
+app.use("/api/admin/working-rules", workingRulesRoutes);
 app.use("/api/admin/config", configRoutes);
 
 // AUTH SECTION
@@ -165,6 +168,7 @@ app.use("/api/employee", employeeSelfServiceRoutes);
 
 // HRM CORE MODULES
 app.use("/api/calendar", calendarRoutes);
+app.use("/api/calendar/smart", smartCalendarRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/config", configRoutes);
 app.use("/api", settingsRoutes);

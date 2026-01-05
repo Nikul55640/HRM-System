@@ -17,45 +17,63 @@ const validationSchemas = [
     personalInfo: Yup.object({
       firstName: Yup.string()
         .required("First name is required")
-        .max(50, "Maximum 50 characters"),
+        .min(2, "First name must be at least 2 characters")
+        .max(50, "First name cannot exceed 50 characters")
+        .matches(/^[a-zA-Z\s]+$/, "First name can only contain letters and spaces"),
       lastName: Yup.string()
         .required("Last name is required")
-        .max(50, "Maximum 50 characters"),
+        .min(2, "Last name must be at least 2 characters")
+        .max(50, "Last name cannot exceed 50 characters")
+        .matches(/^[a-zA-Z\s]+$/, "Last name can only contain letters and spaces"),
       dateOfBirth: Yup.date()
         .nullable()
-        .max(new Date(), "Date of birth cannot be in the future"),
+        .max(new Date(), "Date of birth cannot be in the future")
+        .test('age', 'Employee must be at least 16 years old', function(value) {
+          if (!value) return true; // Allow empty
+          const today = new Date();
+          const birthDate = new Date(value);
+          const age = today.getFullYear() - birthDate.getFullYear();
+          return age >= 16;
+        }),
       gender: Yup.string().oneOf(
         ["Male", "Female", "Other", "Prefer not to say"],
-        "Invalid gender"
+        "Please select a valid gender option"
       ),
       maritalStatus: Yup.string().oneOf(
         ["Single", "Married", "Divorced", "Widowed"],
-        "Invalid marital status"
+        "Please select a valid marital status"
       ),
-      nationality: Yup.string().max(50, "Maximum 50 characters"),
+      nationality: Yup.string().max(50, "Nationality cannot exceed 50 characters"),
     }),
   }),
   // Step 2: Contact Info
   Yup.object({
     contactInfo: Yup.object({
       email: Yup.string()
-        .required("Email is required")
-        .email("Invalid email format"),
-      personalEmail: Yup.string().email("Invalid email format"),
-      phoneNumber: Yup.string().matches(
-        /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/,
-        "Invalid phone number"
-      ),
+        .required("Work email is required")
+        .email("Please enter a valid email address")
+        .max(100, "Email cannot exceed 100 characters"),
+      personalEmail: Yup.string()
+        .email("Please enter a valid personal email address")
+        .max(100, "Personal email cannot exceed 100 characters"),
+      phoneNumber: Yup.string()
+        .required("Phone number is required")
+        .matches(
+          /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/,
+          "Please enter a valid phone number (e.g., +1-234-567-8900)"
+        ),
       alternatePhone: Yup.string().matches(
         /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/,
-        "Invalid phone number"
+        "Please enter a valid alternate phone number"
       ),
       currentAddress: Yup.object({
-        street: Yup.string().max(100, "Maximum 100 characters"),
-        city: Yup.string().max(50, "Maximum 50 characters"),
-        state: Yup.string().max(50, "Maximum 50 characters"),
-        zipCode: Yup.string().max(20, "Maximum 20 characters"),
-        country: Yup.string().max(50, "Maximum 50 characters"),
+        street: Yup.string().max(100, "Street address cannot exceed 100 characters"),
+        city: Yup.string().max(50, "City cannot exceed 50 characters"),
+        state: Yup.string().max(50, "State cannot exceed 50 characters"),
+        zipCode: Yup.string()
+          .max(20, "ZIP code cannot exceed 20 characters")
+          .matches(/^[0-9A-Za-z\s-]+$/, "Please enter a valid ZIP code"),
+        country: Yup.string().max(50, "Country cannot exceed 50 characters"),
       }),
     }),
   }),
@@ -64,15 +82,21 @@ const validationSchemas = [
     jobInfo: Yup.object({
       jobTitle: Yup.string()
         .required("Job title is required")
-        .max(100, "Maximum 100 characters"),
-      department: Yup.string().required("Department is required"),
+        .min(2, "Job title must be at least 2 characters")
+        .max(100, "Job title cannot exceed 100 characters"),
+      department: Yup.string()
+        .required("Please select a department"),
+      designation: Yup.string()
+        .required("Please select a designation"),
       manager: Yup.string().nullable(),
-      hireDate: Yup.date().required("Hire date is required"),
+      hireDate: Yup.date()
+        .required("Hire date is required")
+        .max(new Date(), "Hire date cannot be in the future"),
       employmentType: Yup.string()
-        .required("Employment type is required")
-        .oneOf(["full_time", "part_time", "contract", "intern"]),
-      workLocation: Yup.string().max(100, "Maximum 100 characters"),
-      workSchedule: Yup.string().max(100, "Maximum 100 characters"),
+        .required("Please select an employment type")
+        .oneOf(["full_time", "part_time", "contract", "intern"], "Please select a valid employment type"),
+      workLocation: Yup.string().max(100, "Work location cannot exceed 100 characters"),
+      workSchedule: Yup.string().max(100, "Work schedule cannot exceed 100 characters"),
       probationEndDate: Yup.date()
         .nullable()
         .min(Yup.ref("hireDate"), "Probation end date must be after hire date"),
@@ -81,10 +105,12 @@ const validationSchemas = [
   // Step 4: System Access
   Yup.object({
     systemAccess: Yup.object({
-      systemRole: Yup.string().required("System role selection is required"),
+      systemRole: Yup.string()
+        .required("Please select a system role")
+        .notOneOf(["none"], "Please select a valid system role"),
       assignedDepartments: Yup.array().when('systemRole', {
-        is: 'HR',
-        then: (schema) => schema.min(1, "At least one department must be assigned for HR role"),
+        is: 'HR Manager',
+        then: (schema) => schema.min(1, "HR Managers must be assigned to at least one department"),
         otherwise: (schema) => schema
       }),
     }),
@@ -196,19 +222,40 @@ const EmployeeForm = () => {
   const handleNext = async (values, { setTouched, validateForm }) => {
     const errors = await validateForm();
     const stepFields = getStepFields(currentStep);
-    const stepErrors = Object.keys(errors).filter((key) =>
-      stepFields.includes(key)
-    );
+    
+    // Check for errors in current step
+    const hasStepErrors = stepFields.some(field => {
+      if (field in errors) {
+        if (typeof errors[field] === 'object') {
+          return Object.keys(errors[field]).length > 0;
+        }
+        return true;
+      }
+      return false;
+    });
 
-    if (stepErrors.length === 0) {
+    if (!hasStepErrors) {
       setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
       window.scrollTo(0, 0);
     } else {
+      // Mark all fields in current step as touched to show validation errors
       const touchedFields = {};
       stepFields.forEach((field) => {
-        touchedFields[field] = true;
+        if (field === 'personalInfo' || field === 'contactInfo' || field === 'jobInfo' || field === 'systemAccess') {
+          touchedFields[field] = {};
+          if (values[field]) {
+            Object.keys(values[field]).forEach(subField => {
+              touchedFields[field][subField] = true;
+            });
+          }
+        } else {
+          touchedFields[field] = true;
+        }
       });
       setTouched(touchedFields);
+      
+      // Show error message
+      toast.error("Please fill in all required fields before proceeding to the next step.");
     }
   };
 
@@ -232,9 +279,32 @@ const EmployeeForm = () => {
     }
   };
 
-  const handleSubmit = async (values, { setSubmitting }) => {
+  const handleSubmit = async (values, { setSubmitting, setFieldError }) => {
     try {
       setLoading(true);
+      
+      // Validate all required fields before submission
+      const allErrors = await validationSchemas.reduce(async (acc, schema, index) => {
+        const errors = await acc;
+        try {
+          await schema.validate(values, { abortEarly: false });
+        } catch (validationError) {
+          validationError.inner.forEach(error => {
+            errors[error.path] = error.message;
+          });
+        }
+        return errors;
+      }, Promise.resolve({}));
+
+      if (Object.keys(allErrors).length > 0) {
+        toast.error("Please fix all validation errors before submitting");
+        Object.entries(allErrors).forEach(([field, message]) => {
+          setFieldError(field, message);
+        });
+        setLoading(false);
+        setSubmitting(false);
+        return;
+      }
       
       // Transform data to match backend expectations
       const transformedValues = {
@@ -259,11 +329,14 @@ const EmployeeForm = () => {
       }
 
       if (result.success) {
+        toast.success(isEditMode ? "Employee updated successfully!" : "Employee created successfully!");
         navigate("/admin/employees");
+      } else {
+        toast.error(result.message || "Failed to save employee");
       }
     } catch (error) {
       console.error('Submit error:', error);
-      // Error toast is handled by the service
+      toast.error("An error occurred while saving the employee. Please try again.");
     } finally {
       setLoading(false);
       setSubmitting(false);
@@ -279,27 +352,30 @@ const EmployeeForm = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-6 max-w-4xl">
+    <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 max-w-5xl">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
           {isEditMode ? "Edit Employee" : "Add New Employee"}
         </h1>
-        <p className="text-gray-600 mt-1">
+        <p className="text-sm sm:text-base text-gray-600 mt-1">
           {isEditMode
             ? "Update employee information"
             : "Fill in the details to create a new employee"}
         </p>
+        <div className="mt-2 text-xs sm:text-sm text-gray-500">
+          <span className="text-red-500">*</span> indicates required fields
+        </div>
       </div>
 
       {/* Progress Indicator */}
-      <div className="mb-8">
+      <div className="mb-6 sm:mb-8">
         <div className="flex items-center justify-between">
           {steps.map((step, index) => (
             <div key={step} className="flex items-center flex-1">
               <div className="flex flex-col items-center flex-1">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                  className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-semibold text-sm sm:text-base ${
                     index <= currentStep
                       ? "bg-blue-600 text-white"
                       : "bg-gray-200 text-gray-600"
@@ -308,18 +384,24 @@ const EmployeeForm = () => {
                   {index + 1}
                 </div>
                 <span
-                  className={`text-sm mt-2 ${
+                  className={`text-xs sm:text-sm mt-1 sm:mt-2 text-center ${
                     index <= currentStep
                       ? "text-blue-600 font-medium"
                       : "text-gray-500"
                   }`}
                 >
-                  {step}
+                  <span className="hidden sm:inline">{step}</span>
+                  <span className="sm:hidden">
+                    {step === "Personal Info" ? "Personal" :
+                     step === "Contact Info" ? "Contact" :
+                     step === "Job Details" ? "Job" :
+                     step === "System Access" ? "Access" : step}
+                  </span>
                 </span>
               </div>
               {index < steps.length - 1 && (
                 <div
-                  className={`h-1 flex-1 mx-2 ${
+                  className={`h-0.5 sm:h-1 flex-1 mx-1 sm:mx-2 ${
                     index < currentStep ? "bg-blue-600" : "bg-gray-200"
                   }`}
                 />
@@ -345,7 +427,52 @@ const EmployeeForm = () => {
           setTouched,
         }) => (
           <Form>
-            <div className="bg-white rounded-lg shadow-md p-6">
+            <div className="bg-white rounded-lg shadow-md p-4 sm:p-6">
+              {/* Step Header */}
+              <div className="mb-4 sm:mb-6">
+                <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-2">
+                  Step {currentStep + 1}: {steps[currentStep]}
+                </h2>
+                <div className="text-xs sm:text-sm text-gray-600">
+                  {currentStep === 0 && "Enter the employee's personal information"}
+                  {currentStep === 1 && "Provide contact details and address information"}
+                  {currentStep === 2 && "Set up job details and work information"}
+                  {currentStep === 3 && "Configure system access and permissions"}
+                </div>
+              </div>
+
+              {/* Validation Summary */}
+              {Object.keys(errors).length > 0 && (
+                <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-start">
+                    <div className="flex-shrink-0">
+                      <svg className="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                    <div className="ml-3">
+                      <h3 className="text-sm font-medium text-red-800">
+                        Please fix the following errors:
+                      </h3>
+                      <div className="mt-2 text-sm text-red-700">
+                        <ul className="list-disc pl-5 space-y-1">
+                          {Object.entries(errors).map(([key, error]) => {
+                            if (typeof error === 'object') {
+                              return Object.entries(error).map(([subKey, subError]) => (
+                                <li key={`${key}.${subKey}`}>
+                                  {typeof subError === 'string' ? subError : JSON.stringify(subError)}
+                                </li>
+                              ));
+                            }
+                            return <li key={key}>{error}</li>;
+                          })}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Step Content */}
               {currentStep === 0 && (
                 <PersonalInfoStep
@@ -381,23 +508,23 @@ const EmployeeForm = () => {
               )}
 
               {/* Navigation Buttons */}
-              <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
+              <div className="flex flex-col sm:flex-row justify-between mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-200 gap-3 sm:gap-0">
                 <div>
                   {currentStep > 0 && (
                     <button
                       type="button"
                       onClick={handleBack}
-                      className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                      className="w-full sm:w-auto px-4 sm:px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base"
                     >
-                      Back
+                      ← Back
                     </button>
                   )}
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={() => navigate("/admin/employees")}
-                    className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                    className="w-full sm:w-auto px-4 sm:px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base order-2 sm:order-1"
                   >
                     Cancel
                   </button>
@@ -407,15 +534,15 @@ const EmployeeForm = () => {
                       onClick={() =>
                         handleNext(values, { setTouched, validateForm })
                       }
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base order-1 sm:order-2"
                     >
-                      Next
+                      Next →
                     </button>
                   ) : (
                     <button
                       type="submit"
                       disabled={isSubmitting || loading}
-                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+                      className="w-full sm:w-auto px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm sm:text-base order-1 sm:order-2"
                     >
                       {(isSubmitting || loading) && <LoadingSpinner />}
                       {isEditMode ? "Update Employee" : "Create Employee"}

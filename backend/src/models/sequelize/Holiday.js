@@ -15,17 +15,35 @@ const Holiday = sequelize.define('Holiday', {
       len: [1, 100],
     },
   },
+  // For one-time holidays
   date: {
     type: DataTypes.DATEONLY,
-    allowNull: false,
+    allowNull: true,
     validate: {
       isDate: true,
     },
+    comment: 'Full date for one-time holidays (YYYY-MM-DD)'
+  },
+  // For recurring holidays
+  recurringDate: {
+    type: DataTypes.STRING(5),
+    allowNull: true,
+    validate: {
+      is: /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/
+    },
+    comment: 'MM-DD format for recurring holidays (e.g., "08-15" for Independence Day)'
   },
   type: {
+    type: DataTypes.ENUM('ONE_TIME', 'RECURRING'),
+    allowNull: false,
+    defaultValue: 'ONE_TIME',
+    comment: 'Holiday type: ONE_TIME for specific year, RECURRING for every year'
+  },
+  category: {
     type: DataTypes.ENUM('public', 'optional', 'national', 'religious', 'company'),
     allowNull: false,
     defaultValue: 'public',
+    comment: 'Holiday category for classification'
   },
   description: {
     type: DataTypes.TEXT,
@@ -36,14 +54,11 @@ const Holiday = sequelize.define('Holiday', {
     allowNull: false,
     defaultValue: true,
   },
-  isRecurring: {
+  appliesEveryYear: {
     type: DataTypes.BOOLEAN,
     allowNull: false,
     defaultValue: false,
-  },
-  recurrencePattern: {
-    type: DataTypes.ENUM('yearly', 'monthly', 'weekly'),
-    allowNull: true,
+    comment: 'Whether this holiday applies every year (for recurring holidays)'
   },
   color: {
     type: DataTypes.STRING(7), // Hex color code
@@ -99,43 +114,102 @@ Holiday.prototype.toJSON = function() {
 // Static methods
 Holiday.getHolidaysInRange = async function(startDate, endDate, filters = {}) {
   const whereClause = {
-    date: {
-      [sequelize.Sequelize.Op.between]: [startDate, endDate],
-    },
     isActive: true,
     ...filters,
   };
 
-  return await this.findAll({
-    where: whereClause,
+  // For one-time holidays, check date range
+  const oneTimeHolidays = await this.findAll({
+    where: {
+      ...whereClause,
+      type: 'ONE_TIME',
+      date: {
+        [sequelize.Sequelize.Op.between]: [startDate, endDate],
+      }
+    },
     order: [['date', 'ASC']],
   });
+
+  // For recurring holidays, generate dates for the range
+  const recurringHolidays = await this.findAll({
+    where: {
+      ...whereClause,
+      type: 'RECURRING',
+      appliesEveryYear: true
+    }
+  });
+
+  const generatedRecurringHolidays = [];
+  const startYear = startDate.getFullYear();
+  const endYear = endDate.getFullYear();
+
+  for (const holiday of recurringHolidays) {
+    for (let year = startYear; year <= endYear; year++) {
+      const [month, day] = holiday.recurringDate.split('-');
+      const holidayDate = new Date(year, parseInt(month) - 1, parseInt(day));
+      
+      if (holidayDate >= startDate && holidayDate <= endDate) {
+        generatedRecurringHolidays.push({
+          ...holiday.toJSON(),
+          date: holidayDate.toISOString().split('T')[0], // YYYY-MM-DD format
+          id: `${holiday.id}_${year}`, // Unique ID for each year
+          isGenerated: true
+        });
+      }
+    }
+  }
+
+  return [...oneTimeHolidays, ...generatedRecurringHolidays].sort((a, b) => 
+    new Date(a.date) - new Date(b.date)
+  );
 };
 
 Holiday.getUpcomingHolidays = async function(limit = 5) {
   const today = new Date();
+  const endOfYear = new Date(today.getFullYear(), 11, 31);
   
-  return await this.findAll({
-    where: {
-      date: {
-        [sequelize.Sequelize.Op.gte]: today,
-      },
-      isActive: true,
-    },
-    order: [['date', 'ASC']],
-    limit,
-  });
+  const holidays = await this.getHolidaysInRange(today, endOfYear);
+  return holidays.slice(0, limit);
 };
 
 Holiday.isHoliday = async function(date) {
-  const holiday = await this.findOne({
-    where: {
-      date: date,
-      isActive: true,
-    },
-  });
+  const checkDate = new Date(date);
+  const startOfDay = new Date(checkDate.setHours(0, 0, 0, 0));
+  const endOfDay = new Date(checkDate.setHours(23, 59, 59, 999));
   
-  return holiday !== null;
+  const holidays = await this.getHolidaysInRange(startOfDay, endOfDay);
+  return holidays.length > 0;
 };
+
+Holiday.getHolidayForDate = async function(date) {
+  const checkDate = new Date(date);
+  const startOfDay = new Date(checkDate.setHours(0, 0, 0, 0));
+  const endOfDay = new Date(checkDate.setHours(23, 59, 59, 999));
+  
+  const holidays = await this.getHolidaysInRange(startOfDay, endOfDay);
+  return holidays.length > 0 ? holidays[0] : null;
+};
+
+// Validation hooks
+Holiday.beforeSave(async (holiday) => {
+  // Validate that either date or recurringDate is provided, but not both
+  if (holiday.type === 'ONE_TIME') {
+    if (!holiday.date) {
+      throw new Error('One-time holidays must have a date');
+    }
+    if (holiday.recurringDate) {
+      throw new Error('One-time holidays cannot have a recurring date');
+    }
+    holiday.appliesEveryYear = false;
+  } else if (holiday.type === 'RECURRING') {
+    if (!holiday.recurringDate) {
+      throw new Error('Recurring holidays must have a recurring date in MM-DD format');
+    }
+    if (holiday.date) {
+      throw new Error('Recurring holidays cannot have a specific date');
+    }
+    holiday.appliesEveryYear = true;
+  }
+});
 
 export default Holiday;

@@ -1,8 +1,8 @@
 import { lazy } from "react";
 
-const DepartmentPage = lazy(() =>
-  import("../modules/organization/pages/DepartmentPage")
-);
+// Note: Organization routes have been consolidated into adminRoutes
+// This file is kept for legacy compatibility
+
 const PolicyPage = lazy(() =>
   import("../modules/organization/pages/PolicyPage")
 );

@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
 import { LoadingSpinner, EmptyState } from "../../../shared/components";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
+import { Button } from "../../../shared/ui/button";
+import { HRMStatusBadge } from "../../../shared/ui/HRMStatusBadge";
+import { Badge } from "../../../shared/ui/badge";
 import {
   Calendar,
   Plus,
@@ -11,6 +15,10 @@ import {
   Download,
   RefreshCw,
   X,
+  CalendarDays,
+  FileText,
+  User,
+  MapPin,
 } from "lucide-react";
 import employeeSelfService from "../../../services/employeeSelfService";
 import leaveService from "../../../services/leaveService";
@@ -18,6 +26,7 @@ import LeaveRequestModal from "./LeaveRequestModal";
 import LeaveBalanceCards from "../components/LeaveBalanceCards";
 import useLeaveBalance from "../hooks/useLeaveBalance";
 import LeaveHistoryTable from "../../leave/components/LeaveHistoryTable";
+import { cn, formatDate } from "../../../lib/utils";
 
 const LeavePage = () => {
   const [leaveRequests, setLeaveRequests] = useState([]);
@@ -158,37 +167,37 @@ const LeavePage = () => {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Leave</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Leave</h1>
           <p className="text-gray-600 mt-1">
             Manage your leave requests and view balance
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           <button
             onClick={refreshBalance}
             disabled={balanceLoading}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2 disabled:opacity-50"
+            className="px-3 sm:px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm sm:text-base"
             title={lastFetched ? `Last updated: ${lastFetched.toLocaleTimeString()}` : 'Refresh balance'}
           >
             <RefreshCw className={`h-4 w-4 ${balanceLoading ? 'animate-spin' : ''}`} />
-            Refresh
+            <span className="hidden sm:inline">Refresh</span>
           </button>
           <button
             onClick={handleExport}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center gap-2"
+            className="px-3 sm:px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
           >
             <Download className="h-4 w-4" />
-            Export
+            <span className="hidden sm:inline">Export</span>
           </button>
           <button
             onClick={() => setShowModal(true)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            className="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 sm:h-5 w-4 sm:w-5" />
             Apply Leave
           </button>
         </div>
@@ -201,9 +210,9 @@ const LeavePage = () => {
 
       {/* Leave Requests List */}
       <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div className="border-b border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+        <div className="border-b border-gray-200 p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center gap-2">
               <Calendar className="h-5 w-5" />
               Leave History
             </h2>
@@ -214,7 +223,7 @@ const LeavePage = () => {
           </div>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {leaveRequests.length === 0 ? (
             <EmptyState
               icon={Calendar}
@@ -223,7 +232,7 @@ const LeavePage = () => {
               action={
                 <button
                   onClick={() => setShowModal(true)}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  className="px-4 sm:px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
                 >
                   Apply Leave
                 </button>
@@ -234,17 +243,17 @@ const LeavePage = () => {
               {leaveRequests.map((request) => (
                 <div
                   key={request.id || request._id || `request-${Math.random()}`}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer"
+                  className="border border-gray-200 rounded-lg p-3 sm:p-4 hover:shadow-md transition-shadow cursor-pointer"
                 >
-                  <div className="flex items-start justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-gray-900">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                        <h3 className="font-semibold text-gray-900 text-sm sm:text-base">
                           {request.leaveType || "Leave Request"}
                         </h3>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span
-                            className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(
+                            className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(
                               request.status
                             )}`}
                           >
@@ -261,12 +270,12 @@ const LeavePage = () => {
                               {cancellingId === (request._id || request.id) ? (
                                 <>
                                   <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin" />
-                                  Cancelling...
+                                  <span className="hidden sm:inline">Cancelling...</span>
                                 </>
                               ) : (
                                 <>
                                   <X className="w-3 h-3" />
-                                  Cancel
+                                  <span className="hidden sm:inline">Cancel</span>
                                 </>
                               )}
                             </button>
@@ -274,7 +283,7 @@ const LeavePage = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
                         <div>
                           <span className="font-medium">From:</span>{" "}
                           {new Date(request.startDate).toLocaleDateString()}
@@ -297,15 +306,15 @@ const LeavePage = () => {
                       </div>
 
                       {request.reason && (
-                        <p className="text-sm text-gray-600 mt-2">
+                        <p className="text-xs sm:text-sm text-gray-600 mt-2">
                           <span className="font-medium">Reason:</span>{" "}
                           {request.reason}
                         </p>
                       )}
 
                       {request.rejectionReason && (
-                        <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-lg">
-                          <p className="text-sm text-red-900">
+                        <div className="mt-2 p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <p className="text-xs sm:text-sm text-red-900">
                             <span className="font-medium">
                               Rejection Reason:
                             </span>{" "}
@@ -315,8 +324,8 @@ const LeavePage = () => {
                       )}
 
                       {request.cancellationReason && (
-                        <div className="mt-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                          <p className="text-sm text-gray-900">
+                        <div className="mt-2 p-2 sm:p-3 bg-gray-50 border border-gray-200 rounded-lg">
+                          <p className="text-xs sm:text-sm text-gray-900">
                             <span className="font-medium">
                               Cancellation Reason:
                             </span>{" "}
@@ -335,6 +344,7 @@ const LeavePage = () => {
 <LeaveHistoryTable
   history={leaveRequests}
   onRefresh={fetchLeaveHistory}
+  className="hidden lg:block"
 />
 
       {/* Leave Request Modal */}

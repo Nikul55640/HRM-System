@@ -1,0 +1,295 @@
+/* Responsive Utilities for HRM System */
+
+/* Touch-friendly button sizes */
+.btn-touch {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Responsive text sizes */
+.text-responsive-xs {
+  @apply text-xs sm:text-sm;
+}
+
+.text-responsive-sm {
+  @apply text-sm sm:text-base;
+}
+
+.text-responsive-base {
+  @apply text-base sm:text-lg;
+}
+
+.text-responsive-lg {
+  @apply text-lg sm:text-xl;
+}
+
+.text-responsive-xl {
+  @apply text-xl sm:text-2xl;
+}
+
+.text-responsive-2xl {
+  @apply text-2xl sm:text-3xl;
+}
+
+.text-responsive-3xl {
+  @apply text-3xl sm:text-4xl;
+}
+
+/* Responsive spacing */
+.space-responsive-sm {
+  @apply space-y-2 sm:space-y-3;
+}
+
+.space-responsive-md {
+  @apply space-y-3 sm:space-y-4;
+}
+
+.space-responsive-lg {
+  @apply space-y-4 sm:space-y-6;
+}
+
+.space-responsive-xl {
+  @apply space-y-6 sm:space-y-8;
+}
+
+/* Responsive padding */
+.p-responsive-sm {
+  @apply p-3 sm:p-4;
+}
+
+.p-responsive-md {
+  @apply p-4 sm:p-6;
+}
+
+.p-responsive-lg {
+  @apply p-6 sm:p-8;
+}
+
+/* Responsive margins */
+.m-responsive-sm {
+  @apply m-3 sm:m-4;
+}
+
+.m-responsive-md {
+  @apply m-4 sm:m-6;
+}
+
+.m-responsive-lg {
+  @apply m-6 sm:m-8;
+}
+
+/* Responsive grid gaps */
+.gap-responsive-sm {
+  @apply gap-2 sm:gap-3;
+}
+
+.gap-responsive-md {
+  @apply gap-3 sm:gap-4;
+}
+
+.gap-responsive-lg {
+  @apply gap-4 sm:gap-6;
+}
+
+/* Mobile-first card layouts */
+.card-responsive {
+  @apply p-4 sm:p-6 rounded-lg border bg-white shadow-sm;
+}
+
+/* Responsive flex layouts */
+.flex-responsive-col {
+  @apply flex flex-col sm:flex-row;
+}
+
+.flex-responsive-col-reverse {
+  @apply flex flex-col-reverse sm:flex-row;
+}
+
+/* Responsive button groups */
+.btn-group-responsive {
+  @apply flex flex-col sm:flex-row gap-2 sm:gap-3;
+}
+
+/* Responsive form layouts */
+.form-responsive {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4;
+}
+
+.form-responsive-wide {
+  @apply grid grid-cols-1 lg:grid-cols-2 gap-4;
+}
+
+/* Responsive table alternatives */
+.table-responsive-card {
+  @apply block sm:hidden;
+}
+
+.table-responsive-table {
+  @apply hidden sm:block;
+}
+
+/* Mobile menu utilities */
+.mobile-menu-overlay {
+  @apply fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden;
+}
+
+.mobile-menu-panel {
+  @apply fixed top-0 left-0 h-screen w-64 bg-white z-50 transform transition-transform duration-300 lg:hidden;
+}
+
+.mobile-menu-open {
+  @apply translate-x-0;
+}
+
+.mobile-menu-closed {
+  @apply -translate-x-full;
+}
+
+/* Responsive navigation */
+.nav-responsive {
+  @apply flex flex-col lg:flex-row lg:items-center gap-4;
+}
+
+/* Responsive containers */
+.container-responsive {
+  @apply container mx-auto px-4 sm:px-6 lg:px-8;
+}
+
+/* Responsive modal/dialog */
+.modal-responsive {
+  @apply w-full max-w-sm sm:max-w-md lg:max-w-lg xl:max-w-xl;
+}
+
+.modal-responsive-wide {
+  @apply w-full max-w-md sm:max-w-lg lg:max-w-2xl xl:max-w-4xl;
+}
+
+/* Responsive image handling */
+.img-responsive {
+  @apply w-full h-auto max-w-full;
+}
+
+/* Responsive aspect ratios */
+.aspect-responsive-square {
+  @apply aspect-square;
+}
+
+.aspect-responsive-video {
+  @apply aspect-video;
+}
+
+/* Hide/show utilities for different breakpoints */
+.hide-mobile {
+  @apply hidden sm:block;
+}
+
+.hide-tablet {
+  @apply block sm:hidden lg:block;
+}
+
+.hide-desktop {
+  @apply block lg:hidden;
+}
+
+.show-mobile {
+  @apply block sm:hidden;
+}
+
+.show-tablet {
+  @apply hidden sm:block lg:hidden;
+}
+
+.show-desktop {
+  @apply hidden lg:block;
+}
+
+/* Responsive overflow handling */
+.overflow-responsive {
+  @apply overflow-x-auto sm:overflow-x-visible;
+}
+
+/* Responsive line clamping */
+.line-clamp-responsive {
+  @apply line-clamp-2 sm:line-clamp-3 lg:line-clamp-none;
+}
+
+/* Responsive dropdown positioning */
+.dropdown-responsive {
+  @apply absolute right-0 mt-2 w-56 sm:w-64 origin-top-right;
+}
+
+.dropdown-responsive-wide {
+  @apply absolute right-0 mt-2 w-80 sm:w-96 origin-top-right;
+}
+
+/* Responsive sidebar utilities */
+.sidebar-responsive {
+  @apply fixed top-0 left-0 h-screen z-50 transform transition-transform duration-300;
+}
+
+.sidebar-mobile {
+  @apply w-64 lg:hidden;
+}
+
+.sidebar-desktop {
+  @apply hidden lg:block lg:w-20 lg:hover:w-64;
+}
+
+/* Responsive header utilities */
+.header-responsive {
+  @apply sticky top-0 z-50 bg-white border-b;
+}
+
+.header-content {
+  @apply flex items-center justify-between h-16 px-4 sm:px-6;
+}
+
+/* Responsive footer utilities */
+.footer-responsive {
+  @apply mt-auto border-t bg-white px-4 sm:px-6 py-4;
+}
+
+/* Responsive stats grid */
+.stats-grid-responsive {
+  @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6;
+}
+
+/* Responsive action buttons */
+.actions-responsive {
+  @apply flex flex-col sm:flex-row gap-2 sm:gap-3;
+}
+
+/* Responsive search bar */
+.search-responsive {
+  @apply w-full max-w-xs sm:max-w-sm lg:max-w-md xl:max-w-lg;
+}
+
+/* Responsive notification panel */
+.notification-responsive {
+  @apply w-80 sm:w-96 max-h-[80vh] overflow-hidden;
+}
+
+/* Responsive breadcrumb */
+.breadcrumb-responsive {
+  @apply flex flex-wrap items-center gap-1 sm:gap-2 text-sm;
+}
+
+/* Responsive badge/chip */
+.badge-responsive {
+  @apply inline-flex items-center px-2 py-1 text-xs sm:text-sm rounded-full;
+}
+
+/* Responsive loading states */
+.loading-responsive {
+  @apply flex justify-center items-center h-32 sm:h-48 lg:h-64;
+}
+
+/* Responsive empty states */
+.empty-state-responsive {
+  @apply text-center py-8 sm:py-12 lg:py-16;
+}
+
+/* Responsive error states */
+.error-state-responsive {
+  @apply text-center py-8 sm:py-12 px-4 sm:px-6;
+}

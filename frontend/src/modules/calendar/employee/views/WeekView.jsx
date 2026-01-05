@@ -64,8 +64,8 @@ const WeekView = ({ date, events, onDateClick }) => {
       <CardHeader>
         <CardTitle>Week View</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-7 gap-4">
+      <CardContent className="p-2 sm:p-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-4">
           {weekDays.map((day, index) => {
             const dayEvents = getEventsForDate(day);
             const isTodayDate = isToday(day);
@@ -77,35 +77,38 @@ const WeekView = ({ date, events, onDateClick }) => {
                 onMouseEnter={(e) => handleMouseEnter(day, e)}
                 onMouseLeave={handleMouseLeave}
                 className={`
-                  border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors min-h-32 relative
+                  border rounded-lg p-2 sm:p-3 cursor-pointer hover:bg-gray-50 transition-colors min-h-24 sm:min-h-32 relative
                   ${isTodayDate ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}
                 `}
               >
                 {/* Day header */}
-                <div className="text-center mb-2">
+                <div className="text-center mb-1 sm:mb-2">
                   <div className="text-xs font-medium text-gray-500 uppercase">
-                    {dayNames[index]}
+                    <span className="hidden sm:inline">{dayNames[index]}</span>
+                    <span className="sm:hidden">{dayNames[index].slice(0, 1)}</span>
                   </div>
-                  <div className={`text-lg font-semibold ${isTodayDate ? 'text-blue-600' : 'text-gray-800'}`}>
+                  <div className={`text-sm sm:text-lg font-semibold ${isTodayDate ? 'text-blue-600' : 'text-gray-800'}`}>
                     {day.getDate()}
                   </div>
                 </div>
 
                 {/* Events for this day */}
                 <div className="space-y-1">
-                  {dayEvents.slice(0, 3).map((event) => (
+                  {dayEvents.slice(0, window.innerWidth < 640 ? 2 : 3).map((event) => (
                     <div
                       key={event._id || event.id}
-                      className={`text-xs px-2 py-1 rounded truncate ${getEventColor(event.eventType)}`}
+                      className={`text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded truncate ${getEventColor(event.eventType)}`}
                       title={event.title}
                     >
-                      {event.title}
+                      <span className="hidden sm:inline">{event.title}</span>
+                      <span className="sm:hidden">•</span>
                     </div>
                   ))}
                   
-                  {dayEvents.length > 3 && (
-                    <div className="text-xs text-gray-500 px-2">
-                      +{dayEvents.length - 3} more
+                  {dayEvents.length > (window.innerWidth < 640 ? 2 : 3) && (
+                    <div className="text-xs text-gray-500 px-1 sm:px-2">
+                      <span className="hidden sm:inline">+{dayEvents.length - 3} more</span>
+                      <span className="sm:hidden">+{dayEvents.length - 2}</span>
                     </div>
                   )}
                 </div>
@@ -160,30 +163,30 @@ const WeekView = ({ date, events, onDateClick }) => {
         )}
 
         {/* Legend */}
-        <div className="mt-6 flex flex-wrap gap-4 justify-center">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div>
-            <span className="text-sm text-gray-600">Holiday</span>
+        <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-4 justify-center">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-100 border border-red-200 rounded"></div>
+            <span className="text-xs sm:text-sm text-gray-600">Holiday</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded"></div>
-            <span className="text-sm text-gray-600">Meeting</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-100 border border-blue-200 rounded"></div>
+            <span className="text-xs sm:text-sm text-gray-600">Meeting</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-orange-100 border border-orange-200 rounded"></div>
-            <span className="text-sm text-gray-600">Leave</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-orange-100 border border-orange-200 rounded"></div>
+            <span className="text-xs sm:text-sm text-gray-600">Leave</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-pink-100 border border-pink-200 rounded"></div>
-            <span className="text-sm text-gray-600">Birthday</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-pink-100 border border-pink-200 rounded"></div>
+            <span className="text-xs sm:text-sm text-gray-600">Birthday</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-purple-100 border border-purple-200 rounded"></div>
-            <span className="text-sm text-gray-600">Anniversary</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-purple-100 border border-purple-200 rounded"></div>
+            <span className="text-xs sm:text-sm text-gray-600">Anniversary</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 bg-green-100 border border-green-200 rounded"></div>
-            <span className="text-sm text-gray-600">Event</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-100 border border-green-200 rounded"></div>
+            <span className="text-xs sm:text-sm text-gray-600">Event</span>
           </div>
         </div>
       </CardContent>

@@ -1,3 +1,17 @@
+import React from 'react';
+import { 
+  Calendar, 
+  Users, 
+  BookOpen, 
+  Plane, 
+  Cake, 
+  PartyPopper, 
+  MapPin, 
+  Building2, 
+  Clock, 
+  FileText 
+} from 'lucide-react';
+
 /**
  * Standardized Calendar Event Types Configuration
  * Provides consistent colors, icons, and labels across the application
@@ -10,7 +24,7 @@ export const EVENT_TYPES = {
     bgColor: 'bg-red-100',
     textColor: 'text-red-800',
     borderColor: 'border-red-500',
-    icon: '🏖️',
+    icon: Calendar,
     priority: 1
   },
   meeting: {
@@ -19,7 +33,7 @@ export const EVENT_TYPES = {
     bgColor: 'bg-blue-100',
     textColor: 'text-blue-800',
     borderColor: 'border-blue-500',
-    icon: '📅',
+    icon: Users,
     priority: 2
   },
   training: {
@@ -28,7 +42,7 @@ export const EVENT_TYPES = {
     bgColor: 'bg-green-100',
     textColor: 'text-green-800',
     borderColor: 'border-green-500',
-    icon: '📚',
+    icon: BookOpen,
     priority: 3
   },
   leave: {
@@ -37,7 +51,7 @@ export const EVENT_TYPES = {
     bgColor: 'bg-orange-100',
     textColor: 'text-orange-800',
     borderColor: 'border-orange-500',
-    icon: '🏝️',
+    icon: Plane,
     priority: 4
   },
   birthday: {
@@ -46,7 +60,7 @@ export const EVENT_TYPES = {
     bgColor: 'bg-pink-100',
     textColor: 'text-pink-800',
     borderColor: 'border-pink-500',
-    icon: '🎂',
+    icon: Cake,
     priority: 5
   },
   anniversary: {
@@ -55,7 +69,7 @@ export const EVENT_TYPES = {
     bgColor: 'bg-purple-100',
     textColor: 'text-purple-800',
     borderColor: 'border-purple-500',
-    icon: '🎊',
+    icon: PartyPopper,
     priority: 6
   },
   event: {
@@ -64,7 +78,7 @@ export const EVENT_TYPES = {
     bgColor: 'bg-emerald-100',
     textColor: 'text-emerald-800',
     borderColor: 'border-emerald-500',
-    icon: '📌',
+    icon: MapPin,
     priority: 7
   },
   company_event: {
@@ -73,7 +87,7 @@ export const EVENT_TYPES = {
     bgColor: 'bg-indigo-100',
     textColor: 'text-indigo-800',
     borderColor: 'border-indigo-500',
-    icon: '🏢',
+    icon: Building2,
     priority: 8
   },
   deadline: {
@@ -82,7 +96,7 @@ export const EVENT_TYPES = {
     bgColor: 'bg-red-100',
     textColor: 'text-red-800',
     borderColor: 'border-red-500',
-    icon: '⏰',
+    icon: Clock,
     priority: 9
   },
   other: {
@@ -91,7 +105,7 @@ export const EVENT_TYPES = {
     bgColor: 'bg-gray-100',
     textColor: 'text-gray-800',
     borderColor: 'border-gray-500',
-    icon: '📋',
+    icon: FileText,
     priority: 10
   }
 };
@@ -129,12 +143,23 @@ export const getEventClasses = (eventType) => {
 };
 
 /**
- * Get event icon
+ * Get event icon component
  * @param {string} eventType - The event type
- * @returns {string} Event icon emoji
+ * @returns {React.Component} Lucide React icon component
  */
 export const getEventIcon = (eventType) => {
   return getEventTypeConfig(eventType).icon;
+};
+
+/**
+ * Render event icon with proper styling
+ * @param {string} eventType - The event type
+ * @param {string} className - Additional CSS classes
+ * @returns {React.Element} Rendered icon element
+ */
+export const renderEventIcon = (eventType, className = "h-4 w-4") => {
+  const IconComponent = getEventIcon(eventType);
+  return React.createElement(IconComponent, { className });
 };
 
 /**

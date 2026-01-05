@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import PropTypes from "prop-types";
 import { Button } from "../../shared/ui/button";
@@ -6,8 +6,9 @@ import { Icon } from "../../shared/components";
 import useAuth from "../hooks/useAuth";
 import { usePermissions } from "../hooks";
 import { MODULES } from "../utils/rolePermissions";
+import { X, Menu } from "lucide-react";
 
-const Sidebar = ({ setLayoutSidebarExpanded }) => {
+const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }) => {
   const [openSections, setOpenSections] = useState([
     "General",
     "My Self Service",
@@ -15,10 +16,35 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const DEFAULT_OPEN_SECTIONS = ["General", "My Self Service"];
 
-
   const location = useLocation();
   const { user } = useAuth();
   const { can } = usePermissions();
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname, setMobileMenuOpen]);
+
+  // Close mobile menu on escape key
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    };
+    
+    if (mobileMenuOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [mobileMenuOpen, setMobileMenuOpen]);
 
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(path + "/");
@@ -234,6 +260,12 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
           icon: "CalendarCog",
           showIf: () => can.do(MODULES.CALENDAR.MANAGE),
         },
+        {
+          name: "Smart Calendar",
+          path: "/admin/calendar/smart",
+          icon: "Settings",
+          showIf: () => can.do(MODULES.CALENDAR.MANAGE),
+        },
       ],
     },
 
@@ -306,160 +338,93 @@ const Sidebar = ({ setLayoutSidebarExpanded }) => {
     0
   );
 
-const handleMouseEnter = () => {
-  setIsSidebarExpanded(true);
-  setLayoutSidebarExpanded(true);
-  setOpenSections(DEFAULT_OPEN_SECTIONS); // 👈 restore defaults
-};
-
-
-const handleMouseLeave = () => {
-  setIsSidebarExpanded(false);
-  setLayoutSidebarExpanded(false);
-  setOpenSections([]); // 👈 collapse all sections
-};
-
-  
   const handleNavClick = () => {
     setIsSidebarExpanded(false);
     setLayoutSidebarExpanded(false);
+    setMobileMenuOpen(false);
   };
 
   return (
-    <aside
-      style={{ width: isSidebarExpanded ? 250 : 70 }}
-      className="
-        bg-white
-        border-r
-        border-gray-200
-        flex
-        flex-col
-        transition-all
-        duration-300
-        fixed
-        top-0
-        left-0
-        h-screen
-        z-40
-        overflow-hidden
-      "
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
-    >
-      {/* HEADER */}
-      <div className="p-3 border-b border-gray-200 flex items-center justify-between">
-        {isSidebarExpanded && (
-          <div className="flex items-center gap-3">
+    <>
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <aside
+        className={`
+          fixed top-0 left-0 h-screen w-64 bg-white border-r border-gray-200 
+          flex flex-col transition-transform duration-300 z-50 lg:hidden
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        {/* Mobile Header */}
+        <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-2"
+          >
+            <X className="w-5 h-5" />
+          </Button>
+
+          <div className="flex items-center gap-3 flex-1 justify-center">
             <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-semibold text-lg">HR</span>
             </div>
             <div>
-              <h1 className="text-base font-semibold text-gray-800">
-                HRM System
-              </h1>
+              <h1 className="text-base font-semibold text-gray-800">HRM System</h1>
               <p className="text-xs text-gray-500">Management</p>
             </div>
           </div>
-        )}
-
-       <Button
-  variant="ghost"
-  size="sm"
-  onClick={() => {
-    const next = !isSidebarExpanded;
-    setIsSidebarExpanded(next);
-    setLayoutSidebarExpanded(next);
-    setOpenSections(next ? DEFAULT_OPEN_SECTIONS : []);
-  }}
->
-
-          {isSidebarExpanded ? (
-            <Icon name="ChevronLeft" className="w-10 h-10" />
-          ) : (
-            <Icon name="ChevronRight" className="w-10 h-10 " />
-          )}
-        </Button>
-      </div>
-
-      {/* BADGES */}
-      {isSidebarExpanded && totalBadges > 0 && (
-        <div className="mx-4 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-          <span className="text-xs font-medium text-blue-700">
-            {totalBadges} pending action{totalBadges > 1 ? "s" : ""}
-          </span>
         </div>
-      )}
 
-      {/* NAVIGATION */}
-      <div className="flex-1 overflow-y-auto">
-        <nav className="mt-4 px-3 space-y-2">
-          {nav.map((group) => (
-            <div key={group.section}>
-              {/* Section Header */}
-              {group.collapsible ? (
-                <button
-                  onClick={() => toggleSection(group.section)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    openSections.includes(group.section)
-                      ? "bg-gray-100 text-gray-900"
-                      : "text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  <Icon
-                    name={group.icon}
-                    className={isSidebarExpanded ? "w-5 h-5" : "w-6 h-6"}
-                  />
-                  {isSidebarExpanded && (
-                    <>
-                      <span className="flex-1 text-left">{group.section}</span>
-                      <Icon
-                        name="ChevronDown"
-                        className={`w-4 h-4 transition-transform ${
-                          openSections.includes(group.section)
-                            ? "rotate-180"
-                            : ""
-                        }`}
-                      />
-                    </>
-                  )}
-                </button>
-              ) : (
-                isSidebarExpanded && (
+        {/* Mobile Navigation */}
+        <div className="flex-1 overflow-y-auto">
+          <nav className="mt-4 px-3 space-y-2">
+            {nav.map((group) => (
+              <div key={group.section}>
+                {/* Section Header */}
+                {group.collapsible ? (
+                  <button
+                    onClick={() => toggleSection(group.section)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      openSections.includes(group.section)
+                        ? "bg-gray-100 text-gray-900"
+                        : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    <Icon name={group.icon} className="w-5 h-5" />
+                    <span className="flex-1 text-left">{group.section}</span>
+                    <Icon
+                      name="ChevronDown"
+                      className={`w-4 h-4 transition-transform ${
+                        openSections.includes(group.section) ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                ) : (
                   <div className="text-xs uppercase text-gray-500 font-medium px-3 py-2">
                     {group.section}
                   </div>
-                )
-              )}
+                )}
 
-              {/* Menu Items */}
-              {(!group.collapsible || openSections.includes(group.section)) && (
-                <div className="space-y-1 mt-1">
-                  {group.items.map((item) => (
-                    <div key={item.path}>
-                      {/* Main Item */}
-                      {item.subItems ? (
-                        // Item with sub-items (Settings)
-                        <div>
-                          <div
-                            className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
-                              isSidebarExpanded
-                                ? "gap-3 px-3 justify-start"
-                                : "justify-center"
-                            } ${
-                              location.pathname.startsWith(item.path)
-                                ? "bg-blue-50 text-blue-700 font-medium"
-                                : "text-gray-600 hover:bg-gray-50"
-                            }`}
-                          >
-                            <Icon name={item.icon} className="w-5 h-5" />
-                            {isSidebarExpanded && (
+                {/* Menu Items */}
+                {(!group.collapsible || openSections.includes(group.section)) && (
+                  <div className="space-y-1 mt-1">
+                    {group.items.map((item) => (
+                      <div key={item.path}>
+                        {item.subItems ? (
+                          <div>
+                            <div className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-gray-600 hover:bg-gray-50">
+                              <Icon name={item.icon} className="w-5 h-5 flex-shrink-0" />
                               <span>{item.name}</span>
-                            )}
-                          </div>
-                          
-                          {/* Sub-items */}
-                          {isSidebarExpanded && (
+                            </div>
                             <div className="ml-8 mt-1 space-y-1">
                               {item.subItems
                                 .filter((subItem) => {
@@ -479,65 +444,251 @@ const handleMouseLeave = () => {
                                         : "text-gray-600 hover:bg-gray-50"
                                     }`}
                                   >
-                                    <Icon name={subItem.icon} className="w-4 h-4" />
+                                    <Icon name={subItem.icon} className="w-4 h-4 flex-shrink-0" />
                                     <span>{subItem.name}</span>
                                   </Link>
                                 ))}
                             </div>
-                          )}
-                        </div>
-                      ) : (
-                        // Regular item without sub-items
-                        <Link
-                          to={item.path}
-                          onClick={handleNavClick}
-                          className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
-                            isSidebarExpanded
-                              ? "gap-3 px-3 justify-start"
-                              : "justify-center"
-                          } ${
-                            isActive(item.path)
-                              ? "bg-blue-50 text-blue-700 font-medium"
-                              : "text-gray-600 hover:bg-gray-50"
-                          }`}
-                        >
-                          <Icon name={item.icon} className="w-5 h-5" />
-                          {isSidebarExpanded && (
-                            <>
-                              <span>{item.name}</span>
-                              {item.badge && item.badge > 0 && (
-                                <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                                  {item.badge}
-                                </span>
-                              )}
-                            </>
-                          )}
-                        </Link>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
-        </nav>
-      </div>
+                          </div>
+                        ) : (
+                          <Link
+                            to={item.path}
+                            onClick={handleNavClick}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                              isActive(item.path)
+                                ? "bg-blue-50 text-blue-700 font-medium"
+                                : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            <Icon name={item.icon} className="w-5 h-5 flex-shrink-0" />
+                            <span className="flex-1">{item.name}</span>
+                            {item.badge && item.badge > 0 && (
+                              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">
+                                {item.badge}
+                              </span>
+                            )}
+                          </Link>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
+        </div>
 
-      {/* FOOTER */}
-      {isSidebarExpanded && (
+        {/* Mobile Footer */}
         <div className="p-4 border-t border-gray-200">
           <div className="text-xs text-gray-500 text-center">
             <div className="font-medium text-gray-700">HRM System v1.0</div>
             <div className="mt-1">© 2025</div>
           </div>
         </div>
-      )}
-    </aside>
+      </aside>
+
+      {/* Desktop Sidebar */}
+      <aside
+        className={`
+          hidden lg:flex fixed top-0 left-0 h-screen bg-white border-r border-gray-200 
+          flex-col transition-all duration-300 z-50
+          ${isSidebarExpanded ? 'w-64' : 'w-20'}
+        `}
+        onMouseEnter={() => {
+          setIsSidebarExpanded(true);
+          setLayoutSidebarExpanded(true);
+          setOpenSections(DEFAULT_OPEN_SECTIONS);
+        }}
+        onMouseLeave={() => {
+          setIsSidebarExpanded(false);
+          setLayoutSidebarExpanded(false);
+          setOpenSections([]);
+        }}
+      >
+        {/* Desktop Header */}
+        <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+          {isSidebarExpanded && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                <span className="text-white font-semibold text-lg">HR</span>
+              </div>
+              <div>
+                <h1 className="text-base font-semibold text-gray-800">HRM System</h1>
+                <p className="text-xs text-gray-500">Management</p>
+              </div>
+            </div>
+          )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const next = !isSidebarExpanded;
+              setIsSidebarExpanded(next);
+              setLayoutSidebarExpanded(next);
+              setOpenSections(next ? DEFAULT_OPEN_SECTIONS : []);
+            }}
+          >
+            {isSidebarExpanded ? (
+              <Icon name="ChevronLeft" className="w-5 h-5" />
+            ) : (
+              <Icon name="ChevronRight" className="w-5 h-5" />
+            )}
+          </Button>
+        </div>
+
+        {/* Desktop Badges */}
+        {isSidebarExpanded && totalBadges > 0 && (
+          <div className="mx-4 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span className="text-xs font-medium text-blue-700">
+              {totalBadges} pending action{totalBadges > 1 ? "s" : ""}
+            </span>
+          </div>
+        )}
+
+        {/* Desktop Navigation */}
+        <div className="flex-1 overflow-y-auto">
+          <nav className="mt-4 px-3 space-y-2">
+            {nav.map((group) => (
+              <div key={group.section}>
+                {/* Section Header */}
+                {group.collapsible ? (
+                  <button
+                    onClick={() => toggleSection(group.section)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      openSections.includes(group.section)
+                        ? "bg-gray-100 text-gray-900"
+                        : "text-gray-600 hover:bg-gray-50"
+                    }`}
+                  >
+                    <Icon
+                      name={group.icon}
+                      className={isSidebarExpanded ? "w-5 h-5" : "w-6 h-6"}
+                    />
+                    {isSidebarExpanded && (
+                      <>
+                        <span className="flex-1 text-left">{group.section}</span>
+                        <Icon
+                          name="ChevronDown"
+                          className={`w-4 h-4 transition-transform ${
+                            openSections.includes(group.section) ? "rotate-180" : ""
+                          }`}
+                        />
+                      </>
+                    )}
+                  </button>
+                ) : (
+                  isSidebarExpanded && (
+                    <div className="text-xs uppercase text-gray-500 font-medium px-3 py-2">
+                      {group.section}
+                    </div>
+                  )
+                )}
+
+                {/* Menu Items */}
+                {(!group.collapsible || openSections.includes(group.section)) && (
+                  <div className="space-y-1 mt-1">
+                    {group.items.map((item) => (
+                      <div key={item.path}>
+                        {item.subItems ? (
+                          <div>
+                            <div
+                              className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
+                                isSidebarExpanded
+                                  ? "gap-3 px-3 justify-start"
+                                  : "justify-center"
+                              } ${
+                                location.pathname.startsWith(item.path)
+                                  ? "bg-blue-50 text-blue-700 font-medium"
+                                  : "text-gray-600 hover:bg-gray-50"
+                              }`}
+                            >
+                              <Icon name={item.icon} className="w-5 h-5 flex-shrink-0" />
+                              {isSidebarExpanded && <span>{item.name}</span>}
+                            </div>
+                            
+                            {isSidebarExpanded && (
+                              <div className="ml-8 mt-1 space-y-1">
+                                {item.subItems
+                                  .filter((subItem) => {
+                                    if (subItem.showIf && typeof subItem.showIf === "function") {
+                                      return subItem.showIf();
+                                    }
+                                    return true;
+                                  })
+                                  .map((subItem) => (
+                                    <Link
+                                      key={subItem.path}
+                                      to={subItem.path}
+                                      onClick={handleNavClick}
+                                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                                        isActive(subItem.path)
+                                          ? "bg-blue-50 text-blue-700 font-medium"
+                                          : "text-gray-600 hover:bg-gray-50"
+                                      }`}
+                                    >
+                                      <Icon name={subItem.icon} className="w-4 h-4 flex-shrink-0" />
+                                      <span>{subItem.name}</span>
+                                    </Link>
+                                  ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <Link
+                            to={item.path}
+                            onClick={handleNavClick}
+                            className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
+                              isSidebarExpanded
+                                ? "gap-3 px-3 justify-start"
+                                : "justify-center"
+                            } ${
+                              isActive(item.path)
+                                ? "bg-blue-50 text-blue-700 font-medium"
+                                : "text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            <Icon name={item.icon} className="w-5 h-5 flex-shrink-0" />
+                            {isSidebarExpanded && (
+                              <>
+                                <span className="flex-1">{item.name}</span>
+                                {item.badge && item.badge > 0 && (
+                                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">
+                                    {item.badge}
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </Link>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+          </nav>
+        </div>
+
+        {/* Desktop Footer */}
+        {isSidebarExpanded && (
+          <div className="p-4 border-t border-gray-200">
+            <div className="text-xs text-gray-500 text-center">
+              <div className="font-medium text-gray-700">HRM System v1.0</div>
+              <div className="mt-1">© 2025</div>
+            </div>
+          </div>
+        )}
+      </aside>
+    </>
   );
 };
 
 Sidebar.propTypes = {
   setLayoutSidebarExpanded: PropTypes.func.isRequired,
+  mobileMenuOpen: PropTypes.bool.isRequired,
+  setMobileMenuOpen: PropTypes.func.isRequired,
 };
 
 export default Sidebar;

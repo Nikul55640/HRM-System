@@ -19,14 +19,15 @@ const CompanyEvent = sequelize.define('CompanyEvent', {
     type: DataTypes.ENUM(
       'meeting',
       'training',
-      'holiday',
       'company_event',
       'birthday',
       'anniversary',
       'deadline',
+      'announcement',
       'other'
     ),
     defaultValue: 'other',
+    comment: 'Event type - NOTE: holidays are managed separately in Holiday model'
   },
   startDate: {
     type: DataTypes.DATE,

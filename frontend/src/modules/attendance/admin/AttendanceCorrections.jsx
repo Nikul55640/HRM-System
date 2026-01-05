@@ -146,29 +146,33 @@ const AttendanceCorrections = () => {
   /* ================= UI ================= */
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
 
       {/* HEADER */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Attendance Corrections</h1>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold">Attendance Corrections</h1>
+          <p className="text-sm text-gray-600 mt-1">Review and process attendance correction requests</p>
+        </div>
       </div>
 
       {/* FILTERS */}
       <Card className="rounded-2xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
+        <CardHeader className="pb-3 sm:pb-4">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Calendar className="w-4 h-4" />
             Filters
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <CardContent className="p-3 sm:p-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <Input
               placeholder="Employee ID"
               value={filters.employeeId}
               onChange={(e) =>
                 setFilters((p) => ({ ...p, employeeId: e.target.value }))
               }
+              className="text-sm"
             />
             <Input
               type="date"
@@ -176,6 +180,7 @@ const AttendanceCorrections = () => {
               onChange={(e) =>
                 setFilters((p) => ({ ...p, dateFrom: e.target.value }))
               }
+              className="text-sm"
             />
             <Input
               type="date"
@@ -183,6 +188,7 @@ const AttendanceCorrections = () => {
               onChange={(e) =>
                 setFilters((p) => ({ ...p, dateTo: e.target.value }))
               }
+              className="text-sm"
             />
             <Select
               value={filters.status}
@@ -190,7 +196,7 @@ const AttendanceCorrections = () => {
                 setFilters((p) => ({ ...p, status: v }))
               }
             >
-              <SelectTrigger>
+              <SelectTrigger className="text-sm">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -206,6 +212,7 @@ const AttendanceCorrections = () => {
                   ? fetchPendingRequests()
                   : fetchProcessedRequests()
               }
+              className="w-full"
             >
               Apply
             </Button>
@@ -215,11 +222,11 @@ const AttendanceCorrections = () => {
 
       {/* TABS */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="pending">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="pending" className="text-sm">
             Pending ({pendingRequests.length})
           </TabsTrigger>
-          <TabsTrigger value="processed">
+          <TabsTrigger value="processed" className="text-sm">
             Processed ({processedRequests.length})
           </TabsTrigger>
         </TabsList>
@@ -255,34 +262,39 @@ const AttendanceCorrections = () => {
       {/* ACTION MODAL */}
       {selectedRequest && (
         <Dialog open onOpenChange={() => setSelectedRequest(null)}>
-          <DialogContent>
+          <DialogContent className="max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Process Correction Request</DialogTitle>
+              <DialogTitle className="text-lg sm:text-xl">Process Correction Request</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-3 text-sm">
-              <p>
+              <div>
                 <strong>Employee:</strong>{" "}
                 {selectedRequest.employee?.firstName}{" "}
                 {selectedRequest.employee?.lastName}
-              </p>
-              <p>
+              </div>
+              <div>
                 <strong>Date:</strong>{" "}
                 {format(parseISO(selectedRequest.date), "dd MMM yyyy")}
-              </p>
-              <p>
-                <strong>Reason:</strong> {selectedRequest.reason}
-              </p>
+              </div>
+              <div>
+                <strong>Reason:</strong> 
+                <div className="mt-1 p-2 bg-gray-50 rounded text-sm">
+                  {selectedRequest.reason}
+                </div>
+              </div>
 
               <Textarea
                 placeholder="Admin notes (required for rejection)"
                 value={adminNotes}
                 onChange={(e) => setAdminNotes(e.target.value)}
+                className="text-sm"
+                rows={3}
               />
 
-              <div className="flex gap-2 pt-2">
+              <div className="flex flex-col sm:flex-row gap-2 pt-2">
                 <Button
-                  className="flex-1 bg-green-600 hover:bg-green-700"
+                  className="flex-1 bg-green-600 hover:bg-green-700 order-2 sm:order-1"
                   onClick={() =>
                     handleAction(selectedRequest.id, "approve")
                   }
@@ -290,7 +302,7 @@ const AttendanceCorrections = () => {
                   Approve
                 </Button>
                 <Button
-                  className="flex-1 bg-red-600 hover:bg-red-700"
+                  className="flex-1 bg-red-600 hover:bg-red-700 order-1 sm:order-2"
                   onClick={() =>
                     handleAction(selectedRequest.id, "reject")
                   }
@@ -320,44 +332,45 @@ const RequestList = ({
   if (loading)
     return (
       <div className="py-10 text-center">
-        <Loader2 className="mx-auto animate-spin" />
+        <Loader2 className="mx-auto animate-spin w-6 h-6 sm:w-8 sm:h-8" />
+        <p className="mt-2 text-sm text-gray-600">Loading...</p>
       </div>
     );
 
   if (!data.length)
     return (
       <div className="text-center text-gray-500 py-10">
-        No requests found
+        <p className="text-sm sm:text-base">No requests found</p>
       </div>
     );
 
   return (
     <Card className="rounded-2xl">
-      <CardContent className="space-y-4 p-6">
+      <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
         {data.map((req) => (
           <div
             key={req.id}
-            className="border rounded-lg p-4 flex flex-col gap-3 hover:bg-gray-50"
+            className="border rounded-lg p-3 sm:p-4 flex flex-col gap-3 hover:bg-gray-50"
           >
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                <span className="font-medium">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <User className="w-4 h-4 flex-shrink-0" />
+                <span className="font-medium text-sm sm:text-base truncate">
                   {req.employee?.firstName} {req.employee?.lastName}
                 </span>
-                <span className="text-gray-500 text-sm">
+                <span className="text-gray-500 text-xs sm:text-sm flex-shrink-0">
                   ({req.employee?.employeeId})
                 </span>
                 <StatusBadge status={req.status} />
               </div>
               {pending && (
-                <Button size="sm" onClick={() => onAction(req)}>
+                <Button size="sm" onClick={() => onAction(req)} className="w-full sm:w-auto">
                   Review
                 </Button>
               )}
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
               <Info label="Date" value={formatDateTime(req.date)} />
               <Info label="Clock In" value={formatDateTime(req.requestedClockIn)} />
               <Info label="Clock Out" value={formatDateTime(req.requestedClockOut)} />
@@ -366,7 +379,9 @@ const RequestList = ({
 
             <div className="text-sm">
               <span className="text-gray-500">Reason:</span>{" "}
-              {req.reason}
+              <div className="mt-1 text-gray-700 line-clamp-2">
+                {req.reason}
+              </div>
             </div>
           </div>
         ))}
@@ -376,9 +391,9 @@ const RequestList = ({
 };
 
 const Info = ({ label, value }) => (
-  <div>
-    <div className="text-gray-500 text-xs">{label}</div>
-    <div className="font-medium">{value}</div>
+  <div className="min-w-0">
+    <div className="text-gray-500 text-xs truncate">{label}</div>
+    <div className="font-medium text-sm truncate">{value}</div>
   </div>
 );
 

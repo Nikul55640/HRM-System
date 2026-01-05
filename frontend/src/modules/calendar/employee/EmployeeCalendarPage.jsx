@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useSearchParams } from 'react-router-dom';
+import { Cake, PartyPopper } from 'lucide-react';
 import { calendarService } from '../../../services';
 import { getEventTypeConfig, sortEventsByPriority } from '../../../core/utils/calendarEventTypes';
 import EmployeeCalendarToolbar from './EmployeeCalendarToolbar';
@@ -52,14 +53,14 @@ const EmployeeCalendarPage = () => {
           ...(calendarData.birthdays || []).map(b => ({
             ...b,
             eventType: 'birthday',
-            title: b.title || `🎂 ${b.employeeName}`,
+            title: b.title || `${b.employeeName}`,
             startDate: b.date || b.startDate,
             color: b.color || getEventTypeConfig('birthday').color
           })),
           ...(calendarData.anniversaries || []).map(a => ({
             ...a,
             eventType: 'anniversary',
-            title: a.title || `🎊 ${a.employeeName}`,
+            title: a.title || `${a.employeeName}`,
             startDate: a.date || a.startDate,
             color: a.color || getEventTypeConfig('anniversary').color
           }))
@@ -133,10 +134,10 @@ const EmployeeCalendarPage = () => {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
-        <p className="text-gray-600">View holidays, leaves, and important dates</p>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Calendar</h1>
+        <p className="text-sm sm:text-base text-gray-600">View holidays, leaves, and important dates</p>
       </div>
 
       <EmployeeCalendarToolbar

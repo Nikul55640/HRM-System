@@ -380,14 +380,14 @@ const EmployeeDashboard = () => {
           ...(calendarData.birthdays || []).map(b => ({
             ...b,
             eventType: 'birthday',
-            title: b.title || `🎂 ${b.employeeName}`,
+            title: b.title || `${b.employeeName}`,
             startDate: b.date || b.startDate,
             color: b.color || '#10B981'
           })),
           ...(calendarData.anniversaries || []).map(a => ({
             ...a,
             eventType: 'anniversary',
-            title: a.title || `🎊 ${a.employeeName}`,
+            title: a.title || `${a.employeeName}`,
             startDate: a.date || a.startDate,
             color: a.color || '#8B5CF6'
           }))

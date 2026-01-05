@@ -226,18 +226,18 @@ const LeadsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Leads</h1>
-          <p className="text-gray-600">Manage your assigned leads and track progress</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Leads</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage your assigned leads and track progress</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
             <Icon name="Filter" className="w-4 h-4 mr-2" />
             Filter
           </Button>
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
             <Icon name="Download" className="w-4 h-4 mr-2" />
             Export
           </Button>
@@ -245,30 +245,30 @@ const LeadsPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Icon name="Target" className="w-5 h-5 text-blue-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                <Icon name="Target" className="w-4 sm:w-5 h-4 sm:h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Total Leads</p>
-                <p className="text-2xl font-bold">{leads.length}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Total Leads</p>
+                <p className="text-lg sm:text-2xl font-bold">{leads.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Icon name="TrendingUp" className="w-5 h-5 text-green-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+                <Icon name="TrendingUp" className="w-4 sm:w-5 h-4 sm:h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Qualified</p>
-                <p className="text-2xl font-bold">
+                <p className="text-xs sm:text-sm text-gray-600">Qualified</p>
+                <p className="text-lg sm:text-2xl font-bold">
                   {leads.filter(l => l.status === 'qualified').length}
                 </p>
               </div>
@@ -277,14 +277,14 @@ const LeadsPage = () => {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <Icon name="Clock" className="w-5 h-5 text-yellow-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-yellow-100 rounded-lg">
+                <Icon name="Clock" className="w-4 sm:w-5 h-4 sm:h-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">In Progress</p>
-                <p className="text-2xl font-bold">
+                <p className="text-xs sm:text-sm text-gray-600">In Progress</p>
+                <p className="text-lg sm:text-2xl font-bold">
                   {leads.filter(l => ['contacted', 'proposal', 'negotiation'].includes(l.status)).length}
                 </p>
               </div>
@@ -293,14 +293,14 @@ const LeadsPage = () => {
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Icon name="DollarSign" className="w-5 h-5 text-purple-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
+                <Icon name="DollarSign" className="w-4 sm:w-5 h-4 sm:h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Est. Value</p>
-                <p className="text-2xl font-bold">
+                <p className="text-xs sm:text-sm text-gray-600">Est. Value</p>
+                <p className="text-sm sm:text-2xl font-bold">
                   ${leads.reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0).toLocaleString()}
                 </p>
               </div>

@@ -151,23 +151,23 @@ const LeaveManagement = () => {
   console.log('📊 [LeaveManagement] Rendering with leaveRequests:', leaveRequests);
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 sm:px-6 py-4 sm:py-6">
 
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-800">Leave Management</h1>
-        <p className="text-gray-600 mt-1">
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Leave Management</h1>
+        <p className="text-sm sm:text-base text-gray-600 mt-1">
           Review and manage employee leave requests
         </p>
       </div>
 
       {/* Filters */}
-      <Card className="mb-6">
+      <Card className="mb-4 sm:mb-6">
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">Filters</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
             <div>
               <Label>Status</Label>
@@ -236,12 +236,12 @@ const LeaveManagement = () => {
       <div className="grid gap-4">
         {!leaveRequests || leaveRequests.length === 0 ? (
           <Card>
-            <CardContent className="p-8 text-center">
-              <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-600 mb-2">
+            <CardContent className="p-6 sm:p-8 text-center">
+              <FileText className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-base sm:text-lg font-medium text-gray-600 mb-2">
                 No leave requests found
               </h3>
-              <p className="text-gray-500">
+              <p className="text-sm sm:text-base text-gray-500">
                 No leave requests match your current filters.
               </p>
             </CardContent>
@@ -249,23 +249,23 @@ const LeaveManagement = () => {
         ) : (
           leaveRequests.map((request) => (
             <Card key={request._id || request.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
+              <CardContent className="p-4 sm:p-6">
 
-                <div className="flex items-start justify-between">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
 
                   {/* Left Section */}
                   <div className="flex-1">
 
                     {/* Employee info */}
-                    <div className="flex items-center gap-3 mb-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-3">
                       <div className="flex items-center gap-2">
-                        <User className="w-5 h-5 text-gray-500" />
-                        <span className="font-medium text-gray-800">
+                        <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-500" />
+                        <span className="font-medium text-gray-800 text-sm sm:text-base">
                           {request.employee?.firstName} {request.employee?.lastName}
                         </span>
                       </div>
 
-                      <span className="text-sm text-gray-500">
+                      <span className="text-xs sm:text-sm text-gray-500">
                         ID: {request.employee?.employeeId}
                       </span>
 
@@ -273,24 +273,24 @@ const LeaveManagement = () => {
                     </div>
 
                     {/* Leave Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
 
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-gray-500" />
                         <div>
-                          <p className="text-sm text-gray-600">Leave Type</p>
-                          <p className="font-medium capitalize">{request.leaveType || request.type}</p>
+                          <p className="text-xs sm:text-sm text-gray-600">Leave Type</p>
+                          <p className="font-medium capitalize text-sm sm:text-base">{request.leaveType || request.type}</p>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-gray-500" />
                         <div>
-                          <p className="text-sm text-gray-600">Duration</p>
-                          <p className="font-medium">
+                          <p className="text-xs sm:text-sm text-gray-600">Duration</p>
+                          <p className="font-medium text-sm sm:text-base">
                             {formatDate(request.startDate)} - {formatDate(request.endDate)}
                           </p>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-xs sm:text-sm text-gray-500">
                             ({request.totalDays || calculateDuration(request.startDate, request.endDate, request.isHalfDay)} day{(request.totalDays || 1) !== 1 ? 's' : ''})
                           </p>
                         </div>
@@ -299,8 +299,8 @@ const LeaveManagement = () => {
                       <div className="flex items-center gap-2">
                         <FileText className="w-4 h-4 text-gray-500" />
                         <div>
-                          <p className="text-sm text-gray-600">Applied On</p>
-                          <p className="font-medium">{formatDate(request.createdAt)}</p>
+                          <p className="text-xs sm:text-sm text-gray-600">Applied On</p>
+                          <p className="font-medium text-sm sm:text-base">{formatDate(request.createdAt)}</p>
                         </div>
                       </div>
 
@@ -309,8 +309,8 @@ const LeaveManagement = () => {
                     {/* Reason */}
                     {request.reason && (
                       <div className="mb-4">
-                        <p className="text-sm text-gray-600 mb-1">Reason:</p>
-                        <p className="text-gray-800 bg-gray-50 p-3 rounded-lg">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">Reason:</p>
+                        <p className="text-sm sm:text-base text-gray-800 bg-gray-50 p-3 rounded-lg">
                           {request.reason}
                         </p>
                       </div>
@@ -319,8 +319,8 @@ const LeaveManagement = () => {
                     {/* HR Comments */}
                     {request.hrComments && (
                       <div className="mb-4">
-                        <p className="text-sm text-gray-600 mb-1">HR Comments:</p>
-                        <p className="text-gray-800 bg-blue-50 p-3 rounded-lg">
+                        <p className="text-xs sm:text-sm text-gray-600 mb-1">HR Comments:</p>
+                        <p className="text-sm sm:text-base text-gray-800 bg-blue-50 p-3 rounded-lg">
                           {request.hrComments}
                         </p>
                       </div>
@@ -330,43 +330,45 @@ const LeaveManagement = () => {
 
                   {/* Actions */}
                   {request.status === 'pending' && (
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex flex-row lg:flex-col gap-2 lg:ml-4">
                       <Button
                         onClick={() => handleApprove(request._id || request.id)}
                         disabled={actionLoading}
-                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex-1 lg:flex-none"
                         size="sm"
                       >
                         <CheckCircle className="w-4 h-4 mr-1" />
-                        {actionLoading ? 'Approving...' : 'Approve'}
+                        <span className="hidden sm:inline">{actionLoading ? 'Approving...' : 'Approve'}</span>
+                        <span className="sm:hidden">✓</span>
                       </Button>
 
                       <Button
                         onClick={() => setSelectedRequest(request)}
                         disabled={actionLoading}
                         variant="outline"
-                        className="border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="border-red-300 text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed flex-1 lg:flex-none"
                         size="sm"
                       >
                         <XCircle className="w-4 h-4 mr-1" />
-                        Reject
+                        <span className="hidden sm:inline">Reject</span>
+                        <span className="sm:hidden">✗</span>
                       </Button>
                     </div>
                   )}
 
                   {/* Status indicator for non-pending requests */}
                   {request.status !== 'pending' && (
-                    <div className="ml-4 text-sm text-gray-500">
+                    <div className="lg:ml-4 text-sm text-gray-500">
                       {request.status === 'approved' && (
                         <div className="flex items-center gap-1 text-green-600">
                           <CheckCircle className="w-4 h-4" />
-                          Approved
+                          <span className="hidden sm:inline">Approved</span>
                         </div>
                       )}
                       {request.status === 'rejected' && (
                         <div className="flex items-center gap-1 text-red-600">
                           <XCircle className="w-4 h-4" />
-                          Rejected
+                          <span className="hidden sm:inline">Rejected</span>
                         </div>
                       )}
                     </div>
@@ -385,28 +387,28 @@ const LeaveManagement = () => {
       ------------------------------------------------------ */}
       {selectedRequest && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-md mx-4">
             <CardHeader>
-              <CardTitle>Reject Leave Request</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Reject Leave Request</CardTitle>
             </CardHeader>
 
             <CardContent>
 
               {/* Employee Info */}
               <div className="mb-4">
-                <p className="text-sm text-gray-600 mb-2">
+                <p className="text-xs sm:text-sm text-gray-600 mb-2">
                   Employee: {selectedRequest.employee?.firstName} {selectedRequest.employee?.lastName}
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-xs sm:text-sm text-gray-600">
                   Leave: {formatDate(selectedRequest.startDate)} - {formatDate(selectedRequest.endDate)}
                 </p>
               </div>
 
               {/* Rejection Reason */}
               <div className="mb-4">
-                <Label>Reason for Rejection *</Label>
+                <Label className="text-sm">Reason for Rejection *</Label>
                 <textarea
-                  className="w-full mt-1 p-3 border border-gray-300 rounded-lg resize-none"
+                  className="w-full mt-1 p-3 border border-gray-300 rounded-lg resize-none text-sm"
                   rows="4"
                   placeholder="Please provide a reason..."
                   onChange={(e) =>
@@ -419,17 +421,18 @@ const LeaveManagement = () => {
               </div>
 
               {/* Buttons */}
-              <div className="flex gap-3 justify-end">
+              <div className="flex flex-col sm:flex-row gap-3 justify-end">
                 <Button
                   variant="outline"
                   disabled={actionLoading}
                   onClick={() => setSelectedRequest(null)}
+                  className="w-full sm:w-auto"
                 >
                   Cancel
                 </Button>
 
                 <Button
-                  className="bg-red-600 hover:bg-red-700 text-white"
+                  className="bg-red-600 hover:bg-red-700 text-white w-full sm:w-auto"
                   disabled={actionLoading || !selectedRequest.rejectionReason?.trim()}
                   onClick={() =>
                     handleReject(

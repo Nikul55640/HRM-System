@@ -202,27 +202,27 @@ const DepartmentsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Department Management</h1>
-          <p className="text-gray-600">Manage organizational departments and structure</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Department Management</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage organizational departments and structure</p>
         </div>
         <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button onClick={resetForm} className="w-full sm:w-auto">
               <Icon name="Plus" className="w-4 h-4 mr-2" />
               Add Department
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>
+              <DialogTitle className="text-lg sm:text-xl">
                 {editingDepartment ? "Edit Department" : "Add New Department"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-4 ">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Department Name *</label>
                   <Input
@@ -254,13 +254,13 @@ const DepartmentsPage = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Parent Department</label>
                   <select
                     value={formData.parentDepartmentId}
                     onChange={(e) => setFormData({ ...formData, parentDepartmentId: e.target.value })}
-                    className="w-full border rounded-md px-3 py-2"
+                    className="w-full border rounded-md px-3 py-2 text-sm"
                   >
                     <option value="">None (Top Level)</option>
                     {parentDepartments
@@ -294,14 +294,15 @@ const DepartmentsPage = () => {
                 />
               </div>
               
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" className="flex-1">
+              <div className="flex flex-col sm:flex-row gap-2 pt-4">
+                <Button type="submit" className="flex-1 order-2 sm:order-1">
                   {editingDepartment ? "Update" : "Create"} Department
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setShowAddModal(false)}
+                  className="flex-1 order-1 sm:order-2"
                 >
                   Cancel
                 </Button>
@@ -312,58 +313,58 @@ const DepartmentsPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Icon name="Building2" className="w-5 h-5 text-blue-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
+                <Icon name="Building2" className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Active Departments</p>
-                <p className="text-2xl font-bold">{activeDepartmentCount}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Active Departments</p>
+                <p className="text-lg sm:text-2xl font-bold">{activeDepartmentCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Icon name="Users" className="w-5 h-5 text-green-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
+                <Icon name="Users" className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Total Employees</p>
-                <p className="text-2xl font-bold">{totalEmployees}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Icon name="TreePine" className="w-5 h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Parent Departments</p>
-                <p className="text-2xl font-bold">{parentDepartments.length}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Total Employees</p>
+                <p className="text-lg sm:text-2xl font-bold">{totalEmployees}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <Icon name="XCircle" className="w-5 h-5 text-red-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
+                <Icon name="TreePine" className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Inactive Departments</p>
-                <p className="text-2xl font-bold">{inactiveDepartmentCount}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Parent Departments</p>
+                <p className="text-lg sm:text-2xl font-bold">{parentDepartments.length}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
+                <Icon name="XCircle" className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Inactive Departments</p>
+                <p className="text-lg sm:text-2xl font-bold">{inactiveDepartmentCount}</p>
               </div>
             </div>
           </CardContent>
@@ -371,28 +372,28 @@ const DepartmentsPage = () => {
       </div>
 
       {/* Department Hierarchy */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {/* Active Parent Departments */}
         {parentDepartments.map((parentDept) => (
           <Card key={parentDept.id}>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <Icon name="Building2" className="w-6 h-6 text-blue-600" />
-                  <div>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      {parentDept.name}
+            <CardHeader className="pb-3 sm:pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <Icon name="Building2" className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="text-base sm:text-lg flex flex-col sm:flex-row sm:items-center gap-2">
+                      <span className="truncate">{parentDept.name}</span>
                       {parentDept.code && (
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs w-fit">
                           {parentDept.code}
                         </Badge>
                       )}
                     </CardTitle>
-                    <p className="text-sm text-gray-600">{parentDept.description}</p>
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{parentDept.description}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-2">
+                  <Badge variant="outline" className="text-xs">
                     {parentDept.employeeCount || 0} employees
                   </Badge>
                   <div className="flex items-center gap-1">
@@ -400,48 +401,52 @@ const DepartmentsPage = () => {
                       checked={parentDept.isActive}
                       onCheckedChange={() => handleToggleStatus(parentDept.id, parentDept.isActive)}
                     />
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-gray-500 hidden sm:inline">
                       {parentDept.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(parentDept)}
-                  >
-                    <Icon name="Edit" className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => handleDelete(parentDept.id)}
-                  >
-                    <Icon name="Trash2" className="w-4 h-4" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEdit(parentDept)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Icon name="Edit" className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(parentDept.id)}
+                      className="h-8 w-8 p-0"
+                    >
+                      <Icon name="Trash2" className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Location</label>
-                  <p className="font-medium">{parentDept.location || "Not specified"}</p>
+                  <label className="text-xs sm:text-sm font-medium text-gray-500">Location</label>
+                  <p className="font-medium text-sm sm:text-base truncate">{parentDept.location || "Not specified"}</p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Budget</label>
-                  <p className="font-medium">
+                  <label className="text-xs sm:text-sm font-medium text-gray-500">Budget</label>
+                  <p className="font-medium text-sm sm:text-base truncate">
                     {parentDept.budget ? `$${parseFloat(parentDept.budget).toLocaleString()}` : "Not set"}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Created</label>
-                  <p className="font-medium">
+                  <label className="text-xs sm:text-sm font-medium text-gray-500">Created</label>
+                  <p className="font-medium text-sm sm:text-base">
                     {new Date(parentDept.createdAt).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-500">Status</label>
-                  <Badge variant={parentDept.isActive ? "success" : "secondary"}>
+                  <label className="text-xs sm:text-sm font-medium text-gray-500">Status</label>
+                  <Badge variant={parentDept.isActive ? "success" : "secondary"} className="text-xs">
                     {parentDept.isActive ? "Active" : "Inactive"}
                   </Badge>
                 </div>
@@ -450,31 +455,31 @@ const DepartmentsPage = () => {
               {/* Sub Departments */}
               {childDepartments.filter(child => child.parentDepartmentId === parentDept.id).length > 0 && (
                 <div>
-                  <h4 className="font-medium text-gray-700 mb-3">Sub Departments</h4>
+                  <h4 className="font-medium text-gray-700 mb-3 text-sm sm:text-base">Sub Departments</h4>
                   <div className="space-y-2">
                     {childDepartments
                       .filter(child => child.parentDepartmentId === parentDept.id)
                       .map((childDept) => (
                         <div
                           key={childDept.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg ml-6"
+                          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 bg-gray-50 rounded-lg ml-0 sm:ml-6"
                         >
-                          <div className="flex items-center gap-3">
-                            <Icon name="GitBranch" className="w-4 h-4 text-gray-500" />
-                            <div>
-                              <h5 className="font-medium flex items-center gap-2">
-                                {childDept.name}
+                          <div className="flex items-start gap-3 min-w-0 flex-1">
+                            <Icon name="GitBranch" className="w-4 h-4 text-gray-500 mt-0.5 flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <h5 className="font-medium flex flex-col sm:flex-row sm:items-center gap-2 text-sm sm:text-base">
+                                <span className="truncate">{childDept.name}</span>
                                 {childDept.code && (
-                                  <Badge variant="outline" className="text-xs">
+                                  <Badge variant="outline" className="text-xs w-fit">
                                     {childDept.code}
                                   </Badge>
                                 )}
                               </h5>
-                              <p className="text-sm text-gray-600">{childDept.description}</p>
+                              <p className="text-xs sm:text-sm text-gray-600 line-clamp-2">{childDept.description}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" size="sm">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-2">
+                            <Badge variant="outline" size="sm" className="text-xs">
                               {childDept.employeeCount || 0} employees
                             </Badge>
                             <div className="flex items-center gap-1">
@@ -484,20 +489,24 @@ const DepartmentsPage = () => {
                                 size="sm"
                               />
                             </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEdit(childDept)}
-                            >
-                              <Icon name="Edit" className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDelete(childDept.id)}
-                            >
-                              <Icon name="Trash2" className="w-3 h-3" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEdit(childDept)}
+                                className="h-7 w-7 p-0"
+                              >
+                                <Icon name="Edit" className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDelete(childDept.id)}
+                                className="h-7 w-7 p-0"
+                              >
+                                <Icon name="Trash2" className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -512,7 +521,7 @@ const DepartmentsPage = () => {
         {inactiveDepartmentCount > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg text-gray-600">Inactive Departments</CardTitle>
+              <CardTitle className="text-base sm:text-lg text-gray-600">Inactive Departments</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -521,24 +530,24 @@ const DepartmentsPage = () => {
                   .map((dept) => (
                     <div
                       key={dept.id}
-                      className="flex items-center justify-between p-3 border rounded-lg bg-gray-50"
+                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 border rounded-lg bg-gray-50"
                     >
-                      <div className="flex items-center gap-3">
-                        <Icon name="Building2" className="w-5 h-5 text-gray-400" />
-                        <div>
-                          <h5 className="font-medium text-gray-600 flex items-center gap-2">
-                            {dept.name}
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <Icon name="Building2" className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <h5 className="font-medium text-gray-600 flex flex-col sm:flex-row sm:items-center gap-2 text-sm sm:text-base">
+                            <span className="truncate">{dept.name}</span>
                             {dept.code && (
-                              <Badge variant="outline" className="text-xs">
+                              <Badge variant="outline" className="text-xs w-fit">
                                 {dept.code}
                               </Badge>
                             )}
                           </h5>
-                          <p className="text-sm text-gray-500">{dept.description}</p>
+                          <p className="text-xs sm:text-sm text-gray-500 line-clamp-2">{dept.description}</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge variant="secondary" className="text-xs">
                           {dept.employeeCount || 0} employees
                         </Badge>
                         <div className="flex items-center gap-1">
@@ -548,20 +557,24 @@ const DepartmentsPage = () => {
                           />
                           <span className="text-xs text-gray-500">Inactive</span>
                         </div>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(dept)}
-                        >
-                          <Icon name="Edit" className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => handleDelete(dept.id)}
-                        >
-                          <Icon name="Trash2" className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(dept)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Icon name="Edit" className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleDelete(dept.id)}
+                            className="h-8 w-8 p-0"
+                          >
+                            <Icon name="Trash2" className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -572,10 +585,10 @@ const DepartmentsPage = () => {
 
         {departments.length === 0 && (
           <Card>
-            <CardContent className="text-center py-8">
-              <Icon name="Building2" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500">No departments found</p>
-              <p className="text-sm text-gray-400">Create your first department to get started</p>
+            <CardContent className="text-center py-6 sm:py-8">
+              <Icon name="Building2" className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500 text-sm sm:text-base">No departments found</p>
+              <p className="text-xs sm:text-sm text-gray-400">Create your first department to get started</p>
             </CardContent>
           </Card>
         )}

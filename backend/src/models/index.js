@@ -16,6 +16,7 @@ import Lead from './sequelize/Lead.js';
 import Shift from './sequelize/Shift.js';
 import EmployeeShift from './sequelize/EmployeeShift.js';
 import EmergencyContact from './sequelize/EmergencyContact.js';
+import WorkingRule from './sequelize/WorkingRule.js';
 
 // Note: Associations are defined in ./sequelize/index.js to avoid conflicts
 
@@ -37,6 +38,7 @@ export {
   Shift,
   EmployeeShift,
   EmergencyContact,
+  WorkingRule,
 };
 
 export default {
@@ -57,4 +59,5 @@ export default {
   Shift,
   EmployeeShift,
   EmergencyContact,
+  WorkingRule,
 };

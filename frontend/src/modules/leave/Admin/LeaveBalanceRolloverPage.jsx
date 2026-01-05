@@ -99,17 +99,17 @@ const LeaveBalanceRolloverPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Leave Balance Rollover</h1>
-          <p className="text-gray-600">Manage automatic leave balance assignments</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Leave Balance Rollover</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage automatic leave balance assignments</p>
         </div>
         <div className="flex items-center gap-4">
           <select
             value={selectedYear}
             onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="px-3 py-2 border border-gray-300 rounded-md"
+            className="px-3 py-2 border border-gray-300 rounded-md w-full sm:w-auto"
           >
             {Array.from({ length: 5 }, (_, i) => {
               const year = new Date().getFullYear() - 2 + i;
@@ -124,7 +124,7 @@ const LeaveBalanceRolloverPage = () => {
       </div>
 
       {/* Status Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
@@ -135,8 +135,8 @@ const LeaveBalanceRolloverPage = () => {
                 />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Rollover Status</p>
-                <p className="text-lg font-bold">
+                <p className="text-xs sm:text-sm text-gray-600">Rollover Status</p>
+                <p className="text-base sm:text-lg font-bold">
                   {rolloverStatus?.rolloverCompleted ? 'Completed' : 'Pending'}
                 </p>
               </div>
@@ -151,22 +151,22 @@ const LeaveBalanceRolloverPage = () => {
                 <Icon name="Users" className="w-5 h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Employees Needing Rollover</p>
-                <p className="text-lg font-bold">{rolloverStatus?.employeesWithoutBalances || 0}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Employees Needing Rollover</p>
+                <p className="text-base sm:text-lg font-bold">{rolloverStatus?.employeesWithoutBalances || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="sm:col-span-2 lg:col-span-1">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Icon name="Calendar" className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Selected Year</p>
-                <p className="text-lg font-bold">{selectedYear}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Selected Year</p>
+                <p className="text-base sm:text-lg font-bold">{selectedYear}</p>
               </div>
             </div>
           </CardContent>
@@ -177,15 +177,15 @@ const LeaveBalanceRolloverPage = () => {
       {defaultConfig && (
         <Card>
           <CardHeader>
-            <CardTitle>Default Leave Balance Configuration</CardTitle>
+            <CardTitle className="text-base sm:text-lg">Default Leave Balance Configuration</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {defaultConfig.defaultLeaveTypes.map((leaveType) => (
                 <div key={leaveType.leaveType} className="border rounded-lg p-4">
-                  <h4 className="font-medium text-gray-900">{leaveType.leaveType} Leave</h4>
-                  <p className="text-2xl font-bold text-blue-600">{leaveType.allocated} days</p>
-                  <p className="text-sm text-gray-500">
+                  <h4 className="font-medium text-gray-900 text-sm sm:text-base">{leaveType.leaveType} Leave</h4>
+                  <p className="text-xl sm:text-2xl font-bold text-blue-600">{leaveType.allocated} days</p>
+                  <p className="text-xs sm:text-sm text-gray-500">
                     Carry Forward: {leaveType.carryForward} days
                   </p>
                 </div>
@@ -193,7 +193,7 @@ const LeaveBalanceRolloverPage = () => {
             </div>
             
             <div className="mt-6 space-y-3">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
                   <Icon name="CheckCircle" className="w-3 h-3 mr-1" />
                   Automatic Rollover Enabled

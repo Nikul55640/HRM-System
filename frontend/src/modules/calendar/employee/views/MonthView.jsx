@@ -77,21 +77,22 @@ const MonthView = ({ date, events, onDateClick }) => {
           {date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-2 sm:p-6">
         {/* Week day headers */}
-        <div className="grid grid-cols-7 gap-2 mb-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2 mb-2">
           {weekDays.map((day) => (
             <div
               key={day}
-              className="text-center font-semibold text-sm py-2 text-muted-foreground"
+              className="text-center font-semibold text-xs sm:text-sm py-1 sm:py-2 text-muted-foreground"
             >
-              {day}
+              <span className="hidden sm:inline">{day}</span>
+              <span className="sm:hidden">{day.slice(0, 1)}</span>
             </div>
           ))}
         </div>
 
         {/* Calendar grid */}
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {calendarDays.map((day, index) => {
             if (day === null) {
               return <div key={`empty-${index}`} className="aspect-square"></div>;
@@ -108,29 +109,31 @@ const MonthView = ({ date, events, onDateClick }) => {
                 onMouseEnter={(e) => handleMouseEnter(day, e)}
                 onMouseLeave={handleMouseLeave}
                 className={`
-                  aspect-square border rounded-lg p-2 cursor-pointer
+                  aspect-square border rounded-lg p-1 sm:p-2 cursor-pointer
                   hover:bg-accent transition-colors relative
                   ${isTodayDate ? 'border-primary border-2 bg-primary/5' : 'border-border'}
                 `}
               >
                 <div className="flex flex-col h-full">
-                  <div className={`text-sm font-semibold mb-1 ${isTodayDate ? 'text-primary' : ''}`}>
+                  <div className={`text-xs sm:text-sm font-semibold mb-1 ${isTodayDate ? 'text-primary' : ''}`}>
                     {day}
                   </div>
                   <div className="flex-1 overflow-hidden">
-                    {dayEvents.slice(0, 3).map((event, idx) => (
+                    {dayEvents.slice(0, window.innerWidth < 640 ? 1 : 3).map((event, idx) => (
                       <div
                         key={idx}
                         className="text-xs px-1 py-0.5 rounded mb-1 text-white truncate"
                         style={{ backgroundColor: event.color || getEventColor(event.eventType) }}
                         title={event.title}
                       >
-                        {event.title}
+                        <span className="hidden sm:inline">{event.title}</span>
+                        <span className="sm:hidden">•</span>
                       </div>
                     ))}
-                    {dayEvents.length > 3 && (
+                    {dayEvents.length > (window.innerWidth < 640 ? 1 : 3) && (
                       <div className="text-xs text-muted-foreground">
-                        +{dayEvents.length - 3} more
+                        <span className="hidden sm:inline">+{dayEvents.length - 3} more</span>
+                        <span className="sm:hidden">+{dayEvents.length - 1}</span>
                       </div>
                     )}
                   </div>
@@ -174,30 +177,30 @@ const MonthView = ({ date, events, onDateClick }) => {
         )}
 
         {/* Legend */}
-        <div className="mt-6 flex flex-wrap gap-4 justify-center">
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: getEventColor('holiday') }}></div>
-            <span className="text-sm text-gray-600">Holiday</span>
+        <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-4 justify-center">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded" style={{ backgroundColor: getEventColor('holiday') }}></div>
+            <span className="text-xs sm:text-sm text-gray-600">Holiday</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: getEventColor('meeting') }}></div>
-            <span className="text-sm text-gray-600">Meeting</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded" style={{ backgroundColor: getEventColor('meeting') }}></div>
+            <span className="text-xs sm:text-sm text-gray-600">Meeting</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: getEventColor('leave') }}></div>
-            <span className="text-sm text-gray-600">Leave</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded" style={{ backgroundColor: getEventColor('leave') }}></div>
+            <span className="text-xs sm:text-sm text-gray-600">Leave</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: getEventColor('birthday') }}></div>
-            <span className="text-sm text-gray-600">Birthday</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded" style={{ backgroundColor: getEventColor('birthday') }}></div>
+            <span className="text-xs sm:text-sm text-gray-600">Birthday</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: getEventColor('anniversary') }}></div>
-            <span className="text-sm text-gray-600">Anniversary</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded" style={{ backgroundColor: getEventColor('anniversary') }}></div>
+            <span className="text-xs sm:text-sm text-gray-600">Anniversary</span>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded" style={{ backgroundColor: getEventColor('event') }}></div>
-            <span className="text-sm text-gray-600">Event</span>
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="w-2 h-2 sm:w-3 sm:h-3 rounded" style={{ backgroundColor: getEventColor('event') }}></div>
+            <span className="text-xs sm:text-sm text-gray-600">Event</span>
           </div>
         </div>
       </CardContent>

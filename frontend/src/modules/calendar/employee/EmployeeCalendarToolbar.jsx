@@ -65,43 +65,52 @@ const EmployeeCalendarToolbar = ({
   };
 
   return (
-    <div className="flex justify-between items-center">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       {/* LEFT: Calendar modes */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 w-full sm:w-auto">
         <Button
           variant={viewMode === 'today' ? 'default' : 'outline'}
+          size="sm"
           onClick={() => {
             setViewMode('today');
             setSelectedDate(new Date());
           }}
+          className="flex-1 sm:flex-none"
         >
           Today
         </Button>
 
         <Button
           variant={viewMode === 'week' ? 'default' : 'outline'}
+          size="sm"
           onClick={() => setViewMode('week')}
+          className="flex-1 sm:flex-none"
         >
-          7 Days
+          <span className="hidden sm:inline">7 Days</span>
+          <span className="sm:hidden">Week</span>
         </Button>
 
         <Button
           variant={viewMode === 'month' ? 'default' : 'outline'}
+          size="sm"
           onClick={() => setViewMode('month')}
+          className="flex-1 sm:flex-none"
         >
           Month
         </Button>
       </div>
 
       {/* CENTER: Current date/period display */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-center">
         <Button variant="outline" size="sm" onClick={goToPrevious}>
           <ChevronLeft className="h-4 w-4" />
         </Button>
         
-        <div className="flex items-center gap-2 min-w-64 justify-center">
-          <Calendar className="h-4 w-4 text-blue-600" />
-          <span className="font-medium text-gray-800">{getDisplayText()}</span>
+        <div className="flex items-center gap-2 min-w-0 flex-1 sm:min-w-64 justify-center">
+          <Calendar className="h-4 w-4 text-blue-600 flex-shrink-0" />
+          <span className="font-medium text-gray-800 text-sm sm:text-base text-center truncate">
+            {getDisplayText()}
+          </span>
         </div>
         
         <Button variant="outline" size="sm" onClick={goToNext}>
@@ -110,9 +119,10 @@ const EmployeeCalendarToolbar = ({
       </div>
 
       {/* RIGHT: Today button */}
-      <div>
-        <Button variant="outline" onClick={goToToday}>
-          Go to Today
+      <div className="w-full sm:w-auto">
+        <Button variant="outline" size="sm" onClick={goToToday} className="w-full sm:w-auto">
+          <span className="hidden sm:inline">Go to Today</span>
+          <span className="sm:hidden">Today</span>
         </Button>
       </div>
     </div>

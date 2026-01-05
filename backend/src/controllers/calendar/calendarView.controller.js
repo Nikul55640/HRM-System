@@ -80,7 +80,7 @@ const getMonthlyCalendarData = async (req, res) => {
 
     const holidays = await Holiday.findAll({
       where: holidayFilters,
-      attributes: ['id', 'name', 'date', 'type', 'description', 'color', 'isPaid', 'isRecurring', 'recurrencePattern', 'isActive'],
+      attributes: ['id', 'name', 'date', 'type', 'recurringDate', 'category', 'description', 'color', 'isPaid', 'appliesEveryYear', 'isActive'],
       order: [['date', 'ASC']]
     });
 
@@ -558,7 +558,7 @@ const getEvents = async (req, res) => {
 
     const holidays = await Holiday.findAll({
       where: holidayFilters,
-      attributes: ['id', 'name', 'date', 'type', 'description', 'color', 'isPaid', 'isRecurring', 'recurrencePattern', 'isActive'],
+      attributes: ['id', 'name', 'date', 'type', 'recurringDate', 'category', 'description', 'color', 'isPaid', 'appliesEveryYear', 'isActive'],
       order: [['date', 'ASC']]
     });
 
@@ -703,7 +703,7 @@ export default {
           },
           isActive: true
         },
-        attributes: ['id', 'name', 'date', 'type', 'description', 'color', 'isPaid', 'isRecurring'],
+        attributes: ['id', 'name', 'date', 'type', 'recurringDate', 'category', 'description', 'color', 'isPaid', 'appliesEveryYear'],
         order: [['date', 'ASC']]
       });
 
@@ -721,7 +721,7 @@ export default {
           description: holiday.description,
           color: holiday.color || '#dc2626',
           isPaid: holiday.isPaid,
-          isRecurring: holiday.isRecurring,
+          isRecurring: holiday.type === 'RECURRING',
           isAllDay: true
         }))
       });
@@ -737,17 +737,18 @@ export default {
 
   createHoliday: async (req, res) => {
     try {
-      const { name, date, type, description, color, isPaid, isRecurring, recurrencePattern } = req.body;
+      const { name, date, type, recurringDate, category, description, color, isPaid, appliesEveryYear } = req.body;
       
       const holiday = await Holiday.create({
         name,
         date,
-        type: type || 'public',
+        type: type || 'ONE_TIME',
+        recurringDate,
+        category: category || 'public',
         description,
         color: color || '#dc2626',
         isPaid: isPaid !== undefined ? isPaid : true,
-        isRecurring: isRecurring || false,
-        recurrencePattern,
+        appliesEveryYear: appliesEveryYear || false,
         createdBy: req.user.id
       });
 
@@ -766,7 +767,7 @@ export default {
           description: holiday.description,
           color: holiday.color,
           isPaid: holiday.isPaid,
-          isRecurring: holiday.isRecurring,
+          isRecurring: holiday.type === 'RECURRING',
           isAllDay: true
         }
       });
@@ -783,7 +784,7 @@ export default {
   updateHoliday: async (req, res) => {
     try {
       const { id } = req.params;
-      const { name, date, type, description, color, isPaid, isRecurring, recurrencePattern } = req.body;
+      const { name, date, type, recurringDate, category, description, color, isPaid, appliesEveryYear } = req.body;
       
       const holiday = await Holiday.findByPk(id);
       if (!holiday) {
@@ -797,11 +798,12 @@ export default {
         name,
         date,
         type,
+        recurringDate,
+        category,
         description,
         color,
         isPaid,
-        isRecurring,
-        recurrencePattern,
+        appliesEveryYear,
         updatedBy: req.user.id
       });
 
@@ -820,7 +822,7 @@ export default {
           description: holiday.description,
           color: holiday.color,
           isPaid: holiday.isPaid,
-          isRecurring: holiday.isRecurring,
+          isRecurring: holiday.type === 'RECURRING',
           isAllDay: true
         }
       });

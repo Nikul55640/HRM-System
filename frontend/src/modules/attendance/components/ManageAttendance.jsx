@@ -175,11 +175,11 @@ const ManageAttendance = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
       {/* Error Display */}
       {error && (
         <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center space-x-2 text-red-800">
               <div className="text-sm font-medium">Error loading attendance data</div>
             </div>
@@ -190,29 +190,29 @@ const ManageAttendance = () => {
 
       {/* Filters */}
       <Card>
-        <CardHeader>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+        <CardHeader className="pb-3 sm:pb-4">
+          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle>Attendance Records</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg sm:text-xl">Attendance Records</CardTitle>
+              <CardDescription className="text-sm">
                 View and manage employee attendance records
               </CardDescription>
             </div>
-            <div className="mt-4 flex space-x-2 md:mt-0">
-              <Button variant="outline" size="sm" onClick={handleExport}>
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
+              <Button variant="outline" size="sm" onClick={handleExport} className="w-full sm:w-auto">
                 <Download className="mr-2 h-4 w-4" />
                 Export
               </Button>
-              <Button size="sm" onClick={() => setShowAddModal(true)}>
+              <Button size="sm" onClick={() => setShowAddModal(true)} className="w-full sm:w-auto">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Record
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-4">
-            <div className="md:col-span-2">
+        <CardContent className="p-3 sm:p-6">
+          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="sm:col-span-2 lg:col-span-2">
               <form onSubmit={handleSearch} className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -248,18 +248,25 @@ const ManageAttendance = () => {
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateRange?.from ? (
-                    dateRange.to ? (
-                      <>
-                        {format(dateRange.from, 'LLL dd, y')} -{' '}
-                        {format(dateRange.to, 'LLL dd, y')}
-                      </>
+                  <span className="truncate">
+                    {dateRange?.from ? (
+                      dateRange.to ? (
+                        <>
+                          <span className="hidden sm:inline">
+                            {format(dateRange.from, 'LLL dd, y')} -{' '}
+                            {format(dateRange.to, 'LLL dd, y')}
+                          </span>
+                          <span className="sm:hidden">
+                            {format(dateRange.from, 'MMM dd')} - {format(dateRange.to, 'MMM dd')}
+                          </span>
+                        </>
+                      ) : (
+                        format(dateRange.from, 'LLL dd, y')
+                      )
                     ) : (
-                      format(dateRange.from, 'LLL dd, y')
-                    )
-                  ) : (
-                    <span>Pick a date range</span>
-                  )}
+                      <span>Pick a date range</span>
+                    )}
+                  </span>
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="end">
@@ -281,20 +288,20 @@ const ManageAttendance = () => {
       </Card>
 
       {/* Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
         {statistics && Object.entries(statistics).map(([key, value]) => (
           <Card key={key}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium capitalize">
+              <CardTitle className="text-xs sm:text-sm font-medium capitalize truncate">
                 {key.replace(/([A-Z])/g, ' $1').trim()}
               </CardTitle>
-              <div className="h-4 w-4 text-muted-foreground">
-                <BarChart2 className="h-4 w-4" />
+              <div className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0">
+                <BarChart2 className="h-3 w-3 sm:h-4 sm:w-4" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{value}</div>
-              <p className="text-xs text-muted-foreground">
+            <CardContent className="pb-2">
+              <div className="text-xl sm:text-2xl font-bold">{value}</div>
+              <p className="text-xs text-muted-foreground line-clamp-2">
                 {key === 'present' ? 'Employees present today' : ''}
                 {key === 'absent' ? 'Employees absent today' : ''}
                 {key === 'late' ? 'Employees late today' : ''}
@@ -312,22 +319,22 @@ const ManageAttendance = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Clock In</TableHead>
-                  <TableHead>Clock Out</TableHead>
-                  <TableHead>Late Minutes</TableHead>
-                  <TableHead>Working Hours</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
+                  <TableHead className="min-w-[200px]">Employee</TableHead>
+                  <TableHead className="min-w-[100px]">Date</TableHead>
+                  <TableHead className="min-w-[80px]">Status</TableHead>
+                  <TableHead className="min-w-[80px]">Clock In</TableHead>
+                  <TableHead className="min-w-[80px]">Clock Out</TableHead>
+                  <TableHead className="min-w-[80px] hidden sm:table-cell">Late Minutes</TableHead>
+                  <TableHead className="min-w-[100px] hidden md:table-cell">Working Hours</TableHead>
+                  <TableHead className="w-[60px] sm:w-[100px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
-                      <Loader2 className="mx-auto h-8 w-8 animate-spin" />
-                      <p className="mt-2">Loading attendance records...</p>
+                      <Loader2 className="mx-auto h-6 w-6 sm:h-8 sm:w-8 animate-spin" />
+                      <p className="mt-2 text-sm">Loading attendance records...</p>
                     </TableCell>
                   </TableRow>
                 ) : safeAttendance.length > 0 ? (
@@ -337,24 +344,24 @@ const ManageAttendance = () => {
                       <TableRow key={record.id} className={record.status === 'incomplete' ? 'bg-orange-50' : record.isLate ? 'bg-red-50' : ''}>
                         <TableCell className="font-medium">
                           <div className="flex items-center space-x-2">
-                            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center font-semibold">
+                            <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-muted flex items-center justify-center font-semibold text-xs sm:text-sm flex-shrink-0">
                               {getEmployeeInitials(record.employee)}
                             </div>
-                            <div>
-                              <div className="font-medium">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-sm sm:text-base truncate">
                                 {getEmployeeFullName(record.employee)}
                               </div>
-                              <div className="text-xs text-muted-foreground">
+                              <div className="text-xs text-muted-foreground truncate">
                                 {record.employee?.employeeId || '--'}
                               </div>
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{format(parseISO(record.date), 'MMM d, yyyy')}</TableCell>
+                        <TableCell className="text-sm">{format(parseISO(record.date), 'MMM d, yyyy')}</TableCell>
                         <TableCell>{getStatusBadge(record)}</TableCell>
                         <TableCell>
                           <div className={record.isLate ? 'text-red-600 font-medium' : ''}>
-                            {formatTimeDisplay(record.clockIn)}
+                            <div className="text-sm">{formatTimeDisplay(record.clockIn)}</div>
                             {record.isLate && (
                               <div className="text-xs text-red-500">
                                 {record.lateMinutes}m late
@@ -364,21 +371,23 @@ const ManageAttendance = () => {
                         </TableCell>
                         <TableCell>
                           <div className={record.status === 'incomplete' ? 'text-orange-600 font-medium' : ''}>
-                            {record.clockOut ? formatTimeDisplay(record.clockOut) : (
-                              record.status === 'incomplete' ? (
-                                <span className="text-orange-600">Missing</span>
-                              ) : '--:--'
-                            )}
+                            <div className="text-sm">
+                              {record.clockOut ? formatTimeDisplay(record.clockOut) : (
+                                record.status === 'incomplete' ? (
+                                  <span className="text-orange-600">Missing</span>
+                                ) : '--:--'
+                              )}
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell">
                           {record.isLate ? (
-                            <span className="text-red-600 font-medium">{record.lateMinutes}m</span>
+                            <span className="text-red-600 font-medium text-sm">{record.lateMinutes}m</span>
                           ) : (
-                            <span className="text-green-600">0m</span>
+                            <span className="text-green-600 text-sm">0m</span>
                           )}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell text-sm">
                           {mappedRecord.workingHours}
                         </TableCell>
                         <TableCell>
@@ -387,6 +396,7 @@ const ManageAttendance = () => {
                               variant="ghost"
                               size="icon"
                               onClick={() => setShowActionMenu(showActionMenu === record.id ? null : record.id)}
+                              className="h-8 w-8"
                             >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
@@ -457,20 +467,21 @@ const ManageAttendance = () => {
       </Card>
 
       {/* Pagination */}
-      <div className="flex items-center justify-between px-2">
-        <div className="text-sm text-muted-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 px-2">
+        <div className="text-sm text-muted-foreground text-center sm:text-left">
           Showing <span className="font-medium">{(safePagination.page - 1) * safePagination.limit + 1}</span> to{' '}
           <span className="font-medium">
             {Math.min(safePagination.page * safePagination.limit, safePagination.total)}
           </span>{' '}
           of <span className="font-medium">{safePagination.total}</span> records
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-center sm:justify-end space-x-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => handlePageChange(safePagination.page - 1)}
             disabled={safePagination.page === 1}
+            className="w-20"
           >
             Previous
           </Button>
@@ -479,6 +490,7 @@ const ManageAttendance = () => {
             size="sm"
             onClick={() => handlePageChange(safePagination.page + 1)}
             disabled={safePagination.page * safePagination.limit >= safePagination.total}
+            className="w-16"
           >
             Next
           </Button>

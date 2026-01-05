@@ -126,15 +126,15 @@ const ShiftsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Shifts</h1>
-          <p className="text-gray-600">View your assigned shifts and schedule</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Shifts</h1>
+          <p className="text-sm sm:text-base text-gray-600">View your assigned shifts and schedule</p>
         </div>
-        <Button onClick={requestShiftChange} className="flex items-center gap-2">
+        <Button onClick={requestShiftChange} className="flex items-center justify-center gap-2 w-full sm:w-auto">
           <Icon name="Clock" className="w-4 h-4" />
-          Request Shift Change
+          <span className="sm:inline">Request Shift Change</span>
         </Button>
       </div>
 
@@ -148,24 +148,24 @@ const ShiftsPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <div>
                 <label className="text-sm font-medium text-gray-500">Shift Name</label>
-                <p className="text-lg font-semibold">{currentShift.name}</p>
+                <p className="text-base sm:text-lg font-semibold">{currentShift.name}</p>
                 {currentShift.shiftCode && (
                   <p className="text-sm text-gray-600">Code: {currentShift.shiftCode}</p>
                 )}
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Working Hours</label>
-                <p className="text-lg font-semibold">
+                <p className="text-base sm:text-lg font-semibold">
                   {currentShift.startTime} - {currentShift.endTime}
                 </p>
                 {currentShift.gracePeriod && (
                   <p className="text-sm text-gray-600">Grace: {currentShift.gracePeriod} min</p>
                 )}
               </div>
-              <div>
+              <div className="sm:col-span-2 lg:col-span-1">
                 <label className="text-sm font-medium text-gray-500">Status</label>
                 <div>
                   <Badge variant="success">Active</Badge>
@@ -207,17 +207,20 @@ const ShiftsPage = () => {
             {shifts.map((shift) => (
               <div
                 key={shift.id}
-                className="flex items-center justify-between p-4 border rounded-lg"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg space-y-2 sm:space-y-0"
               >
                 <div className="flex-1">
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                     <h3 className="font-medium">{shift.name}</h3>
                     <Badge variant={shift.isActive ? "success" : "secondary"}>
                       {shift.isActive ? "Active" : "Inactive"}
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">
-                    {shift.startTime} - {shift.endTime} • {shift.days.join(", ")}
+                    {shift.startTime} - {shift.endTime}
+                  </p>
+                  <p className="text-sm text-gray-600 mt-1 break-words">
+                    {shift.days.join(", ")}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
                     Effective from: {shift.effectiveFrom}
@@ -236,7 +239,7 @@ const ShiftsPage = () => {
           <CardTitle>This Week&apos;s Schedule</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
             {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => {
               const isWorkingDay = currentShift?.days.some(workDay => 
                 workDay.toLowerCase().startsWith(day.toLowerCase())
@@ -244,20 +247,20 @@ const ShiftsPage = () => {
               
               return (
                 <div key={day} className="text-center">
-                  <div className="text-sm font-medium text-gray-500 mb-2">{day}</div>
+                  <div className="text-xs sm:text-sm font-medium text-gray-500 mb-2">{day}</div>
                   <div className={`p-2 rounded text-xs ${isWorkingDay ? 'bg-blue-50' : 'bg-gray-50'}`}>
                     {isWorkingDay ? (
-                      <div>
-                        <div className="font-medium">
+                      <div className="space-y-1">
+                        <div className="font-medium text-xs">
                           {currentShift.startTime}
                         </div>
-                        <div>to</div>
-                        <div className="font-medium">
+                        <div className="text-xs">to</div>
+                        <div className="font-medium text-xs">
                           {currentShift.endTime}
                         </div>
                       </div>
                     ) : (
-                      <div className="text-gray-400">Off</div>
+                      <div className="text-gray-400 py-2">Off</div>
                     )}
                   </div>
                 </div>

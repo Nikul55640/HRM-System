@@ -157,9 +157,11 @@ export const normalizeHoliday = (holiday) => {
     department: null,
     metadata: {
       type: holiday.type,
+      category: holiday.category,
+      recurringDate: holiday.recurringDate,
       isPaid: holiday.isPaid,
-      isRecurring: holiday.isRecurring,
-      recurrencePattern: holiday.recurrencePattern,
+      isRecurring: holiday.type === 'RECURRING',
+      appliesEveryYear: holiday.appliesEveryYear,
       isActive: holiday.isActive
     }
   };
@@ -506,8 +508,11 @@ export const convertToLegacyFormat = (normalizedEvents) => {
           name: event.title,
           date: event.startDate,
           type: event.metadata.type,
+          category: event.metadata.category,
+          recurringDate: event.metadata.recurringDate,
           isPaid: event.metadata.isPaid,
-          isRecurring: event.metadata.isRecurring
+          isRecurring: event.metadata.isRecurring,
+          appliesEveryYear: event.metadata.appliesEveryYear
         });
         break;
       case 'leave':

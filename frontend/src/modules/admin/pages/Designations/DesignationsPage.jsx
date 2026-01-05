@@ -214,58 +214,61 @@ const DesignationsPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">Designation Management</h1>
-        <Button onClick={handleCreateDesignation}>
+    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold">Designation Management</h1>
+          <p className="text-sm text-gray-600 mt-1">Manage job positions and roles</p>
+        </div>
+        <Button onClick={handleCreateDesignation} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
           Add Designation
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Designations</p>
-                <p className="text-2xl font-bold">{stats.total}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Total Designations</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.total}</p>
               </div>
-              <Briefcase className="w-8 h-8 text-blue-600" />
+              <Briefcase className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Active Designations</p>
-                <p className="text-2xl font-bold">{stats.active}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Active Designations</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.active}</p>
               </div>
-              <Users className="w-8 h-8 text-green-600" />
+              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Inactive Designations</p>
-                <p className="text-2xl font-bold">{stats.inactive}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Inactive Designations</p>
+                <p className="text-lg sm:text-2xl font-bold">{stats.inactive}</p>
               </div>
-              <AlertCircle className="w-8 h-8 text-red-600" />
+              <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Departments</p>
-                <p className="text-2xl font-bold">{Object.keys(stats.byDepartment).length}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs sm:text-sm text-gray-600 truncate">Departments</p>
+                <p className="text-lg sm:text-2xl font-bold">{Object.keys(stats.byDepartment).length}</p>
               </div>
-              <Building2 className="w-8 h-8 text-purple-600" />
+              <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
@@ -273,8 +276,8 @@ const DesignationsPage = () => {
 
       {/* Search and Filter */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex gap-4">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
             <div className="flex-1 relative">
               <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
               <Input
@@ -287,7 +290,7 @@ const DesignationsPage = () => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base min-w-0 sm:min-w-[180px]"
             >
               <option value="all">All Designations</option>
               <option value="active">Active Only</option>
@@ -299,10 +302,10 @@ const DesignationsPage = () => {
 
       {/* Designations List */}
       <Card>
-        <CardHeader>
-          <CardTitle>Designations ({filteredDesignations.length})</CardTitle>
+        <CardHeader className="pb-3 sm:pb-4">
+          <CardTitle className="text-base sm:text-lg">Designations ({filteredDesignations.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6">
           {loading ? (
             <div className="text-center py-8">Loading...</div>
           ) : filteredDesignations.length === 0 ? (
@@ -310,75 +313,78 @@ const DesignationsPage = () => {
               {searchTerm ? 'No designations found matching your search' : 'No designations found'}
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {filteredDesignations.map((designation) => (
-                <div key={designation.id} className="border rounded-lg p-4 hover:bg-gray-50">
-                  <div className="flex justify-between items-start">
-                    <div className="space-y-2 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-lg">{designation.title}</span>
-                        {getLevelBadge(designation.level)}
-                        <Badge 
-                          className={designation.isActive 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-red-100 text-red-800'
-                          }
-                        >
-                          {designation.isActive ? 'Active' : 'Inactive'}
-                        </Badge>
+                <div key={designation.id} className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50">
+                  <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
+                    <div className="space-y-2 sm:space-y-3 flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                        <span className="font-medium text-base sm:text-lg truncate">{designation.title}</span>
+                        <div className="flex flex-wrap gap-2">
+                          {getLevelBadge(designation.level)}
+                          <Badge 
+                            className={designation.isActive 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                            }
+                          >
+                            {designation.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 text-xs sm:text-sm">
                         <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-gray-400" />
-                          <span>{designation.department?.name || 'Unknown Department'}</span>
+                          <Building2 className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{designation.department?.name || 'Unknown Department'}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-gray-400" />
+                          <Users className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
                           <span>{designation.employeeCount} employees</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Briefcase className="w-4 h-4 text-gray-400" />
-                          <span>{levels.find(l => l.value === designation.level)?.label}</span>
+                          <Briefcase className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
+                          <span className="truncate">{levels.find(l => l.value === designation.level)?.label}</span>
                         </div>
                       </div>
 
                       {designation.description && (
-                        <div className="text-sm">
+                        <div className="text-xs sm:text-sm">
                           <span className="text-gray-500">Description:</span>
-                          <div className="text-gray-700 mt-1">{designation.description}</div>
+                          <div className="text-gray-700 mt-1 line-clamp-2">{designation.description}</div>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex gap-2 ml-4">
+                    <div className="flex flex-row lg:flex-col gap-2 lg:ml-4 justify-end lg:justify-start">
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleToggleStatus(designation)}
-                        className={designation.isActive ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}
+                        className={`h-8 w-8 p-0 ${designation.isActive ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}`}
                       >
                         {designation.isActive ? (
-                          <AlertCircle className="w-4 h-4" />
+                          <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />
                         ) : (
-                          <Users className="w-4 h-4" />
+                          <Users className="w-3 h-3 sm:w-4 sm:h-4" />
                         )}
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEditDesignation(designation)}
+                        className="h-8 w-8 p-0"
                       >
-                        <Edit className="w-4 h-4" />
+                        <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleDeleteDesignation(designation.id)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
                         disabled={designation.employeeCount > 0}
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     </div>
                   </div>
@@ -391,31 +397,32 @@ const DesignationsPage = () => {
 
       {/* Form Dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-4 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl">
               {selectedDesignation ? 'Edit Designation' : 'Create New Designation'}
             </DialogTitle>
           </DialogHeader>
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title" className="text-sm font-medium">Title *</Label>
               <Input
                 id="title"
                 value={formData.title}
                 onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 placeholder="e.g., Software Engineer"
+                className="mt-1"
               />
             </div>
 
             <div>
-              <Label htmlFor="department">Department *</Label>
+              <Label htmlFor="department" className="text-sm font-medium">Department *</Label>
               <select
                 id="department"
                 value={formData.department}
                 onChange={(e) => setFormData(prev => ({ ...prev, department: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 <option value="">Select Department</option>
                 {departments.map(dept => (
@@ -425,12 +432,12 @@ const DesignationsPage = () => {
             </div>
 
             <div>
-              <Label htmlFor="level">Level</Label>
+              <Label htmlFor="level" className="text-sm font-medium">Level</Label>
               <select
                 id="level"
                 value={formData.level}
                 onChange={(e) => setFormData(prev => ({ ...prev, level: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               >
                 {levels.map(level => (
                   <option key={level.value} value={level.value}>{level.label}</option>
@@ -439,13 +446,14 @@ const DesignationsPage = () => {
             </div>
 
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description" className="text-sm font-medium">Description</Label>
               <Textarea
                 id="description"
                 value={formData.description}
                 onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 placeholder="Brief description of the role and responsibilities"
                 rows={3}
+                className="mt-1 text-sm"
               />
             </div>
 
@@ -457,15 +465,22 @@ const DesignationsPage = () => {
                 onChange={(e) => setFormData(prev => ({ ...prev, isActive: e.target.checked }))}
                 className="rounded border-gray-300"
               />
-              <Label htmlFor="isActive">Active</Label>
+              <Label htmlFor="isActive" className="text-sm font-medium">Active</Label>
             </div>
           </div>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowForm(false)}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowForm(false)}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
               Cancel
             </Button>
-            <Button onClick={handleSaveDesignation}>
+            <Button 
+              onClick={handleSaveDesignation}
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
               {selectedDesignation ? 'Update' : 'Create'}
             </Button>
           </DialogFooter>

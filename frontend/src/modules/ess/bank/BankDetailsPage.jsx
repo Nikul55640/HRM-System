@@ -131,18 +131,18 @@ const BankDetailsPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-4 sm:space-y-6">
 
       {/* ================= HEADER ================= */}
       <Card className="rounded-2xl border border-gray-100 shadow-sm">
-        <CardHeader className="flex flex-row justify-between items-center">
-          <CardTitle className="text-lg font-semibold">
+        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <CardTitle className="text-lg sm:text-xl font-semibold">
             Bank Details
           </CardTitle>
           <Button
             variant={editing ? "secondary" : "default"}
             onClick={() => setEditing(!editing)}
-            className="flex items-center gap-2"
+            className="flex items-center justify-center gap-2 w-full sm:w-auto btn-touch"
           >
             <Edit2 className="w-4 h-4" />
             {editing ? "Cancel" : "Edit"}
@@ -152,44 +152,48 @@ const BankDetailsPage = () => {
 
       {/* ================= FORM ================= */}
       <Card className="rounded-2xl border border-gray-100 shadow-sm">
-        <CardContent className="p-6 space-y-5">
+        <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-5">
 
-          <InputField
-            label="Account Holder Name *"
-            name="accountHolderName"
-            value={bankDetails.accountHolderName}
-            onChange={handleInputChange}
-            disabled={!editing}
-            error={validationErrors.accountHolderName}
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <InputField
+              label="Account Holder Name *"
+              name="accountHolderName"
+              value={bankDetails.accountHolderName}
+              onChange={handleInputChange}
+              disabled={!editing}
+              error={validationErrors.accountHolderName}
+            />
 
-          <InputField
-            label="Account Number *"
-            name="accountNumber"
-            value={editing ? bankDetails.accountNumber : bankDetails.maskedAccountNumber}
-            onChange={handleInputChange}
-            disabled={!editing}
-            error={validationErrors.accountNumber}
-          />
+            <InputField
+              label="Account Number *"
+              name="accountNumber"
+              value={editing ? bankDetails.accountNumber : bankDetails.maskedAccountNumber}
+              onChange={handleInputChange}
+              disabled={!editing}
+              error={validationErrors.accountNumber}
+            />
+          </div>
 
-          <InputField
-            label="IFSC Code *"
-            name="ifscCode"
-            value={bankDetails.ifscCode}
-            onChange={handleInputChange}
-            disabled={!editing}
-            error={validationErrors.ifscCode}
-            helpText="Example: HDFC0001234"
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+            <InputField
+              label="IFSC Code *"
+              name="ifscCode"
+              value={bankDetails.ifscCode}
+              onChange={handleInputChange}
+              disabled={!editing}
+              error={validationErrors.ifscCode}
+              helpText="Example: HDFC0001234"
+            />
 
-          <InputField
-            label="Bank Name *"
-            name="bankName"
-            value={bankDetails.bankName}
-            onChange={handleInputChange}
-            disabled={!editing}
-            error={validationErrors.bankName}
-          />
+            <InputField
+              label="Bank Name *"
+              name="bankName"
+              value={bankDetails.bankName}
+              onChange={handleInputChange}
+              disabled={!editing}
+              error={validationErrors.bankName}
+            />
+          </div>
 
           <InputField
             label="Branch Name"
