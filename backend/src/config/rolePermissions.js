@@ -3,16 +3,42 @@
  * Based on production-level HRM system requirements
  */
 
+/**
+ * Role-Based Access Control (RBAC) Configuration
+ * Based on production-level HRM system requirements
+ */
+
 // ===================================================
-// ROLE DEFINITIONS
+// ROLE DEFINITIONS (Standardized)
 // ===================================================
 export const ROLES = {
+  // Primary role definitions (database values)
   SUPER_ADMIN: "SuperAdmin",
-  HR_ADMIN: "HR", // Updated to match database enum
-  HR_MANAGER: "HR Manager",
-  PAYROLL_OFFICER: "Payroll Officer",
-  MANAGER: "Manager",
+  HR_ADMIN: "HR", 
+  HR_MANAGER: "HR_Manager",
   EMPLOYEE: "Employee",
+  
+  // Aliases for backward compatibility
+  SuperAdmin: "SuperAdmin",
+  HR: "HR",           
+  Employee: "Employee"
+};
+
+// ✅ Role normalization function - now maps to database values
+export const normalizeRole = (role) => {
+  const roleMapping = {
+    'SuperAdmin': 'SuperAdmin',
+    'HR': 'HR', 
+    'HR_Manager': 'HR_Manager',
+    'Employee': 'Employee',
+    // Handle any new format inputs
+    'SUPER_ADMIN': 'SuperAdmin',
+    'HR_ADMIN': 'HR',
+    'HR_MANAGER': 'HR_Manager', 
+    'EMPLOYEE': 'Employee'
+  };
+  
+  return roleMapping[role] || role;
 };
 
 // ===================================================
@@ -182,6 +208,17 @@ export const MODULES = {
     TRACK: "asset.track",
     MANAGE: "asset.manage",
   },
+
+  // Calendar Management
+  CALENDAR: {
+    VIEW_OWN: "calendar.view.own",
+    VIEW_ALL: "calendar.view.all",
+    MANAGE_EVENTS: "calendar.events.manage",
+    MANAGE_HOLIDAYS: "calendar.holidays.manage",
+    MANAGE_WORKING_RULES: "calendar.working_rules.manage",
+    VIEW_SMART_CALENDAR: "calendar.smart.view",
+    MANAGE_SMART_CALENDAR: "calendar.smart.manage",
+  },
 };
 
 // ===================================================
@@ -210,6 +247,9 @@ export const ROLE_PERMISSIONS = {
     MODULES.PERFORMANCE.VIEW_OWN,
     MODULES.PERFORMANCE.SELF_EVALUATE,
 
+    MODULES.LEAD.VIEW_OWN,
+    MODULES.LEAD.UPDATE_OWN,
+
     MODULES.REPORTS.VIEW_OWN,
 
     MODULES.NOTIFICATIONS.VIEW_OWN,
@@ -219,28 +259,8 @@ export const ROLE_PERMISSIONS = {
     MODULES.EXPENSE.VIEW_OWN,
 
     MODULES.ASSET.VIEW_OWN,
-  ],
 
-  [ROLES.MANAGER]: [
-    MODULES.ATTENDANCE.VIEW_TEAM,
-    MODULES.ATTENDANCE.APPROVE_CORRECTION,
-    MODULES.ATTENDANCE.APPROVE_OVERTIME,
-
-    MODULES.LEAVE.VIEW_TEAM,
-    MODULES.LEAVE.APPROVE_TEAM,
-
-    MODULES.EMPLOYEE.VIEW_TEAM,
-
-    MODULES.PERFORMANCE.VIEW_TEAM,
-    MODULES.PERFORMANCE.EVALUATE_TEAM,
-    MODULES.PERFORMANCE.ASSIGN_GOALS,
-    MODULES.PERFORMANCE.VIEW_360_FEEDBACK,
-
-    MODULES.REPORTS.VIEW_TEAM,
-    MODULES.NOTIFICATIONS.SEND_TEAM,
-
-    MODULES.EXPENSE.VIEW_TEAM,
-    MODULES.EXPENSE.APPROVE_TEAM,
+    MODULES.CALENDAR.VIEW_OWN,
   ],
 
   [ROLES.HR_MANAGER]: [
@@ -253,7 +273,7 @@ export const ROLE_PERMISSIONS = {
 
     MODULES.LEAVE.VIEW_ALL,
     MODULES.LEAVE.APPROVE_ANY,
-    MODULES.LEAVE.MANAGE_BALANCE,
+    MODULES.LEAVE.MANAGE_BALANCES,
     MODULES.LEAVE.VIEW_CALENDAR,
 
     MODULES.EMPLOYEE.VIEW_ALL,
@@ -271,6 +291,10 @@ export const ROLE_PERMISSIONS = {
     MODULES.PERFORMANCE.VIEW_ALL,
     MODULES.PERFORMANCE.MANAGE_REVIEWS,
 
+    MODULES.LEAD.VIEW_ALL,
+    MODULES.LEAD.ASSIGN,
+    MODULES.LEAD.MANAGE,
+
     MODULES.DEPARTMENT.VIEW,
 
     MODULES.REPORTS.VIEW_ALL,
@@ -286,6 +310,10 @@ export const ROLE_PERMISSIONS = {
 
     MODULES.ASSET.VIEW_ALL,
     MODULES.ASSET.ASSIGN,
+
+    MODULES.CALENDAR.VIEW_ALL,
+    MODULES.CALENDAR.MANAGE_EVENTS,
+    MODULES.CALENDAR.VIEW_SMART_CALENDAR,
 
     // System configuration for attendance settings
     MODULES.SYSTEM.VIEW_CONFIG,
@@ -318,39 +346,26 @@ export const ROLE_PERMISSIONS = {
 
     MODULES.ASSET.MANAGE,
     MODULES.ASSET.TRACK,
-  ],
 
-  [ROLES.PAYROLL_OFFICER]: [
-    MODULES.ATTENDANCE.VIEW_ALL,
-    MODULES.ATTENDANCE.VIEW_ANALYTICS,
-
-    MODULES.LEAVE.VIEW_ALL,
-
-    MODULES.PAYROLL.VIEW_ALL,
-    MODULES.PAYROLL.PROCESS,
-    MODULES.PAYROLL.APPROVE,
-    MODULES.PAYROLL.MANAGE_STRUCTURE,
-    MODULES.PAYROLL.MANAGE_DEDUCTIONS,
-    MODULES.PAYROLL.GENERATE_REPORTS,
-    MODULES.PAYROLL.MANAGE_REIMBURSEMENT,
-
-    MODULES.EMPLOYEE.VIEW_ALL,
-
-    MODULES.REPORTS.VIEW_ALL,
-    MODULES.REPORTS.EXPORT,
-
-    MODULES.EXPENSE.PROCESS,
+    MODULES.CALENDAR.MANAGE_HOLIDAYS,
+    MODULES.CALENDAR.MANAGE_WORKING_RULES,
+    MODULES.CALENDAR.MANAGE_SMART_CALENDAR,
   ],
 };
 
 // ===================================================
 // INHERITANCE FIXED HERE
 // ===================================================
-ROLE_PERMISSIONS[ROLES.MANAGER].push(...ROLE_PERMISSIONS[ROLES.EMPLOYEE]);
-ROLE_PERMISSIONS[ROLES.HR_ADMIN].push(...ROLE_PERMISSIONS[ROLES.HR_MANAGER]);
+// HR_ADMIN inherits all HR_MANAGER permissions plus additional ones
+ROLE_PERMISSIONS[ROLES.HR_ADMIN] = [
+  ...ROLE_PERMISSIONS[ROLES.HR_MANAGER],
+  ...ROLE_PERMISSIONS[ROLES.HR_ADMIN]
+];
 
+// SUPER_ADMIN gets all permissions
 ROLE_PERMISSIONS[ROLES.SUPER_ADMIN] = [
   ...Object.values(MODULES).flatMap((module) => Object.values(module)),
+  // Additional super admin only permissions
   MODULES.USER.DELETE,
   MODULES.USER.CHANGE_ROLE,
   MODULES.USER.MANAGE_PERMISSIONS,
@@ -365,32 +380,36 @@ ROLE_PERMISSIONS[ROLES.SUPER_ADMIN] = [
 // ===================================================
 
 /**
- * Check if a role has a specific permission
+ * Check if a role has a specific permission (with role normalization)
  */
 export const hasPermission = (role, permission) => {
-  const permissions = ROLE_PERMISSIONS[role] || [];
+  const normalizedRole = normalizeRole(role);
+  const permissions = ROLE_PERMISSIONS[normalizedRole] || [];
   return permissions.includes(permission);
 };
 
 /**
- * Check if a role has any of the specified permissions
+ * Check if a role has any of the specified permissions (with role normalization)
  */
 export const hasAnyPermission = (role, permissions) => {
-  return permissions.some((permission) => hasPermission(role, permission));
+  const normalizedRole = normalizeRole(role);
+  return permissions.some((permission) => hasPermission(normalizedRole, permission));
 };
 
 /**
- * Check if a role has all of the specified permissions
+ * Check if a role has all of the specified permissions (with role normalization)
  */
 export const hasAllPermissions = (role, permissions) => {
-  return permissions.every((permission) => hasPermission(role, permission));
+  const normalizedRole = normalizeRole(role);
+  return permissions.every((permission) => hasPermission(normalizedRole, permission));
 };
 
 /**
- * Get all permissions for a role
+ * Get all permissions for a role (with role normalization)
  */
 export const getRolePermissions = (role) => {
-  return ROLE_PERMISSIONS[role] || [];
+  const normalizedRole = normalizeRole(role);
+  return ROLE_PERMISSIONS[normalizedRole] || [];
 };
 
 /**

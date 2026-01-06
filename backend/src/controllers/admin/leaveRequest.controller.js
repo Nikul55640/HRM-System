@@ -4,6 +4,7 @@
  */
 
 import leaveRequestService from '../../services/admin/leaveRequest.service.js';
+import notificationService from '../../services/notificationService.js';
 import logger from '../../utils/logger.js';
 
 /**
@@ -83,6 +84,30 @@ const leaveRequestController = {
         return sendResponse(res, false, result.message, null, statusCode);
       }
 
+      // 🔔 Send notification to employee about leave approval
+      try {
+        const leaveRequest = result.data;
+        if (leaveRequest && leaveRequest.employee && leaveRequest.employee.userId) {
+          await notificationService.sendToUser(leaveRequest.employee.userId, {
+            title: 'Leave Request Approved ✅',
+            message: `Your ${leaveRequest.leaveType} leave request from ${new Date(leaveRequest.startDate).toLocaleDateString()} to ${new Date(leaveRequest.endDate).toLocaleDateString()} has been approved.`,
+            type: 'success',
+            category: 'leave',
+            metadata: {
+              leaveRequestId: leaveRequest.id,
+              leaveType: leaveRequest.leaveType,
+              startDate: leaveRequest.startDate,
+              endDate: leaveRequest.endDate,
+              approvedBy: req.user.firstName + ' ' + req.user.lastName,
+              comments: comments
+            }
+          });
+        }
+      } catch (notificationError) {
+        logger.error("Failed to send leave approval notification:", notificationError);
+        // Don't fail the main operation if notification fails
+      }
+
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Approve Leave Request Error", error);
@@ -108,6 +133,30 @@ const leaveRequestController = {
         const statusCode = result.message.includes('Unauthorized') ? 403 :
           result.message.includes('not found') ? 404 : 400;
         return sendResponse(res, false, result.message, null, statusCode);
+      }
+
+      // 🔔 Send notification to employee about leave rejection
+      try {
+        const leaveRequest = result.data;
+        if (leaveRequest && leaveRequest.employee && leaveRequest.employee.userId) {
+          await notificationService.sendToUser(leaveRequest.employee.userId, {
+            title: 'Leave Request Rejected ❌',
+            message: `Your ${leaveRequest.leaveType} leave request from ${new Date(leaveRequest.startDate).toLocaleDateString()} to ${new Date(leaveRequest.endDate).toLocaleDateString()} has been rejected.${comments ? ' Reason: ' + comments : ''}`,
+            type: 'error',
+            category: 'leave',
+            metadata: {
+              leaveRequestId: leaveRequest.id,
+              leaveType: leaveRequest.leaveType,
+              startDate: leaveRequest.startDate,
+              endDate: leaveRequest.endDate,
+              rejectedBy: req.user.firstName + ' ' + req.user.lastName,
+              comments: comments
+            }
+          });
+        }
+      } catch (notificationError) {
+        logger.error("Failed to send leave rejection notification:", notificationError);
+        // Don't fail the main operation if notification fails
       }
 
       return sendResponse(res, true, result.message, result.data);

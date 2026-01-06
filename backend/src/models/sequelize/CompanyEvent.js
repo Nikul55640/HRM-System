@@ -49,7 +49,7 @@ const CompanyEvent = sequelize.define('CompanyEvent', {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id',
     },
   },
@@ -97,7 +97,7 @@ const CompanyEvent = sequelize.define('CompanyEvent', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id',
     },
   },
@@ -105,7 +105,7 @@ const CompanyEvent = sequelize.define('CompanyEvent', {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id',
     },
   },

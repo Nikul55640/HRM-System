@@ -4,7 +4,22 @@ import { Op } from 'sequelize';
 // Get employee's shift assignments
 export const getMyShifts = async (req, res) => {
     try {
+        console.log('🔄 [SHIFT CONTROLLER] Getting shifts for user:', req.user);
+        
         const employeeId = req.user.employee?.id;
+        
+        if (!employeeId) {
+            console.log('❌ [SHIFT CONTROLLER] No employee ID found for user:', req.user.id);
+            return res.status(404).json({
+                success: false,
+                error: {
+                    code: 'EMPLOYEE_NOT_FOUND',
+                    message: 'Employee profile not found for this user'
+                }
+            });
+        }
+
+        console.log('📋 [SHIFT CONTROLLER] Fetching shifts for employee ID:', employeeId);
 
         const shiftAssignments = await EmployeeShift.findAll({
             where: { employeeId },
@@ -22,12 +37,14 @@ export const getMyShifts = async (req, res) => {
             order: [['effectiveDate', 'DESC']]
         });
 
+        console.log('✅ [SHIFT CONTROLLER] Found shift assignments:', shiftAssignments.length);
+
         res.json({
             success: true,
             data: { shiftAssignments }
         });
     } catch (error) {
-        console.error('Error fetching shift assignments:', error);
+        console.error('❌ [SHIFT CONTROLLER] Error fetching shift assignments:', error);
         res.status(500).json({
             success: false,
             error: {
@@ -41,8 +58,23 @@ export const getMyShifts = async (req, res) => {
 // Get current active shift
 export const getCurrentShift = async (req, res) => {
     try {
+        console.log('🔄 [SHIFT CONTROLLER] Getting current shift for user:', req.user);
+        
         const employeeId = req.user.employee?.id;
         const today = new Date();
+
+        if (!employeeId) {
+            console.log('❌ [SHIFT CONTROLLER] No employee ID found for user:', req.user.id);
+            return res.status(404).json({
+                success: false,
+                error: {
+                    code: 'EMPLOYEE_NOT_FOUND',
+                    message: 'Employee profile not found for this user'
+                }
+            });
+        }
+
+        console.log('📋 [SHIFT CONTROLLER] Fetching current shift for employee ID:', employeeId);
 
         const currentShift = await EmployeeShift.findOne({
             where: {
@@ -70,6 +102,7 @@ export const getCurrentShift = async (req, res) => {
         });
 
         if (!currentShift) {
+            console.log('❌ [SHIFT CONTROLLER] No active shift found for employee:', employeeId);
             return res.status(404).json({
                 success: false,
                 error: {
@@ -79,12 +112,14 @@ export const getCurrentShift = async (req, res) => {
             });
         }
 
+        console.log('✅ [SHIFT CONTROLLER] Found current shift:', currentShift.id);
+
         res.json({
             success: true,
             data: { currentShift }
         });
     } catch (error) {
-        console.error('Error fetching current shift:', error);
+        console.error('❌ [SHIFT CONTROLLER] Error fetching current shift:', error);
         res.status(500).json({
             success: false,
             error: {

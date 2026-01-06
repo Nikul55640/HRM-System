@@ -125,7 +125,7 @@ export const attendanceDebugger = {
     }
     
     if (issues.length > 0) {
-      console.warn('⚠️ Issues found:', issues);
+      console.warn('Issues found:', issues);
     } else {
       console.log('✅ Store state looks good');
     }

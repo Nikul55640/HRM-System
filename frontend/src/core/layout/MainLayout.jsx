@@ -3,10 +3,15 @@ import Header from "./Header";
 import Sidebar from "./Sidebar";
 import Footer from "./Footer";
 import { useState } from "react";
+import useNotifications from "../../hooks/useNotifications";
+
 
 const MainLayout = () => {
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Initialize notifications
+  useNotifications();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -35,6 +40,10 @@ const MainLayout = () => {
 
         <Footer />
       </div>
+
+      {/* Debug component for development
+      <NotificationDebug /> */}
+     
     </div>
   );
 };

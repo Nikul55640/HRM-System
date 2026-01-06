@@ -14,39 +14,41 @@ import {
   Clock, 
   AlertCircle,
   Check,
-  DollarSign,
-  FileText
+  FileText,
+  Wifi,
+  WifiOff,
+  RefreshCw
 } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { formatDate } from '../../ess/utils/essHelpers';
+import { formatDistanceToNow } from 'date-fns';
+import useNotificationStore from '../../../stores/useNotificationStore';
+import notificationService from '../../../services/notificationService';
 
 const NotificationsPage = () => {
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    notifications,
+    unreadCount,
+    isConnected,
+    isConnecting,
+    lastError,
+    markAsRead,
+    removeNotification,
+    markAllAsRead,
+  } = useNotificationStore();
+
+  const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
 
   useEffect(() => {
-    fetchNotifications();
+    loadNotifications();
   }, []);
 
-  const fetchNotifications = async () => {
+  const loadNotifications = async () => {
     try {
       setLoading(true);
-
-      // Mock data - replace with actual API call
-      const mockNotifications = [...Array(10)].map((_, i) => ({
-        id: i + 1,
-        title: `Notification ${i + 1}`,
-        message: `This is notification ${i + 1}.`,
-        type: 'leave',
-        priority: 'low',
-        status: 'unread',
-        read: false,
-        createdAt: new Date(),
-      }));
-      setNotifications(mockNotifications);
+      await notificationService.loadInitialData();
     } catch (error) {
       toast.error('Failed to load notifications');
     } finally {
@@ -54,80 +56,81 @@ const NotificationsPage = () => {
     }
   };
 
-  const getNotificationIcon = (type) => {
+  const getNotificationIcon = (type, category) => {
     const iconProps = { className: "w-5 h-5" };
     
-    switch (type) {
+    // Use category first, then fallback to type
+    switch (category || type) {
       case 'leave':
         return <Calendar {...iconProps} className="w-5 h-5 text-blue-600" />;
       case 'attendance':
-        return <CheckCircle {...iconProps} className="w-5 h-5 text-orange-600" />;
+        return <Clock {...iconProps} className="w-5 h-5 text-orange-600" />;
+      case 'shift':
+        return <Users {...iconProps} className="w-5 h-5 text-purple-600" />;
       case 'system':
         return <Info {...iconProps} className="w-5 h-5 text-gray-600" />;
-      case 'announcement':
-        return <FileText {...iconProps} className="w-5 h-5 text-purple-600" />;
+      case 'audit':
+        return <FileText {...iconProps} className="w-5 h-5 text-green-600" />;
       default:
         return <Bell {...iconProps} className="w-5 h-5 text-gray-600" />;
     }
   };
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'high':
+  const getTypeColor = (type) => {
+    switch (type) {
+      case 'error':
         return 'bg-red-100 text-red-800 border-red-200';
-      case 'medium':
+      case 'warning':
         return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'low':
+      case 'success':
         return 'bg-green-100 text-green-800 border-green-200';
+      case 'info':
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return 'bg-blue-100 text-blue-800 border-blue-200';
     }
   };
 
-  const markAsRead = async (id) => {
+  const handleMarkAsRead = async (id) => {
     try {
-      setNotifications(notifications.map(n => 
-        n.id === id ? { ...n, read: true } : n
-      ));
-      // API call would go here
+      await notificationService.markAsRead(id);
       toast.success('Notification marked as read');
     } catch (error) {
       toast.error('Failed to mark notification as read');
     }
   };
 
-  const markAllAsRead = async () => {
+  const handleMarkAllAsRead = async () => {
     try {
-      setNotifications(notifications.map(n => ({ ...n, read: true })));
-      // API call would go here
+      await notificationService.markAllAsRead();
       toast.success('All notifications marked as read');
     } catch (error) {
       toast.error('Failed to mark all notifications as read');
     }
   };
 
-  const deleteNotification = async (id) => {
+  const handleDeleteNotification = async (id) => {
     try {
-      setNotifications(notifications.filter(n => n.id !== id));
-      // API call would go here
+      await notificationService.deleteNotification(id);
       toast.success('Notification deleted');
     } catch (error) {
       toast.error('Failed to delete notification');
     }
   };
 
+  const handleReconnect = () => {
+    notificationService.connectToSSE();
+  };
+
   const filteredNotifications = notifications.filter(notification => {
     const matchesSearch = notification.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          notification.message.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = filterType === 'all' || notification.type === filterType;
+    const matchesType = filterType === 'all' || notification.category === filterType;
     const matchesStatus = filterStatus === 'all' || 
-                         (filterStatus === 'unread' && !notification.read) ||
-                         (filterStatus === 'read' && notification.read);
+                         (filterStatus === 'unread' && !notification.isRead) ||
+                         (filterStatus === 'read' && notification.isRead);
     
     return matchesSearch && matchesType && matchesStatus;
   });
-
-  const unreadCount = notifications.filter(n => !n.read).length;
 
   if (loading) {
     return (
@@ -152,19 +155,68 @@ const NotificationsPage = () => {
           <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
             <Bell className="w-6 h-6 text-blue-600" />
             Notifications
+            {/* Connection Status */}
+            <div className="flex items-center gap-2 ml-4">
+              {isConnecting ? (
+                <div className="flex items-center gap-1 text-xs text-yellow-600">
+                  <RefreshCw className="animate-spin w-3 h-3" />
+                  <span>Connecting...</span>
+                </div>
+              ) : isConnected ? (
+                <div className="flex items-center gap-1 text-xs text-green-600">
+                  <Wifi className="w-3 h-3" />
+                  <span>Live</span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 text-xs text-red-600">
+                  <WifiOff className="w-3 h-3" />
+                  <span>Offline</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleReconnect}
+                    className="ml-1 h-6 px-2"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                  </Button>
+                </div>
+              )}
+            </div>
           </h1>
           <p className="text-gray-500 text-sm mt-1">
-            Stay updated with important information and alerts
+            Stay updated with real-time alerts and important information
           </p>
+          {lastError && (
+            <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-red-600 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4" />
+                {lastError}
+                {lastError.includes('login') && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.location.href = '/login'}
+                    className="ml-2 h-6 px-2 text-xs"
+                  >
+                    Login
+                  </Button>
+                )}
+              </p>
+            </div>
+          )}
         </div>
         
         <div className="flex items-center gap-2">
           {unreadCount > 0 && (
-            <Button onClick={markAllAsRead} variant="outline" size="sm">
+            <Button onClick={handleMarkAllAsRead} variant="outline" size="sm">
               <Check className="w-4 h-4 mr-2" />
               Mark All Read ({unreadCount})
             </Button>
           )}
+          <Button onClick={loadNotifications} variant="outline" size="sm">
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Refresh
+          </Button>
         </div>
       </div>
 
@@ -191,11 +243,12 @@ const NotificationsPage = () => {
               onChange={(e) => setFilterType(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md text-sm"
             >
-              <option value="all">All Types</option>
+              <option value="all">All Categories</option>
               <option value="leave">Leave</option>
               <option value="attendance">Attendance</option>
+              <option value="shift">Shifts</option>
               <option value="system">System</option>
-              <option value="announcement">Announcements</option>
+              <option value="audit">Audit</option>
             </select>
 
             {/* Status Filter */}
@@ -231,14 +284,14 @@ const NotificationsPage = () => {
             <Card 
               key={notification.id} 
               className={`transition-all hover:shadow-md ${
-                !notification.read ? 'border-l-4 border-l-blue-500 bg-blue-50/30' : ''
+                !notification.isRead ? 'border-l-4 border-l-blue-500 bg-blue-50/30' : ''
               }`}
             >
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
                   {/* Icon */}
                   <div className="mt-1">
-                    {getNotificationIcon(notification.type)}
+                    {getNotificationIcon(notification.type, notification.category)}
                   </div>
 
                   {/* Content */}
@@ -250,11 +303,17 @@ const NotificationsPage = () => {
                       <div className="flex items-center gap-2">
                         <Badge 
                           variant="outline" 
-                          className={`text-xs ${getPriorityColor(notification.priority)}`}
+                          className={`text-xs ${getTypeColor(notification.type)}`}
                         >
-                          {notification.priority}
+                          {notification.type}
                         </Badge>
-                        {!notification.read && (
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs bg-gray-100 text-gray-700"
+                        >
+                          {notification.category}
+                        </Badge>
+                        {!notification.isRead && (
                           <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
                         )}
                       </div>
@@ -264,37 +323,47 @@ const NotificationsPage = () => {
                       {notification.message}
                     </p>
 
+                    {/* Metadata */}
+                    {notification.metadata && (
+                      <div className="text-xs text-gray-400 mb-2">
+                        {notification.metadata.employeeId && (
+                          <span>Employee ID: {notification.metadata.employeeId} • </span>
+                        )}
+                        {notification.metadata.date && (
+                          <span>Date: {notification.metadata.date} • </span>
+                        )}
+                        {notification.metadata.leaveRequestId && (
+                          <span>Leave Request: #{notification.metadata.leaveRequestId} • </span>
+                        )}
+                        {notification.metadata.correctionRequestId && (
+                          <span>Correction Request: #{notification.metadata.correctionRequestId} • </span>
+                        )}
+                      </div>
+                    )}
+
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-gray-400">
-                        {formatDate(notification.createdAt)}
+                        {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                       </span>
 
                       <div className="flex items-center gap-2">
-                        {notification.actionUrl && (
+                        {!notification.isRead && (
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => window.location.href = notification.actionUrl}
+                            onClick={() => handleMarkAsRead(notification.id)}
+                            title="Mark as read"
                           >
-                            View
-                          </Button>
-                        )}
-                        
-                        {!notification.read && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => markAsRead(notification.id)}
-                          >
-                          <Check className="w-4 h-4" />
+                            <Check className="w-4 h-4" />
                           </Button>
                         )}
                         
                         <Button 
                           variant="ghost" 
                           size="sm"
-                          onClick={() => deleteNotification(notification.id)}
+                          onClick={() => handleDeleteNotification(notification.id)}
                           className="text-red-600 hover:text-red-700"
+                          title="Delete notification"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -307,6 +376,21 @@ const NotificationsPage = () => {
           ))
         )}
       </div>
+
+      {/* Load More Button */}
+      {notifications.length > 0 && notifications.length % 20 === 0 && (
+        <div className="text-center">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              // Load more notifications - implement pagination
+              toast.info('Load more functionality can be implemented here');
+            }}
+          >
+            Load More Notifications
+          </Button>
+        </div>
+      )}
     </div>
   );
 };

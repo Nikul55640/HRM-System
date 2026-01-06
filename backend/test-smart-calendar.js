@@ -20,7 +20,7 @@ async function testSmartCalendar() {
       console.log('   Working days:', activeRule.workingDays);
       console.log('   Weekend days:', activeRule.weekendDays);
     } else {
-      console.log('⚠️ No active working rule found');
+      console.log('[WARNING] No active working rule found');
     }
 
     // Test Holiday model

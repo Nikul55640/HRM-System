@@ -10,7 +10,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Shift management routes (Admin, HR roles)
-router.use(authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']));
+router.use(authorize(["SuperAdmin", "HR", "HR"]));
 
 // Shift CRUD operations
 router.get('/', shiftController.getShifts);

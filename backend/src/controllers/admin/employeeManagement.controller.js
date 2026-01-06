@@ -5,6 +5,7 @@
  */
 
 import employeeService from '../../services/admin/employee.service.js';
+import notificationService from '../../services/notificationService.js';
 import { Department, Designation, User } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
@@ -170,6 +171,44 @@ const employeeManagementController = {
       // Update designation employee count
       if (designationId) {
         await Designation.increment('employeeCount', { where: { id: designationId } });
+      }
+
+      // 🔔 Send welcome notification to new employee (if they have system access)
+      try {
+        if (userAccount && userAccount.id) {
+          await notificationService.sendToUser(userAccount.id, {
+            title: 'Welcome to the Team! 🎉',
+            message: `Welcome ${personalInfo.firstName}! Your employee account has been created successfully. You can now access the HRM system.`,
+            type: 'success',
+            category: 'system',
+            metadata: {
+              employeeId: employee.id,
+              department: jobInfo.department,
+              jobTitle: jobInfo.jobTitle,
+              role: systemRole,
+              createdBy: req.user.firstName + ' ' + req.user.lastName
+            }
+          });
+
+          // Send notification to HR/Admin about new employee
+          await notificationService.sendToRoles(['admin', 'hr'], {
+            title: 'New Employee Added 👥',
+            message: `${personalInfo.firstName} ${personalInfo.lastName} has been added as a new employee in ${jobInfo.department} department.`,
+            type: 'info',
+            category: 'system',
+            metadata: {
+              employeeId: employee.id,
+              employeeName: `${personalInfo.firstName} ${personalInfo.lastName}`,
+              department: jobInfo.department,
+              jobTitle: jobInfo.jobTitle,
+              role: systemRole,
+              createdBy: req.user.firstName + ' ' + req.user.lastName
+            }
+          });
+        }
+      } catch (notificationError) {
+        logger.error("Failed to send employee creation notifications:", notificationError);
+        // Don't fail the main operation if notification fails
       }
 
       return sendResponse(res, true, "Employee created successfully with role assignment", {

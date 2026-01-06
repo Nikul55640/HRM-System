@@ -1,5 +1,6 @@
-import { Employee } from '../../models/index.js';
+import { Employee, User } from '../../models/index.js';
 import { validateIFSC } from '../../validators/bankDetailsValidator.js';
+import notificationService from '../../services/notificationService.js';
 
 /**
  * Helper function to mask account number
@@ -83,17 +84,17 @@ const getBankDetails = async (req, res) => {
     }
 
     // Return bank details with masked account number
-const bankDetails = {
-  accountNumber: employeeRecord.bankDetails.accountNumber, // REAL
-  maskedAccountNumber: maskAccountNumber(employeeRecord.bankDetails.accountNumber), // DISPLAY
-  bankName: employeeRecord.bankDetails.bankName,
-  ifscCode: employeeRecord.bankDetails.ifscCode,
-  accountHolderName: employeeRecord.bankDetails.accountHolderName,
-  accountType: employeeRecord.bankDetails.accountType,
-  branchName: employeeRecord.bankDetails.branchName,
-  isVerified: employeeRecord.bankDetails.isVerified || false,
-  verifiedAt: employeeRecord.bankDetails.verifiedAt,
-};
+    const bankDetails = {
+      accountNumber: employeeRecord.bankDetails.accountNumber, // REAL
+      maskedAccountNumber: maskAccountNumber(employeeRecord.bankDetails.accountNumber), // DISPLAY
+      bankName: employeeRecord.bankDetails.bankName,
+      ifscCode: employeeRecord.bankDetails.ifscCode,
+      accountHolderName: employeeRecord.bankDetails.accountHolderName,
+      accountType: employeeRecord.bankDetails.accountType,
+      branchName: employeeRecord.bankDetails.branchName,
+      isVerified: employeeRecord.bankDetails.isVerified || false,
+      verifiedAt: employeeRecord.bankDetails.verifiedAt,
+    };
 
     console.log('✅ [BANK DETAILS] Returning masked details');
 
@@ -187,6 +188,39 @@ const updateBankDetails = async (req, res) => {
       bankDetails,
       updatedBy: userId
     });
+
+    // 🔔 Send notification to HR/Admin about new bank details submission
+    try {
+      await notificationService.sendToRoles(['admin', 'hr'], {
+        title: 'New Bank Details Submitted 🏦',
+        message: `${req.user.firstName} ${req.user.lastName} has submitted bank details for verification.`,
+        type: 'info',
+        category: 'system',
+        metadata: {
+          employeeId: employeeRecord.id,
+          employeeName: `${req.user.firstName} ${req.user.lastName}`,
+          bankName: bankDetails.bankName,
+          accountHolderName: bankDetails.accountHolderName,
+          submittedBy: req.user.firstName + ' ' + req.user.lastName
+        }
+      });
+
+      // Send confirmation to employee
+      await notificationService.sendToUser(req.user.id, {
+        title: 'Bank Details Submitted ✅',
+        message: 'Your bank details have been submitted successfully and are pending HR verification.',
+        type: 'success',
+        category: 'system',
+        metadata: {
+          bankName: bankDetails.bankName,
+          accountHolderName: bankDetails.accountHolderName,
+          status: 'pending_verification'
+        }
+      });
+    } catch (notificationError) {
+      console.error("Failed to send bank details submission notification:", notificationError);
+      // Don't fail the main operation if notification fails
+    }
 
     res.json({
       success: true,
@@ -291,6 +325,30 @@ const verifyBankDetails = async (req, res) => {
       updatedBy: req.user.id
     });
 
+    // 🔔 Send notification to employee about verification result
+    try {
+      if (employee.user && employee.user.id) {
+        await notificationService.sendToUser(employee.user.id, {
+          title: isVerified ? 'Bank Details Verified ✅' : 'Bank Details Rejected ❌',
+          message: isVerified 
+            ? 'Your bank details have been verified and approved by HR.' 
+            : `Your bank details have been rejected. ${rejectionReason ? 'Reason: ' + rejectionReason : ''}`,
+          type: isVerified ? 'success' : 'error',
+          category: 'system',
+          metadata: {
+            bankName: employee.bankDetails?.bankName,
+            accountHolderName: employee.bankDetails?.accountHolderName,
+            verifiedBy: req.user.firstName + ' ' + req.user.lastName,
+            rejectionReason: rejectionReason,
+            verifiedAt: updatedBankDetails.verifiedAt
+          }
+        });
+      }
+    } catch (notificationError) {
+      console.error("Failed to send bank verification notification:", notificationError);
+      // Don't fail the main operation if notification fails
+    }
+
     res.json({
       success: true,
       message: `Bank details ${isVerified ? 'verified' : 'rejected'} successfully`,
@@ -315,9 +373,6 @@ const verifyBankDetails = async (req, res) => {
 const getPendingVerifications = async (req, res) => {
   try {
     const employees = await Employee.findAll({
-      where: {
-        '$bankDetails.isVerified$': false,
-      },
       attributes: ['id', 'employeeId', 'firstName', 'lastName', 'bankDetails', 'updatedAt'],
       include: [
         {
@@ -328,8 +383,13 @@ const getPendingVerifications = async (req, res) => {
       ]
     });
 
+    // Filter employees with bank details that are not verified
     const pendingList = employees
-      .filter(emp => emp.bankDetails && Object.keys(emp.bankDetails).length > 0)
+      .filter(emp => 
+        emp.bankDetails && 
+        Object.keys(emp.bankDetails).length > 0 && 
+        emp.bankDetails.isVerified === false
+      )
       .map((employee) => ({
         employeeId: employee.id,
         employeeCode: employee.employeeId,
@@ -348,6 +408,7 @@ const getPendingVerifications = async (req, res) => {
       data: pendingList,
     });
   } catch (error) {
+    console.error('Error fetching pending verifications:', error);
     res.status(500).json({
       success: false,
       message: 'Error fetching pending verifications',
@@ -355,7 +416,6 @@ const getPendingVerifications = async (req, res) => {
     });
   }
 };
-
 
 export default {
   getBankDetails,

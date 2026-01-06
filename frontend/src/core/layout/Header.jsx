@@ -4,52 +4,18 @@ import { useState, useEffect, useRef } from 'react';
 import { Button } from '../../shared/ui/button';
 import { Icon } from '../../shared/components';
 import useAuth from '../hooks/useAuth';
+import NotificationBell from '../../components/NotificationBell';
 
 const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
   const userMenuRef = useRef(null);
-  const notificationRef = useRef(null);
-
-  // Sample notifications
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: 'leave',
-      title: 'Leave Request Approved',
-      message: 'Your leave request for Dec 10-12 has been approved',
-      time: '2 hours ago',
-      read: false,
-    },
-    {
-      id: 2,
-      type: 'payroll',
-      title: 'Payslip Available',
-      message: 'Your November payslip is now available',
-      time: '1 day ago',
-      read: false,
-    },
-    {
-      id: 3,
-      type: 'announcement',
-      title: 'Company Holiday',
-      message: 'Office will be closed on Dec 25th',
-      time: '2 days ago',
-      read: true,
-    },
-  ]);
-
-  const notificationCount = notifications.filter(n => !n.read).length;
 
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setShowUserMenu(false);
-      }
-      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-        setShowNotifications(false);
       }
     };
 
@@ -60,34 +26,6 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const handleLogout = () => {
     setShowUserMenu(false);
     logout();
-  };
-
-  const markAsRead = (id) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ));
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, read: true })));
-  };
-
-  const deleteNotification = (id) => {
-    setNotifications(notifications.filter(n => n.id !== id));
-  };
-
-  const getNotificationIcon = (type) => {
-    const iconProps = "w-5 h-5";
-    switch (type) {
-      case 'leave':
-        return <Icon name="Palmtree" className={`${iconProps} text-blue-600`} />;
-      case 'payroll':
-        return <Icon name="DollarSign" className={`${iconProps} text-green-600`} />;
-      case 'announcement':
-        return <Icon name="Megaphone" className={`${iconProps} text-orange-600`} />;
-      default:
-        return <Bell className={iconProps} />;
-    }
   };
 
   // Get user initials for avatar
@@ -107,9 +45,9 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
     switch (role) {
       case 'SuperAdmin':
         return 'bg-purple-600';
-      case 'HR Manager':
+      case 'HR_Manager':
         return 'bg-blue-600';
-      case 'HR Administrator':
+      case 'HR':
         return 'bg-green-600';
       case 'Manager':
         return 'bg-orange-600';
@@ -124,8 +62,8 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
   const getRoleBadge = (role) => {
     const badges = {
       'SuperAdmin': 'bg-purple-100 text-purple-700',
-      'HR Manager': 'bg-blue-100 text-blue-700',
-      'HR Administrator': 'bg-green-100 text-green-700',
+      'HR_Manager': 'bg-blue-100 text-blue-700',
+      'HR': 'bg-green-100 text-green-700',
       'Manager': 'bg-orange-100 text-orange-700',
       'Employee': 'bg-gray-100 text-gray-700',
     };
@@ -176,119 +114,17 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
               </Button>
 
               {/* Notifications */}
-              <div className="relative" ref={notificationRef}>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative"
-                >
-                  <Bell className="w-5 h-5" />
-                  {notificationCount > 0 && (
-                    <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                      {notificationCount}
-                    </span>
-                  )}
-                </Button>
-
-                {/* Notification Dropdown */}
-                {showNotifications && (
-                  <>
-                    {/* Backdrop */}
-                    <div
-                      className="fixed inset-0 z-10"
-                      onClick={() => setShowNotifications(false)}
-                    ></div>
-                    
-                    {/* Notification Panel */}
-                    <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg border border-gray-200 shadow-lg z-20 max-h-[80vh] overflow-hidden">
-                      {/* Header */}
-                      <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-gray-800">Notifications</h3>
-                        {notificationCount > 0 && (
-                          <button
-                            onClick={markAllAsRead}
-                            className="text-xs text-blue-600 hover:text-blue-700"
-                          >
-                            Mark all as read
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Notification List */}
-                      <div className="max-h-80 overflow-y-auto">
-                        {notifications.length === 0 ? (
-                          <div className="px-4 py-8 text-center text-gray-500 text-sm">
-                            No notifications
-                          </div>
-                        ) : (
-                          notifications.map((notification) => (
-                            <div
-                              key={notification.id}
-                              className={`px-4 py-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${
-                                !notification.read ? 'bg-blue-50' : ''
-                              }`}
-                              onClick={() => markAsRead(notification.id)}
-                            >
-                              <div className="flex items-start gap-3">
-                                <div className="mt-0.5 flex-shrink-0">{getNotificationIcon(notification.type)}</div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-start justify-between gap-2">
-                                    <h4 className="text-sm font-medium text-gray-800 line-clamp-2">
-                                      {notification.title}
-                                    </h4>
-                                    {!notification.read && (
-                                      <div className="w-2 h-2 bg-blue-600 rounded-full mt-1 flex-shrink-0"></div>
-                                    )}
-                                  </div>
-                                  <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                    {notification.message}
-                                  </p>
-                                  <div className="flex items-center justify-between mt-2">
-                                    <span className="text-xs text-gray-400">
-                                      {notification.time}
-                                    </span>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        deleteNotification(notification.id);
-                                      }}
-                                      className="text-xs text-red-600 hover:text-red-700"
-                                    >
-                                      Delete
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      {/* Footer */}
-                      <div className="px-4 py-3 border-t border-gray-200">
-                        <Link
-                          to="/notifications"
-                          className="text-sm text-blue-600 hover:text-blue-700 block text-center"
-                          onClick={() => setShowNotifications(false)}
-                        >
-                          View all notifications
-                        </Link>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
+              <NotificationBell />
 
               {/* Settings (Admin/Manager only) */}
-              {(user?.role === 'SuperAdmin' || user?.role === 'HR Manager') && (
+              {(user?.role === 'SuperAdmin' || user?.role === 'HR_Manager') && (
                 <Button
                   variant="ghost"
                   size="sm"
                   asChild
                   className="hidden sm:flex"
                 >
-                  <Link to="/settings">
+                  <Link to="/admin/settings">
                     <Settings className="w-5 h-5" />
                   </Link>
                 </Button>
@@ -360,7 +196,7 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                       {/* Menu Items */}
                       <div className="py-1">
                         <Link
-                          to="/profile"
+                          to="employee/profile"
                           className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                           onClick={() => setShowUserMenu(false)}
                         >
@@ -375,14 +211,9 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                         >
                           <Mail className="w-4 h-4" />
                           <span>Messages</span>
-                          {notificationCount > 0 && (
-                            <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                              {notificationCount}
-                            </span>
-                          )}
                         </Link>
                         
-                        {(user?.role === 'SuperAdmin' || user?.role === 'HR Manager') && (
+                        {(user?.role === 'SuperAdmin' || user?.role === 'HR_Manager') && (
                           <Link
                             to="/settings"
                             className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"

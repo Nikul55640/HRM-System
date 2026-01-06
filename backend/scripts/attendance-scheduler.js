@@ -60,7 +60,7 @@ async function runScheduledTask() {
         }
         
     } catch (error) {
-        logger.error(`💥 Scheduled task error:`, error);
+        logger.error(`[ERROR] Scheduled task error:`, error);
         process.exit(1);
     }
 }

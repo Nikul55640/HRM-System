@@ -15,21 +15,21 @@ const router = express.Router();
 router.use(authenticate);
 
 // Get all company events (SuperAdmin, HR)
-router.get('/', authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), getAllEvents);
+router.get('/', authorize(["SuperAdmin", "HR", "HR"]), getAllEvents);
 
 // Get upcoming events (SuperAdmin, HR)
-router.get('/upcoming', authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), getUpcomingEvents);
+router.get('/upcoming', authorize(["SuperAdmin", "HR", "HR"]), getUpcomingEvents);
 
 // Get event by ID (SuperAdmin, HR)
-router.get('/:id', authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), getEventById);
+router.get('/:id', authorize(["SuperAdmin", "HR", "HR"]), getEventById);
 
 // Create new event (SuperAdmin, HR)
-router.post('/', authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), createEvent);
+router.post('/', authorize(["SuperAdmin", "HR", "HR"]), createEvent);
 
 // Update event (SuperAdmin, HR)
-router.put('/:id', authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), updateEvent);
+router.put('/:id', authorize(["SuperAdmin", "HR", "HR"]), updateEvent);
 
 // Delete event (SuperAdmin only)
-router.delete('/:id', authorize(['SuperAdmin']), deleteEvent);
+router.delete('/:id', authorize(["SuperAdmin"]), deleteEvent);
 
 export default router;

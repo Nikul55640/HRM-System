@@ -41,7 +41,7 @@ const cleanupDatabase = async () => {
                 await sequelize.query(`DROP TABLE IF EXISTS \`${table}\``);
                 console.log(`✅ Dropped table: ${table}`);
             } catch (error) {
-                console.log(`⚠️  Table ${table} may not exist: ${error.message}`);
+                console.log(`[WARNING] Table ${table} may not exist: ${error.message}`);
             }
         }
 

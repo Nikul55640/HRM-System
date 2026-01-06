@@ -21,19 +21,19 @@ router.get('/upcoming', authenticate, calendarViewController.getUpcomingEvents);
 // Company Events Management
 router.post('/events', 
   authenticate, 
-  authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
+  authorize(["SuperAdmin", "HR", "HR"]), 
   calendarViewController.createEvent
 );
 
 router.put('/events/:id', 
   authenticate, 
-  authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
+  authorize(["SuperAdmin", "HR", "HR"]), 
   calendarViewController.updateEvent
 );
 
 router.delete('/events/:id', 
   authenticate, 
-  authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
+  authorize(["SuperAdmin", "HR", "HR"]), 
   calendarViewController.deleteEvent
 );
 
@@ -42,26 +42,26 @@ router.get('/holidays', authenticate, calendarViewController.getHolidays);
 
 router.post('/holidays', 
   authenticate, 
-  authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
+  authorize(["SuperAdmin", "HR", "HR"]), 
   calendarViewController.createHoliday
 );
 
 router.put('/holidays/:id', 
   authenticate, 
-  authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
+  authorize(["SuperAdmin", "HR", "HR"]), 
   calendarViewController.updateHoliday
 );
 
 router.delete('/holidays/:id', 
   authenticate, 
-  authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']), 
+  authorize(["SuperAdmin", "HR", "HR"]), 
   calendarViewController.deleteHoliday
 );
 
 // Employee Events Sync (Birthdays & Anniversaries)
 router.post('/sync-employee-events', 
   authenticate, 
-  authorize(['SuperAdmin', 'HR Adminiministrator']), 
+  authorize(["SuperAdmin", 'HR Adminiministrator']), 
   calendarViewController.syncEmployeeEvents
 );
 

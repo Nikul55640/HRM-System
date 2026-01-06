@@ -69,7 +69,7 @@ const LeaveBalancesPage = () => {
         employeesData = response;
         console.log('✅ [LEAVE BALANCES] Using direct array structure');
       } else {
-        console.warn('⚠️ [LEAVE BALANCES] Unexpected response structure:', response);
+        console.warn('[LEAVE BALANCES] Unexpected response structure:', response);
         employeesData = [];
       }
       

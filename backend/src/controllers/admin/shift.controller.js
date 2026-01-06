@@ -1,4 +1,5 @@
 import shiftService from '../../services/admin/shift.service.js';
+import notificationService from '../../services/notificationService.js';
 
 const ShiftController = {
   // Get all shifts
@@ -172,6 +173,33 @@ const ShiftController = {
 
       if (!result.success) {
         return res.status(result.message === 'Shift not found' ? 404 : 400).json(result);
+      }
+
+      // 🔔 Send notifications to assigned employees
+      try {
+        if (result.data && result.data.assignments) {
+          for (const assignment of result.data.assignments) {
+            if (assignment.employee && assignment.employee.userId && assignment.shift) {
+              await notificationService.sendToUser(assignment.employee.userId, {
+                title: 'New Shift Assignment 🕐',
+                message: `You have been assigned to the "${assignment.shift.name}" shift (${assignment.shift.shiftStartTime} - ${assignment.shift.shiftEndTime})`,
+                type: 'info',
+                category: 'shift',
+                metadata: {
+                  shiftId: assignment.shift.id,
+                  shiftName: assignment.shift.name,
+                  shiftStartTime: assignment.shift.shiftStartTime,
+                  shiftEndTime: assignment.shift.shiftEndTime,
+                  effectiveDate: assignment.effectiveDate,
+                  assignedBy: req.user.firstName + ' ' + req.user.lastName
+                }
+              });
+            }
+          }
+        }
+      } catch (notificationError) {
+        console.error("Failed to send shift assignment notifications:", notificationError);
+        // Don't fail the main operation if notification fails
       }
 
       res.json(result);

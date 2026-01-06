@@ -16,7 +16,7 @@ async function runAttendanceCorrectionRequestsMigration() {
     const tableExists = tables.includes('attendance_correction_requests');
 
     if (tableExists) {
-      console.log('⚠️  Table attendance_correction_requests already exists');
+      console.log('[WARNING] Table attendance_correction_requests already exists');
       console.log('Migration skipped');
       return;
     }

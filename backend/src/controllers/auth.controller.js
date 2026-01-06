@@ -160,6 +160,20 @@ const login = async (req, res) => {
     user.lastLogin = new Date();
     await user.save();
 
+    // Set cookies for SSE support
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000, // 15 minutes (same as JWT expiry)
+    };
+
+    res.cookie('accessToken', tokens.accessToken, cookieOptions);
+    res.cookie('refreshToken', tokens.refreshToken, {
+      ...cookieOptions,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     // Fetch employee data using the new relationship
     let employeeData = null;
     try {
@@ -351,6 +365,10 @@ const logout = async (req, res) => {
       // Log database error but don't fail the logout
       console.warn("Failed to clear refresh token from database:", dbError);
     }
+
+    // Clear cookies
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
 
     res.status(200).json({
       success: true,

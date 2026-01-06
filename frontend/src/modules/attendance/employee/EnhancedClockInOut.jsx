@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
-import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users, RefreshCw, Bug } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users, RefreshCw, Bug, AlertTriangle, Zap } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LocationSelectionModal from './LocationSelectionModal';
 import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore';
@@ -491,21 +491,24 @@ const EnhancedClockInOut = () => {
             {/* Status Messages */}
             <div className="space-y-2">
               {todayRecord?.isLate && (
-                <div className="text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded p-2 text-center">
-                  ⚠️ Late arrival recorded ({todayRecord.lateMinutes} minutes late)
+                <div className="text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded p-2 text-center flex items-center justify-center gap-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  Late arrival recorded ({todayRecord.lateMinutes} minutes late)
                 </div>
               )}
 
               {todayRecord?.isEarlyDeparture && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2 text-center">
-                  ⚠️ Early departure recorded ({todayRecord.earlyExitMinutes} minutes early)
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2 text-center flex items-center justify-center gap-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  Early departure recorded ({todayRecord.earlyExitMinutes} minutes early)
                 </div>
               )}
 
               {/* Shift-based warnings */}
               {todayRecord?.shift && !isActive && !todayRecord?.clockOut && (
-                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2 text-center">
-                  ⚠️ You haven't clocked in yet. Your shift started at {todayRecord.shift.shiftStartTime}
+                <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2 text-center flex items-center justify-center gap-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  You haven't clocked in yet. Your shift started at {todayRecord.shift.shiftStartTime}
                 </div>
               )}
 
@@ -548,8 +551,9 @@ const EnhancedClockInOut = () => {
                 } else if (isNearOvertimeThreshold) {
                   const minutesToOvertime = Math.floor((shiftEndTime - now) / (1000 * 60));
                   return (
-                    <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded p-2 text-center">
-                      ⚡ Approaching overtime in {minutesToOvertime} minutes
+                    <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded p-2 text-center flex items-center justify-center gap-1">
+                      <Zap className="w-4 h-4" />
+                      Approaching overtime in {minutesToOvertime} minutes
                     </div>
                   );
                 }

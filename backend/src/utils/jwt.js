@@ -100,22 +100,26 @@ const verifyRefreshToken = (token) => {
 const decodeToken = (token) => jwt.decode(token);
 
 /**
- * Extract token from Authorization header
+ * Extract token from Authorization header or cookies
  * @param {String} authHeader - Authorization header value
+ * @param {Object} cookies - Request cookies
  * @returns {String|null} Extracted token or null
  */
-const extractTokenFromHeader = (authHeader) => {
-  if (!authHeader) {
-    return null;
+const extractTokenFromHeader = (authHeader, cookies = {}) => {
+  // Try Authorization header first
+  if (authHeader) {
+    const parts = authHeader.split(" ");
+    if (parts.length === 2 && parts[0] === "Bearer") {
+      return parts[1];
+    }
   }
 
-  const parts = authHeader.split(" ");
-
-  if (parts.length !== 2 || parts[0] !== "Bearer") {
-    return null;
+  // Fallback to cookie
+  if (cookies.accessToken) {
+    return cookies.accessToken;
   }
 
-  return parts[1];
+  return null;
 };
 
 /**

@@ -87,6 +87,13 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     allowNull: true,
   },
 
+  // Half Day Details
+  halfDayType: {
+    type: DataTypes.ENUM('first_half', 'second_half', 'full_day'),
+    allowNull: true,
+    comment: 'Type of half day: first_half (morning), second_half (afternoon), or full_day'
+  },
+
   // Overtime
   overtimeMinutes: {
     type: DataTypes.INTEGER,
@@ -237,6 +244,27 @@ AttendanceRecord.prototype.calculateWorkingHours = function () {
   return this.workHours;
 };
 
+// ✅ NEW: Determine half-day type based on timing
+AttendanceRecord.prototype.determineHalfDayType = function (shift) {
+  if (!this.clockIn || !shift) return 'first_half';
+
+  const clockInTime = new Date(this.clockIn);
+  const today = this.date;
+  
+  // Calculate shift midpoint
+  const shiftStartTime = new Date(`${today} ${shift.shiftStartTime}`);
+  const shiftEndTime = new Date(`${today} ${shift.shiftEndTime}`);
+  const shiftMidpoint = new Date((shiftStartTime.getTime() + shiftEndTime.getTime()) / 2);
+
+  // If clocked in before midpoint, likely worked first half
+  // If clocked in after midpoint, likely worked second half
+  if (clockInTime <= shiftMidpoint) {
+    return 'first_half';
+  } else {
+    return 'second_half';
+  }
+};
+
 // Static methods
 AttendanceRecord.getMonthlySummary = async function (employeeId, year, month) {
   const startDate = new Date(year, month - 1, 1);
@@ -331,7 +359,7 @@ AttendanceRecord.beforeSave(async (record) => {
     // Calculate working hours
     record.calculateWorkingHours();
 
-    // Get shift information for early exit and overtime calculations ONLY
+    // Get shift information for early exit, overtime, and half-day calculations
     if (record.shiftId) {
       const { Shift } = await import('./index.js');
       const shift = await Shift.findByPk(record.shiftId);
@@ -357,6 +385,54 @@ AttendanceRecord.beforeSave(async (record) => {
           if (clockOutTime > new Date(shiftEndTime.getTime() + overtimeThresholdMs)) {
             record.overtimeMinutes = Math.floor((clockOutTime - shiftEndTime) / (1000 * 60));
             record.overtimeHours = Math.round((record.overtimeMinutes / 60) * 100) / 100;
+          }
+        }
+
+        // ✅ NEW: Auto-detect half-day status and type
+        const workedHours = record.workHours || 0;
+        const fullDayHours = shift.fullDayHours || 8;
+        const halfDayHours = shift.halfDayHours || 4;
+
+        if (workedHours >= fullDayHours) {
+          // Full day worked
+          record.halfDayType = 'full_day';
+          if (record.status === 'half_day') {
+            record.status = 'present'; // Upgrade from half-day to present
+          }
+        } else if (workedHours >= halfDayHours) {
+          // Half day worked - determine which half
+          const wasHalfDay = record.status === 'half_day';
+          record.status = 'half_day';
+          record.halfDayType = record.determineHalfDayType(shift);
+          
+          // Send notification if this is a new half-day detection
+          if (!wasHalfDay && record.changed('status')) {
+            // Schedule notification after save completes
+            process.nextTick(async () => {
+              try {
+                const notificationService = (await import('../notificationService.js')).default;
+                const { Employee, User } = await import('./index.js');
+                
+                // Get employee details for notification
+                const employee = await Employee.findByPk(record.employeeId, {
+                  include: [{ model: User, as: 'user', attributes: ['id'] }]
+                });
+                
+                if (employee) {
+                  record.employee = employee;
+                  await notificationService.notifyHalfDayDetected(record);
+                }
+              } catch (error) {
+                console.error('Failed to send half-day notification:', error);
+              }
+            });
+          }
+        } else {
+          // Less than half day worked
+          if (record.status === 'present') {
+            record.status = 'half_day';
+            record.halfDayType = record.determineHalfDayType(shift);
+            record.statusReason = `Worked only ${workedHours.toFixed(2)} hours (less than ${halfDayHours} required for half day)`;
           }
         }
       }

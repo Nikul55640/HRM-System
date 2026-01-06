@@ -82,7 +82,7 @@ import {
   CalendarCheck,
   CheckSquare,
   Clock4,
-  ClipboardCheck,
+    ClipboardCheck,
   ScrollText,
   PartyPopper,
   Folder,
@@ -97,6 +97,7 @@ import {
   Scale,
   TreePine,
   GitBranch,
+  FolderOpenIcon,
 } from 'lucide-react';
 
 const iconMap = {
@@ -116,6 +117,7 @@ const iconMap = {
   LogOut,
   Menu,
   X,
+  FolderOpenIcon,
   ChevronDown,
   ChevronRight,
   ChevronLeft,

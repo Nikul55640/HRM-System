@@ -737,7 +737,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       process.exit(0);
     })
     .catch((error) => {
-      console.error('💥 Seeding failed:', error);
+      console.error('[ERROR] Seeding failed:', error);
       process.exit(1);
     });
 }

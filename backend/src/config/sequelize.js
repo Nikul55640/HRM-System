@@ -79,13 +79,13 @@ export const closeConnection = async () => {
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  logger.info('⚠️ SIGINT received. Closing MySQL connection...');
+  logger.info('[WARNING] SIGINT received. Closing MySQL connection...');
   await closeConnection();
   process.exit(0);
 });
 
 process.on('SIGTERM', async () => {
-  logger.info('⚠️ SIGTERM received. Closing MySQL connection...');
+  logger.info('[WARNING] SIGTERM received. Closing MySQL connection...');
   await closeConnection();
   process.exit(0);
 });

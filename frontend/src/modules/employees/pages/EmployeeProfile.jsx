@@ -80,8 +80,8 @@ const EmployeeProfile = () => {
     // Check role-based permissions
     const hasEditRole = hasRole([
       "SuperAdmin",
-      "HR Administrator",
-      "HR Manager",
+      "HR",
+      "HR_Manager",
     ]);
     if (!hasEditRole) return false;
 

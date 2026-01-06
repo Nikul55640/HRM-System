@@ -7,7 +7,7 @@ const router = express.Router();
 
 // All routes require authentication and admin/hr role
 router.use(authenticate);
-router.use(authorize(['SuperAdmin', 'HR Administrator', 'HR Manager']));
+router.use(authorize(["SuperAdmin", "HR", "HR"]));
 
 // Get pending corrections
 router.get('/pending', attendanceCorrectionController.getPendingCorrections);

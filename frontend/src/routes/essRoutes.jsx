@@ -51,29 +51,29 @@ const EmployeeCalendarPage = lazy(() =>
 
 export const essRoutes = [
   // Profile & Bank Details
-  { path: "employee/profile", element: <ProfilePage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
-  { path: "employee/bank-details", element: <BankDetailsPage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/profile", element: <ProfilePage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/bank-details", element: <BankDetailsPage />, roles: ["Employee", "HR", "SuperAdmin"] },
 
   // Employee Settings
-  { path: "employee/settings", element: <EmployeeSettings />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
-  { path: "employee/settings/profile", element: <ProfileSettings />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
-  { path: "employee/settings/security", element: <SecuritySettings />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
-  { path: "employee/settings/emergency-contacts", element: <EmergencyContacts />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/settings", element: <EmployeeSettings />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/settings/profile", element: <ProfileSettings />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/settings/security", element: <SecuritySettings />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/settings/emergency-contacts", element: <EmergencyContacts />, roles: ["Employee", "HR", "SuperAdmin"] },
 
   // Attendance
-  { path: "employee/attendance", element: <AttendancePage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
-  { path: "employee/attendance/corrections", element: <AttendanceCorrectionRequests />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/attendance", element: <AttendancePage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  { path: "employee/attendance/corrections", element: <AttendanceCorrectionRequests />, roles: ["Employee", "HR", "SuperAdmin"] },
 
   // Leave
-  { path: "employee/leave", element: <LeavePage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/leave", element: <LeavePage />, roles: ["Employee", "HR", "SuperAdmin"] },
 
   // Leads
-  { path: "employee/leads", element: <EmployeeLeadsPage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/leads", element: <EmployeeLeadsPage />, roles: ["Employee", "HR", "SuperAdmin"] },
 
   // Shifts
-  { path: "employee/shifts", element: <EmployeeShiftsPage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },  
+  { path: "employee/shifts", element: <EmployeeShiftsPage />, roles: ["Employee", "HR", "SuperAdmin"] },  
 
   // Calendar
-  { path: "employee/calendar", element: <EmployeeCalendarPage />, roles: ["Employee", "HR Administrator", "HR Manager", "SuperAdmin"] },
+  { path: "employee/calendar", element: <EmployeeCalendarPage />, roles: ["Employee", "HR", "SuperAdmin"] },
 
 ];

@@ -49,7 +49,11 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
   const [selectedDate, setSelectedDate] = useState(null);
 
   // Check if user can manage calendar
-  const canManageCalendar = can?.do(MODULES.CALENDAR.MANAGE) || false;
+  const canManageCalendar = can?.doAny([
+    MODULES.CALENDAR.MANAGE_EVENTS,
+    MODULES.CALENDAR.MANAGE_HOLIDAYS,
+    MODULES.CALENDAR.MANAGE_SMART_CALENDAR
+  ]) || false;
 
   const fetchData = useCallback(async () => {
     try {

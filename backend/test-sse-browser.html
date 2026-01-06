@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>SSE Browser Test</title>
+</head>
+<body>
+    <h1>🧪 SSE Browser Test</h1>
+    <div id="status">Not connected</div>
+    <div id="logs"></div>
+    
+    <script>
+        const statusEl = document.getElementById('status');
+        const logsEl = document.getElementById('logs');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logsEl.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+        }
+        
+        // Test 1: Direct connection without credentials
+        log('🔗 Testing direct SSE connection...');
+        statusEl.textContent = 'Connecting...';
+        
+        const eventSource = new EventSource('http://localhost:5000/api/employee/notifications/stream');
+        
+        eventSource.onopen = function() {
+            log('✅ SSE connection opened');
+            statusEl.textContent = 'Connected';
+        };
+        
+        eventSource.onmessage = function(event) {
+            log('📨 Message received: ' + event.data);
+        };
+        
+        eventSource.onerror = function(error) {
+            log('❌ SSE error occurred');
+            log('EventSource readyState: ' + eventSource.readyState);
+            log('CONNECTING: ' + EventSource.CONNECTING);
+            log('OPEN: ' + EventSource.OPEN);
+            log('CLOSED: ' + EventSource.CLOSED);
+            statusEl.textContent = 'Error/Closed';
+        };
+        
+        // Close after 10 seconds
+        setTimeout(() => {
+            log('🔌 Closing connection...');
+            eventSource.close();
+            statusEl.textContent = 'Manually closed';
+        }, 10000);
+    </script>
+</body>
+</html>

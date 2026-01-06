@@ -54,7 +54,7 @@ if (!['up', 'down'].includes(direction)) {
 }
 
 if (direction === 'down') {
-    console.log('⚠️  WARNING: Migration DOWN will revert changes and may cause data loss!');
+    console.log('[WARNING] Migration DOWN will revert changes and may cause data loss!');
     console.log('Are you sure you want to continue? (y/N)');
 
     process.stdin.setRawMode(true);

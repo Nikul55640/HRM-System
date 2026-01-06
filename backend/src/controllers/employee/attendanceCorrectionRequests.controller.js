@@ -1,6 +1,7 @@
 import { AttendanceRecord, Employee, AttendanceCorrectionRequest } from '../../models/index.js';
 import { Op } from 'sequelize';
 import { validationResult } from 'express-validator';
+import notificationService from '../../services/notificationService.js';
 
 /**
  * Get attendance issues for the current employee
@@ -199,6 +200,25 @@ const submitCorrectionRequest = async (req, res) => {
         ]
       }
     );
+
+    // Send notification to HR and Admin about new correction request
+    try {
+      await notificationService.sendToRoles(['admin', 'hr'], {
+        title: 'New Attendance Correction Request',
+        message: `${requestWithEmployee.employee.firstName} ${requestWithEmployee.employee.lastName} has submitted an attendance correction request for ${date}`,
+        type: 'info',
+        category: 'attendance',
+        metadata: {
+          correctionRequestId: correctionRequest.id,
+          employeeId: employee.id,
+          date,
+          issueType: issueType || 'missed_punch',
+        },
+      });
+    } catch (notificationError) {
+      console.error('Failed to send notification:', notificationError);
+      // Don't fail the request if notification fails
+    }
 
     res.status(201).json({
       success: true,

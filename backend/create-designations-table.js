@@ -43,7 +43,7 @@ async function createDesignationsTable() {
       console.log('✅ Department foreign key added');
     } catch (error) {
       if (error.message.includes('already exists')) {
-        console.log('⚠️  Department foreign key already exists');
+        console.log('[WARNING] Department foreign key already exists');
       } else {
         console.error('❌ Error adding department foreign key:', error.message);
       }
@@ -57,7 +57,7 @@ async function createDesignationsTable() {
       console.log('✅ Created by foreign key added');
     } catch (error) {
       if (error.message.includes('already exists')) {
-        console.log('⚠️  Created by foreign key already exists');
+        console.log('[WARNING] Created by foreign key already exists');
       } else {
         console.error('❌ Error adding created by foreign key:', error.message);
       }
@@ -71,7 +71,7 @@ async function createDesignationsTable() {
       console.log('✅ Updated by foreign key added');
     } catch (error) {
       if (error.message.includes('already exists')) {
-        console.log('⚠️  Updated by foreign key already exists');
+        console.log('[WARNING] Updated by foreign key already exists');
       } else {
         console.error('❌ Error adding updated by foreign key:', error.message);
       }
@@ -86,7 +86,7 @@ async function createDesignationsTable() {
       console.log('✅ DesignationId column added to employees');
     } catch (error) {
       if (error.message.includes('Duplicate column')) {
-        console.log('⚠️  DesignationId column already exists in employees');
+        console.log('[WARNING] DesignationId column already exists in employees');
       } else {
         console.error('❌ Error adding designationId column:', error.message);
       }
@@ -101,7 +101,7 @@ async function createDesignationsTable() {
       console.log('✅ DepartmentId column added to employees');
     } catch (error) {
       if (error.message.includes('Duplicate column')) {
-        console.log('⚠️  DepartmentId column already exists in employees');
+        console.log('[WARNING] DepartmentId column already exists in employees');
       } else {
         console.error('❌ Error adding departmentId column:', error.message);
       }
@@ -116,7 +116,7 @@ async function createDesignationsTable() {
       console.log('✅ Employee designation foreign key added');
     } catch (error) {
       if (error.message.includes('already exists')) {
-        console.log('⚠️  Employee designation foreign key already exists');
+        console.log('[WARNING] Employee designation foreign key already exists');
       } else {
         console.error('❌ Error adding employee designation foreign key:', error.message);
       }
@@ -130,7 +130,7 @@ async function createDesignationsTable() {
       console.log('✅ Employee department foreign key added');
     } catch (error) {
       if (error.message.includes('already exists')) {
-        console.log('⚠️  Employee department foreign key already exists');
+        console.log('[WARNING] Employee department foreign key already exists');
       } else {
         console.error('❌ Error adding employee department foreign key:', error.message);
       }

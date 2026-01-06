@@ -13,7 +13,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
   }
   
   if (!balances) {
-    console.log('⚠️ [LEAVE BALANCE CARDS] No balances provided');
+    console.log('[LEAVE BALANCE CARDS] No balances provided');
     return (
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
         <div className="flex items-center gap-2">
@@ -36,7 +36,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
     console.log('🎴 [LEAVE BALANCE CARDS] Valid leave types:', validLeaveTypes.length);
     
     if (validLeaveTypes.length === 0) {
-      console.log('⚠️ [LEAVE BALANCE CARDS] No valid leave types found');
+      console.log('[LEAVE BALANCE CARDS] No valid leave types found');
       return (
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
           <div className="flex items-center gap-2">
@@ -147,7 +147,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
     );
   }
 
-  console.log('⚠️ [LEAVE BALANCE CARDS] No recognized data format, showing fallback');
+  console.log('[LEAVE BALANCE CARDS] No recognized data format, showing fallback');
 
   // Fallback to old format if leaveTypes doesn't exist
   return (

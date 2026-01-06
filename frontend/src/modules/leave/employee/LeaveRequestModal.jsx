@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'react-toastify';
-import { X, Calendar, Clock } from 'lucide-react';
+import { X, Calendar, Clock, AlertTriangle } from 'lucide-react';
 
 import { Button } from '../../../shared/ui/button';
 import { Input } from '../../../shared/ui/input';
@@ -270,8 +270,9 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
                 </div>
               </div>
               {calculateDuration() > getAvailableBalance() && getAvailableBalance() > 0 && (
-                <p className="text-red-600 text-sm mt-2">
-                  ⚠️ Requested duration exceeds available balance
+                <p className="text-red-600 text-sm mt-2 flex items-center gap-1">
+                  <AlertTriangle className="w-4 h-4" />
+                  Requested duration exceeds available balance
                 </p>
               )}
               {isRetroactiveLeave() && (

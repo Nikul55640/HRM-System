@@ -14,17 +14,25 @@ import Shift from './Shift.js';
 import EmployeeShift from './EmployeeShift.js';
 import AuditLog from './AuditLog.js';
 import SystemPolicy from './SystemPolicy.js';
+import EmergencyContact from './EmergencyContact.js';
+import WorkingRule from './WorkingRule.js';
+import Notification from './Notification.js';
 
 // Define associations
 
-// User-Employee relationship (CORRECTED)
+// User-Employee relationship (CLEAN ARCHITECTURE)
+// ✅ ONLY ONE DIRECTION: Employee.userId -> User.id
 User.hasOne(Employee, { foreignKey: 'userId', as: 'employee' });
 Employee.belongsTo(User, { foreignKey: 'userId', as: 'user' });
 
+// Notification relationships
+Notification.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(Notification, { foreignKey: 'userId', as: 'notifications' });
+
 // Department relationships
-Department.belongsTo(Department, { foreignKey: 'parentDepartment', as: 'parent' });
-Department.hasMany(Department, { foreignKey: 'parentDepartment', as: 'children' });
-Department.belongsTo(Employee, { foreignKey: 'manager', as: 'managerEmployee' });
+Department.belongsTo(Department, { foreignKey: 'parentDepartmentId', as: 'parent' });
+Department.hasMany(Department, { foreignKey: 'parentDepartmentId', as: 'children' });
+Department.belongsTo(Employee, { foreignKey: 'managerId', as: 'managerEmployee' });
 
 // Designation relationships
 Designation.belongsTo(Department, { foreignKey: 'departmentId', as: 'department' });
@@ -106,6 +114,16 @@ User.hasMany(AuditLog, { foreignKey: 'userId', as: 'auditLogs' });
 SystemPolicy.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 SystemPolicy.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 
+// Emergency Contact relationships
+EmergencyContact.belongsTo(Employee, { foreignKey: 'employeeId', as: 'employee' });
+Employee.hasMany(EmergencyContact, { foreignKey: 'employeeId', as: 'emergencyContacts' });
+EmergencyContact.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+EmergencyContact.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
+
+// Working Rule relationships
+WorkingRule.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+WorkingRule.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
+
 export {
   sequelize,
   User,
@@ -123,6 +141,9 @@ export {
   EmployeeShift,
   AuditLog,
   SystemPolicy,
+  EmergencyContact,
+  WorkingRule,
+  Notification,
 };
 
 export default {
@@ -142,4 +163,7 @@ export default {
   EmployeeShift,
   AuditLog,
   SystemPolicy,
+  EmergencyContact,
+  WorkingRule,
+  Notification,
 };

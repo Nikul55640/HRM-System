@@ -27,14 +27,14 @@ async function runDesignationMigration() {
       const statement = statements[i];
       if (statement.trim()) {
         try {
-          console.log(`⚡ Executing statement ${i + 1}/${statements.length}...`);
+          console.log(`[EXECUTING] Executing statement ${i + 1}/${statements.length}...`);
           await sequelize.query(statement);
           console.log(`✅ Statement ${i + 1} executed successfully`);
         } catch (error) {
           if (error.message.includes('already exists') || 
               error.message.includes('Duplicate column') ||
               error.message.includes('Duplicate key')) {
-            console.log(`⚠️  Statement ${i + 1} skipped (already exists): ${error.message}`);
+            console.log(`[WARNING] Statement ${i + 1} skipped (already exists): ${error.message}`);
           } else {
             console.error(`❌ Error in statement ${i + 1}:`, error.message);
             throw error;

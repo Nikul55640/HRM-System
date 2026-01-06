@@ -109,7 +109,7 @@ const validationSchemas = [
         .required("Please select a system role")
         .notOneOf(["none"], "Please select a valid system role"),
       assignedDepartments: Yup.array().when('systemRole', {
-        is: 'HR Manager',
+        is: 'HR_Manager',
         then: (schema) => schema.min(1, "HR Managers must be assigned to at least one department"),
         otherwise: (schema) => schema
       }),

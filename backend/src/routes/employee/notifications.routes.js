@@ -4,6 +4,9 @@ import notificationsController from '../../controllers/employee/notifications.co
 
 const router = express.Router();
 
+// SSE stream endpoint - handle authentication manually for EventSource compatibility
+router.get('/notifications/stream', notificationsController.streamNotifications);
+
 // Get all notifications
 router.get('/notifications', authenticate, notificationsController.getNotifications);
 
@@ -17,5 +20,8 @@ router.put('/notifications/read-all', authenticate, notificationsController.mark
 
 // Delete notification
 router.delete('/notifications/:id', authenticate, notificationsController.deleteNotification);
+
+// Test notification (for debugging)
+router.post('/notifications/test', authenticate, notificationsController.sendTestNotification);
 
 export default router;

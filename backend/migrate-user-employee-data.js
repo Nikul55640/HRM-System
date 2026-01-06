@@ -57,8 +57,8 @@ async function migrateUserEmployeeData() {
 
       console.log(`\n📈 Migration Summary:`);
       console.log(`✅ Successfully matched: ${matchedCount} User-Employee pairs`);
-      console.log(`⚠️ Unmatched users: ${unmatchedUsers.length}`);
-      console.log(`⚠️ Unmatched employees: ${unmatchedEmployees.length}`);
+      console.log(`[WARNING] Unmatched users: ${unmatchedUsers.length}`);
+      console.log(`[WARNING] Unmatched employees: ${unmatchedEmployees.length}`);
 
       if (unmatchedUsers.length > 0) {
         console.log(`\n🔍 Unmatched Users:`);

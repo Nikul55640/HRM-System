@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSE Notification Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .connecting { background-color: #fff3cd; color: #856404; }
+        .notification {
+            background-color: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        input, button {
+            padding: 8px 12px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .logs {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔔 SSE Notification Test</h1>
+        
+        <div id="status" class="status disconnected">
+            ❌ Disconnected
+        </div>
+        
+        <div>
+            <h3>Connection Settings</h3>
+            <input type="text" id="token" placeholder="JWT Token (get from main app localStorage)" style="width: 400px;">
+            <br>
+            <input type="text" id="userId" placeholder="User ID (e.g., 3)" value="3">
+            <br>
+            <button onclick="connect()">Connect to SSE</button>
+            <button onclick="disconnect()">Disconnect</button>
+        </div>
+        
+        <div>
+            <h3>Send Test Notification</h3>
+            <input type="text" id="testTitle" placeholder="Notification Title" value="Test Notification">
+            <input type="text" id="testMessage" placeholder="Notification Message" value="Hello from SSE test!">
+            <button onclick="sendTestNotification()">Send Test</button>
+        </div>
+        
+        <div>
+            <h3>Received Notifications</h3>
+            <div id="notifications"></div>
+        </div>
+        
+        <div>
+            <h3>Connection Logs</h3>
+            <div id="logs" class="logs"></div>
+        </div>
+    </div>
+
+    <script>
+        let eventSource = null;
+        const statusEl = document.getElementById('status');
+        const notificationsEl = document.getElementById('notifications');
+        const logsEl = document.getElementById('logs');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            logsEl.innerHTML += `[${timestamp}] ${message}\n`;
+            logsEl.scrollTop = logsEl.scrollHeight;
+        }
+        
+        function updateStatus(status, message) {
+            statusEl.className = `status ${status}`;
+            statusEl.innerHTML = message;
+        }
+        
+        function connect() {
+            const token = document.getElementById('token').value;
+            if (!token) {
+                alert('Please enter a JWT token');
+                return;
+            }
+            
+            if (eventSource) {
+                eventSource.close();
+            }
+            
+            updateStatus('connecting', '🔄 Connecting...');
+            log('Attempting to connect to SSE...');
+            
+            // Connect to SSE endpoint
+            const sseUrl = `http://localhost:5000/api/employee/notifications/stream?token=${encodeURIComponent(token)}`;
+            eventSource = new EventSource(sseUrl);
+            
+            eventSource.onopen = function(event) {
+                updateStatus('connected', '✅ Connected');
+                log('SSE connection established');
+            };
+            
+            eventSource.onmessage = function(event) {
+                log(`Received message: ${event.data}`);
+                try {
+                    const data = JSON.parse(event.data);
+                    displayNotification(data);
+                } catch (error) {
+                    log(`Error parsing message: ${error.message}`);
+                }
+            };
+            
+            eventSource.onerror = function(event) {
+                updateStatus('disconnected', '❌ Connection Error');
+                log(`SSE error: ${event.type}`);
+                if (eventSource.readyState === EventSource.CLOSED) {
+                    log('SSE connection closed');
+                }
+            };
+        }
+        
+        function disconnect() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                updateStatus('disconnected', '❌ Disconnected');
+                log('SSE connection closed manually');
+            }
+        }
+        
+        function displayNotification(notification) {
+            const notifEl = document.createElement('div');
+            notifEl.className = 'notification';
+            notifEl.innerHTML = `
+                <strong>${notification.title || 'Notification'}</strong><br>
+                ${notification.message || 'No message'}<br>
+                <small>Type: ${notification.type || 'info'} | Category: ${notification.category || 'system'} | Time: ${new Date().toLocaleTimeString()}</small>
+            `;
+            notificationsEl.insertBefore(notifEl, notificationsEl.firstChild);
+        }
+        
+        async function sendTestNotification() {
+            const userId = document.getElementById('userId').value;
+            const title = document.getElementById('testTitle').value;
+            const message = document.getElementById('testMessage').value;
+            
+            if (!userId) {
+                alert('Please enter a User ID');
+                return;
+            }
+            
+            try {
+                log(`Sending test notification to user ${userId}...`);
+                const response = await fetch('http://localhost:5001/test-send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: parseInt(userId),
+                        title,
+                        message
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    log('Test notification sent successfully');
+                } else {
+                    log(`Failed to send notification: ${result.error}`);
+                }
+            } catch (error) {
+                log(`Error sending notification: ${error.message}`);
+            }
+        }
+        
+        // Auto-fill token from localStorage if available
+        window.addEventListener('load', () => {
+            const token = localStorage.getItem('token') || localStorage.getItem('authToken');
+            if (token) {
+                document.getElementById('token').value = token;
+                log('Auto-filled token from localStorage');
+            }
+        });
+    </script>
+</body>
+</html>

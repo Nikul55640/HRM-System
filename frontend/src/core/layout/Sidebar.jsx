@@ -119,7 +119,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           name: "My Leads",
           path: "/employee/leads",
           icon: "Target",
-          showIf: () => can.do(MODULES.LEAD.VIEW),
+          showIf: () => can.do(MODULES.LEAD.VIEW_OWN),
         },
         {
           name: "My Shifts",
@@ -128,10 +128,16 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN),
         },
         {
+          name: "Notifications",
+          path: "/notifications",
+          icon: "Bell",
+          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+        },
+        {
           name: "Calendar",
           path: "/employee/calendar",
           icon: "CalendarRange",
-          showIf: () => can.do(MODULES.CALENDAR.VIEW),
+          showIf: () => can.do(MODULES.CALENDAR.VIEW_OWN),
         },
         {
           name: "Settings",
@@ -170,7 +176,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
       icon: "Settings",
       collapsible: true,
       showIf: () =>
-        (user?.role === "HR Administrator" || user?.role === "HR Manager" || user?.role === "SuperAdmin") &&
+        (user?.role === "HR" || user?.role === "HR_Manager" || user?.role === "SuperAdmin") &&
         can.doAny([
           MODULES.EMPLOYEE.VIEW_ALL,
           MODULES.ATTENDANCE.VIEW_ALL,
@@ -253,18 +259,46 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => can.do(MODULES.ATTENDANCE.MANAGE_SHIFTS),
         },
 
+        // Bank Details Verification
+        {
+          name: "Bank Verification",
+          path: "/admin/bank-verification",
+          icon: "Banknote",
+          showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.EDIT_ANY]),
+        },
+
         // Calendar Management
+        {
+          name: "Calendar View",
+          path: "/admin/calendar",
+          icon: "Calendar",
+          showIf: () => can.doAny([MODULES.CALENDAR.VIEW_ALL, MODULES.CALENDAR.VIEW_OWN]),
+        },
         {
           name: "Calendar Management",
           path: "/admin/calendar/management",
           icon: "CalendarCog",
-          showIf: () => can.do(MODULES.CALENDAR.MANAGE),
+          showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_EVENTS, MODULES.CALENDAR.MANAGE_HOLIDAYS]),
         },
         {
           name: "Smart Calendar",
           path: "/admin/calendar/smart",
           icon: "Settings",
-          showIf: () => can.do(MODULES.CALENDAR.MANAGE),
+          showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_SMART_CALENDAR, MODULES.CALENDAR.VIEW_SMART_CALENDAR]),
+        },
+
+        // Organization Management
+        {
+          name: "Policies",
+          path: "/admin/policies",
+          icon: "FileText",
+          showIf: () => can.doAny([MODULES.SYSTEM.MANAGE_CONFIG, MODULES.SYSTEM.VIEW_CONFIG]),
+        },
+        {
+          name: "Company Documents",
+          path: "/admin/documents",
+          icon: "FolderOpenIcon",
+          showIf: () => can.doAny([MODULES.SYSTEM.MANAGE_CONFIG, MODULES.SYSTEM.VIEW_CONFIG]),
         },
       ],
     },
@@ -290,19 +324,19 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
       items: [
         {
           name: "User Management",
-          path: "admin/users",
+          path: "/admin/users",
           icon: "UserCog",
           showIf: () => can.do(MODULES.USER.VIEW),
         },
         {
           name: "System Policies",
-          path: "admin/system-policies",
+          path: "/admin/system-policies",
           icon: "Settings",
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
         },
         {
           name: "Audit Logs",
-          path: "admin/audit-logs",
+          path: "/admin/audit-logs",
           icon: "ListChecks",
           showIf: () => can.do(MODULES.SYSTEM.VIEW_AUDIT_LOGS),
         },

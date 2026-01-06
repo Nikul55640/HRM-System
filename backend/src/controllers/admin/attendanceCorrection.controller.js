@@ -1,5 +1,6 @@
 import { AttendanceRecord, Employee, AuditLog, AttendanceCorrectionRequest, User } from '../../models/index.js';
 import auditService from '../../services/audit/audit.service.js';
+import notificationService from '../../services/notificationService.js';
 import { Op } from 'sequelize';
 
 class AttendanceCorrectionController {
@@ -258,6 +259,8 @@ class AttendanceCorrectionController {
   // Get employee correction requests (pending and processed)
   async getEmployeeCorrectionRequests(req, res) {
     try {
+      console.log('🔍 [DEBUG] getEmployeeCorrectionRequests called with query:', req.query);
+      
       const { page = 1, limit = 20, employeeId, dateFrom, dateTo, status } = req.query;
       const offset = (page - 1) * limit;
 
@@ -277,6 +280,8 @@ class AttendanceCorrectionController {
         };
       }
 
+      console.log('🔍 [DEBUG] Where clause:', whereClause);
+
       const requests = await AttendanceCorrectionRequest.findAndCountAll({
         where: whereClause,
         include: [
@@ -288,8 +293,16 @@ class AttendanceCorrectionController {
           {
             model: User,
             as: 'processor',
-            attributes: ['id', 'firstName', 'lastName'],
-            required: false
+            attributes: ['id', 'email'],
+            required: false,
+            include: [
+              {
+                model: Employee,
+                as: 'employee',
+                attributes: ['firstName', 'lastName'],
+                required: false
+              }
+            ]
           },
           {
             model: AttendanceRecord,
@@ -303,6 +316,8 @@ class AttendanceCorrectionController {
         offset
       });
 
+      console.log('🔍 [DEBUG] Found requests:', requests.count);
+
       res.json({
         success: true,
         data: requests.rows,
@@ -314,7 +329,7 @@ class AttendanceCorrectionController {
         }
       });
     } catch (error) {
-      console.error('Error fetching employee correction requests:', error);
+      console.error('❌ [ERROR] Error fetching employee correction requests:', error);
       res.status(500).json({
         success: false,
         message: 'Failed to fetch employee correction requests'
@@ -327,6 +342,8 @@ class AttendanceCorrectionController {
     try {
       const { requestId } = req.params;
       const { adminNotes } = req.body;
+
+      console.log('🔍 [DEBUG] Approving correction request:', { requestId, adminNotes });
 
       const request = await AttendanceCorrectionRequest.findByPk(requestId, {
         include: [
@@ -352,6 +369,16 @@ class AttendanceCorrectionController {
         });
       }
 
+      console.log('🔍 [DEBUG] Request details:', {
+        id: request.id,
+        employeeId: request.employeeId,
+        date: request.date,
+        attendanceRecordId: request.attendanceRecordId,
+        requestedClockIn: request.requestedClockIn,
+        requestedClockOut: request.requestedClockOut,
+        requestedBreakMinutes: request.requestedBreakMinutes
+      });
+
       // Update the request
       await request.update({
         status: 'approved',
@@ -360,46 +387,83 @@ class AttendanceCorrectionController {
         adminNotes: adminNotes || null
       });
 
-      // If there's an associated attendance record, apply the correction
+      // Find or create attendance record for the correction
+      let attendanceRecord = null;
+      
       if (request.attendanceRecordId) {
-        const attendanceRecord = await AttendanceRecord.findByPk(request.attendanceRecordId);
-        if (attendanceRecord) {
-          const updateData = {};
-          
-          if (request.requestedClockIn) {
-            updateData.clockIn = new Date(request.requestedClockIn);
+        // If there's an associated attendance record, use it
+        attendanceRecord = await AttendanceRecord.findByPk(request.attendanceRecordId);
+      } else {
+        // If no attendance record is linked, find one for the date or create a new one
+        attendanceRecord = await AttendanceRecord.findOne({
+          where: {
+            employeeId: request.employeeId,
+            date: request.date
           }
-          
-          if (request.requestedClockOut) {
-            updateData.clockOut = new Date(request.requestedClockOut);
-          }
-          
-          if (request.requestedBreakMinutes !== null) {
-            updateData.totalBreakMinutes = request.requestedBreakMinutes;
-          }
-
-          // Recalculate work hours if both clock in and out are available
-          if (updateData.clockIn || updateData.clockOut) {
-            const clockIn = updateData.clockIn || attendanceRecord.clockIn;
-            const clockOut = updateData.clockOut || attendanceRecord.clockOut;
-            const breakMinutes = updateData.totalBreakMinutes !== undefined ? updateData.totalBreakMinutes : attendanceRecord.totalBreakMinutes;
-            
-            if (clockIn && clockOut) {
-              const timeDiff = clockOut - clockIn;
-              const totalMinutes = timeDiff / (1000 * 60);
-              const workedMinutes = Math.max(0, totalMinutes - (breakMinutes || 0));
-              updateData.workHours = Math.round((workedMinutes / 60) * 100) / 100;
-              updateData.totalWorkedMinutes = workedMinutes;
-            }
-          }
-
-          updateData.correctionReason = request.reason;
-          updateData.correctedBy = req.user.id;
-          updateData.correctedAt = new Date();
-          updateData.status = 'present';
-
-          await attendanceRecord.update(updateData);
+        });
+        
+        if (!attendanceRecord) {
+          // Create a new attendance record if none exists
+          attendanceRecord = await AttendanceRecord.create({
+            employeeId: request.employeeId,
+            date: request.date,
+            clockIn: null,
+            clockOut: null,
+            totalBreakMinutes: 0,
+            totalWorkedMinutes: 0,
+            workHours: 0,
+            status: 'pending_correction',
+            createdBy: req.user.id
+          });
         }
+        
+        // Link the correction request to the attendance record
+        await request.update({ attendanceRecordId: attendanceRecord.id });
+      }
+
+      if (attendanceRecord) {
+        const updateData = {};
+        
+        if (request.requestedClockIn) {
+          updateData.clockIn = new Date(request.requestedClockIn);
+        }
+        
+        if (request.requestedClockOut) {
+          updateData.clockOut = new Date(request.requestedClockOut);
+        }
+        
+        if (request.requestedBreakMinutes !== null) {
+          updateData.totalBreakMinutes = request.requestedBreakMinutes;
+        }
+
+        // Recalculate work hours if both clock in and out are available
+        const clockIn = updateData.clockIn || attendanceRecord.clockIn;
+        const clockOut = updateData.clockOut || attendanceRecord.clockOut;
+        const breakMinutes = updateData.totalBreakMinutes !== undefined ? updateData.totalBreakMinutes : attendanceRecord.totalBreakMinutes;
+        
+        if (clockIn && clockOut) {
+          const timeDiff = clockOut - clockIn;
+          const totalMinutes = timeDiff / (1000 * 60);
+          const workedMinutes = Math.max(0, totalMinutes - (breakMinutes || 0));
+          updateData.workHours = Math.round((workedMinutes / 60) * 100) / 100;
+          updateData.totalWorkedMinutes = workedMinutes;
+        }
+
+        updateData.correctionReason = request.reason;
+        updateData.correctedBy = req.user.id;
+        updateData.correctedAt = new Date();
+        updateData.status = 'present';
+
+        await attendanceRecord.update(updateData);
+        
+        console.log('✅ [DEBUG] Attendance record updated:', {
+          recordId: attendanceRecord.id,
+          employeeId: request.employeeId,
+          date: request.date,
+          clockIn: updateData.clockIn,
+          clockOut: updateData.clockOut,
+          workHours: updateData.workHours
+        });
       }
 
       // Create audit log
@@ -414,6 +478,27 @@ class AttendanceCorrectionController {
           adminNotes
         }
       });
+
+      // 🔔 Send notification to employee about approval
+      try {
+        if (request.employee && request.employee.userId) {
+          await notificationService.sendToUser(request.employee.userId, {
+            title: 'Attendance Correction Approved ✅',
+            message: `Your attendance correction request for ${new Date(request.date).toLocaleDateString()} has been approved.`,
+            type: 'success',
+            category: 'attendance',
+            metadata: {
+              correctionRequestId: request.id,
+              date: request.date,
+              approvedBy: req.user.firstName + ' ' + req.user.lastName,
+              adminNotes: adminNotes
+            }
+          });
+        }
+      } catch (notificationError) {
+        console.error("Failed to send correction approval notification:", notificationError);
+        // Don't fail the main operation if notification fails
+      }
 
       res.json({
         success: true,
@@ -479,6 +564,27 @@ class AttendanceCorrectionController {
           adminNotes
         }
       });
+
+      // 🔔 Send notification to employee about rejection
+      try {
+        if (request.employee && request.employee.userId) {
+          await notificationService.sendToUser(request.employee.userId, {
+            title: 'Attendance Correction Rejected ❌',
+            message: `Your attendance correction request for ${new Date(request.date).toLocaleDateString()} has been rejected.${adminNotes ? ' Reason: ' + adminNotes : ''}`,
+            type: 'error',
+            category: 'attendance',
+            metadata: {
+              correctionRequestId: request.id,
+              date: request.date,
+              rejectedBy: req.user.firstName + ' ' + req.user.lastName,
+              adminNotes: adminNotes
+            }
+          });
+        }
+      } catch (notificationError) {
+        console.error("Failed to send correction rejection notification:", notificationError);
+        // Don't fail the main operation if notification fails
+      }
 
       res.json({
         success: true,

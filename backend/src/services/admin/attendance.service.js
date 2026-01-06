@@ -114,6 +114,36 @@ class AttendanceService {
                     updatedBy: user.id
                 });
 
+                // ✅ STEP 1.5: SEND LATE NOTIFICATION IF APPLICABLE
+                if (isLate) {
+                    try {
+                        // Import notification service dynamically to avoid circular dependency
+                        const notificationService = (await import('../notificationService.js')).default;
+                        
+                        // Get employee details for notification
+                        const employee = await Employee.findByPk(user.employee?.id, {
+                            include: [{
+                                model: User,
+                                as: 'user',
+                                attributes: ['id']
+                            }]
+                        });
+
+                        if (employee) {
+                            // Add employee details to attendance record for notification
+                            attendanceRecord.employee = employee;
+                            
+                            // Send late clock-in notification
+                            await notificationService.notifyLateClockIn(attendanceRecord);
+                            
+                            logger.info(`Late clock-in notification sent for employee ${employee.id}, late by ${lateMinutes} minutes`);
+                        }
+                    } catch (notificationError) {
+                        logger.error('Failed to send late clock-in notification:', notificationError);
+                        // Don't fail the clock-in if notification fails
+                    }
+                }
+
                 logger.info(`Clock-in processed: Employee ${user.employee?.id}, Late: ${isLate}, Minutes: ${lateMinutes}`);
             }
 
@@ -1218,14 +1248,15 @@ class AttendanceService {
                     }
 
                     if (shouldBeWorking) {
-                        // Create absent record
-                        await AttendanceRecord.create({
+                        // Create absent attendance record
+                        const absentRecord = await AttendanceRecord.create({
                             employeeId: employee.id,
-                            shiftId: shift?.id || null,
+                            shiftId: shift.id,
                             date: today,
                             status: 'absent',
-                            statusReason: 'Auto-marked absent - No clock-in recorded',
-                            notes: `Auto-processed at ${now.toISOString()} - Employee did not clock in within required timeframe`,
+                            statusReason: 'No clock-in recorded - Auto-marked absent',
+                            halfDayType: null, // Absent employees don't have half-day type
+                            notes: `Auto-processed at ${now.toISOString()} - Employee did not clock in by ${absentThreshold.toLocaleTimeString()}`,
                             createdBy: 1 // System user
                         });
 
@@ -1234,21 +1265,38 @@ class AttendanceService {
                             employeeName: `${employee.firstName} ${employee.lastName}`,
                             action: 'marked_absent',
                             reason: 'No clock-in recorded',
-                            shiftStartTime: shift?.shiftStartTime,
-                            absentThreshold: absentThreshold.toISOString(),
+                            shiftStartTime: shift.shiftStartTime,
+                            absentThreshold: absentThreshold.toLocaleTimeString(),
                             processedAt: now.toISOString()
                         });
 
-                        // Log the action
+                        // Log the action for audit trail
                         await AuditLog.logAction({
                             userId: 1, // System user
                             action: 'attendance_auto_absent',
                             module: 'attendance',
                             targetType: 'AttendanceRecord',
-                            targetId: null,
-                            description: `Auto-marked as absent due to no clock-in for ${employee.firstName} ${employee.lastName} (Shift: ${shift?.shiftStartTime}, Threshold: ${absentThreshold.toLocaleTimeString()})`,
+                            targetId: absentRecord.id,
+                            description: `Auto-marked as absent for ${employee.firstName} ${employee.lastName} - No clock-in by ${absentThreshold.toLocaleTimeString()} (Shift: ${shift.shiftStartTime})`,
                             severity: 'medium'
                         });
+
+                        // ✅ NEW: Send absent notification
+                        try {
+                            const notificationService = (await import('../notificationService.js')).default;
+                            
+                            // Add employee details to record for notification
+                            absentRecord.employee = employee;
+                            absentRecord.shift = shift;
+                            
+                            // Send absent notification to HR/Admin
+                            await notificationService.notifyAbsentEmployee(absentRecord);
+                            
+                            logger.info(`Absent notification sent for employee ${employee.id}`);
+                        } catch (notificationError) {
+                            logger.error('Failed to send absent notification:', notificationError);
+                            // Don't fail the absent marking if notification fails
+                        }
                     }
                 }
             }

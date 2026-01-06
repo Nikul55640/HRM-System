@@ -11,6 +11,7 @@ const LiveAttendanceDashboard = lazy(() => import("../modules/attendance/admin/L
 const ManageAttendance = lazy(() => import("../modules/attendance/components/ManageAttendance"));
 const  PolicyPage = lazy(() => import("../modules/organization/pages/PolicyPage"));
 const  CompanyDocumentsPage = lazy(() => import("../modules/organization/pages/CompanyDocumentsPage"));
+
 // Feature 3: Leave Management (Admin)
 const LeaveManagement = lazy(() => import("../modules/leave/hr/LeaveManagement"));
 const LeaveBalancesPage = lazy(() => import("../modules/leave/Admin/LeaveBalancesPage"));
@@ -33,58 +34,64 @@ const ShiftManagement = lazy(() => import("../modules/Shift/admin/ShiftManagemen
 const CalendarManagement = lazy(() => import("../modules/calendar/admin/CalendarManagement"))
 const SmartCalendarManagement = lazy(() => import("../modules/calendar/admin/SmartCalendarManagement"))
 
+// Feature 9: Bank Details Verification (Admin)
+const BankVerificationPage = lazy(() => import("../modules/admin/pages/BankVerification/BankVerificationPage"));
+
 // System Configuration
 const UserManagement = lazy(() => import("../modules/organization/admin/UserManagement"));
 const SystemConfig = lazy(() => import("../modules/organization/admin/SystemConfig"));
 
 export const adminRoutes = [
   // Employee Management
-  { path: "admin/employees", element: <EmployeeList />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/employees/new", element: <EmployeeForm />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-{ path: "admin/employees/:id", element: <EmployeeProfile />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-{ path: "admin/employees/:id/edit", element: <EmployeeForm />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "/admin/employees", element: <EmployeeList />, roles: ["SuperAdmin", "HR"] },
+  { path: "/admin/employees/new", element: <EmployeeForm />, roles: ["SuperAdmin", "HR"] },
+  { path: "/admin/employees/:id", element: <EmployeeProfile />, roles: ["SuperAdmin", "HR"] },
+  { path: "/admin/employees/:id/edit", element: <EmployeeForm />, roles: ["SuperAdmin", "HR"] },
 
   // Department Management
-  { path: "admin/departments", element: <DepartmentsPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "/admin/departments", element: <DepartmentsPage />, roles: ["SuperAdmin", "HR"] },
 
   // Designation Management
-  { path: "admin/designations", element: <DesignationsPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "/admin/designations", element: <DesignationsPage />, roles: ["SuperAdmin", "HR"] },
 
   // Attendance Management
-  { path: "admin/attendance", element: <ManageAttendance />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/attendance/corrections", element: <AttendanceCorrections />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/attendance/live", element: <LiveAttendanceDashboard />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "/admin/attendance", element: <ManageAttendance />, roles: ["SuperAdmin", "HR"] },
+  { path: "/admin/attendance/corrections", element: <AttendanceCorrections />, roles: ["SuperAdmin", "HR"] },
+  { path: "/admin/attendance/live", element: <LiveAttendanceDashboard />, roles: ["SuperAdmin", "HR"] },
 
   // Leave Management
-  { path: "admin/leave", element: <LeaveManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/leave-balances", element: <LeaveBalancesPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/leave-balance-rollover", element: <LeaveBalanceRolloverPage />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "/admin/leave", element: <LeaveManagement />, roles: ["SuperAdmin", "HR"] },
+  { path: "/admin/leave-balances", element: <LeaveBalancesPage />, roles: ["SuperAdmin", "HR"] },
+  { path: "/admin/leave-balance-rollover", element: <LeaveBalanceRolloverPage />, roles: ["SuperAdmin", "HR"] },
 
   // Lead Management
-  { path: "admin/leads", element: <LeadManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "/admin/leads", element: <LeadManagement />, roles: ["SuperAdmin", "HR"] },
 
   // Shift Management
-  { path: "admin/shifts", element: <ShiftManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "/admin/shifts", element: <ShiftManagement />, roles: ["SuperAdmin", "HR"] },
 
   // Calendar Management
-  { path: "admin/calendar/management", element: <CalendarManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
-  { path: "admin/calendar/smart", element: <SmartCalendarManagement />, roles: ["SuperAdmin", "HR Administrator", "HR Manager"] },
+  { path: "/admin/calendar/management", element: <CalendarManagement />, roles: ["SuperAdmin", "HR"] },
+  { path: "/admin/calendar/smart", element: <SmartCalendarManagement />, roles: ["SuperAdmin", "HR"] },
   
   {
-    path: "admin/policies",
+    path: "/admin/policies",
     element: <PolicyPage />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["SuperAdmin", "HR"],
   },
   {
-    path: "admin/documents",
+    path: "/admin/documents",
     element: <CompanyDocumentsPage />,
-    roles: ["HR Administrator", "HR Manager", "SuperAdmin"],
+    roles: ["SuperAdmin", "HR"],
   },
 
   // System Administration
-  { path: "admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },
-  { path: "admin/system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
+  { path: "/admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },
+  { path: "/admin/system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
+
+  // Bank Details Verification
+  { path: "/admin/bank-verification", element: <BankVerificationPage />, roles: ["SuperAdmin", "HR"] },
 
   // Audit Logs
-  { path: "admin/audit-logs", element: <AuditLogsPage />, roles: ["SuperAdmin"] },
+  { path: "/admin/audit-logs", element: <AuditLogsPage />, roles: ["SuperAdmin"] },
 ];

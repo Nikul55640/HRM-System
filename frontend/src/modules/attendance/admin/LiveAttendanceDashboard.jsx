@@ -89,7 +89,7 @@ const LiveAttendanceDashboard = () => {
         });
       } else {
         // Handle case where success is false
-        console.warn('⚠️ [LIVE ATTENDANCE] API returned success: false');
+        console.warn('[LIVE ATTENDANCE] API returned success: false');
         setLiveData([]);
         setSummary({});
         
@@ -351,7 +351,8 @@ const LiveAttendanceDashboard = () => {
                     </StatusBadge>
                     {employee.isLate && (
                       <StatusBadge status="error" size="sm">
-                        ⚠️ LATE ({employee.lateMinutes}m)
+                        <AlertTriangle className="w-3 h-3 mr-1" />
+                        LATE ({employee.lateMinutes}m)
                       </StatusBadge>
                     )}
                     {inOvertime && (

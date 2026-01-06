@@ -253,7 +253,7 @@ const useAttendanceSessionStore = create(
           (!todayRecord.sessions ||
             todayRecord.sessions.length === 0);
 
-        // 🔥 FIX: Always read breaks from legacy breakSessions and convert to session format
+            // [DEBUG] FIX: Always read breaks from legacy breakSessions and convert to session format
         const legacyBreakSessions = todayRecord.breakSessions || [];
         
         // Convert legacy break sessions to session format

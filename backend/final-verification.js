@@ -27,7 +27,7 @@ async function finalVerification() {
       if (row.linkedUserId) {
         console.log(`✅ LINKED: User ${row.userEmail} (${row.userRole}) ↔ Employee ${row.empCode} (${row.firstName} ${row.lastName})`);
       } else {
-        console.log(`⚠️ UNLINKED: User ${row.userEmail} (${row.userRole}) - No employee profile`);
+        console.log(`[WARNING] UNLINKED: User ${row.userEmail} (${row.userRole}) - No employee profile`);
       }
     });
     
@@ -61,7 +61,7 @@ async function finalVerification() {
     const unlinkedCount = results.filter(r => !r.linkedUserId).length;
     
     console.log(`   ✅ Linked User-Employee pairs: ${linkedCount}`);
-    console.log(`   ⚠️ Users without employee profiles: ${unlinkedCount}`);
+    console.log(`   [WARNING] Users without employee profiles: ${unlinkedCount}`);
     
     console.log('\n🎉 Migration Status: COMPLETED SUCCESSFULLY!');
     console.log('\n📋 What was accomplished:');

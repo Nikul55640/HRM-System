@@ -11,7 +11,7 @@ const EmergencyContact = sequelize.define('EmergencyContact', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Employees',
+      model: 'employees',
       key: 'id',
     },
     onUpdate: 'CASCADE',
@@ -60,7 +60,7 @@ const EmergencyContact = sequelize.define('EmergencyContact', {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id',
     },
   },
@@ -68,7 +68,7 @@ const EmergencyContact = sequelize.define('EmergencyContact', {
     type: DataTypes.INTEGER,
     allowNull: true,
     references: {
-      model: 'Users',
+      model: 'users',
       key: 'id',
     },
   },

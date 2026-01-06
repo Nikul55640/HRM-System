@@ -485,7 +485,7 @@ const seedData = async () => {
         console.log('SuperAdmin: admin@hrm.com / admin123');
         console.log('HR Manager: hr@hrm.com / hr123');
         console.log('Employee: john@hrm.com / john123');
-        console.log('\n⚠️  Please change default passwords in production!');
+        console.log('\n[WARNING] Please change default passwords in production!');
 
     } catch (error) {
         console.error('❌ Seed failed:', error);

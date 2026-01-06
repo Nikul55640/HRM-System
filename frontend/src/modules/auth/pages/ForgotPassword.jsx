@@ -24,12 +24,10 @@ const ForgotPassword = () => {
       setError("Email is required");
       return;
     }
-
     if (!/\S+@\S+\.\S+/.test(email)) {
       setError("Enter a valid email address");
       return;
     }
-
     try {
       setLoading(true);
       setError("");

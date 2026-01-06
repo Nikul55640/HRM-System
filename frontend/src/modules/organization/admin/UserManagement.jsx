@@ -104,8 +104,8 @@ const UserManagement = () => {
   const roleBadge = (role) => {
     const map = {
       SuperAdmin: "bg-purple-100 text-purple-700",
-      "HR Manager": "bg-blue-100 text-blue-700",
-      "HR Administrator": "bg-green-100 text-green-700",
+      "HR": "bg-green-100 text-green-700",
+      "HR_Manager": "bg-blue-100 text-blue-700",
       Employee: "bg-gray-100 text-gray-700",
     };
     return map[role] || "bg-gray-100 text-gray-700";

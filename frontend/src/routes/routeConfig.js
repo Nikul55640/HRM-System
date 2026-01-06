@@ -3,8 +3,7 @@
 
 export const defaultRedirects = {
   SuperAdmin: "/dashboard",
-  "HR Administrator": "/dashboard",
-  "HR Manager": "/dashboard",
+  HR: "/dashboard", 
   Employee: "/dashboard",
 };
 

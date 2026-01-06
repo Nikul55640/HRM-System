@@ -20,8 +20,8 @@ const LeadsPage = () => {
   const { user } = useAuth();
 
   // Check if user has permission to view leads
-  const canViewLeads = can.do(MODULES.LEAD.VIEW);
-  const canUpdateLeads = can.do(MODULES.LEAD.UPDATE);
+  const canViewLeads = can.do(MODULES.LEAD.VIEW_OWN);
+  const canUpdateLeads = can.do(MODULES.LEAD.UPDATE_OWN);
 
   const fetchMyLeads = useCallback(async () => {
     try {

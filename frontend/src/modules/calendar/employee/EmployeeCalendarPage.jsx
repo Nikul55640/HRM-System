@@ -25,7 +25,10 @@ const EmployeeCalendarPage = () => {
   const fetchEvents = useCallback(async (startDate, endDate) => {
     setLoading(true);
     try {
-      const response = await calendarService.getEventsByDateRange(startDate, endDate);
+      const response = await calendarService.getCalendarEvents({
+        startDate: startDate,
+        endDate: endDate
+      });
       
       if (response && response.success) {
         // Extract all event types from response data
@@ -53,14 +56,14 @@ const EmployeeCalendarPage = () => {
           ...(calendarData.birthdays || []).map(b => ({
             ...b,
             eventType: 'birthday',
-            title: b.title || `${b.employeeName}`,
+            title: b.title || `🎂 ${b.employeeName}`,
             startDate: b.date || b.startDate,
             color: b.color || getEventTypeConfig('birthday').color
           })),
           ...(calendarData.anniversaries || []).map(a => ({
             ...a,
             eventType: 'anniversary',
-            title: a.title || `${a.employeeName}`,
+            title: a.title || `🎊 ${a.employeeName}`,
             startDate: a.date || a.startDate,
             color: a.color || getEventTypeConfig('anniversary').color
           }))
@@ -70,6 +73,7 @@ const EmployeeCalendarPage = () => {
         const sortedEvents = sortEventsByPriority(allEvents);
         setEvents(sortedEvents);
       } else {
+        console.warn('Calendar API returned unsuccessful response:', response);
         setEvents([]);
       }
     } catch (error) {
@@ -118,7 +122,7 @@ const EmployeeCalendarPage = () => {
   const handleDateClick = (date) => {
     const dateStr = date.toISOString().split('T')[0];
     const dayEvents = events.filter(event => {
-      const eventDate = new Date(event.startDate).toISOString().split('T')[0];
+      const eventDate = event.startDate ? new Date(event.startDate).toISOString().split('T')[0] : null;
       return eventDate === dateStr;
     });
     
@@ -138,6 +142,11 @@ const EmployeeCalendarPage = () => {
       <div>
         <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Calendar</h1>
         <p className="text-sm sm:text-base text-gray-600">View holidays, leaves, and important dates</p>
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-2 text-xs text-gray-500">
+            Debug: {events.length} events loaded | View: {viewMode} | Date: {selectedDate.toDateString()}
+          </div>
+        )}
       </div>
 
       <EmployeeCalendarToolbar

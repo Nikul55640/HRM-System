@@ -29,7 +29,7 @@ async function addIncompleteStatus() {
             `);
             console.log('✅ Successfully added "incomplete" status to PostgreSQL enum');
         } else {
-            console.log(`⚠️ Unsupported database dialect: ${dialect}`);
+            console.log(`[WARNING] Unsupported database dialect: ${dialect}`);
         }
         
         console.log('🎉 Migration completed successfully!');

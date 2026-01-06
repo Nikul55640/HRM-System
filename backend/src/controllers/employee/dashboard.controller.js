@@ -53,7 +53,7 @@ const getDashboard = async (req, res, next) => {
       data: dashboardData,
     });
   } catch (error) {
-    console.error('💥 [DASHBOARD] Error:', {
+    console.error('[ERROR] [DASHBOARD] Error:', {
       message: error.message,
       stack: error.stack,
     });

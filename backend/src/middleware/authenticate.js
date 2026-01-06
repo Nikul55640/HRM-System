@@ -8,7 +8,7 @@ const authenticate = async (req, res, next) => {
 
 
   try {
-    const token = extractTokenFromHeader(req.headers.authorization);
+    const token = extractTokenFromHeader(req.headers.authorization, req.cookies);
 
     // No token
     if (!token) {
@@ -85,7 +85,7 @@ const authenticate = async (req, res, next) => {
     // SUCCESS - Load employee data if exists
     let employeeData = null;
     try {
-      // Try to get employee data through the new relationship
+      // Use the clean User -> Employee relationship
       const { Employee } = await import('../models/sequelize/index.js');
       const employee = await Employee.findOne({ 
         where: { userId: user.id },
@@ -98,6 +98,12 @@ const authenticate = async (req, res, next) => {
           employeeId: employee.employeeId,
           fullName: `${employee.firstName} ${employee.lastName}`
         };
+      } else {
+        console.warn(`⚠️ [AUTH] No employee profile found for user ${user.id} (${user.email})`);
+        // For SuperAdmin users, this might be expected
+        if (user.role === 'SuperAdmin') {
+          console.log('ℹ️ [AUTH] SuperAdmin user without employee profile - this is acceptable');
+        }
       }
     } catch (error) {
       console.warn('Could not load employee data:', error.message);
@@ -106,9 +112,13 @@ const authenticate = async (req, res, next) => {
     req.user = {
       id: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role, // Keep original role
+      normalizedRole: user.getNormalizedRole(), // Add normalized role
       assignedDepartments: user.assignedDepartments || [],
       employee: employeeData, // New structure
+      // Backward compatibility - provide employeeId directly
+      employeeId: employeeData?.id || null,
+      fullName: employeeData?.fullName || user.email,
     };
 
     next();
@@ -131,7 +141,7 @@ const authenticate = async (req, res, next) => {
  */
 const optionalAuthenticate = async (req, res, next) => {
   try {
-    const token = extractTokenFromHeader(req.headers.authorization);
+    const token = extractTokenFromHeader(req.headers.authorization, req.cookies);
 
     if (!token) return next();
 
@@ -145,7 +155,7 @@ const optionalAuthenticate = async (req, res, next) => {
     const user = await User.findByPk(decoded.id);
 
     if (user && user.isActive) {
-      // Try to get employee data for optional auth too
+      // Use the clean User -> Employee relationship for optional auth too
       let employeeData = null;
       try {
         const { Employee } = await import('../models/sequelize/index.js');
@@ -168,9 +178,13 @@ const optionalAuthenticate = async (req, res, next) => {
       req.user = {
         id: user.id,
         email: user.email,
-        role: user.role,
+        role: user.role, // Keep original role
+        normalizedRole: user.getNormalizedRole(), // Add normalized role
         assignedDepartments: user.assignedDepartments || [],
         employee: employeeData,
+        // Backward compatibility - provide employeeId directly
+        employeeId: employeeData?.id || null,
+        fullName: employeeData?.fullName || user.email,
       };
     }
 
@@ -182,7 +196,7 @@ const optionalAuthenticate = async (req, res, next) => {
 };
 
 /**
- * Authorization Middleware
+ * Authorization Middleware (with role normalization)
  */
 const authorize = (roles) => (req, res, next) => {
   if (!req.user) {
@@ -197,8 +211,10 @@ const authorize = (roles) => (req, res, next) => {
   }
 
   const allowedRoles = Array.isArray(roles) ? roles : [roles];
-
-  if (!allowedRoles.includes(req.user.role)) {
+  const userRole = req.user.role; // Use original role from database
+  
+  // Simple direct comparison - no normalization needed since we reverted to old format
+  if (!allowedRoles.includes(userRole)) {
     return res.status(403).json({
       success: false,
       error: {
@@ -206,7 +222,8 @@ const authorize = (roles) => (req, res, next) => {
         message: "You do not have permission.",
         details: {
           requiredRoles: allowedRoles,
-          userRole: req.user.role,
+          userRole: userRole,
+          allowedRoles: allowedRoles
         },
         timestamp: new Date().toISOString(),
       },

@@ -73,7 +73,7 @@ const AttendanceCorrections = () => {
     try {
       const res = await api.get(
         "/admin/attendance-corrections/requests",
-        { params: buildParams({ status: "pending_correction" }) }
+        { params: buildParams({ status: "pending" }) }
       );
       setPendingRequests(res.data?.data || []);
     } catch {
@@ -92,7 +92,7 @@ const AttendanceCorrections = () => {
       );
       setProcessedRequests(
         (res.data?.data || []).filter(
-          (r) => r.status !== "pending_correction"
+          (r) => r.status !== "pending"
         )
       );
     } catch {
@@ -134,12 +134,13 @@ const AttendanceCorrections = () => {
 
   const StatusBadge = ({ status }) => {
     const map = {
-      pending_correction: ["Pending", "bg-yellow-100 text-yellow-800"],
+      pending: ["Pending", "bg-yellow-100 text-yellow-800"],
       approved: ["Approved", "bg-green-100 text-green-800"],
       rejected: ["Rejected", "bg-red-100 text-red-800"],
-      incomplete: ["Incomplete", "bg-orange-100 text-orange-800"],
+      corrected: ["Corrected", "bg-blue-100 text-blue-800"],
+      cancelled: ["Cancelled", "bg-gray-100 text-gray-800"],
     };
-    const [label, style] = map[status] || map.pending_correction;
+    const [label, style] = map[status] || map.pending;
     return <Badge className={style}>{label}</Badge>;
   };
 
@@ -203,7 +204,8 @@ const AttendanceCorrections = () => {
                 <SelectItem value="">All</SelectItem>
                 <SelectItem value="approved">Approved</SelectItem>
                 <SelectItem value="rejected">Rejected</SelectItem>
-                <SelectItem value="incomplete">Incomplete</SelectItem>
+                <SelectItem value="corrected">Corrected</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
             <Button

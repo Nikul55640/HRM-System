@@ -5,6 +5,7 @@
 
 import leaveRequestService from '../../services/admin/leaveRequest.service.js';
 import leaveBalanceService from '../../services/admin/leaveBalance.service.js';
+import notificationService from '../../services/notificationService.js';
 import logger from '../../utils/logger.js';
 
 /**
@@ -39,6 +40,45 @@ const employeeLeaveController = {
 
       if (!result.success) {
         return sendResponse(res, false, result.message, null, 400);
+      }
+
+      // 🔔 Send notification to HR and Admin about new leave application
+      try {
+        const leaveRequest = result.data;
+        await notificationService.sendToRoles(['admin', 'hr'], {
+          title: 'New Leave Application 📝',
+          message: `${req.user.firstName} ${req.user.lastName} has applied for ${leaveRequest.leaveType} leave from ${new Date(leaveRequest.startDate).toLocaleDateString()} to ${new Date(leaveRequest.endDate).toLocaleDateString()}`,
+          type: 'info',
+          category: 'leave',
+          metadata: {
+            leaveRequestId: leaveRequest.id,
+            employeeId: req.user.employeeId,
+            employeeName: `${req.user.firstName} ${req.user.lastName}`,
+            leaveType: leaveRequest.leaveType,
+            startDate: leaveRequest.startDate,
+            endDate: leaveRequest.endDate,
+            totalDays: leaveRequest.totalDays,
+            reason: leaveRequest.reason
+          }
+        });
+
+        // Also send confirmation to employee
+        await notificationService.sendToUser(req.user.id, {
+          title: 'Leave Application Submitted ✅',
+          message: `Your ${leaveRequest.leaveType} leave application has been submitted successfully and is pending approval.`,
+          type: 'success',
+          category: 'leave',
+          metadata: {
+            leaveRequestId: leaveRequest.id,
+            leaveType: leaveRequest.leaveType,
+            startDate: leaveRequest.startDate,
+            endDate: leaveRequest.endDate,
+            totalDays: leaveRequest.totalDays
+          }
+        });
+      } catch (notificationError) {
+        logger.error("Failed to send leave application notification:", notificationError);
+        // Don't fail the main operation if notification fails
       }
 
       return sendResponse(res, true, result.message, result.data, 201);

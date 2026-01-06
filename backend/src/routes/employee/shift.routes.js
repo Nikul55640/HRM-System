@@ -11,7 +11,7 @@ const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(authenticate);
-router.use(authorize(['Employee', 'HR', 'SuperAdmin']));
+router.use(authorize(["Employee", "HR", "SuperAdmin"]));
 
 // Root shifts endpoint for API testing
 router.get('/', async (req, res) => {

@@ -4,6 +4,7 @@ import helmet from "helmet";
 import compression from "compression";
 import hpp from "hpp";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 import config from "./config/index.js";
 import errorHandler from "./middleware/errorHandler.js";
 import logger from "./utils/logger.js";
@@ -44,6 +45,7 @@ import eventTypesRoutes from "./routes/admin/eventTypes.routes.js";
 import workLocationsRoutes from "./routes/admin/workLocations.routes.js";
 import attendanceStatusRoutes from "./routes/admin/attendanceStatus.routes.js";
 import workingRulesRoutes from "./routes/admin/workingRules.routes.js";
+import bankVerificationRoutes from "./routes/admin/bankVerification.routes.js";
 
 // HRM Modules
 import calendarRoutes from "./routes/calendar.routes.js";
@@ -88,6 +90,11 @@ app.use(cors(config.cors));
 // ===================================================
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+
+// ===================================================
+// COOKIE PARSER
+// ===================================================
+app.use(cookieParser());
 
 // ===================================================
 // COMPRESSION
@@ -155,6 +162,7 @@ app.use("/api/admin/event-types", eventTypesRoutes);
 app.use("/api/admin/work-locations", workLocationsRoutes);
 app.use("/api/admin/attendance-status", attendanceStatusRoutes);
 app.use("/api/admin/working-rules", workingRulesRoutes);
+app.use("/api/admin/bank-verification", bankVerificationRoutes);
 app.use("/api/admin/config", configRoutes);
 
 // AUTH SECTION

@@ -12,7 +12,7 @@ const router = express.Router();
 router.get(
   "/",
   authenticate,
-  authorize(["SuperAdmin", "HR Administrator", "HR Manager"]),
+  authorize(["SuperAdmin", "HR", "HR"]),
   adminDashboardController.getDashboardStats
 );
 

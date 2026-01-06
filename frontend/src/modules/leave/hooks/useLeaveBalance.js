@@ -39,7 +39,7 @@ export const useLeaveBalance = (options = {}) => {
           console.log('✅ [USE LEAVE BALANCE] Found leaveTypes array:', response.data.leaveTypes.length, 'types');
           console.log('🔍 [USE LEAVE BALANCE] Leave types sample:', response.data.leaveTypes[0]);
         } else {
-          console.warn('⚠️ [USE LEAVE BALANCE] No leaveTypes found in response.data');
+          console.warn('[USE LEAVE BALANCE] No leaveTypes found in response.data');
         }
         
         setLeaveBalance(response.data);
@@ -49,7 +49,7 @@ export const useLeaveBalance = (options = {}) => {
           toast.success('Leave balance updated');
         }
       } else {
-        console.warn('⚠️ [USE LEAVE BALANCE] API returned error:', response.message);
+        console.warn('[USE LEAVE BALANCE] API returned error:', response.message);
         throw new Error(response.message || 'Failed to fetch leave balance');
       }
     } catch (err) {
