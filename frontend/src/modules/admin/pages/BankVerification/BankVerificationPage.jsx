@@ -20,6 +20,7 @@ import { toast } from 'react-toastify';
 import api from '../../../../services/api';
 import LoadingSpinner from '../../../../shared/components/LoadingSpinner';
 import { formatDistanceToNow } from 'date-fns';
+import useAuthStore from '../../../../stores/useAuthStore';
 
 const BankVerificationPage = () => {
   const [pendingVerifications, setPendingVerifications] = useState([]);
@@ -29,19 +30,53 @@ const BankVerificationPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  
+  // Get current user info for debugging
+  const { user } = useAuthStore();
+
+  const InfoItem = ({ icon, label, value, mono = false }) => (
+  <div className="flex items-start gap-3">
+    <div className="text-gray-500 mt-0.5">{icon}</div>
+    <div>
+      <p className="text-xs text-gray-500">{label}</p>
+      <p className={`font-medium ${mono ? "font-mono" : ""}`}>
+        {value}
+      </p>
+    </div>
+  </div>
+);
 
   // Fetch pending verifications
   const fetchPendingVerifications = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/employee/bank-details/pending-verifications');
+      
+      // Debug user info
+      console.log('🔍 Current user info:', {
+        id: user?.id,
+        email: user?.email,
+        role: user?.role,
+        firstName: user?.firstName,
+        lastName: user?.lastName
+      });
+      
+      const response = await api.get('/admin/bank-verification/pending-verifications');
       
       if (response.data.success) {
+        console.log('🔍 Bank verification data received:', response.data.data);
         setPendingVerifications(response.data.data || []);
       }
     } catch (error) {
-      console.error('Error fetching pending verifications:', error);
-      toast.error('Failed to load pending verifications');
+      console.error('❌ Error fetching pending verifications:', error);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Error data:', error.response?.data);
+      
+      if (error.response?.status === 403) {
+        console.error('🚫 Permission denied - User role:', user?.role);
+        toast.error(`Access denied. Your role (${user?.role}) does not have permission to view bank verifications.`);
+      } else {
+        toast.error('Failed to load pending verifications');
+      }
     } finally {
       setLoading(false);
     }
@@ -61,6 +96,8 @@ const BankVerificationPage = () => {
 
   // Handle verification action
   const handleVerification = async (employeeId, isVerified) => {
+    console.log('🔍 Starting verification process:', { employeeId, isVerified, rejectionReason });
+    
     if (!isVerified && !rejectionReason.trim()) {
       toast.error('Please provide a rejection reason');
       return;
@@ -74,7 +111,14 @@ const BankVerificationPage = () => {
         rejectionReason: !isVerified ? rejectionReason : null
       };
 
-      const response = await api.put(`/employee/bank-details/verify/${employeeId}`, payload);
+      console.log('📤 Sending verification request:', {
+        url: `/admin/bank-verification/verify/${employeeId}`,
+        payload
+      });
+
+      const response = await api.put(`/admin/bank-verification/verify/${employeeId}`, payload);
+      
+      console.log('📥 Verification response:', response.data);
       
       if (response.data.success) {
         toast.success(`Bank details ${isVerified ? 'approved' : 'rejected'} successfully`);
@@ -82,10 +126,22 @@ const BankVerificationPage = () => {
         setSelectedEmployee(null);
         setRejectionReason('');
         fetchPendingVerifications(); // Refresh the list
+      } else {
+        console.error('❌ Verification failed:', response.data);
+        toast.error(response.data.message || 'Verification failed');
       }
     } catch (error) {
-      console.error('Error processing verification:', error);
-      toast.error(error.response?.data?.message || 'Failed to process verification');
+      console.error('❌ Error processing verification:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      
+      if (error.response?.status === 403) {
+        toast.error('Access denied. You do not have permission to verify bank details.');
+      } else if (error.response?.status === 404) {
+        toast.error('Employee or bank details not found.');
+      } else {
+        toast.error(error.response?.data?.message || 'Failed to process verification');
+      }
     } finally {
       setActionLoading(false);
     }
@@ -104,6 +160,22 @@ const BankVerificationPage = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+      
+      {/* Debug Panel - Development Only */}
+      {process.env.NODE_ENV === 'development' && (
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-semibold text-red-800 mb-2">🔍 Debug Info (Development Only)</h3>
+            <div className="text-xs text-red-700 space-y-1">
+              <p><strong>User ID:</strong> {user?.id}</p>
+              <p><strong>Email:</strong> {user?.email}</p>
+              <p><strong>Role:</strong> {user?.role}</p>
+              <p><strong>Name:</strong> {user?.firstName} {user?.lastName}</p>
+              <p><strong>Required Permissions:</strong> employee.view.all, employee.update.any</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
@@ -149,99 +221,110 @@ const BankVerificationPage = () => {
       </Card>
 
       {/* Pending Verifications List */}
-      {filteredEmployees.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">All Caught Up!</h3>
-            <p className="text-gray-600">No pending bank details verifications at the moment.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {filteredEmployees.map((employee) => (
-            <Card key={employee.employeeId} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
-                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                  
-                  {/* Employee Info */}
-                  <div className="flex-1 space-y-3">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                          <User className="w-4 h-4 text-gray-500" />
-                          {employee.employeeName}
-                        </h3>
-                        <p className="text-sm text-gray-600">
-                          ID: {employee.employeeCode} • {employee.email}
-                        </p>
-                      </div>
-                      
-                      <Badge variant="secondary" className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        Pending
-                      </Badge>
-                    </div>
+   {filteredEmployees.length === 0 ? (
+  <Card className="border border-dashed">
+    <CardContent className="py-14 text-center">
+      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+      <h3 className="text-lg font-semibold text-gray-900">
+        All Caught Up
+      </h3>
+      <p className="text-gray-600 mt-1">
+        No pending bank details verifications at the moment.
+      </p>
+    </CardContent>
+  </Card>
+) : (
+  <div className="space-y-4">
+    {filteredEmployees.map((employee) => (
+      <Card
+        key={employee.employeeId}
+        className="border border-gray-200 hover:shadow-md transition"
+      >
+        <CardContent className="p-5">
+          <div className="flex flex-col lg:flex-row gap-6">
 
-                    {/* Bank Details */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-4 h-4 text-gray-500" />
-                        <div>
-                          <p className="text-xs text-gray-500">Bank Name</p>
-                          <p className="font-medium">{employee.bankName}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <CreditCard className="w-4 h-4 text-gray-500" />
-                        <div>
-                          <p className="text-xs text-gray-500">Account Number</p>
-                          <p className="font-medium font-mono">{employee.accountNumber}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className="w-4 h-4 text-gray-500 text-xs font-bold">IFSC</span>
-                        <div>
-                          <p className="text-xs text-gray-500">IFSC Code</p>
-                          <p className="font-medium font-mono">{employee.ifscCode}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-gray-500" />
-                        <div>
-                          <p className="text-xs text-gray-500">Account Holder</p>
-                          <p className="font-medium">{employee.accountHolderName}</p>
-                        </div>
-                      </div>
-                    </div>
+            {/* LEFT : Employee + Bank Info */}
+            <div className="flex-1 space-y-4">
 
-                    {/* Timestamp */}
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Calendar className="w-4 h-4" />
-                      Submitted {formatDistanceToNow(new Date(employee.updatedAt), { addSuffix: true })}
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex flex-col sm:flex-row gap-2 lg:flex-col lg:w-32">
-                    <Button
-                      onClick={() => openVerificationModal(employee)}
-                      className="flex items-center justify-center gap-2"
-                      size="sm"
-                    >
-                      <Eye className="w-4 h-4" />
-                      Review
-                    </Button>
-                  </div>
+              {/* Header */}
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                    <User className="w-4 h-4 text-gray-500" />
+                    {employee.employeeName}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    ID: {employee.employeeCode} • {employee.email}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+
+                <Badge
+                  variant="secondary"
+                  className="flex items-center gap-1 text-yellow-700 bg-yellow-100"
+                >
+                  <Clock className="w-3 h-3" />
+                  Pending
+                </Badge>
+              </div>
+
+              {/* Bank Details */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 border rounded-md p-4">
+
+                <InfoItem
+                  icon={<Building2 className="w-4 h-4" />}
+                  label="Bank Name"
+                  value={employee.bankName}
+                />
+
+                <InfoItem
+                  icon={<CreditCard className="w-4 h-4" />}
+                  label="Account Number"
+                  mono
+                  value={employee.accountNumber || "Not Available"}
+                />
+
+                <InfoItem
+                  icon={<span className="text-xs font-bold">IFSC</span>}
+                  label="IFSC Code"
+                  mono
+                  value={employee.ifscCode}
+                />
+
+                <InfoItem
+                  icon={<User className="w-4 h-4" />}
+                  label="Account Holder"
+                  value={employee.accountHolderName}
+                />
+              </div>
+
+              {/* Submitted Time */}
+              <div className="flex items-center gap-2 text-xs text-gray-500">
+                <Calendar className="w-4 h-4" />
+                Submitted{" "}
+                {formatDistanceToNow(new Date(employee.updatedAt), {
+                  addSuffix: true,
+                })}
+              </div>
+            </div>
+
+            {/* RIGHT : Actions */}
+            <div className="flex lg:flex-col gap-2 justify-end">
+              <Button
+                size="sm"
+                onClick={() => openVerificationModal(employee)}
+                className="flex items-center gap-2"
+              >
+                <Eye className="w-4 h-4" />
+                Review
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+)}
+
 
       {/* Verification Modal */}
       {showModal && selectedEmployee && (
@@ -298,7 +381,15 @@ const BankVerificationPage = () => {
                     </div>
                     <div>
                       <span className="text-yellow-700">Account Number:</span>
-                      <p className="font-medium font-mono">{selectedEmployee.accountNumber}</p>
+                      <p className="font-medium font-mono">
+                        {selectedEmployee.accountNumber || 'Not Available'}
+                      </p>
+                      {/* Debug info - remove in production */}
+                      {process.env.NODE_ENV === 'development' && (
+                        <p className="text-xs text-red-500">
+                          Debug: {JSON.stringify(selectedEmployee.accountNumber)}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <span className="text-yellow-700">Account Holder:</span>

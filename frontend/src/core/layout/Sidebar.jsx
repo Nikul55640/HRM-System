@@ -77,7 +77,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
     },
 
     // ===================================================
-    // EMPLOYEE SELF-SERVICE SECTION
+    // EMPLOYEE SELF-SERVICE SECTION - Employee only
     // ===================================================
     {
       section: "My Self Service",
@@ -89,79 +89,79 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           name: "My Profile",
           path: "/employee/profile",
           icon: "User",
-          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+          showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
         },
         {
           name: "Bank Details",
           path: "/employee/bank-details",
           icon: "Banknote",
-          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+          showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
         },
         {
           name: "My Attendance",
           path: "/employee/attendance",
           icon: "Clock",
-          showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN),
+          showIf: () => user?.role === "Employee" && can.do(MODULES.ATTENDANCE.VIEW_OWN),
         },
         {
           name: "Attendance Corrections",
           path: "/employee/attendance/corrections",
           icon: "ClipboardEdit",
-          showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN),
+          showIf: () => user?.role === "Employee" && can.do(MODULES.ATTENDANCE.VIEW_OWN),
         },
         {
           name: "My Leave",
           path: "/employee/leave",
           icon: "CalendarDays",
-          showIf: () => can.do(MODULES.LEAVE.VIEW_OWN),
+          showIf: () => user?.role === "Employee" && can.do(MODULES.LEAVE.VIEW_OWN),
         },
         {
           name: "My Leads",
           path: "/employee/leads",
           icon: "Target",
-          showIf: () => can.do(MODULES.LEAD.VIEW_OWN),
+          showIf: () => user?.role === "Employee" && can.do(MODULES.LEAD.VIEW_OWN),
         },
         {
           name: "My Shifts",
           path: "/employee/shifts",
           icon: "Calendar",
-          showIf: () => can.do(MODULES.ATTENDANCE.VIEW_OWN),
+          showIf: () => user?.role === "Employee" && can.do(MODULES.ATTENDANCE.VIEW_OWN),
         },
         {
           name: "Notifications",
           path: "/notifications",
           icon: "Bell",
-          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+          showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
         },
         {
           name: "Calendar",
           path: "/employee/calendar",
           icon: "CalendarRange",
-          showIf: () => can.do(MODULES.CALENDAR.VIEW_OWN),
+          showIf: () => user?.role === "Employee" && can.do(MODULES.CALENDAR.VIEW_OWN),
         },
         {
           name: "Settings",
           path: "/employee/settings",
           icon: "Settings",
-          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+          showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
           subItems: [
             {
               name: "Profile",
               path: "/employee/settings/profile",
               icon: "User",
-              showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+              showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
             },
             {
               name: "Security",
               path: "/employee/settings/security",
               icon: "Shield",
-              showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+              showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
             },
             {
               name: "Emergency Contacts",
               path: "/employee/settings/emergency-contacts",
               icon: "Phone",
-              showIf: () => can.do(MODULES.EMPLOYEE.VIEW_OWN),
+              showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
             },
           ],
         },
@@ -183,7 +183,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           MODULES.LEAVE.VIEW_ALL,
         ]),
       items: [
-        // Employee Management
+        // Employee Management - HR can view and edit employees
         {
           name: "Employees",
           path: "/admin/employees",
@@ -200,10 +200,10 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           name: "Designations",
           path: "/admin/designations",
           icon: "Award",
-          showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.EDIT_ANY]),
+          showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.UPDATE_ANY]),
         },
 
-        // Attendance Management
+        // Attendance Management - HR can view all, edit, approve corrections, mark absent
         {
           name: "Attendance Management",
           path: "/admin/attendance",
@@ -214,7 +214,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           name: "Attendance Corrections",
           path: "/admin/attendance/corrections",
           icon: "ClipboardEdit",
-          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.APPROVE_CORRECTION]),
         },
         {
           name: "Live Attendance",
@@ -223,7 +223,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
         },
 
-        // Leave Management
+        // Leave Management - HR can approve/reject leave (but not override - that's Admin only)
         {
           name: "Leave Requests",
           path: "/admin/leave",
@@ -234,13 +234,14 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           name: "Leave Balances",
           path: "/admin/leave-balances",
           icon: "Scale",
-          showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCE),
+          showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCES),
         },
+        // Leave Balance Rollover - Admin only (removed from HR)
         {
           name: "Leave Balance Rollover",
           path: "/admin/leave-balance-rollover",
           icon: "RefreshCw",
-          showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCE),
+          showIf: () => user?.role === "SuperAdmin" && can.do(MODULES.LEAVE.MANAGE_BALANCES),
         },
 
         // Lead Management
@@ -248,10 +249,10 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           name: "Lead Management",
           path: "/admin/leads",
           icon: "Target",
-          showIf: () => can.doAny([MODULES.LEAD.CREATE, MODULES.LEAD.MANAGE_ALL]),
+          showIf: () => can.doAny([MODULES.LEAD.CREATE, MODULES.LEAD.MANAGE]),
         },
 
-        // Shift Management
+        // Shift Management - HR can assign shifts (but not create shift rules - that's Admin only)
         {
           name: "Shift Management",
           path: "/admin/shifts",
@@ -264,10 +265,10 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           name: "Bank Verification",
           path: "/admin/bank-verification",
           icon: "Banknote",
-          showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.EDIT_ANY]),
+          showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.UPDATE_ANY]),
         },
 
-        // Calendar Management
+        // Calendar Management - HR can view company holidays, add events/holidays (but not delete holidays)
         {
           name: "Calendar View",
           path: "/admin/calendar",
@@ -280,11 +281,12 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           icon: "CalendarCog",
           showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_EVENTS, MODULES.CALENDAR.MANAGE_HOLIDAYS]),
         },
+        // Smart Calendar - HR can add events/holidays, Admin can create shift rules
         {
           name: "Smart Calendar",
           path: "/admin/calendar/smart",
           icon: "Settings",
-          showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_SMART_CALENDAR, MODULES.CALENDAR.VIEW_SMART_CALENDAR]),
+          showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_SMART_CALENDAR, MODULES.CALENDAR.VIEW_SMART_CALENDAR, MODULES.CALENDAR.MANAGE_EVENTS, MODULES.CALENDAR.MANAGE_HOLIDAYS]),
         },
 
         // Organization Management

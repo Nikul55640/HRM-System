@@ -18,11 +18,11 @@ const createUser = async (userData, currentUser, metadata = {}) => {
       };
     }
 
-    if (userData.role === 'HR Manager') {
+    if (userData.role === 'HR_Manager') {
       if (!userData.assignedDepartments || userData.assignedDepartments.length === 0) {
         throw {
           code: 'VALIDATION_ERROR',
-          message: 'HR Manager must have at least one assigned department.',
+          message: 'HR_Manager must have at least one assigned department.',
           statusCode: 400,
         };
       }
@@ -100,14 +100,14 @@ const updateUser = async (userId, updateData, currentUser, metadata = {}) => {
       }
     }
 
-    if (updateData.role === 'HR Manager' ||
-      (user.role === 'HR Manager' && !updateData.role)) {
+    if (updateData.role === 'HR_Manager' ||
+      (user.role === 'HR_Manager' && !updateData.role)) {
       const departments = updateData.assignedDepartments ?? user.assignedDepartments;
 
       if (!departments || departments.length === 0) {
         throw {
           code: 'VALIDATION_ERROR',
-          message: 'HR Manager must have at least one assigned department.',
+          message: 'HR_Manager must have at least one assigned department.',
           statusCode: 400,
         };
       }
@@ -206,7 +206,7 @@ const changeUserRole = async (userId, newRole, currentUser, metadata = {}) => {
       };
     }
 
-    const validRoles = ['SuperAdmin', 'HR Manager', 'HR Administrator', 'Employee'];
+    const validRoles = ['SuperAdmin', 'HR', 'HR_Manager', 'Employee'];
     if (!validRoles.includes(newRole)) {
       throw {
         code: 'INVALID_ROLE',

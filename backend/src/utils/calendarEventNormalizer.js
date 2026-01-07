@@ -32,7 +32,7 @@ export const UnifiedEventModel = {
   // Employee-related properties
   employeeId: null,          // Related employee ID
   employeeName: null,        // Employee display name
-  employeeCode: null,        // Employee code/ID
+  employeeCode: null,        // Employee code/ID (maps to employeeId column)
   department: null,          // Employee department
   
   // Event-specific properties

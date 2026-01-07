@@ -22,12 +22,12 @@ router.use(authenticate);
 router.get('/active', getActiveWorkingRule);
 router.get('/check/:date', checkWorkingDay);
 
-// Admin routes - require system configuration permissions
-router.get('/', checkPermission(MODULES.SYSTEM.MANAGE_CONFIG), getWorkingRules);
-router.get('/:id', checkPermission(MODULES.SYSTEM.MANAGE_CONFIG), getWorkingRuleById);
-router.post('/', checkPermission(MODULES.SYSTEM.MANAGE_CONFIG), createWorkingRule);
-router.put('/:id', checkPermission(MODULES.SYSTEM.MANAGE_CONFIG), updateWorkingRule);
-router.patch('/:id/set-default', checkPermission(MODULES.SYSTEM.MANAGE_CONFIG), setDefaultWorkingRule);
-router.delete('/:id', checkPermission(MODULES.SYSTEM.MANAGE_CONFIG), deleteWorkingRule);
+// Admin routes - require calendar management permissions (HR can view, only Admin can modify)
+router.get('/', checkPermission(MODULES.CALENDAR.VIEW_SMART_CALENDAR), getWorkingRules);
+router.get('/:id', checkPermission(MODULES.CALENDAR.VIEW_SMART_CALENDAR), getWorkingRuleById);
+router.post('/', checkPermission(MODULES.SYSTEM.MANAGE_CONFIG), createWorkingRule); // Admin only
+router.put('/:id', checkPermission(MODULES.SYSTEM.MANAGE_CONFIG), updateWorkingRule); // Admin only
+router.patch('/:id/set-default', checkPermission(MODULES.SYSTEM.MANAGE_CONFIG), setDefaultWorkingRule); // Admin only
+router.delete('/:id', checkPermission(MODULES.SYSTEM.MANAGE_CONFIG), deleteWorkingRule); // Admin only
 
 export default router;

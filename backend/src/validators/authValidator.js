@@ -22,7 +22,7 @@ const registerSchema = Joi.object({
       'any.required': 'Password is required',
     }),
   role: Joi.string()
-    .valid('SuperAdmin', 'HR Manager', 'HR Administrator', 'Employee')
+    .valid('SuperAdmin', 'HR', 'HR_Manager', 'Employee')
     .default('Employee')
     .messages({
       'any.only': 'Invalid role specified',
@@ -30,14 +30,14 @@ const registerSchema = Joi.object({
   assignedDepartments: Joi.array()
     .items(Joi.string().pattern(/^[0-9a-fA-F]{24}$/))
     .when('role', {
-      is: 'HR Manager',
+      is: 'HR_Manager',
       then: Joi.required(),
       otherwise: Joi.forbidden(),
     })
     .messages({
       'array.base': 'Assigned departments must be an array',
       'string.pattern.base': 'Invalid department ID format',
-      'any.required': 'HR Manager must have at least one assigned department',
+      'any.required': 'HR_Manager must have at least one assigned department',
     }),
 });
 

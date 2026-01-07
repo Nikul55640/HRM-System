@@ -153,12 +153,53 @@ const createLeaveRequest = async (req, res) => {
       remaining: leaveBalance.remaining - totalDays,
     });
 
-    // TODO: Implement notification system
-    // Notifications temporarily disabled until Notification model is created
-    logger.info(`Leave request created for employee ${employeeId}: ${type} leave for ${totalDays} days`);
-    
-    // Log for HR notification (temporary)
-    logger.info(`HR notification needed: ${fullName} submitted ${type} leave request for ${totalDays} days`);
+    // 🔔 Send notifications
+    try {
+      // Import notification service
+      const notificationService = (await import('../../services/notificationService.js')).default;
+      
+      // 1. Notify the employee that their request was submitted
+      await notificationService.sendToUser(userId, {
+        title: 'Leave Request Submitted ✅',
+        message: `Your ${type} leave request for ${totalDays} day${totalDays > 1 ? 's' : ''} from ${start.toLocaleDateString()} to ${end.toLocaleDateString()} has been submitted and is pending approval.`,
+        type: 'info',
+        category: 'leave',
+        metadata: {
+          leaveRequestId: leaveRequest.id,
+          leaveType: type,
+          startDate: start,
+          endDate: end,
+          totalDays,
+          isRetroactive
+        }
+      });
+
+      // 2. Notify HR and SuperAdmin about new leave request
+      // Support both old and new role formats for backward compatibility
+      const adminRoles = ['HR', 'SuperAdmin', 'HR_ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'];
+      await notificationService.sendToRoles(adminRoles, {
+        title: 'New Leave Request 📋',
+        message: `${fullName} has submitted a ${type} leave request for ${totalDays} day${totalDays > 1 ? 's' : ''} from ${start.toLocaleDateString()} to ${end.toLocaleDateString()}.${isRetroactive ? ' (Retroactive)' : ''}`,
+        type: 'info',
+        category: 'leave',
+        metadata: {
+          leaveRequestId: leaveRequest.id,
+          employeeId,
+          employeeName: fullName,
+          leaveType: type,
+          startDate: start,
+          endDate: end,
+          totalDays,
+          isRetroactive,
+          reason: reason.substring(0, 100) // Truncate reason for notification
+        }
+      });
+
+      logger.info(`Leave request notifications sent for employee ${employeeId}: ${type} leave for ${totalDays} days`);
+    } catch (notificationError) {
+      logger.error("Failed to send leave request notifications:", notificationError);
+      // Don't fail the main operation if notification fails
+    }
 
     // Audit Log
     await AuditLog.create({
@@ -325,6 +366,51 @@ const cancelLeaveRequest = async (req, res) => {
         pending: Math.max(0, leaveBalance.pending - leaveRequest.totalDays),
         remaining: leaveBalance.remaining + leaveRequest.totalDays,
       });
+    }
+
+    // 🔔 Send notifications about cancellation
+    try {
+      // Import notification service
+      const notificationService = (await import('../../services/notificationService.js')).default;
+      
+      // 1. Notify the employee that their request was cancelled
+      await notificationService.sendToUser(req.user.id, {
+        title: 'Leave Request Cancelled ❌',
+        message: `Your ${leaveRequest.leaveType} leave request for ${leaveRequest.totalDays} day${leaveRequest.totalDays > 1 ? 's' : ''} from ${leaveRequest.startDate.toLocaleDateString()} to ${leaveRequest.endDate.toLocaleDateString()} has been cancelled.`,
+        type: 'warning',
+        category: 'leave',
+        metadata: {
+          leaveRequestId: leaveRequest.id,
+          leaveType: leaveRequest.leaveType,
+          startDate: leaveRequest.startDate,
+          endDate: leaveRequest.endDate,
+          totalDays: leaveRequest.totalDays,
+          cancelledBy: req.user.fullName
+        }
+      });
+
+      // 2. Notify HR and SuperAdmin about cancellation
+      const adminRoles = ['HR', 'SuperAdmin', 'HR_ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'];
+      await notificationService.sendToRoles(adminRoles, {
+        title: 'Leave Request Cancelled 📋',
+        message: `${req.user.fullName || 'Employee'} has cancelled their ${leaveRequest.leaveType} leave request for ${leaveRequest.totalDays} day${leaveRequest.totalDays > 1 ? 's' : ''} from ${leaveRequest.startDate.toLocaleDateString()} to ${leaveRequest.endDate.toLocaleDateString()}.`,
+        type: 'info',
+        category: 'leave',
+        metadata: {
+          leaveRequestId: leaveRequest.id,
+          employeeId,
+          employeeName: req.user.fullName,
+          leaveType: leaveRequest.leaveType,
+          startDate: leaveRequest.startDate,
+          endDate: leaveRequest.endDate,
+          totalDays: leaveRequest.totalDays
+        }
+      });
+
+      logger.info(`Leave request cancellation notifications sent for employee ${employeeId}`);
+    } catch (notificationError) {
+      logger.error("Failed to send leave cancellation notifications:", notificationError);
+      // Don't fail the main operation if notification fails
     }
 
     // Audit Log for cancellation

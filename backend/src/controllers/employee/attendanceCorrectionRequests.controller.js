@@ -203,7 +203,8 @@ const submitCorrectionRequest = async (req, res) => {
 
     // Send notification to HR and Admin about new correction request
     try {
-      await notificationService.sendToRoles(['admin', 'hr'], {
+      const adminRoles = ['HR', 'SuperAdmin', 'HR_ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'];
+      await notificationService.sendToRoles(adminRoles, {
         title: 'New Attendance Correction Request',
         message: `${requestWithEmployee.employee.firstName} ${requestWithEmployee.employee.lastName} has submitted an attendance correction request for ${date}`,
         type: 'info',

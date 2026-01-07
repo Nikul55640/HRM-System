@@ -1,7 +1,3 @@
-/**
- * Smart Calendar Controller
- * Implements the enhanced calendar logic with working rules, smart holidays, and proper event management
- */
 
 import calendarDayStatusService from '../../services/calendar/calendarDayStatus.service.js';
 import { CompanyEvent, Holiday, LeaveRequest, Employee, WorkingRule } from '../../models/index.js';
@@ -22,7 +18,7 @@ export const getSmartMonthlyCalendar = async (req, res) => {
     const startDate = new Date(currentYear, currentMonth - 1, 1);
     const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
 
-    const isHROrAdmin = ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(req.user.role);
+    const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(req.user.role);
     const targetEmployeeId = employeeId || (isHROrAdmin ? null : req.user.employeeId);
 
     // Get monthly summary with day statuses
@@ -115,7 +111,7 @@ export const getSmartDailyCalendar = async (req, res) => {
     }
 
     const checkDate = new Date(date);
-    const isHROrAdmin = ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(req.user.role);
+    const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(req.user.role);
     const targetEmployeeId = isHROrAdmin ? null : req.user.employeeId;
 
     // Get day status
@@ -264,7 +260,7 @@ async function getEventsForMonth(startDate, endDate, user, departmentId) {
     status: 'scheduled'
   };
 
-  const isHROrAdmin = ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(user.role);
+  const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(user.role);
   
   if (!isHROrAdmin) {
     whereClause[Op.and] = [
@@ -308,7 +304,7 @@ async function getLeavesForMonth(startDate, endDate, user, employeeId) {
     status: 'approved'
   };
 
-  const isHROrAdmin = ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(user.role);
+  const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(user.role);
   
   if (!isHROrAdmin && employeeId) {
     whereClause.employeeId = employeeId;
@@ -319,7 +315,7 @@ async function getLeavesForMonth(startDate, endDate, user, employeeId) {
     include: [{
       model: Employee,
       as: 'employee', // Add the alias here
-      attributes: ['firstName', 'lastName', 'employeeCode']
+      attributes: ['firstName', 'lastName', 'employeeId']
     }],
     order: [['startDate', 'ASC']]
   });
@@ -344,7 +340,7 @@ async function getEventsForDay(startDate, endDate, user) {
     status: 'scheduled'
   };
 
-  const isHROrAdmin = ['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(user.role);
+  const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(user.role);
   
   if (!isHROrAdmin) {
     whereClause[Op.and] = [
@@ -372,7 +368,7 @@ async function getBirthdaysForMonth(month) {
         [Op.not]: null
       }
     },
-    attributes: ['id', 'firstName', 'lastName', 'employeeCode', 'dateOfBirth'],
+    attributes: ['id', 'firstName', 'lastName', 'employeeId', 'dateOfBirth'],
     raw: true
   }).then(employees => {
     return employees
@@ -381,7 +377,7 @@ async function getBirthdaysForMonth(month) {
         id: `birthday_${emp.id}`,
         employeeId: emp.id,
         employeeName: `${emp.firstName} ${emp.lastName}`,
-        employeeCode: emp.employeeCode,
+        employeeCode: emp.employeeId,
         date: new Date(new Date().getFullYear(), month - 1, new Date(emp.dateOfBirth).getDate()),
         type: 'birthday',
         title: `🎂 ${emp.firstName} ${emp.lastName}'s Birthday`
@@ -396,7 +392,7 @@ async function getAnniversariesForMonth(month) {
         [Op.not]: null
       }
     },
-    attributes: ['id', 'firstName', 'lastName', 'employeeCode', 'joiningDate'],
+    attributes: ['id', 'firstName', 'lastName', 'employeeId', 'joiningDate'],
     raw: true
   }).then(employees => {
     return employees
@@ -405,7 +401,7 @@ async function getAnniversariesForMonth(month) {
         id: `anniversary_${emp.id}`,
         employeeId: emp.id,
         employeeName: `${emp.firstName} ${emp.lastName}`,
-        employeeCode: emp.employeeCode,
+        employeeCode: emp.employeeId,
         date: new Date(new Date().getFullYear(), month - 1, new Date(emp.joiningDate).getDate()),
         type: 'anniversary',
         title: `🎊 ${emp.firstName} ${emp.lastName}'s Work Anniversary`
@@ -423,7 +419,7 @@ async function getBirthdaysForDay(date) {
         [Op.not]: null
       }
     },
-    attributes: ['id', 'firstName', 'lastName', 'employeeCode', 'dateOfBirth'],
+    attributes: ['id', 'firstName', 'lastName', 'employeeId', 'dateOfBirth'],
     raw: true
   }).then(employees => {
     return employees
@@ -435,7 +431,7 @@ async function getBirthdaysForDay(date) {
         id: `birthday_${emp.id}`,
         employeeId: emp.id,
         employeeName: `${emp.firstName} ${emp.lastName}`,
-        employeeCode: emp.employeeCode,
+        employeeCode: emp.employeeId,
         date: date,
         type: 'birthday',
         title: `🎂 ${emp.firstName} ${emp.lastName}'s Birthday`
@@ -453,7 +449,7 @@ async function getAnniversariesForDay(date) {
         [Op.not]: null
       }
     },
-    attributes: ['id', 'firstName', 'lastName', 'employeeCode', 'joiningDate'],
+    attributes: ['id', 'firstName', 'lastName', 'employeeId', 'joiningDate'],
     raw: true
   }).then(employees => {
     return employees
@@ -465,7 +461,7 @@ async function getAnniversariesForDay(date) {
         id: `anniversary_${emp.id}`,
         employeeId: emp.id,
         employeeName: `${emp.firstName} ${emp.lastName}`,
-        employeeCode: emp.employeeCode,
+        employeeCode: emp.employeeId,
         date: date,
         type: 'anniversary',
         title: `🎊 ${emp.firstName} ${emp.lastName}'s Work Anniversary`

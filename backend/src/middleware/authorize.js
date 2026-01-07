@@ -51,13 +51,13 @@ const canAccessDepartment = (departmentId, user) => {
     return true;
   }
 
-  // HR Administrator can access all departments
-  if (user.role === 'HR Administrator') {
+  // HR can access all departments (HR Administrator level)
+  if (user.role === 'HR') {
     return true;
   }
 
-  // HR Manager can only access assigned departments
-  if (user.role === 'HR Manager') {
+  // HR_Manager can only access assigned departments
+  if (user.role === 'HR_Manager') {
     if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
       return false;
     }
@@ -76,13 +76,13 @@ const canAccessDepartment = (departmentId, user) => {
  */
 const checkDepartmentAccess = async (req, res, next) => {
   try {
-    // SuperAdmin and HR Administrator have access to all departments
-    if (req.user.role === 'SuperAdmin' || req.user.role === 'HR Administrator') {
+    // SuperAdmin and HR have access to all departments
+    if (req.user.role === 'SuperAdmin' || req.user.role === 'HR') {
       return next();
     }
 
-    // For HR Managers, check department access
-    if (req.user.role === 'HR Manager') {
+    // For HR_Manager, check department access
+    if (req.user.role === 'HR_Manager') {
       // Get employee ID from request params or body
       const employeeId = req.params.id || req.params.employeeId || req.body.employeeId;
 
@@ -151,13 +151,13 @@ const checkDepartmentAccess = async (req, res, next) => {
  * Adds department filter to query for HR Managers
  */
 const applyDepartmentScope = (req, res, next) => {
-  // SuperAdmin and HR Administrator can see all employees
-  if (req.user.role === 'SuperAdmin' || req.user.role === 'HR Administrator') {
+  // SuperAdmin and HR can see all employees
+  if (req.user.role === 'SuperAdmin' || req.user.role === 'HR') {
     return next();
   }
 
-  // HR Manager can only see employees in their assigned departments
-  if (req.user.role === 'HR Manager') {
+  // HR_Manager can only see employees in their assigned departments
+  if (req.user.role === 'HR_Manager') {
     if (!req.user.assignedDepartments || req.user.assignedDepartments.length === 0) {
       return res.status(403).json({
         success: false,
@@ -206,7 +206,7 @@ const checkSelfOrAdmin = (paramName = 'id') => async (req, res, next) => {
     const resourceId = req.params[paramName];
 
     // Admin roles can access any resource
-    if (['SuperAdmin', 'HR Administrator', 'HR Manager'].includes(req.user.role)) {
+    if (['SuperAdmin', 'HR', 'HR_Manager'].includes(req.user.role)) {
       return next();
     }
 

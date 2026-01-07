@@ -191,7 +191,8 @@ const employeeManagementController = {
           });
 
           // Send notification to HR/Admin about new employee
-          await notificationService.sendToRoles(['admin', 'hr'], {
+          const adminRoles = ['HR', 'SuperAdmin', 'HR_ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'];
+          await notificationService.sendToRoles(adminRoles, {
             title: 'New Employee Added 👥',
             message: `${personalInfo.firstName} ${personalInfo.lastName} has been added as a new employee in ${jobInfo.department} department.`,
             type: 'info',

@@ -163,9 +163,19 @@ api.interceptors.response.use(
     if (error.response.status === 403) {
       const errorMsg = error.response?.data?.message || 'Access denied';
       toast.error(errorMsg);
-      // Only redirect if it's a general forbidden error, not employee profile issues
-      if (!errorMsg.includes('Employee profile') && window.location.pathname !== "/unauthorized") {
+      
+      // Don't redirect for certain pages/endpoints to allow proper error handling
+      const currentPath = window.location.pathname;
+      const isSpecialPage = currentPath.includes('/bank-verification') || 
+                           currentPath.includes('/admin/') ||
+                           errorMsg.includes('Employee profile');
+      
+      // Only redirect if it's a general forbidden error and not on special admin pages
+      if (!isSpecialPage && currentPath !== "/unauthorized") {
+        console.log('🔄 Redirecting to unauthorized page due to 403 error');
         window.location.href = "/unauthorized";
+      } else {
+        console.log('🚫 403 error on special page, not redirecting:', currentPath);
       }
     }
 

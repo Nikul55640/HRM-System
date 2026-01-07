@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import { useSearchParams } from 'react-router-dom';
-import { Cake, PartyPopper } from 'lucide-react';
 import { calendarService } from '../../../services';
 import { getEventTypeConfig, sortEventsByPriority } from '../../../core/utils/calendarEventTypes';
 import EmployeeCalendarToolbar from './EmployeeCalendarToolbar';

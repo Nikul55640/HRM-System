@@ -441,6 +441,112 @@ class NotificationService {
       },
     });
   }
+
+  // ===================================================
+  // WORKING RULE NOTIFICATION METHODS
+  // ===================================================
+
+  /**
+   * Working rule created notification
+   */
+  async notifyWorkingRuleCreated(workingRule, createdBy) {
+    const workingDaysText = workingRule.workingDays.map(day => {
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      return days[day];
+    }).join(', ');
+
+    await this.sendToRoles(['SuperAdmin', 'HR', 'HR_Manager'], {
+      title: '📋 New Working Rule Created',
+      message: `Working rule "${workingRule.ruleName}" created by ${createdBy}. Working days: ${workingDaysText}`,
+      type: 'info',
+      category: 'system',
+      metadata: {
+        workingRuleId: workingRule.id,
+        ruleName: workingRule.ruleName,
+        workingDays: workingRule.workingDays,
+        weekendDays: workingRule.weekendDays,
+        effectiveFrom: workingRule.effectiveFrom,
+        createdBy,
+        action: 'created'
+      }
+    });
+  }
+
+  /**
+   * Working rule updated notification
+   */
+  async notifyWorkingRuleUpdated(workingRule, changes, updatedBy, isHighPriority = false) {
+    const changeText = changes.join('. ');
+    const notificationType = isHighPriority ? 'warning' : 'info';
+    const titlePrefix = isHighPriority ? '⚠️ CRITICAL:' : '📝';
+
+    await this.sendToRoles(['SuperAdmin', 'HR', 'HR_Manager'], {
+      title: `${titlePrefix} Working Rule Updated`,
+      message: `Working rule "${workingRule.ruleName}" updated by ${updatedBy}. ${changeText}`,
+      type: notificationType,
+      category: 'system',
+      metadata: {
+        workingRuleId: workingRule.id,
+        ruleName: workingRule.ruleName,
+        changes,
+        updatedBy,
+        action: 'updated',
+        isHighPriority
+      }
+    });
+  }
+
+  /**
+   * Default working rule changed notification (CRITICAL)
+   */
+  async notifyDefaultWorkingRuleChanged(workingRule, updatedBy, oldDefaultRule = null) {
+    const workingDaysText = workingRule.workingDays.map(day => {
+      const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      return days[day];
+    }).join(', ');
+
+    await this.sendToRoles(['SuperAdmin', 'HR', 'HR_Manager'], {
+      title: '🚨 CRITICAL: Default Working Rule Changed',
+      message: `"${workingRule.ruleName}" is now the default working rule. This affects all attendance and payroll. Working days: ${workingDaysText}. Changed by: ${updatedBy}`,
+      type: 'error', // Highest priority
+      category: 'system',
+      metadata: {
+        workingRuleId: workingRule.id,
+        ruleName: workingRule.ruleName,
+        workingDays: workingRule.workingDays,
+        weekendDays: workingRule.weekendDays,
+        oldDefaultRule,
+        updatedBy,
+        action: 'set_default',
+        priority: 'CRITICAL',
+        systemImpact: 'attendance_payroll'
+      }
+    });
+  }
+
+  /**
+   * Working rule deleted notification
+   */
+  async notifyWorkingRuleDeleted(ruleDetails, deletedBy) {
+    const notificationType = ruleDetails.isActive ? 'warning' : 'info';
+    const title = ruleDetails.isActive ? '🗑️ Active Working Rule Deleted' : '🗑️ Working Rule Deleted';
+
+    await this.sendToRoles(['SuperAdmin'], {
+      title,
+      message: `Working rule "${ruleDetails.ruleName}" has been deleted by ${deletedBy}`,
+      type: notificationType,
+      category: 'system',
+      metadata: {
+        deletedRuleId: ruleDetails.id,
+        ruleName: ruleDetails.ruleName,
+        workingDays: ruleDetails.workingDays,
+        weekendDays: ruleDetails.weekendDays,
+        wasActive: ruleDetails.isActive,
+        deletedBy,
+        action: 'deleted'
+      }
+    });
+  }
 }
 
 export default new NotificationService();

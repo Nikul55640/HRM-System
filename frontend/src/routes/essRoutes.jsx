@@ -50,30 +50,30 @@ const EmployeeCalendarPage = lazy(() =>
 
 
 export const essRoutes = [
-  // Profile & Bank Details
-  { path: "employee/profile", element: <ProfilePage />, roles: ["Employee", "HR", "SuperAdmin"] },
-  { path: "employee/bank-details", element: <BankDetailsPage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  // Profile & Bank Details - Employee only (HR manages through admin pages)
+  { path: "employee/profile", element: <ProfilePage />, roles: ["Employee"] },
+  { path: "employee/bank-details", element: <BankDetailsPage />, roles: ["Employee"] },
 
-  // Employee Settings
-  { path: "employee/settings", element: <EmployeeSettings />, roles: ["Employee", "HR", "SuperAdmin"] },
-  { path: "employee/settings/profile", element: <ProfileSettings />, roles: ["Employee", "HR", "SuperAdmin"] },
-  { path: "employee/settings/security", element: <SecuritySettings />, roles: ["Employee", "HR", "SuperAdmin"] },
-  { path: "employee/settings/emergency-contacts", element: <EmergencyContacts />, roles: ["Employee", "HR", "SuperAdmin"] },
+  // Employee Settings - Employee only
+  { path: "employee/settings", element: <EmployeeSettings />, roles: ["Employee"] },
+  { path: "employee/settings/profile", element: <ProfileSettings />, roles: ["Employee"] },
+  { path: "employee/settings/security", element: <SecuritySettings />, roles: ["Employee"] },
+  { path: "employee/settings/emergency-contacts", element: <EmergencyContacts />, roles: ["Employee"] },
 
-  // Attendance
-  { path: "employee/attendance", element: <AttendancePage />, roles: ["Employee", "HR", "SuperAdmin"] },
-  { path: "employee/attendance/corrections", element: <AttendanceCorrectionRequests />, roles: ["Employee", "HR", "SuperAdmin"] },
+  // Attendance - Employee only (HR uses admin attendance pages)
+  { path: "employee/attendance", element: <AttendancePage />, roles: ["Employee"] },
+  { path: "employee/attendance/corrections", element: <AttendanceCorrectionRequests />, roles: ["Employee"] },
 
-  // Leave
-  { path: "employee/leave", element: <LeavePage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  // Leave - Employee only (HR uses admin leave pages)
+  { path: "employee/leave", element: <LeavePage />, roles: ["Employee"] },
 
-  // Leads
-  { path: "employee/leads", element: <EmployeeLeadsPage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  // Leads - Employee only (HR uses admin lead pages)
+  { path: "employee/leads", element: <EmployeeLeadsPage />, roles: ["Employee"] },
 
-  // Shifts
-  { path: "employee/shifts", element: <EmployeeShiftsPage />, roles: ["Employee", "HR", "SuperAdmin"] },  
+  // Shifts - Employee only (HR uses admin shift pages)
+  { path: "employee/shifts", element: <EmployeeShiftsPage />, roles: ["Employee"] },  
 
-  // Calendar
-  { path: "employee/calendar", element: <EmployeeCalendarPage />, roles: ["Employee", "HR", "SuperAdmin"] },
+  // Calendar - Employee only (HR uses admin calendar pages)
+  { path: "employee/calendar", element: <EmployeeCalendarPage />, roles: ["Employee"] },
 
 ];

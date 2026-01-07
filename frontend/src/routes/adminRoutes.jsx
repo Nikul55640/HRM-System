@@ -42,7 +42,7 @@ const UserManagement = lazy(() => import("../modules/organization/admin/UserMana
 const SystemConfig = lazy(() => import("../modules/organization/admin/SystemConfig"));
 
 export const adminRoutes = [
-  // Employee Management
+  // Employee Management - HR can view and edit, but not delete
   { path: "/admin/employees", element: <EmployeeList />, roles: ["SuperAdmin", "HR"] },
   { path: "/admin/employees/new", element: <EmployeeForm />, roles: ["SuperAdmin", "HR"] },
   { path: "/admin/employees/:id", element: <EmployeeProfile />, roles: ["SuperAdmin", "HR"] },
@@ -54,26 +54,27 @@ export const adminRoutes = [
   // Designation Management
   { path: "/admin/designations", element: <DesignationsPage />, roles: ["SuperAdmin", "HR"] },
 
-  // Attendance Management
+  // Attendance Management - HR can view all, edit, approve corrections, mark absent/holiday
   { path: "/admin/attendance", element: <ManageAttendance />, roles: ["SuperAdmin", "HR"] },
   { path: "/admin/attendance/corrections", element: <AttendanceCorrections />, roles: ["SuperAdmin", "HR"] },
   { path: "/admin/attendance/live", element: <LiveAttendanceDashboard />, roles: ["SuperAdmin", "HR"] },
 
-  // Leave Management
+  // Leave Management - HR can approve/reject but not override (override is Admin only)
   { path: "/admin/leave", element: <LeaveManagement />, roles: ["SuperAdmin", "HR"] },
   { path: "/admin/leave-balances", element: <LeaveBalancesPage />, roles: ["SuperAdmin", "HR"] },
-  { path: "/admin/leave-balance-rollover", element: <LeaveBalanceRolloverPage />, roles: ["SuperAdmin", "HR"] },
+  { path: "/admin/leave-balance-rollover", element: <LeaveBalanceRolloverPage />, roles: ["SuperAdmin"] }, // Admin only
 
   // Lead Management
   { path: "/admin/leads", element: <LeadManagement />, roles: ["SuperAdmin", "HR"] },
 
-  // Shift Management
+  // Shift Management - HR can assign shifts, but not create shift rules (Admin only)
   { path: "/admin/shifts", element: <ShiftManagement />, roles: ["SuperAdmin", "HR"] },
 
-  // Calendar Management
+  // Calendar Management - HR can add events/holidays but not delete holidays (Admin only)
   { path: "/admin/calendar/management", element: <CalendarManagement />, roles: ["SuperAdmin", "HR"] },
-  { path: "/admin/calendar/smart", element: <SmartCalendarManagement />, roles: ["SuperAdmin", "HR"] },
+  { path: "/admin/calendar/smart", element: <SmartCalendarManagement />, roles: ["SuperAdmin", "HR"] }, // HR can add events/holidays, Admin can create shift rules
   
+  // Organization Management
   {
     path: "/admin/policies",
     element: <PolicyPage />,
@@ -85,13 +86,11 @@ export const adminRoutes = [
     roles: ["SuperAdmin", "HR"],
   },
 
-  // System Administration
-  { path: "/admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },
-  { path: "/admin/system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
-
   // Bank Details Verification
   { path: "/admin/bank-verification", element: <BankVerificationPage />, roles: ["SuperAdmin", "HR"] },
 
-  // Audit Logs
+  // System Administration - SuperAdmin only
+  { path: "/admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },
+  { path: "/admin/system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
   { path: "/admin/audit-logs", element: <AuditLogsPage />, roles: ["SuperAdmin"] },
 ];

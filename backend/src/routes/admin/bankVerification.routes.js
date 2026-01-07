@@ -17,7 +17,7 @@ router.get('/pending-verifications',
 
 // Verify bank details (HR/Admin only)
 router.put('/verify/:employeeId',
-  checkPermission(MODULES.EMPLOYEE.EDIT_ANY),
+  checkPermission(MODULES.EMPLOYEE.UPDATE_ANY),
   bankDetailsController.verifyBankDetails
 );
 

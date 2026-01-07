@@ -22,7 +22,6 @@ import { toast } from 'react-toastify';
 import { format, parseISO } from 'date-fns';
 import { calendarService } from '../../../services';
 import EventModal from './EventModal';
-import HolidayModal from '../../organization/components/HolidayModal';
 import { usePermissions } from '../../../core/hooks';
 import { MODULES } from '../../../core/utils/rolePermissions';
 
@@ -41,11 +40,9 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
   const [hoveredDay, setHoveredDay] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   
-  // Modals
+  // Modal states - removed holiday modals (managed in Smart Calendar)
   const [eventModalOpen, setEventModalOpen] = useState(false);
-  const [holidayModalOpen, setHolidayModalOpen] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
-  const [editingHoliday, setEditingHoliday] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
 
   // Check if user can manage calendar
@@ -174,43 +171,8 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
     }
   };
 
-  const handleCreateHoliday = () => {
-    if (!canManageCalendar) {
-      toast.error('You don\'t have permission to create holidays');
-      return;
-    }
-    setEditingHoliday(null);
-    setHolidayModalOpen(true);
-  };
-
-  const handleEditHoliday = (holiday) => {
-    if (!canManageCalendar) {
-      toast.error('You don\'t have permission to edit holidays');
-      return;
-    }
-    setEditingHoliday(holiday);
-    setHolidayModalOpen(true);
-  };
-
-  const handleDeleteHoliday = async (holidayId) => {
-    if (!canManageCalendar) {
-      toast.error('You don\'t have permission to delete holidays');
-      return;
-    }
-
-    if (!window.confirm('Are you sure you want to delete this holiday?')) {
-      return;
-    }
-
-    try {
-      await calendarService.deleteHoliday(holidayId);
-      toast.success('Holiday deleted successfully');
-      fetchData();
-    } catch (error) {
-      console.error('Error deleting holiday:', error);
-      toast.error('Failed to delete holiday');
-    }
-  };
+  // Holiday management moved to Smart Calendar - this is for EVENTS only
+  // Holidays are system rules, not events
 
   const handleSyncEmployeeEvents = async () => {
     if (!canManageCalendar) {
@@ -353,7 +315,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
           </h1>
           <p className="text-sm sm:text-base text-gray-600">
             {showManagementFeatures 
-              ? 'Manage holidays, events, and company calendar'
+              ? 'Manage company events, meetings, and training sessions'
               : 'View holidays, leaves, and important dates'
             }
             {!canManageCalendar && (
@@ -361,6 +323,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                 📝 Only Admin and HR Manager can create/edit events
               </span>
             )}
+          
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -387,17 +350,14 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
         </div>
       </div>
 
-      {/* Action Buttons */}
+      {/* Action Buttons - EVENTS ONLY (holidays managed in Smart Calendar) */}
       {canManageCalendar && showManagementFeatures && (
         <div className="flex flex-wrap gap-3">
           <Button onClick={() => handleCreateEvent()} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="w-4 h-4 mr-2" />
             Add Event
           </Button>
-          <Button onClick={handleCreateHoliday} className="bg-red-600 hover:bg-red-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Add Holiday
-          </Button>
+        
         </div>
       )}
 
@@ -493,26 +453,34 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                         </div>
                         
                         <div className="flex items-center gap-2">
-                          {canManageCalendar && (item.type === 'event' || item.type === 'holiday') && (
+                          {/* Only allow editing of EVENTS - holidays managed in Smart Calendar */}
+                          {canManageCalendar && item.type === 'event' && (
                             <>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => item.type === 'holiday' ? handleEditHoliday(item) : handleEditEvent(item)}
+                                onClick={() => handleEditEvent(item)}
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => item.type === 'holiday' ? handleDeleteHoliday(item._id || item.id) : handleDeleteEvent(item._id || item.id)}
+                                onClick={() => handleDeleteEvent(item._id || item.id)}
                                 className="text-red-600 hover:text-red-700"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>
                             </>
                           )}
-                          {(item.type === 'birthday' || item.type === 'anniversary') && (
+                          {/* Holidays are system rules - managed in Smart Calendar */}
+                          {item.type === 'holiday' && (
+                            <Badge variant="outline" className="text-blue-600">
+                              System Rule (Smart Calendar)
+                            </Badge>
+                          )}
+                          {/* Auto-generated events */}
+                          {(item.type === 'birthday' || item.type === 'anniversary' || item.type === 'leave') && (
                             <Badge variant="outline" className="text-blue-600">
                               Auto-generated
                             </Badge>
@@ -711,19 +679,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
         }}
       />
 
-      <HolidayModal
-        open={holidayModalOpen}
-        holiday={editingHoliday}
-        onClose={() => {
-          setHolidayModalOpen(false);
-          setEditingHoliday(null);
-        }}
-        onSuccess={() => {
-          fetchData();
-          setHolidayModalOpen(false);
-          setEditingHoliday(null);
-        }}
-      />
+      {/* Remove holiday modal - holidays managed in Smart Calendar */}
     </div>
   );
 };

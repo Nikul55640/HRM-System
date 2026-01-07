@@ -1,5 +1,9 @@
 import { WorkingRule } from '../../models/index.js';
 import logger from '../../utils/logger.js';
+import notificationService from '../../services/notificationService.js';
+import { formatDays, validateWorkingDays } from '../../utils/dayUtils.js';
+import { NOTIFICATION_TYPES, NOTIFICATION_CATEGORIES, SYSTEM_ROLES } from '../../constants/notifications.js';
+import isEqual from 'lodash/isEqual.js';
 
 /**
  * Get all working rules
@@ -118,6 +122,22 @@ export const createWorkingRule = async (req, res) => {
       description
     } = req.body;
 
+    // Validate working days
+    if (!validateWorkingDays(workingDays)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid working days. Must be array of numbers 0-6 (0=Sunday, 6=Saturday)'
+      });
+    }
+
+    // Validate weekend days
+    if (!validateWorkingDays(weekendDays)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid weekend days. Must be array of numbers 0-6 (0=Sunday, 6=Saturday)'
+      });
+    }
+
     const workingRule = await WorkingRule.create({
       ruleName,
       workingDays,
@@ -128,6 +148,33 @@ export const createWorkingRule = async (req, res) => {
       description,
       createdBy: req.user.id
     });
+
+    // 🔔 NOTIFICATION TRIGGER POINT 1: Working Rule Created
+    try {
+      const workingDaysText = formatDays(workingDays);
+      const weekendDaysText = formatDays(weekendDays);
+
+      await notificationService.sendToRoles([SYSTEM_ROLES.SUPER_ADMIN, SYSTEM_ROLES.HR], {
+        title: '📋 New Working Rule Created',
+        message: `Working rule "${ruleName}" has been created. Working days: ${workingDaysText}. Weekends: ${weekendDaysText}. Effective from: ${effectiveFrom}`,
+        type: NOTIFICATION_TYPES.INFO,
+        category: NOTIFICATION_CATEGORIES.WORKING_RULES,
+        metadata: {
+          workingRuleId: workingRule.id,
+          ruleName: workingRule.ruleName,
+          workingDays: workingRule.workingDays,
+          weekendDays: workingRule.weekendDays,
+          effectiveFrom: workingRule.effectiveFrom,
+          createdBy: req.user.firstName + ' ' + req.user.lastName,
+          action: 'created'
+        }
+      });
+
+      logger.info(`Working rule created notification sent for rule: ${ruleName}`);
+    } catch (notificationError) {
+      logger.error('Failed to send working rule creation notification:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
 
     res.status(201).json({
       success: true,
@@ -161,6 +208,22 @@ export const updateWorkingRule = async (req, res) => {
       isActive
     } = req.body;
 
+    // Validate working days if provided
+    if (workingDays && !validateWorkingDays(workingDays)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid working days. Must be array of numbers 0-6 (0=Sunday, 6=Saturday)'
+      });
+    }
+
+    // Validate weekend days if provided
+    if (weekendDays && !validateWorkingDays(weekendDays)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid weekend days. Must be array of numbers 0-6 (0=Sunday, 6=Saturday)'
+      });
+    }
+
     const workingRule = await WorkingRule.findByPk(id);
 
     if (!workingRule) {
@@ -169,6 +232,15 @@ export const updateWorkingRule = async (req, res) => {
         message: 'Working rule not found'
       });
     }
+
+    // Store old values for comparison
+    const oldValues = {
+      ruleName: workingRule.ruleName,
+      workingDays: workingRule.workingDays,
+      weekendDays: workingRule.weekendDays,
+      isActive: workingRule.isActive,
+      isDefault: workingRule.isDefault
+    };
 
     await workingRule.update({
       ruleName,
@@ -181,6 +253,70 @@ export const updateWorkingRule = async (req, res) => {
       isActive,
       updatedBy: req.user.id
     });
+
+    // 🔔 NOTIFICATION TRIGGER POINT 2: Working Rule Updated
+    try {
+      const changes = [];
+      
+      if (!isEqual(oldValues.workingDays, workingDays)) {
+        const newWorkingDaysText = formatDays(workingDays);
+        changes.push(`Working days changed to: ${newWorkingDaysText}`);
+      }
+
+      if (!isEqual(oldValues.weekendDays, weekendDays)) {
+        const newWeekendDaysText = formatDays(weekendDays);
+        changes.push(`Weekend days changed to: ${newWeekendDaysText}`);
+      }
+
+      if (oldValues.isActive !== isActive) {
+        changes.push(`Status changed to: ${isActive ? 'Active' : 'Inactive'}`);
+      }
+
+      if (oldValues.ruleName !== ruleName) {
+        changes.push(`Name changed to: ${ruleName}`);
+      }
+
+      if (changes.length > 0) {
+        const changeText = changes.join('. ');
+        
+        // Determine notification priority based on what changed
+        const isHighPriority = oldValues.isActive || isActive || oldValues.isDefault || isDefault;
+        const notificationType = isHighPriority ? NOTIFICATION_TYPES.WARNING : NOTIFICATION_TYPES.INFO;
+        const titlePrefix = isHighPriority ? '⚠️ CRITICAL:' : '📝';
+
+        await notificationService.sendToRoles([SYSTEM_ROLES.SUPER_ADMIN, SYSTEM_ROLES.HR], {
+          title: `${titlePrefix} Working Rule Updated`,
+          message: `Working rule "${ruleName}" has been updated. ${changeText}`,
+          type: notificationType,
+          category: NOTIFICATION_CATEGORIES.WORKING_RULES,
+          metadata: {
+            workingRuleId: workingRule.id,
+            ruleName: workingRule.ruleName,
+            changes: changes,
+            oldValues: oldValues,
+            newValues: {
+              workingDays,
+              weekendDays,
+              isActive,
+              isDefault
+            },
+            updatedBy: req.user.firstName + ' ' + req.user.lastName,
+            action: 'updated',
+            isHighPriority
+          }
+        });
+
+        // If this affects payroll/attendance (active rule changes), notify payroll team too
+        if (isHighPriority) {
+          logger.warn(`CRITICAL: Active working rule updated - may affect attendance calculations`);
+        }
+
+        logger.info(`Working rule updated notification sent for rule: ${ruleName}`);
+      }
+    } catch (notificationError) {
+      logger.error('Failed to send working rule update notification:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
 
     res.json({
       success: true,
@@ -219,7 +355,58 @@ export const deleteWorkingRule = async (req, res) => {
       });
     }
 
+    // Store rule details for notification before deletion
+    const ruleDetails = {
+      id: workingRule.id,
+      ruleName: workingRule.ruleName,
+      workingDays: workingRule.workingDays,
+      weekendDays: workingRule.weekendDays,
+      isActive: workingRule.isActive
+    };
+
     await workingRule.destroy();
+
+    // 🔔 NOTIFICATION TRIGGER POINT 4: Working Rule Deleted (Optional)
+    try {
+      const workingDaysText = formatDays(ruleDetails.workingDays);
+
+      // Only notify if it was an active rule (more important)
+      if (ruleDetails.isActive) {
+        await notificationService.sendToRoles([SYSTEM_ROLES.SUPER_ADMIN], {
+          title: '🗑️ Active Working Rule Deleted',
+          message: `Active working rule "${ruleDetails.ruleName}" has been deleted. Working days were: ${workingDaysText}`,
+          type: NOTIFICATION_TYPES.WARNING,
+          category: NOTIFICATION_CATEGORIES.WORKING_RULES,
+          metadata: {
+            deletedRuleId: ruleDetails.id,
+            ruleName: ruleDetails.ruleName,
+            workingDays: ruleDetails.workingDays,
+            weekendDays: ruleDetails.weekendDays,
+            deletedBy: req.user.firstName + ' ' + req.user.lastName,
+            action: 'deleted'
+          }
+        });
+      } else {
+        // For inactive rules, just notify admins
+        await notificationService.sendToRoles([SYSTEM_ROLES.SUPER_ADMIN], {
+          title: '🗑️ Working Rule Deleted',
+          message: `Working rule "${ruleDetails.ruleName}" has been deleted`,
+          type: NOTIFICATION_TYPES.INFO,
+          category: NOTIFICATION_CATEGORIES.WORKING_RULES,
+          metadata: {
+            deletedRuleId: ruleDetails.id,
+            ruleName: ruleDetails.ruleName,
+            deletedBy: req.user.firstName + ' ' + req.user.lastName,
+            action: 'deleted'
+          }
+        });
+      }
+
+      logger.info(`Working rule deletion notification sent for rule: ${ruleDetails.ruleName}`);
+    } catch (notificationError) {
+      logger.error('Failed to send working rule deletion notification:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
 
     res.json({
       success: true,
@@ -257,11 +444,49 @@ export const setDefaultWorkingRule = async (req, res) => {
       });
     }
 
+    // Get the old default rule for notification
+    const oldDefaultRule = await WorkingRule.findOne({
+      where: { isDefault: true }
+    });
+
     // This will automatically unset other defaults due to beforeSave hook
     await workingRule.update({
       isDefault: true,
       updatedBy: req.user.id
     });
+
+    // 🔔 NOTIFICATION TRIGGER POINT 3: Default Working Rule Changed (HIGHEST PRIORITY)
+    try {
+      const workingDaysText = formatDays(workingRule.workingDays);
+      const weekendDaysText = formatDays(workingRule.weekendDays);
+
+      await notificationService.sendToRoles([SYSTEM_ROLES.SUPER_ADMIN, SYSTEM_ROLES.HR], {
+        title: '🚨 CRITICAL: Default Working Rule Changed',
+        message: `"${workingRule.ruleName}" is now the default working rule. This affects all attendance calculations and payroll processing. Working days: ${workingDaysText}. Weekends: ${weekendDaysText}.`,
+        type: NOTIFICATION_TYPES.ERROR, // Use error type for highest visibility
+        category: NOTIFICATION_CATEGORIES.WORKING_RULES,
+        metadata: {
+          workingRuleId: workingRule.id,
+          ruleName: workingRule.ruleName,
+          workingDays: workingRule.workingDays,
+          weekendDays: workingRule.weekendDays,
+          effectiveFrom: workingRule.effectiveFrom,
+          oldDefaultRule: oldDefaultRule ? {
+            id: oldDefaultRule.id,
+            name: oldDefaultRule.ruleName
+          } : null,
+          updatedBy: req.user.firstName + ' ' + req.user.lastName,
+          action: 'set_default',
+          priority: 'CRITICAL',
+          systemImpact: 'attendance_payroll'
+        }
+      });
+
+      logger.warn(`CRITICAL: Default working rule changed to "${workingRule.ruleName}" by ${req.user.firstName} ${req.user.lastName}`);
+    } catch (notificationError) {
+      logger.error('Failed to send default working rule notification:', notificationError);
+      // Don't fail the main operation if notification fails
+    }
 
     res.json({
       success: true,

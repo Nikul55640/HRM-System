@@ -45,7 +45,8 @@ const employeeLeaveController = {
       // 🔔 Send notification to HR and Admin about new leave application
       try {
         const leaveRequest = result.data;
-        await notificationService.sendToRoles(['admin', 'hr'], {
+        const adminRoles = ['HR', 'SuperAdmin', 'HR_ADMIN', 'SUPER_ADMIN', 'HR_MANAGER'];
+        await notificationService.sendToRoles(adminRoles, {
           title: 'New Leave Application 📝',
           message: `${req.user.firstName} ${req.user.lastName} has applied for ${leaveRequest.leaveType} leave from ${new Date(leaveRequest.startDate).toLocaleDateString()} to ${new Date(leaveRequest.endDate).toLocaleDateString()}`,
           type: 'info',
