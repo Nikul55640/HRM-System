@@ -242,19 +242,23 @@ const ShiftDetails = ({ shiftId, onClose }) => {
                 >
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">
-                      {emp.employee?.firstName} {emp.employee?.lastName}
+                      {emp.employee?.firstName || 'N/A'} {emp.employee?.lastName || ''}
                     </p>
-                    <p className="text-sm text-gray-600">{emp.employee?.user?.email}</p>
-                    <p className="text-xs text-gray-500">ID: {emp.employee?.employeeId}</p>
+                    <p className="text-sm text-gray-600">{emp.employee?.user?.email || emp.employee?.email || 'No email'}</p>
+                    <p className="text-xs text-gray-500">ID: {emp.employee?.employeeId || 'N/A'}</p>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleRemoveEmployee(emp.id)}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {/* Only show remove button if assignment is active and not ended */}
+                  {(!emp.endDate || new Date(emp.endDate) > new Date()) && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleRemoveEmployee(emp.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      title="Remove employee from shift"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               ))}
             </div>

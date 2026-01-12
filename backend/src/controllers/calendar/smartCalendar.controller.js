@@ -1,5 +1,6 @@
 
-import calendarDayStatusService from '../../services/calendar/calendarDayStatus.service.js';
+import AttendancePolicyService from '../../services/attendance/attendancePolicy.service.js';
+import DateCalculationService from '../../services/core/dateCalculation.service.js';
 import { CompanyEvent, Holiday, LeaveRequest, Employee, WorkingRule } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
@@ -21,8 +22,8 @@ export const getSmartMonthlyCalendar = async (req, res) => {
     const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(req.user.role);
     const targetEmployeeId = employeeId || (isHROrAdmin ? null : req.user.employeeId);
 
-    // Get monthly summary with day statuses
-    const monthlySummary = await calendarDayStatusService.getMonthlySummary(
+    // Get monthly summary with day statuses using AttendancePolicyService
+    const monthlySummary = await AttendancePolicyService.getMonthlySummary(
       currentYear, 
       currentMonth, 
       targetEmployeeId
@@ -82,14 +83,14 @@ export const getSmartMonthlyCalendar = async (req, res) => {
         year: currentYear,
         month: currentMonth,
         summary: {
-          totalDays: monthlySummary.totalDays,
-          workingDays: monthlySummary.workingDays,
-          weekends: monthlySummary.nonWorkingDays.weekends,
-          holidays: monthlySummary.nonWorkingDays.holidays,
-          leaves: monthlySummary.nonWorkingDays.leaves
+          totalDays: monthlySummary.summary.totalDays,
+          workingDays: monthlySummary.summary.workingDays,
+          weekends: monthlySummary.summary.weekends,
+          holidays: monthlySummary.summary.holidays,
+          leaves: monthlySummary.summary.leaves
         },
         calendar: calendarData,
-        activeWorkingRule: await WorkingRule.getActiveRule(startDate)
+        activeWorkingRule: await DateCalculationService.getActiveWorkingRule(startDate)
       }
     });
 
@@ -121,11 +122,11 @@ export const getSmartDailyCalendar = async (req, res) => {
     const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(req.user.role);
     const targetEmployeeId = isHROrAdmin ? null : req.user.employeeId;
 
-    // Get day status
-    const dayStatus = await calendarDayStatusService.getDayStatus(checkDate, targetEmployeeId);
+    // Get day status using AttendancePolicyService
+    const dayStatus = await AttendancePolicyService.getDayStatus(checkDate, targetEmployeeId);
 
-    // Get attendance requirement
-    const attendanceReq = await calendarDayStatusService.getAttendanceRequirement(
+    // Check if attendance is required
+    const attendanceRequired = await AttendancePolicyService.isAttendanceRequired(
       checkDate, 
       targetEmployeeId
     );
@@ -147,11 +148,11 @@ export const getSmartDailyCalendar = async (req, res) => {
       data: {
         date: checkDate.toISOString().split('T')[0],
         dayStatus,
-        attendanceRequirement: attendanceReq,
+        attendanceRequired,
         events,
         birthdays,
         anniversaries,
-        workingRule: await WorkingRule.getActiveRule(checkDate)
+        workingRule: await DateCalculationService.getActiveWorkingRule(checkDate)
       }
     });
 
@@ -180,7 +181,7 @@ export const validateLeaveApplication = async (req, res) => {
     }
 
     const targetEmployeeId = employeeId || req.user.employeeId;
-    const validation = await calendarDayStatusService.validateLeaveApplication(
+    const validation = await AttendancePolicyService.validateLeaveApplication(
       new Date(startDate),
       new Date(endDate),
       targetEmployeeId
@@ -216,17 +217,25 @@ export const getWorkingDaysCount = async (req, res) => {
     }
 
     const targetEmployeeId = employeeId || req.user.employeeId;
-    const workingDays = await calendarDayStatusService.getWorkingDaysCount(
+    const workingDays = await AttendancePolicyService.getWorkingDaysCount(
       new Date(startDate),
       new Date(endDate),
       targetEmployeeId
     );
 
-    const breakdown = await calendarDayStatusService.getNonWorkingDaysBreakdown(
+    // Get date range status for breakdown
+    const dateRangeStatus = await AttendancePolicyService.getDateRangeStatus(
       new Date(startDate),
       new Date(endDate),
       targetEmployeeId
     );
+
+    const breakdown = {
+      weekends: dateRangeStatus.filter(d => d.status === 'WEEKEND').length,
+      holidays: dateRangeStatus.filter(d => d.status === 'HOLIDAY').length,
+      leaves: dateRangeStatus.filter(d => d.status === 'LEAVE').length,
+      total: dateRangeStatus.filter(d => d.status !== 'WORKING_DAY').length
+    };
 
     res.json({
       success: true,

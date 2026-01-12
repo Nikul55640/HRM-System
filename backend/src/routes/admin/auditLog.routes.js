@@ -14,6 +14,9 @@ router.use(authorize(["SuperAdmin"]));
 // Get all audit logs with filters + pagination
 router.get("/", auditLogController.getAuditLogs);
 
+// Get audit logs for a specific employee
+router.get("/employee/:employeeId", auditLogController.getEmployeeAuditLogs);
+
 // Get audit log by ID
 router.get("/:id", auditLogController.getAuditLogById);
 

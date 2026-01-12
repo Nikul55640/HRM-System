@@ -20,6 +20,7 @@ import WorkingRule from './sequelize/WorkingRule.js';
 import Notification from './sequelize/Notification.js';
 
 // Note: Associations are defined in ./sequelize/index.js to avoid conflicts
+// Services are imported separately to avoid circular dependencies
 
 export {
   sequelize,

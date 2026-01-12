@@ -288,6 +288,13 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           icon: "Settings",
           showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_SMART_CALENDAR, MODULES.CALENDAR.VIEW_SMART_CALENDAR, MODULES.CALENDAR.MANAGE_EVENTS, MODULES.CALENDAR.MANAGE_HOLIDAYS]),
         },
+        // Calendarific Integration - Holiday sync from external API
+        {
+          name: "Holiday Sync",
+          path: "/admin/calendar/calendarific",
+          icon: "Globe2",
+          showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_HOLIDAYS, MODULES.SYSTEM.MANAGE_CONFIG]),
+        },
 
         // Organization Management
         {

@@ -20,14 +20,18 @@ const CompanyEvent = sequelize.define('CompanyEvent', {
       'meeting',
       'training',
       'company_event',
-      'birthday',
-      'anniversary',
       'deadline',
       'announcement',
       'other'
     ),
     defaultValue: 'other',
-    comment: 'Event type - NOTE: holidays are managed separately in Holiday model'
+    comment: 'Event type - NOTE: holidays are managed separately in Holiday model, birthdays/anniversaries are generated events'
+  },
+  blocksWorkingDay: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    comment: 'If true, attendance is not required for this event (company offsite, mandatory training, emergency shutdown)'
   },
   startDate: {
     type: DataTypes.DATE,

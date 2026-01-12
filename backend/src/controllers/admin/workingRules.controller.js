@@ -1,4 +1,5 @@
 import { WorkingRule } from '../../models/index.js';
+import DateCalculationService from '../../services/core/dateCalculation.service.js';
 import logger from '../../utils/logger.js';
 import notificationService from '../../services/notificationService.js';
 import { formatDays, validateWorkingDays } from '../../utils/dayUtils.js';
@@ -84,7 +85,7 @@ export const getActiveWorkingRule = async (req, res) => {
     const { date } = req.query;
     const checkDate = date ? new Date(date) : new Date();
     
-    const workingRule = await WorkingRule.getActiveRule(checkDate);
+    const workingRule = await DateCalculationService.getActiveWorkingRule(checkDate);
 
     if (!workingRule) {
       return res.status(404).json({

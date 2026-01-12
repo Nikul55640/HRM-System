@@ -33,6 +33,7 @@ const ShiftManagement = lazy(() => import("../modules/Shift/admin/ShiftManagemen
 // Feature 7: Calendar & Events (Admin)
 const CalendarManagement = lazy(() => import("../modules/calendar/admin/CalendarManagement"))
 const SmartCalendarManagement = lazy(() => import("../modules/calendar/admin/SmartCalendarManagement"))
+const CalendarificManagement = lazy(() => import("../modules/calendar/admin/CalendarificManagement"))
 
 // Feature 9: Bank Details Verification (Admin)
 const BankVerificationPage = lazy(() => import("../modules/admin/pages/BankVerification/BankVerificationPage"));
@@ -73,6 +74,7 @@ export const adminRoutes = [
   // Calendar Management - HR can add events/holidays but not delete holidays (Admin only)
   { path: "/admin/calendar/management", element: <CalendarManagement />, roles: ["SuperAdmin", "HR"] },
   { path: "/admin/calendar/smart", element: <SmartCalendarManagement />, roles: ["SuperAdmin", "HR"] }, // HR can add events/holidays, Admin can create shift rules
+  { path: "/admin/calendar/calendarific", element: <CalendarificManagement />, roles: ["SuperAdmin", "HR"] }, // Calendarific API integration
   
   // Organization Management
   {

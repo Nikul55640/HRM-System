@@ -55,6 +55,44 @@ const auditLogController = {
   },
 
   /**
+   * Get audit logs for a specific employee (Super Admin only)
+   */
+  getEmployeeAuditLogs: async (req, res) => {
+    try {
+      // Only Super Admin can view audit logs
+      if (req.user.role !== ROLES.SUPER_ADMIN) {
+        return sendResponse(res, false, "Unauthorized: Only Super Admin can view audit logs", null, 403);
+      }
+
+      const { employeeId } = req.params;
+      
+      // Filter audit logs for this specific employee
+      const queryParams = {
+        ...req.query,
+        targetType: 'Employee',
+        targetId: employeeId
+      };
+
+      const result = await auditService.getAuditLogs(queryParams);
+
+      const pagination = {
+        currentPage: parseInt(req.query.page) || 1,
+        totalPages: Math.ceil(result.total / (parseInt(req.query.limit) || 50)),
+        totalItems: result.total,
+        itemsPerPage: parseInt(req.query.limit) || 50
+      };
+
+      return sendResponse(res, true, "Employee audit logs retrieved successfully", {
+        logs: result.logs,
+        summary: result.summary
+      }, 200, pagination);
+    } catch (error) {
+      logger.error("Controller: Get Employee Audit Logs Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
    * Get audit log by ID (Super Admin only)
    */
   getAuditLogById: async (req, res) => {

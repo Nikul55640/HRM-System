@@ -46,6 +46,7 @@ import workLocationsRoutes from "./routes/admin/workLocations.routes.js";
 import attendanceStatusRoutes from "./routes/admin/attendanceStatus.routes.js";
 import workingRulesRoutes from "./routes/admin/workingRules.routes.js";
 import bankVerificationRoutes from "./routes/admin/bankVerification.routes.js";
+import calendarificRoutes from "./routes/admin/calendarific.routes.js";
 
 // HRM Modules
 import calendarRoutes from "./routes/calendar.routes.js";
@@ -163,6 +164,7 @@ app.use("/api/admin/work-locations", workLocationsRoutes);
 app.use("/api/admin/attendance-status", attendanceStatusRoutes);
 app.use("/api/admin/working-rules", workingRulesRoutes);
 app.use("/api/admin/bank-verification", bankVerificationRoutes);
+app.use("/api/admin/calendarific", calendarificRoutes);
 app.use("/api/admin/config", configRoutes);
 
 // AUTH SECTION

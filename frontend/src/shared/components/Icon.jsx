@@ -98,6 +98,7 @@ import {
   TreePine,
   GitBranch,
   FolderOpenIcon,
+  Globe2,
 } from 'lucide-react';
 
 const iconMap = {
@@ -197,6 +198,7 @@ const iconMap = {
   ClipboardEdit,
   GitBranch,
   Scale,
+  Globe2
 };
 
 const Icon = ({ name, className = "w-5 h-5", ...props }) => {

@@ -51,6 +51,12 @@ const WorkingRule = sequelize.define('WorkingRule', {
     allowNull: true,
     comment: 'Description of this working rule'
   },
+  shiftType: {
+    type: DataTypes.ENUM('GENERAL', 'SHIFT'),
+    allowNull: false,
+    defaultValue: 'GENERAL',
+    comment: 'Type of working rule - GENERAL for standard office hours, SHIFT for shift-based work'
+  },
   createdBy: {
     type: DataTypes.INTEGER,
     allowNull: false,

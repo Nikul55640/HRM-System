@@ -9,7 +9,6 @@ import { checkPermission, checkAnyPermission } from './checkPermission.js';
 // Re-export existing middleware functions
 export { authenticate, optionalAuthenticate, authorize } from './authenticate.js';
 export { checkPermission, checkAnyPermission } from './checkPermission.js';
-export { requireRoles } from './requireRoles.js';
 
 // Alias for common usage patterns
 export const authenticateToken = authenticate;
@@ -41,7 +40,6 @@ export default {
     checkPermission,
     checkAnyPermission,
     requireRole,
-    requireRoles,
     authAndPermission,
     authAndAnyPermission,
     authAndRole,

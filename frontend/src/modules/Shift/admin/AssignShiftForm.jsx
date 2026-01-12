@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
 import { Input } from '../../../shared/ui/input';
-import { Label } from '../../../shared/ui/label';
 import { Badge } from '../../../shared/ui/badge';
 import { Search, Plus, Trash2, Users } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -36,13 +35,29 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
 
   const fetchAssignedEmployees = async () => {
     try {
+      console.log('🔄 [AssignShiftForm] Fetching assigned employees for shift:', shift.id);
+      
       const response = await api.get('/admin/shifts/assignments/list', {
-        params: { shiftId: shift.id, limit: 100 }
+        params: { shiftId: shift.id, limit: 100, isActive: true }
       });
+      
       console.log('📊 [AssignShiftForm] Assigned employees response:', response.data);
-      setAssignedEmployees(response.data.data || []);
+      
+      // Handle different response structures
+      let assignmentsData = [];
+      
+      if (response?.data?.data && Array.isArray(response.data.data)) {
+        assignmentsData = response.data.data;
+      } else if (response?.data && Array.isArray(response.data)) {
+        assignmentsData = response.data;
+      }
+      
+      console.log('✅ [AssignShiftForm] Extracted assignments:', assignmentsData.length, 'assignments');
+      setAssignedEmployees(assignmentsData);
+      
     } catch (error) {
       console.error('❌ [AssignShiftForm] Failed to fetch assigned employees:', error);
+      console.error('❌ [AssignShiftForm] Error response:', error.response?.data);
       // If endpoint doesn't exist, just set empty
       setAssignedEmployees([]);
     }
@@ -51,15 +66,26 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
   const handleAssignEmployee = async (employeeId) => {
     setLoading(true);
     try {
-      await api.post('/admin/shifts/assignments', { 
+      console.log('🔄 [AssignShiftForm] Assigning employee:', { employeeId, shiftId: shift.id });
+      
+      const assignmentData = { 
         employeeId,
         shiftId: shift.id,
         effectiveDate: new Date().toISOString().split('T')[0]
-      });
+      };
+      
+      console.log('� [AssignShiftForm] Assignment data:', assignmentData);
+      
+      const response = await api.post('/admin/shifts/assignments', assignmentData);
+      
+      console.log('✅ [AssignShiftForm] Assignment response:', response.data);
+      
       toast.success('Employee assigned successfully');
       fetchAssignedEmployees();
       setEmployeeSearch('');
     } catch (error) {
+      console.error('❌ [AssignShiftForm] Assignment error:', error);
+      console.error('❌ [AssignShiftForm] Error response:', error.response?.data);
       toast.error(error.response?.data?.message || 'Failed to assign employee');
     } finally {
       setLoading(false);
@@ -88,8 +114,9 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
     return availableEmployees.filter(emp => {
       const isAssigned = assignedIds.includes(emp.id);
       const matchesSearch = employeeSearch === '' || 
-        `${emp.firstName} ${emp.lastName}`.toLowerCase().includes(employeeSearch.toLowerCase()) ||
-        emp.email?.toLowerCase().includes(employeeSearch.toLowerCase());
+        `${emp.firstName || ''} ${emp.lastName || ''}`.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+        (emp.email || emp.user?.email || '').toLowerCase().includes(employeeSearch.toLowerCase()) ||
+        (emp.employeeId || '').toLowerCase().includes(employeeSearch.toLowerCase());
       return !isAssigned && matchesSearch;
     });
   };
@@ -153,10 +180,10 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">
-                      {emp.firstName} {emp.lastName}
+                      {emp.firstName || 'N/A'} {emp.lastName || ''}
                     </p>
-                    <p className="text-xs text-gray-600 truncate">{emp.email}</p>
-                    <p className="text-xs text-gray-500">ID: {emp.employeeId}</p>
+                    <p className="text-xs text-gray-600 truncate">{emp.email || emp.user?.email || 'No email'}</p>
+                    <p className="text-xs text-gray-500">ID: {emp.employeeId || 'N/A'}</p>
                   </div>
                   <Button
                     size="sm"
@@ -193,11 +220,11 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">
-                      {assignment.employee?.firstName} {assignment.employee?.lastName}
+                      {assignment.employee?.firstName || 'N/A'} {assignment.employee?.lastName || ''}
                     </p>
-                    <p className="text-xs text-gray-600 truncate">{assignment.employee?.email}</p>
-                    <p className="text-xs text-gray-500">ID: {assignment.employee?.employeeId}</p>
-                    <p className="text-xs text-gray-400">Effective: {assignment.effectiveDate}</p>
+                    <p className="text-xs text-gray-600 truncate">{assignment.employee?.email || assignment.employee?.user?.email || 'No email'}</p>
+                    <p className="text-xs text-gray-500">ID: {assignment.employee?.employeeId || 'N/A'}</p>
+                    <p className="text-xs text-gray-400">Effective: {assignment.effectiveDate || 'N/A'}</p>
                   </div>
                   <Button
                     size="sm"

@@ -73,6 +73,30 @@ const Holiday = sequelize.define('Holiday', {
     allowNull: false,
     defaultValue: true,
   },
+  hrApprovalStatus: {
+    type: DataTypes.ENUM('pending', 'approved', 'rejected'),
+    allowNull: false,
+    defaultValue: 'approved',
+    comment: 'HR approval status for holiday visibility and payroll inclusion'
+  },
+  visibleToEmployees: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+    comment: 'Whether this holiday is visible to employees in calendar'
+  },
+  includeInPayroll: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: true,
+    comment: 'Whether this holiday should be included in payroll calculations'
+  },
+  locationScope: {
+    type: DataTypes.ENUM('GLOBAL', 'STATE', 'CITY'),
+    allowNull: false,
+    defaultValue: 'GLOBAL',
+    comment: 'Geographic scope of the holiday (useful for India state-specific holidays)'
+  },
   createdBy: {
     type: DataTypes.INTEGER,
     allowNull: true,
@@ -88,6 +112,32 @@ const Holiday = sequelize.define('Holiday', {
       model: 'users',
       key: 'id',
     },
+  },
+  // Calendarific integration fields
+  calendarificData: {
+    type: DataTypes.JSON,
+    allowNull: true,
+    field: 'calendarific_data',
+    comment: 'Original Calendarific API data for reference'
+  },
+  calendarificUuid: {
+    type: DataTypes.STRING(100),
+    allowNull: true,
+    field: 'calendarific_uuid',
+    comment: 'Calendarific holiday UUID for tracking updates'
+  },
+  syncedFromCalendarific: {
+    type: DataTypes.BOOLEAN,
+    allowNull: false,
+    defaultValue: false,
+    field: 'synced_from_calendarific',
+    comment: 'Whether this holiday was synced from Calendarific API'
+  },
+  lastSyncedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'last_synced_at',
+    comment: 'Last time this holiday was synced from Calendarific'
   },
 }, {
   tableName: 'holidays',

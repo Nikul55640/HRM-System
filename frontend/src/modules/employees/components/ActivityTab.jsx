@@ -15,7 +15,7 @@ const ActivityTab = ({ employeeId }) => {
     try {
       setLoading(true);
       // Fetch audit logs for this employee
-      const response = await api.get(`/audit-logs/employee/${employeeId}`);
+      const response = await api.get(`/admin/audit-logs/employee/${employeeId}`);
       setActivities(response.data.logs || []);
     } catch (error) {
       // If endpoint doesn't exist yet, show empty state
@@ -128,13 +128,15 @@ const ActivityTab = ({ employeeId }) => {
 
   const getActionText = (activity) => {
     const action = activity.action.toLowerCase();
-    const entityType = activity.entityType;
+    const entityType = activity.targetType || 'record';
 
-    let text = `${action}d ${entityType.toLowerCase()}`;
+    let text = `${action.replace(/_/g, ' ')} ${entityType.toLowerCase()}`;
 
-    if (activity.changes && activity.changes.length > 0) {
-      const fields = activity.changes.map((c) => c.field).join(", ");
-      text += ` (${fields})`;
+    if (activity.oldValues && activity.newValues) {
+      const changedFields = Object.keys(activity.newValues);
+      if (changedFields.length > 0) {
+        text += ` (${changedFields.join(", ")})`;
+      }
     }
 
     return text;
@@ -163,6 +165,38 @@ const ActivityTab = ({ employeeId }) => {
         day: "numeric",
       });
     }
+  };
+
+  const renderChanges = (activity) => {
+    if (!activity.oldValues || !activity.newValues) return null;
+
+    const changes = [];
+    Object.keys(activity.newValues).forEach(field => {
+      const oldValue = activity.oldValues[field];
+      const newValue = activity.newValues[field];
+      if (oldValue !== newValue) {
+        changes.push({ field, oldValue, newValue });
+      }
+    });
+
+    if (changes.length === 0) return null;
+
+    return (
+      <div className="mt-2 text-xs sm:text-sm text-gray-500">
+        {changes.map((change, idx) => (
+          <div key={idx} className="mt-1 break-words">
+            <span className="font-medium">{change.field}:</span>{" "}
+            <span className="line-through">
+              {change.oldValue || "empty"}
+            </span>
+            {" → "}
+            <span className="text-green-600">
+              {change.newValue || "empty"}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -201,7 +235,7 @@ const ActivityTab = ({ employeeId }) => {
     <div className="flow-root">
       <ul className="-mb-6 sm:-mb-8">
         {activities.map((activity, index) => (
-          <li key={activity._id}>
+          <li key={activity.id}>
             <div className="relative pb-6 sm:pb-8">
               {index !== activities.length - 1 && (
                 <span
@@ -210,35 +244,20 @@ const ActivityTab = ({ employeeId }) => {
                 />
               )}
               <div className="relative flex space-x-2 sm:space-x-3">
-                <div>{getActionIcon(activity.action)}</div>
+                <div>{getActionIcon(activity.action.toUpperCase())}</div>
                 <div className="flex min-w-0 flex-1 justify-between space-x-2 sm:space-x-4">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs sm:text-sm text-gray-900 break-words">
                       <span className="font-medium">
-                        {activity.userId?.email || "System"}
+                        {activity.user?.email || "System"}
                       </span>{" "}
                       {getActionText(activity)}
                     </p>
-                    {activity.changes && activity.changes.length > 0 && (
-                      <div className="mt-2 text-xs sm:text-sm text-gray-500">
-                        {activity.changes.map((change, idx) => (
-                          <div key={idx} className="mt-1 break-words">
-                            <span className="font-medium">{change.field}:</span>{" "}
-                            <span className="line-through">
-                              {change.oldValue || "empty"}
-                            </span>
-                            {" → "}
-                            <span className="text-green-600">
-                              {change.newValue || "empty"}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                    {renderChanges(activity)}
                   </div>
                   <div className="whitespace-nowrap text-right text-xs sm:text-sm text-gray-500 flex-shrink-0">
-                    <time dateTime={activity.timestamp}>
-                      {formatDate(activity.timestamp)}
+                    <time dateTime={activity.createdAt}>
+                      {formatDate(activity.createdAt)}
                     </time>
                   </div>
                 </div>

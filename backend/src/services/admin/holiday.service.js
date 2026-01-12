@@ -558,6 +558,276 @@ class HolidayService {
             };
         }
     }
+
+    /**
+     * Get holidays for date range (used by AttendancePolicyService)
+     * Single source of truth for holiday business logic
+     */
+    async getHolidaysForDateRange(startDate, endDate, options = {}) {
+        try {
+            const { includeInactive = false, hrApprovalStatus = 'approved' } = options;
+            
+            const whereClause = {
+                [Op.or]: [
+                    {
+                        type: 'ONE_TIME',
+                        date: {
+                            [Op.between]: [startDate, endDate]
+                        }
+                    },
+                    {
+                        type: 'RECURRING',
+                        appliesEveryYear: true
+                    }
+                ]
+            };
+
+            if (!includeInactive) {
+                whereClause.isActive = true;
+            }
+
+            if (hrApprovalStatus) {
+                whereClause.hrApprovalStatus = hrApprovalStatus;
+            }
+
+            const holidays = await Holiday.findAll({
+                where: whereClause,
+                order: [['date', 'ASC']]
+            });
+
+            // Generate recurring holidays for the date range
+            const generatedHolidays = [];
+            const startYear = startDate.getFullYear();
+            const endYear = endDate.getFullYear();
+
+            for (const holiday of holidays) {
+                if (holiday.type === 'ONE_TIME') {
+                    generatedHolidays.push(holiday);
+                } else if (holiday.type === 'RECURRING') {
+                    for (let year = startYear; year <= endYear; year++) {
+                        const [month, day] = holiday.recurringDate.split('-');
+                        const holidayDate = new Date(year, parseInt(month) - 1, parseInt(day));
+                        
+                        if (holidayDate >= startDate && holidayDate <= endDate) {
+                            generatedHolidays.push({
+                                ...holiday.toJSON(),
+                                date: holidayDate.toISOString().split('T')[0],
+                                id: `${holiday.id}_${year}`,
+                                isGenerated: true
+                            });
+                        }
+                    }
+                }
+            }
+
+            return {
+                success: true,
+                data: generatedHolidays.sort((a, b) => new Date(a.date) - new Date(b.date))
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Failed to get holidays for date range',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Check if a specific date is a holiday
+     * Used by AttendancePolicyService for day status evaluation
+     */
+    async isHoliday(date) {
+        try {
+            const checkDate = new Date(date);
+            const startOfDay = new Date(checkDate.setHours(0, 0, 0, 0));
+            const endOfDay = new Date(checkDate.setHours(23, 59, 59, 999));
+            
+            const result = await this.getHolidaysForDateRange(startOfDay, endOfDay);
+            
+            if (!result.success) {
+                return result;
+            }
+
+            const holiday = result.data.length > 0 ? result.data[0] : null;
+            
+            return {
+                success: true,
+                data: {
+                    isHoliday: !!holiday,
+                    holiday: holiday
+                }
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Failed to check if date is holiday',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Approve holiday (HR workflow)
+     */
+    async approveHoliday(id, userId, metadata = {}) {
+        try {
+            const holiday = await Holiday.findByPk(id);
+
+            if (!holiday) {
+                return {
+                    success: false,
+                    message: 'Holiday not found'
+                };
+            }
+
+            const oldStatus = holiday.hrApprovalStatus;
+            await holiday.update({
+                hrApprovalStatus: 'approved',
+                visibleToEmployees: true,
+                updatedBy: userId
+            });
+
+            // Log approval in audit log
+            await AuditLog.logAction({
+                userId,
+                action: 'holiday_approve',
+                module: 'holiday',
+                targetType: 'Holiday',
+                targetId: holiday.id,
+                oldValues: { hrApprovalStatus: oldStatus },
+                newValues: { hrApprovalStatus: 'approved', visibleToEmployees: true },
+                description: `Approved holiday: ${holiday.name}`,
+                ipAddress: metadata.ipAddress,
+                userAgent: metadata.userAgent,
+                severity: 'medium'
+            });
+
+            return {
+                success: true,
+                message: 'Holiday approved successfully',
+                data: holiday
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Failed to approve holiday',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Reject holiday (HR workflow)
+     */
+    async rejectHoliday(id, userId, metadata = {}) {
+        try {
+            const holiday = await Holiday.findByPk(id);
+
+            if (!holiday) {
+                return {
+                    success: false,
+                    message: 'Holiday not found'
+                };
+            }
+
+            const oldStatus = holiday.hrApprovalStatus;
+            await holiday.update({
+                hrApprovalStatus: 'rejected',
+                visibleToEmployees: false,
+                updatedBy: userId
+            });
+
+            // Log rejection in audit log
+            await AuditLog.logAction({
+                userId,
+                action: 'holiday_reject',
+                module: 'holiday',
+                targetType: 'Holiday',
+                targetId: holiday.id,
+                oldValues: { hrApprovalStatus: oldStatus },
+                newValues: { hrApprovalStatus: 'rejected', visibleToEmployees: false },
+                description: `Rejected holiday: ${holiday.name}`,
+                ipAddress: metadata.ipAddress,
+                userAgent: metadata.userAgent,
+                severity: 'medium'
+            });
+
+            return {
+                success: true,
+                message: 'Holiday rejected successfully',
+                data: holiday
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Failed to reject holiday',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Import holidays from Google Calendar (for future Google integration)
+     */
+    async importFromGoogle(googleHolidays, userId, metadata = {}) {
+        try {
+            const importedHolidays = [];
+            
+            for (const googleHoliday of googleHolidays) {
+                // Check if holiday already exists
+                const existingHoliday = await Holiday.findOne({
+                    where: {
+                        name: googleHoliday.name,
+                        date: googleHoliday.date
+                    }
+                });
+
+                if (!existingHoliday) {
+                    const holiday = await Holiday.create({
+                        name: googleHoliday.name,
+                        description: googleHoliday.description || `Imported from Google Calendar`,
+                        date: googleHoliday.date,
+                        type: 'ONE_TIME',
+                        category: googleHoliday.category || 'public',
+                        hrApprovalStatus: 'pending', // Requires HR approval
+                        visibleToEmployees: false, // Hidden until approved
+                        includeInPayroll: true,
+                        locationScope: googleHoliday.locationScope || 'GLOBAL',
+                        createdBy: userId
+                    });
+
+                    importedHolidays.push(holiday);
+                }
+            }
+
+            // Log import in audit log
+            await AuditLog.logAction({
+                userId,
+                action: 'holiday_import_google',
+                module: 'holiday',
+                description: `Imported ${importedHolidays.length} holidays from Google Calendar`,
+                ipAddress: metadata.ipAddress,
+                userAgent: metadata.userAgent,
+                severity: 'medium'
+            });
+
+            return {
+                success: true,
+                message: `Successfully imported ${importedHolidays.length} holidays from Google Calendar`,
+                data: {
+                    imported: importedHolidays.length,
+                    holidays: importedHolidays
+                }
+            };
+        } catch (error) {
+            return {
+                success: false,
+                message: 'Failed to import holidays from Google Calendar',
+                error: error.message
+            };
+        }
+    }
 }
 
 export default new HolidayService();
