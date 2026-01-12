@@ -19,85 +19,50 @@ const holidaySchema = Joi.object({
       'string.max': 'Description cannot exceed 1000 characters'
     }),
 
+  // For one-time holidays
   date: Joi.date()
     .iso()
-    .required()
+    .when('type', {
+      is: 'ONE_TIME',
+      then: Joi.required(),
+      otherwise: Joi.allow(null)
+    })
     .messages({
       'date.base': 'Date must be a valid date',
-      'any.required': 'Date is required'
+      'any.required': 'Date is required for one-time holidays'
+    }),
+
+  // For recurring holidays
+  recurringDate: Joi.string()
+    .pattern(/^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/)
+    .when('type', {
+      is: 'RECURRING',
+      then: Joi.required(),
+      otherwise: Joi.allow(null)
+    })
+    .messages({
+      'string.pattern.base': 'Recurring date must be in MM-DD format (e.g., 12-25)',
+      'any.required': 'Recurring date is required for recurring holidays'
     }),
 
   type: Joi.string()
-    .valid('national', 'religious', 'company', 'regional', 'optional')
-    .default('company')
+    .valid('ONE_TIME', 'RECURRING')
+    .default('ONE_TIME')
     .messages({
-      'any.only': 'Type must be one of: national, religious, company, regional, optional'
+      'any.only': 'Type must be either ONE_TIME or RECURRING'
     }),
 
-  isRecurring: Joi.boolean()
+  category: Joi.string()
+    .valid('public', 'optional', 'national', 'religious', 'company')
+    .default('public')
+    .messages({
+      'any.only': 'Category must be one of: public, optional, national, religious, company'
+    }),
+
+  appliesEveryYear: Joi.boolean()
     .default(false)
     .messages({
-      'boolean.base': 'Is recurring must be true or false'
-    }),
-
-  recurrenceRule: Joi.object()
-    .when('isRecurring', {
-      is: true,
-      then: Joi.object({
-        frequency: Joi.string().valid('yearly', 'monthly').required(),
-        interval: Joi.number().integer().min(1).default(1),
-        byMonth: Joi.number().integer().min(1).max(12).when('frequency', {
-          is: 'yearly',
-          then: Joi.optional(),
-          otherwise: Joi.forbidden()
-        }),
-        byMonthDay: Joi.number().integer().min(1).max(31).when('frequency', {
-          is: 'yearly',
-          then: Joi.optional(),
-          otherwise: Joi.forbidden()
-        })
-      }),
-      otherwise: Joi.optional()
-    })
-    .messages({
-      'object.base': 'Recurrence rule must be a valid object'
-    }),
-
-  applicableTo: Joi.string()
-    .valid('all', 'specific_departments', 'specific_employees')
-    .default('all')
-    .messages({
-      'any.only': 'Applicable to must be one of: all, specific_departments, specific_employees'
-    }),
-
-  departments: Joi.array()
-    .items(Joi.number().integer())
-    .when('applicableTo', {
-      is: 'specific_departments',
-      then: Joi.required(),
-      otherwise: Joi.optional()
-    })
-    .messages({
-      'array.base': 'Departments must be an array of department IDs',
-      'any.required': 'Departments are required when applicable to specific departments'
-    }),
-
-  employees: Joi.array()
-    .items(Joi.number().integer())
-    .when('applicableTo', {
-      is: 'specific_employees',
-      then: Joi.required(),
-      otherwise: Joi.optional()
-    })
-    .messages({
-      'array.base': 'Employees must be an array of employee IDs',
-      'any.required': 'Employees are required when applicable to specific employees'
-    }),
-
-  isOptional: Joi.boolean()
-    .default(false)
-    .messages({
-      'boolean.base': 'Is optional must be true or false'
+      'boolean.base': 'Applies every year must be true or false'
     }),
 
   isPaid: Joi.boolean()
@@ -114,44 +79,22 @@ const holidaySchema = Joi.object({
 
   color: Joi.string()
     .pattern(/^#[0-9A-Fa-f]{6}$/)
-    .default('#FF5722')
+    .default('#dc2626')
     .messages({
-      'string.pattern.base': 'Color must be a valid hex color code (e.g., #FF5722)'
-    }),
-
-  location: Joi.string()
-    .max(255)
-    .allow('')
-    .optional()
-    .messages({
-      'string.max': 'Location cannot exceed 255 characters'
-    }),
-
-  workingHours: Joi.object({
-    startTime: Joi.string().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    endTime: Joi.string().pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/),
-    isHalfDay: Joi.boolean().default(false)
-  })
-    .optional()
-    .messages({
-      'object.base': 'Working hours must be a valid object'
-    }),
-
-  compensationRule: Joi.string()
-    .valid('none', 'overtime_pay', 'comp_off', 'double_pay')
-    .default('none')
-    .messages({
-      'any.only': 'Compensation rule must be one of: none, overtime_pay, comp_off, double_pay'
+      'string.pattern.base': 'Color must be a valid hex color code (e.g., #dc2626)'
     })
 });
 
 export const validateHoliday = (req, res, next) => {
+  console.log('🔍 Validating holiday data:', JSON.stringify(req.body, null, 2));
+  
   const { error, value } = holidaySchema.validate(req.body, {
     abortEarly: false,
     stripUnknown: true
   });
 
   if (error) {
+    console.log('❌ Validation errors:', error.details);
     const errors = error.details.map(detail => ({
       field: detail.path.join('.'),
       message: detail.message
@@ -164,6 +107,7 @@ export const validateHoliday = (req, res, next) => {
     });
   }
 
+  console.log('✅ Validation passed, cleaned data:', JSON.stringify(value, null, 2));
   req.body = value;
   next();
 };

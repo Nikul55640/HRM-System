@@ -28,6 +28,13 @@ export const getSmartMonthlyCalendar = async (req, res) => {
       targetEmployeeId
     );
 
+    // Debug logging for date issues
+    console.log('🔍 Smart Calendar Debug:');
+    console.log('📅 First few day statuses from service:');
+    monthlySummary.dayStatuses.slice(0, 5).forEach((day, index) => {
+      console.log(`  Day ${index + 1}: ${day.date} = dayOfWeek: ${day.dayOfWeek} (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day.dayOfWeek]}), status: ${day.status}`);
+    });
+
     // Get all events for the month
     const [holidays, events, leaves] = await Promise.all([
       Holiday.getHolidaysInRange(startDate, endDate),

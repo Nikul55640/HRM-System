@@ -129,26 +129,48 @@ class HolidayService {
                 description,
                 date,
                 type,
-                isRecurring,
-                recurrenceRule,
-                applicableTo,
-                departments,
-                employees,
-                isOptional,
+                recurringDate,
+                category,
+                appliesEveryYear,
                 isPaid,
                 color,
-                location,
-                workingHours,
-                compensationRule
+                isActive
             } = holidayData;
 
-            // Check if holiday with same name and date exists
-            const existingHoliday = await Holiday.findOne({
-                where: {
-                    name: name,
-                    date: date
-                }
-            });
+            // Validation: Check that either date or recurringDate is provided based on type
+            if (type === 'ONE_TIME' && !date) {
+                return {
+                    success: false,
+                    message: 'One-time holidays must have a date'
+                };
+            }
+
+            if (type === 'RECURRING' && !recurringDate) {
+                return {
+                    success: false,
+                    message: 'Recurring holidays must have a recurring date in MM-DD format'
+                };
+            }
+
+            // Check if holiday with same name exists for the same period
+            let existingHoliday;
+            if (type === 'ONE_TIME') {
+                existingHoliday = await Holiday.findOne({
+                    where: {
+                        name: name,
+                        date: date,
+                        type: 'ONE_TIME'
+                    }
+                });
+            } else {
+                existingHoliday = await Holiday.findOne({
+                    where: {
+                        name: name,
+                        recurringDate: recurringDate,
+                        type: 'RECURRING'
+                    }
+                });
+            }
 
             if (existingHoliday) {
                 return {
@@ -160,19 +182,14 @@ class HolidayService {
             const holiday = await Holiday.create({
                 name,
                 description,
-                date,
+                date: type === 'ONE_TIME' ? date : null,
+                recurringDate: type === 'RECURRING' ? recurringDate : null,
                 type,
-                isRecurring,
-                recurrenceRule,
-                applicableTo,
-                departments,
-                employees,
-                isOptional,
-                isPaid,
-                color,
-                location,
-                workingHours,
-                compensationRule,
+                category,
+                appliesEveryYear: type === 'RECURRING' ? true : (appliesEveryYear || false),
+                isPaid: isPaid !== undefined ? isPaid : true,
+                color: color || '#dc2626',
+                isActive: isActive !== undefined ? isActive : true,
                 createdBy: userId
             });
 
@@ -228,14 +245,55 @@ class HolidayService {
                 };
             }
 
-            // Check if another holiday with same name and date exists
-            const existingHoliday = await Holiday.findOne({
-                where: {
-                    id: { [Op.ne]: id },
-                    name: holidayData.name,
-                    date: holidayData.date
-                }
-            });
+            const {
+                name,
+                description,
+                date,
+                type,
+                recurringDate,
+                category,
+                appliesEveryYear,
+                isPaid,
+                color,
+                isActive
+            } = holidayData;
+
+            // Validation: Check that either date or recurringDate is provided based on type
+            if (type === 'ONE_TIME' && !date) {
+                return {
+                    success: false,
+                    message: 'One-time holidays must have a date'
+                };
+            }
+
+            if (type === 'RECURRING' && !recurringDate) {
+                return {
+                    success: false,
+                    message: 'Recurring holidays must have a recurring date in MM-DD format'
+                };
+            }
+
+            // Check if another holiday with same name exists for the same period
+            let existingHoliday;
+            if (type === 'ONE_TIME') {
+                existingHoliday = await Holiday.findOne({
+                    where: {
+                        id: { [Op.ne]: id },
+                        name: name,
+                        date: date,
+                        type: 'ONE_TIME'
+                    }
+                });
+            } else {
+                existingHoliday = await Holiday.findOne({
+                    where: {
+                        id: { [Op.ne]: id },
+                        name: name,
+                        recurringDate: recurringDate,
+                        type: 'RECURRING'
+                    }
+                });
+            }
 
             if (existingHoliday) {
                 return {
@@ -247,12 +305,23 @@ class HolidayService {
             const oldValues = {
                 name: holiday.name,
                 date: holiday.date,
+                recurringDate: holiday.recurringDate,
                 type: holiday.type,
+                category: holiday.category,
                 isActive: holiday.isActive
             };
 
             await holiday.update({
-                ...holidayData,
+                name,
+                description,
+                date: type === 'ONE_TIME' ? date : null,
+                recurringDate: type === 'RECURRING' ? recurringDate : null,
+                type,
+                category,
+                appliesEveryYear: type === 'RECURRING' ? true : (appliesEveryYear || false),
+                isPaid: isPaid !== undefined ? isPaid : holiday.isPaid,
+                color: color || holiday.color,
+                isActive: isActive !== undefined ? isActive : holiday.isActive,
                 updatedBy: userId
             });
 

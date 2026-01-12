@@ -83,6 +83,14 @@ const SmartCalendarManagement = () => {
       // Handle calendar summary - gracefully handle failure
       if (results[1].status === 'fulfilled' && results[1].value.success) {
         console.log('✅ Smart calendar API success:', results[1].value.data);
+        console.log('📊 Calendar summary breakdown:', {
+          totalDays: results[1].value.data.summary?.totalDays,
+          workingDays: results[1].value.data.summary?.workingDays,
+          weekends: results[1].value.data.summary?.weekends,
+          holidays: results[1].value.data.summary?.holidays,
+          leaves: results[1].value.data.summary?.leaves
+        });
+        console.log('🗓️ Active working rule:', results[1].value.data.activeWorkingRule);
         setCalendarSummary(results[1].value.data);
       } else {
         console.warn('❌ Smart calendar API failed:', results[1].reason);
@@ -103,7 +111,16 @@ const SmartCalendarManagement = () => {
       // Handle holidays
       if (results[2].status === 'fulfilled' && results[2].value.data.success) {
         console.log('✅ Holidays API success:', results[2].value.data.data);
-        setHolidays(results[2].value.data.data.holidays || []);
+        const holidaysList = results[2].value.data.data.holidays || [];
+        console.log('🎉 Holidays details:', holidaysList.map(h => ({
+          id: h.id,
+          name: h.name,
+          type: h.type,
+          date: h.date,
+          recurringDate: h.recurringDate,
+          category: h.category
+        })));
+        setHolidays(holidaysList);
       } else {
         console.warn('❌ Holidays API failed:', results[2].reason);
         setHolidays([]);
@@ -146,9 +163,7 @@ const SmartCalendarManagement = () => {
       'ONE_TIME': 'bg-blue-100 text-blue-800',
       'RECURRING': 'bg-green-100 text-green-800'
     };
-    const color = colors[type] || 'bg-gray-100 text-gray-800';
-    console.log(`🎨 getHolidayTypeColor(${type}) = ${color}`);
-    return color;
+    return colors[type] || 'bg-gray-100 text-gray-800';
   };
 
   const getHolidayCategoryColor = (category) => {
@@ -400,6 +415,27 @@ const SmartCalendarManagement = () => {
     showPreview
   });
 
+  // Debug holiday vs calendar summary discrepancy
+  if (calendarSummary && holidays.length > 0) {
+    console.log('🔍 Holiday Analysis:');
+    console.log('📅 Calendar shows holidays:', calendarSummary.summary?.holidays || 0);
+    console.log('🎉 Holidays array count:', holidays.length);
+    console.log('📆 Calendar month/year:', calendarSummary.month, calendarSummary.year);
+    
+    holidays.forEach((holiday, index) => {
+      console.log(`🎊 Holiday ${index + 1}:`, {
+        name: holiday.name,
+        type: holiday.type,
+        date: holiday.date,
+        recurringDate: holiday.recurringDate,
+        category: holiday.category,
+        isInCurrentMonth: holiday.type === 'RECURRING' ? 
+          holiday.recurringDate?.startsWith(String(calendarSummary.month).padStart(2, '0')) :
+          holiday.date?.includes(`${calendarSummary.year}-${String(calendarSummary.month).padStart(2, '0')}`)
+      });
+    });
+  }
+
   return (
     <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
       {/* Working Rule Form Modal */}
@@ -647,7 +683,8 @@ const SmartCalendarManagement = () => {
                       <div className="min-w-0 flex-1">
                         <p className="font-medium text-gray-900 truncate">{holiday.name}</p>
                         <p className="text-xs text-gray-600 truncate">
-                          {holiday.type === 'RECURRING' ? holiday.recurringDate : holiday.date}
+                          {holiday.type === 'RECURRING' ? holiday.recurringDate : new Date(holiday.date).toLocaleDateString()}
+                          {holiday.type === 'RECURRING' && ' (Every Year)'}
                         </p>
                       </div>
                       <div className="flex gap-1 ml-2 flex-shrink-0">
@@ -842,7 +879,7 @@ const SmartCalendarManagement = () => {
                         {holiday.type === 'RECURRING' ? (
                           <span>Recurring: {holiday.recurringDate} (MM-DD)</span>
                         ) : (
-                          <span>Date: {holiday.date}</span>
+                          <span>Date: {new Date(holiday.date).toLocaleDateString()}</span>
                         )}
                       </div>
                     </div>

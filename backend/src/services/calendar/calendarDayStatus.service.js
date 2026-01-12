@@ -4,8 +4,20 @@
  * Priority: Weekend > Holiday > Working Day
  */
 
-import { WorkingRule, Holiday, LeaveRequest, AttendanceRecord } from '../../models/index.js';
+import { WorkingRule, Holiday, LeaveRequest } from '../../models/index.js';
 import { Op } from 'sequelize';
+
+// UTC-safe helper functions
+function formatLocalDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getDayOfWeekUTC(year, month, day) {
+  return new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+}
 
 class CalendarDayStatusService {
   /**
@@ -15,11 +27,21 @@ class CalendarDayStatusService {
    * @returns {Object} - Day status information
    */
   async getDayStatus(date, employeeId = null) {
-    const checkDate = new Date(date);
-    const dayOfWeek = checkDate.getDay(); // 0 = Sunday, 6 = Saturday
+    let year, month, day;
+    
+    if (typeof date === 'string') {
+      [year, month, day] = date.split('-').map(Number);
+    } else {
+      year = date.getFullYear();
+      month = date.getMonth() + 1;
+      day = date.getDate();
+    }
+    
+    const dayOfWeek = getDayOfWeekUTC(year, month, day);
+    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
     
     // 1. Check if it's a weekend
-    const isWeekend = await WorkingRule.isWeekend(checkDate);
+    const isWeekend = await WorkingRule.isWeekendByDayIndex(dayOfWeek);
     if (isWeekend) {
       return {
         status: 'WEEKEND',
@@ -27,12 +49,12 @@ class CalendarDayStatusService {
         attendanceRequired: false,
         reason: 'Weekend day',
         dayOfWeek,
-        date: checkDate.toISOString().split('T')[0]
+        date: dateStr
       };
     }
     
     // 2. Check if it's a holiday
-    const holiday = await Holiday.getHolidayForDate(checkDate);
+    const holiday = await Holiday.getHolidayForDate(dateStr);
     if (holiday) {
       return {
         status: 'HOLIDAY',
@@ -41,13 +63,13 @@ class CalendarDayStatusService {
         reason: holiday.name,
         holiday: holiday,
         dayOfWeek,
-        date: checkDate.toISOString().split('T')[0]
+        date: dateStr
       };
     }
     
     // 3. If employee ID provided, check for approved leave
     if (employeeId) {
-      const leave = await this.getLeaveForDate(checkDate, employeeId);
+      const leave = await this.getLeaveForDateUTC(year, month, day, employeeId);
       if (leave) {
         return {
           status: 'LEAVE',
@@ -56,7 +78,7 @@ class CalendarDayStatusService {
           reason: `${leave.leaveType} Leave`,
           leave: leave,
           dayOfWeek,
-          date: checkDate.toISOString().split('T')[0]
+          date: dateStr
         };
       }
     }
@@ -68,7 +90,7 @@ class CalendarDayStatusService {
       attendanceRequired: true,
       reason: 'Regular working day',
       dayOfWeek,
-      date: checkDate.toISOString().split('T')[0]
+      date: dateStr
     };
   }
   
@@ -81,12 +103,17 @@ class CalendarDayStatusService {
    */
   async getDayStatusRange(startDate, endDate, employeeId = null) {
     const results = [];
-    const currentDate = new Date(startDate);
     
-    while (currentDate <= endDate) {
-      const dayStatus = await this.getDayStatus(currentDate, employeeId);
-      results.push(dayStatus);
-      currentDate.setDate(currentDate.getDate() + 1);
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    for (
+      let d = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      d <= end;
+      d.setDate(d.getDate() + 1)
+    ) {
+      const dateStr = formatLocalDate(d);
+      results.push(await this.getDayStatus(dateStr, employeeId));
     }
     
     return results;
@@ -164,6 +191,27 @@ class CalendarDayStatusService {
   }
   
   /**
+   * Get leave for a specific date and employee (UTC-safe version)
+   * @param {number} year - Year
+   * @param {number} month - Month (1-12)
+   * @param {number} day - Day
+   * @param {number} employeeId - Employee ID
+   * @returns {Object|null} - Leave request if found
+   */
+  async getLeaveForDateUTC(year, month, day, employeeId) {
+    const dateStr = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    
+    return await LeaveRequest.findOne({
+      where: {
+        employeeId,
+        status: 'approved',
+        startDate: { [Op.lte]: dateStr },
+        endDate: { [Op.gte]: dateStr }
+      }
+    });
+  }
+
+  /**
    * Get leave for a specific date and employee
    * @param {Date} date - Date to check
    * @param {number} employeeId - Employee ID
@@ -213,8 +261,9 @@ class CalendarDayStatusService {
    * @returns {Object} - Monthly summary
    */
   async getMonthlySummary(year, month, employeeId = null) {
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0); // Last day of month
+    // Create dates using explicit year, month, day to avoid timezone issues
+    const startDate = new Date(year, month - 1, 1); // First day of month
+    const endDate = new Date(year, month, 0); // Last day of month (0th day of next month)
     
     const dayStatuses = await this.getDayStatusRange(startDate, endDate, employeeId);
     const nonWorkingBreakdown = await this.getNonWorkingDaysBreakdown(startDate, endDate, employeeId);

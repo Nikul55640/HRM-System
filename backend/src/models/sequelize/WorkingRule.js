@@ -137,6 +137,13 @@ WorkingRule.isWeekend = async function(date) {
   return rule.isWeekend(dayOfWeek);
 };
 
+WorkingRule.isWeekendByDayIndex = async function(dayOfWeek) {
+  const rule = await this.getActiveRule(new Date());
+  if (!rule) return [0, 6].includes(dayOfWeek); // Default weekends
+  
+  return rule.isWeekend(dayOfWeek);
+};
+
 // Validation hooks
 WorkingRule.beforeSave(async (workingRule) => {
   // Validate working days and weekend days don't overlap
