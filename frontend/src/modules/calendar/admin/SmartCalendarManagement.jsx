@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/car
 import { Button } from '../../../shared/ui/button';
 import { Badge } from '../../../shared/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../shared/ui/tabs';
-import { Calendar, Settings, Clock, Users, AlertCircle, CheckCircle, Plus, Edit, Trash2 , X, Calendar1Icon } from 'lucide-react';
+import { Calendar, Settings, Clock, Users, AlertCircle, CheckCircle, Plus, Edit, Trash2 , X, Calendar1Icon, ClipboardList } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { smartCalendarService, api } from '../../../services';
 import WorkingRuleForm from './WorkingRuleForm';
@@ -489,7 +489,10 @@ const SmartCalendarManagement = () => {
               {/* Active Working Rule Info */}
               {previewData.activeWorkingRule && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                  <h3 className="font-medium text-gray-900 mb-2">📋 Active Working Rule</h3>
+                  <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
+                    <ClipboardList className="w-4 h-4" />
+                    Active Working Rule
+                  </h3>
                   <p className="text-sm text-gray-600 mb-2">{previewData.activeWorkingRule.ruleName}</p>
                   <div className="flex gap-4 text-sm">
                     <div>

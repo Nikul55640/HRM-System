@@ -8,7 +8,7 @@ const AuditLogsPage = lazy(() =>
 // Feature 2: Attendance Management (Admin)
 const AttendanceCorrections = lazy(() => import("../modules/attendance/admin/AttendanceCorrections"));
 const LiveAttendanceDashboard = lazy(() => import("../modules/attendance/admin/LiveAttendanceDashboard"));
-const ManageAttendance = lazy(() => import("../modules/attendance/components/ManageAttendance"));
+const ManageAttendance = lazy(() => import("../modules/attendance/admin/ManageAttendance"));
 const  PolicyPage = lazy(() => import("../modules/organization/pages/PolicyPage"));
 const  CompanyDocumentsPage = lazy(() => import("../modules/organization/pages/CompanyDocumentsPage"));
 
@@ -37,6 +37,9 @@ const CalendarificManagement = lazy(() => import("../modules/calendar/admin/Cale
 
 // Feature 9: Bank Details Verification (Admin)
 const BankVerificationPage = lazy(() => import("../modules/admin/pages/BankVerification/BankVerificationPage"));
+
+// Feature 10: Announcements Management (Admin)
+const AnnouncementsPage = lazy(() => import("../modules/admin/pages/Announcements/AnnouncementsPage"));
 
 // System Configuration
 const UserManagement = lazy(() => import("../modules/organization/admin/UserManagement"));
@@ -90,6 +93,9 @@ export const adminRoutes = [
 
   // Bank Details Verification
   { path: "/admin/bank-verification", element: <BankVerificationPage />, roles: ["SuperAdmin", "HR"] },
+
+  // Announcements Management
+  { path: "/admin/announcements", element: <AnnouncementsPage />, roles: ["SuperAdmin", "HR"] },
 
   // System Administration - SuperAdmin only
   { path: "/admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },

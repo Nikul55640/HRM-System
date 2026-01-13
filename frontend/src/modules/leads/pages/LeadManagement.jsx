@@ -26,6 +26,8 @@ import api from '../../../services/api';
 import LeadForm from '../components/LeadForm';
 import LeadDetails from '../components/LeadDetails';
 
+import { formatIndianCurrency } from '../../../utils/indianFormatters';
+
 const LeadManagement = () => {
   const [leads, setLeads] = useState([]);
   const [stats, setStats] = useState({});
@@ -155,11 +157,7 @@ const LeadManagement = () => {
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+    return formatIndianCurrency(amount);
   };
 
   const formatDate = (dateString) => {

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Camera, Upload, X, User } from 'lucide-react';
 import { Button } from '../../../../shared/ui/button';
 import { Card } from '../../../../shared/ui/card';
@@ -11,6 +11,39 @@ const ProfilePhotoUploader = ({ currentPhoto, onPhotoUpdate }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const fileInputRef = useRef(null);
   const { toast } = useToast();
+
+  // Update preview when currentPhoto changes
+  useEffect(() => {
+    setPreview(currentPhoto);
+  }, [currentPhoto]);
+
+  // Helper function to get full image URL
+  const getImageUrl = (photoPath) => {
+    if (!photoPath) return null;
+    
+    // If it's already a base64 data URL, return as is
+    if (photoPath.startsWith('data:')) return photoPath;
+    
+    // If it's a full HTTP URL, return as is
+    if (photoPath.startsWith('http')) return photoPath;
+    
+    // Normalize the path to always start with /
+    const normalizedPath = photoPath.startsWith('/') ? photoPath : `/${photoPath}`;
+    
+    // Get base URL without /api suffix
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    
+    const fullUrl = `${baseUrl}${normalizedPath}`;
+    console.log('🖼️ Image URL construction:', {
+      photoPath,
+      normalizedPath,
+      baseUrl,
+      fullUrl,
+      VITE_API_URL: import.meta.env.VITE_API_URL
+    });
+    
+    return fullUrl;
+  };
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -54,9 +87,10 @@ const ProfilePhotoUploader = ({ currentPhoto, onPhotoUpdate }) => {
       const response = await employeeSettingsService.uploadProfilePhoto(selectedFile);
       
       if (response.success) {
-        setPreview(response.data.profilePhoto);
+        const photoUrl = response.data.profilePhoto;
+        setPreview(photoUrl);
         setSelectedFile(null);
-        onPhotoUpdate?.(response.data.profilePhoto);
+        onPhotoUpdate?.(photoUrl);
         
         toast({
           title: 'Success',
@@ -116,15 +150,23 @@ const ProfilePhotoUploader = ({ currentPhoto, onPhotoUpdate }) => {
           <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-lg">
             {preview ? (
               <img
-                src={preview}
+                src={getImageUrl(preview)}
                 alt="Profile"
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  console.error('❌ Failed to load profile image:', preview);
+                  console.error('❌ Attempted URL:', e.target.src);
+                  e.target.style.display = 'none';
+                  const fallbackDiv = e.target.parentNode.querySelector('.fallback-avatar');
+                  if (fallbackDiv) {
+                    fallbackDiv.style.display = 'flex';
+                  }
+                }}
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                <User className="w-16 h-16 text-gray-400" />
-              </div>
-            )}
+            ) : null}
+            <div className={`fallback-avatar w-full h-full flex items-center justify-center bg-gray-200 ${preview ? 'hidden' : ''}`}>
+              <User className="w-16 h-16 text-gray-400" />
+            </div>
           </div>
           
           {/* Camera icon overlay */}
@@ -142,6 +184,11 @@ const ProfilePhotoUploader = ({ currentPhoto, onPhotoUpdate }) => {
           <p className="text-sm text-gray-500 mt-1">
             JPG or PNG. Max size 2MB.
           </p>
+          {preview?.startsWith('data:') && (
+            <p className="text-xs text-amber-600 mt-1 bg-amber-50 px-2 py-1 rounded">
+              ⚠️ Legacy photo format detected. Upload a new photo for better performance.
+            </p>
+          )}
         </div>
 
         {/* Action buttons */}

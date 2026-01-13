@@ -9,6 +9,7 @@ import {
 import { Button } from "../../../shared/ui/button";
 import { ApprovalStatusBadge } from "../../../shared/components";
 import { formatDate } from "../../ess/utils/essHelpers";
+import { formatIndianDateTime } from "../../../utils/indianFormatters";
 import {
   Calendar,
   Clock,
@@ -159,7 +160,7 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
                     <div className="text-xs text-green-600">
                       On:{" "}
                       {item.approvedAt
-                        ? new Date(item.approvedAt).toLocaleString()
+                        ? formatIndianDateTime(item.approvedAt)
                         : "-"}
                     </div>
                   </div>

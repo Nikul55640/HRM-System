@@ -11,7 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '../../../shared/ui/popo
 import { Calendar } from '../../../shared/ui/calendar';
 import { cn } from '../../../lib/utils';
 import { formatDate } from '../../../lib/date-utils.js';
-import AttendanceForm from './AttendanceForm';
+import AttendanceForm from '../components/AttendanceForm';
 import api from '../../../services/api';
 import { getEmployeeFullName, getEmployeeInitials } from '../../../utils/employeeDataMapper';
 import { mapAttendanceRecord, getStatusDisplay, getStatusColor, formatTime } from '../../../utils/attendanceDataMapper';

@@ -73,7 +73,17 @@ const Employee = sequelize.define('Employee', {
   profilePhoto: {
     type: DataTypes.VIRTUAL,
     get() {
-      return this.getDataValue('profilePicture');
+      const profilePicture = this.getDataValue('profilePicture');
+      if (!profilePicture) return null;
+      
+      // If it's base64 data, return as-is
+      if (profilePicture.startsWith('data:')) return profilePicture;
+      
+      // If it's already a full URL, return as-is
+      if (profilePicture.startsWith('http')) return profilePicture;
+      
+      // Ensure the path starts with a slash for web accessibility
+      return profilePicture.startsWith('/') ? profilePicture : `/${profilePicture}`;
     },
     set(value) {
       this.setDataValue('profilePicture', value);

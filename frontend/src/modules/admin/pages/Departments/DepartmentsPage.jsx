@@ -10,6 +10,8 @@ import { Icon, LoadingSpinner } from "../../../../shared/components";
 import { useToast } from "../../../../core/hooks/use-toast";
 import api from "../../../../services/api";
 
+import { formatIndianCurrency } from '../../../../utils/indianFormatters';
+
 const DepartmentsPage = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -435,7 +437,7 @@ const DepartmentsPage = () => {
                 <div>
                   <label className="text-xs sm:text-sm font-medium text-gray-500">Budget</label>
                   <p className="font-medium text-sm sm:text-base truncate">
-                    {parentDept.budget ? `$${parseFloat(parentDept.budget).toLocaleString()}` : "Not set"}
+                    {parentDept.budget ? formatIndianCurrency(parseFloat(parentDept.budget)) : "Not set"}
                   </p>
                 </div>
                 <div>

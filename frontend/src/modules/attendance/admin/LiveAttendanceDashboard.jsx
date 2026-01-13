@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   PageHeader,
   StatsCard,
@@ -23,23 +23,31 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import api from '../../../services/api';
-import { mapLiveAttendanceData, formatDuration, formatTime } from '../../../utils/attendanceDataMapper';
+import { 
+  computeSummaryFromLiveData,
+  isInOvertime,
+  getOvertimeMinutes,
+  formatDuration,
+  formatTime,
+  getLocationInfo,
+  getPerformanceIndicators
+} from '../../../utils/attendanceCalculations';
 
 const LiveAttendanceDashboard = () => {
   const [liveData, setLiveData] = useState([]);
-  const [summary, setSummary] = useState({ 
-    totalActive: 0, 
-    working: 0, 
-    onBreak: 0, 
-    late: 0, 
-    overtime: 0 
-  });
   const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
     department: 'all',
     workLocation: 'all',
   });
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [serverTime, setServerTime] = useState(null);
+
+  // ✅ IMPROVEMENT 1: Derive summary from liveData (single source of truth)
+  const summary = useMemo(() => {
+    return computeSummaryFromLiveData(liveData, serverTime || new Date());
+  }, [liveData, serverTime]);
 
   const fetchLiveAttendance = useCallback(async (silent = false) => {
     try {
@@ -57,33 +65,36 @@ const LiveAttendanceDashboard = () => {
       // Handle response with proper success check
       if (response?.data?.success) {
         const liveData = response.data.data || [];
-        const summary = response.data.summary || {};
         
-        // ✅ ENHANCED: Process live data to include late status from attendance records
-        const processedLiveData = liveData.map(employee => mapLiveAttendanceData(employee));
+        // ✅ IMPROVEMENT 2: Use server time for accurate calculations
+        const serverTime = response.data.serverTime ? new Date(response.data.serverTime) : new Date();
+        setServerTime(serverTime);
+        
+        // Process live data with business logic moved to utils
+        const processedLiveData = liveData.map(employee => ({
+          ...employee,
+          // Ensure consistent data structure
+          isLate: employee.isLate || employee.currentSession?.isLate || false,
+          lateMinutes: employee.lateMinutes || employee.currentSession?.lateMinutes || 0,
+        }));
         
         setLiveData(processedLiveData);
-        setSummary({
-          ...summary,
-          // Ensure all summary fields are present
-          totalActive: summary.totalActive || liveData.length,
-          working: summary.working || liveData.filter(emp => emp.currentSession?.status === 'active').length,
-          onBreak: summary.onBreak || liveData.filter(emp => emp.currentSession?.status === 'on_break').length,
-          late: summary.late || liveData.filter(emp => emp.isLate).length,
-          overtime: summary.overtime || 0,
-          incomplete: summary.incomplete || liveData.filter(emp => emp.status === 'incomplete').length
-        });
+        setLastUpdated(new Date());
         
-        // Show message if using mock data
+        // Don't show toast messages for mock data in production
         if (response.data.meta?.usingMockData && !silent) {
-          toast.info('Showing demo data - no active attendance sessions found');
+          // Only show mock data message in development
+          if (process.env.NODE_ENV === 'development') {
+            toast.info('Showing demo data - no active attendance sessions found');
+          }
         } else if (response.data.meta?.realRecordsFound === 0 && !silent) {
+          // Always show this message when no real records are found
           toast.info('No employees currently clocked in');
         }
         
         console.log('✅ [LIVE ATTENDANCE] Data loaded:', {
           liveData: processedLiveData.length,
-          summary: summary,
+          serverTime: serverTime.toISOString(),
           usingMockData: response.data.meta?.usingMockData,
           realRecordsFound: response.data.meta?.realRecordsFound
         });
@@ -91,7 +102,6 @@ const LiveAttendanceDashboard = () => {
         // Handle case where success is false
         console.warn('[LIVE ATTENDANCE] API returned success: false');
         setLiveData([]);
-        setSummary({});
         
         if (!silent) {
           toast.error(response?.data?.message || 'Failed to load live attendance');
@@ -100,7 +110,6 @@ const LiveAttendanceDashboard = () => {
     } catch (error) {
       console.error('Failed to fetch live attendance:', error);
       setLiveData([]);
-      setSummary({});
       
       if (!silent) {
         toast.error('Failed to load live attendance');
@@ -113,6 +122,20 @@ const LiveAttendanceDashboard = () => {
   useEffect(() => {
     fetchLiveAttendance();
   }, [fetchLiveAttendance]);
+
+  // ✅ IMPROVEMENT 3: Pause auto-refresh when tab is hidden
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        setAutoRefresh(false);
+      } else {
+        setAutoRefresh(true);
+      }
+    };
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+  }, []);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -148,6 +171,7 @@ const LiveAttendanceDashboard = () => {
     }
   };
 
+  // ✅ IMPROVEMENT 4: Use utility functions for consistent formatting
   const formatTimeDisplay = (dateString) => {
     return formatTime(dateString);
   };
@@ -157,45 +181,19 @@ const LiveAttendanceDashboard = () => {
   };
 
   const getLocationIcon = (location) => {
-    switch (location) {
-      case 'office':
-        return <Building2 className="h-4 w-4" />;
-      case 'wfh':
-        return <Home className="h-4 w-4" />;
-      case 'client_site':
-        return <Users className="h-4 w-4" />;
-      default:
-        return <MapPin className="h-4 w-4" />;
-    }
+    const locationInfo = getLocationInfo(location);
+    const IconComponent = {
+      Building2,
+      Home,
+      Users,
+      MapPin
+    }[locationInfo.icon] || MapPin;
+    
+    return <IconComponent className="h-4 w-4" />;
   };
 
   const getLocationLabel = (location) => {
-    switch (location) {
-      case 'office':
-        return 'Office';
-      case 'wfh':
-        return 'WFH';
-      case 'client_site':
-        return 'Client Site';
-      default:
-        return location;
-    }
-  };
-
-  const isInOvertime = (employee) => {
-    if (!employee.shift) return false;
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const shiftEndTime = new Date(`${today} ${employee.shift.shiftEndTime}`);
-    return now > shiftEndTime;
-  };
-
-  const getOvertimeMinutes = (employee) => {
-    if (!employee.shift || !isInOvertime(employee)) return 0;
-    const now = new Date();
-    const today = now.toISOString().split('T')[0];
-    const shiftEndTime = new Date(`${today} ${employee.shift.shiftEndTime}`);
-    return Math.floor((now - shiftEndTime) / (1000 * 60));
+    return getLocationInfo(location).label;
   };
 
   return (
@@ -332,8 +330,12 @@ const LiveAttendanceDashboard = () => {
           </div>
         ) : (
           liveData.map((employee) => {
-            const overtimeMinutes = getOvertimeMinutes(employee);
-            const inOvertime = isInOvertime(employee);
+            // ✅ IMPROVEMENT 4: Use utility functions for calculations
+            const currentTime = serverTime || new Date();
+            const overtimeMinutes = getOvertimeMinutes(employee, currentTime);
+            const inOvertime = isInOvertime(employee, currentTime);
+            const performanceIndicators = getPerformanceIndicators(employee);
+            const locationInfo = getLocationInfo(employee.currentSession?.workLocation);
             
             return (
               <DataCard
@@ -378,8 +380,11 @@ const LiveAttendanceDashboard = () => {
 
                   {/* Location */}
                   <div className="flex items-center gap-2 text-sm">
-                    <Building2 className="h-4 w-4" />
-                    <span>Office</span>
+                    {getLocationIcon(employee.currentSession?.workLocation)}
+                    <span>{getLocationLabel(employee.currentSession?.workLocation)}</span>
+                    {employee.currentSession?.locationDetails && (
+                      <span className="text-gray-500">• {employee.currentSession.locationDetails}</span>
+                    )}
                   </div>
 
                   {/* Time Info */}
@@ -459,14 +464,17 @@ const LiveAttendanceDashboard = () => {
                   {/* Performance Indicators */}
                   <div className="flex items-center justify-between text-sm pt-2 border-t">
                     <div className="flex items-center gap-2 flex-wrap">
-                      {!employee.isLate && (
+                      {performanceIndicators.onTime && (
                         <span className="text-green-600 flex items-center gap-1">
                           <Award className="h-3 w-3" />
                           On Time
                         </span>
                       )}
-                      {employee.currentSession?.status !== 'on_break' && (
+                      {performanceIndicators.productive && (
                         <span className="text-blue-600">🟢 Productive</span>
+                      )}
+                      {performanceIndicators.overtime && (
+                        <span className="text-purple-600">⏱️ Overtime</span>
                       )}
                     </div>
                   </div>
@@ -480,12 +488,20 @@ const LiveAttendanceDashboard = () => {
       {/* Last Updated */}
       {!loading && liveData.length > 0 && (
         <div className="text-center text-xs sm:text-sm text-muted-foreground">
-          Last updated: {new Date().toLocaleTimeString()}
+          Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Never'}
+          {serverTime && (
+            <span className="hidden sm:inline"> • Server time: {serverTime.toLocaleTimeString()}</span>
+          )}
           {autoRefresh && (
             <>
               <span className="hidden sm:inline"> • Auto-refreshing every 30 seconds</span>
               <div className="sm:hidden mt-1">Auto-refreshing every 30s</div>
             </>
+          )}
+          {!autoRefresh && (
+            <div className="mt-1 text-amber-600">
+              ⏸️ Auto-refresh paused (tab was hidden)
+            </div>
           )}
         </div>
       )}

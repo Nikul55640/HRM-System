@@ -3,6 +3,8 @@
  * Maps database field names to frontend display format
  */
 
+import { formatIndianTime, formatIndianTimeString, formatIndianDate } from './indianFormatters';
+
 export const mapAttendanceRecord = (record) => {
   if (!record) return null;
 
@@ -37,7 +39,7 @@ export const mapAttendanceRecord = (record) => {
     totalWorkedMinutes: record.totalWorkedMinutes || 0,
     workHours: record.workHours || 0,
     workingHours: record.workHours ? `${record.workHours}h` : 
-                  record.totalWorkedMinutes ? `${Math.round(record.totalWorkedMinutes / 60 * 100) / 100}h` : 
+                  record.totalWorkedMinutes ? formatIndianTime(record.totalWorkedMinutes) : 
                   '--:--',
     
     // Break tracking
@@ -73,14 +75,8 @@ export const mapAttendanceRecord = (record) => {
     isAbsent: record.status === 'absent',
     
     // Display helpers
-    clockInTime: record.clockIn ? new Date(record.clockIn).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    }) : '--:--',
-    clockOutTime: record.clockOut ? new Date(record.clockOut).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    }) : '--:--',
+    clockInTime: record.clockIn ? formatIndianTimeString(record.clockIn) : '--:--',
+    clockOutTime: record.clockOut ? formatIndianTimeString(record.clockOut) : '--:--',
     
     // Status display
     statusDisplay: getStatusDisplay(record.status, record.isLate, record.lateMinutes),
@@ -116,7 +112,7 @@ export const mapLiveAttendanceData = (employee) => {
 
 export const getStatusDisplay = (status, isLate, lateMinutes) => {
   if (isLate && status === 'present') {
-    return `Late (${lateMinutes}m)`;
+    return `Late (${formatIndianTime(lateMinutes)})`;
   }
   
   switch (status) {
@@ -159,41 +155,13 @@ export const getStatusColor = (status, isLate) => {
 };
 
 export const formatDuration = (minutes) => {
-  if (!minutes || minutes === 0) return '0m';
-  
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  
-  if (hours > 0) {
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
-  }
-  
-  return `${mins}m`;
+  return formatIndianTime(minutes);
 };
 
 export const formatTime = (timeString) => {
-  if (!timeString) return '--:--';
-  
-  try {
-    return new Date(timeString).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  } catch (error) {
-    return '--:--';
-  }
+  return formatIndianTimeString(timeString);
 };
 
 export const formatDate = (dateString) => {
-  if (!dateString) return '--';
-  
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  } catch (error) {
-    return '--';
-  }
+  return formatIndianDate(dateString);
 };

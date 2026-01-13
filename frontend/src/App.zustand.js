@@ -19,7 +19,7 @@ import EmployeeList from './modules/employees/pages/EmployeeList';
 import EmployeeForm from './modules/employees/pages/EmployeeForm';
 import DepartmentSection from './modules/organization/components/DepartmentSection';
 import LeaveManagement from './modules/leave/hr/LeaveManagement';
-import ManageAttendance from './modules/attendance/components/ManageAttendance';
+import ManageAttendance from './modules/attendance/admin/ManageAttendance';
 
 import 'react-toastify/dist/ReactToastify.css';
 

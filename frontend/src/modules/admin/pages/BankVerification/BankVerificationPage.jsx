@@ -161,11 +161,14 @@ const BankVerificationPage = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
       
-      {/* Debug Panel - Development Only */}
+      {/* Debug Panel - Development Only
       {process.env.NODE_ENV === 'development' && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-4">
-            <h3 className="text-sm font-semibold text-red-800 mb-2">🔍 Debug Info (Development Only)</h3>
+            <h3 className="text-sm font-semibold text-red-800 mb-2 flex items-center gap-2">
+              <Search className="w-4 h-4" />
+              Debug Info (Development Only)
+            </h3>
             <div className="text-xs text-red-700 space-y-1">
               <p><strong>User ID:</strong> {user?.id}</p>
               <p><strong>Email:</strong> {user?.email}</p>
@@ -176,7 +179,7 @@ const BankVerificationPage = () => {
           </CardContent>
         </Card>
       )}
-      
+       */}
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>

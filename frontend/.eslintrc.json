@@ -23,11 +23,14 @@
     "react/prop-types": "warn",
     "react/destructuring-assignment": "off",
     "react/jsx-props-no-spreading": "off",
-    "no-unused-vars": ["warn", { 
+
+    "react/no-unescaped-entities": "off",
+
+    "no-unused-vars": ["warn", {
       "argsIgnorePattern": "^_",
       "varsIgnorePattern": "^_"
     }],
-    "no-console": "warn"
+    "no-console": "off"
   },
   "settings": {
     "react": {

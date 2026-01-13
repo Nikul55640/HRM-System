@@ -11,24 +11,15 @@ import {
   Calendar, 
   Clock, 
   FileText, 
-  AlertCircle, 
-  TrendingUp, 
-  TrendingDown,
-  RefreshCw,
-  Building,
-  UserCheck,
-  UserX,
-  Activity,
-  BarChart3,
-  Settings,
-  Shield
+  AlertCircle,
+  
 } from 'lucide-react';
 import { LoadingSpinner } from '../../../../shared/components';
 import useAuth from '../../../../core/hooks/useAuth';
 import { usePermissions } from '../../../../core/hooks';
 import { MODULES } from '../../../../core/utils/rolePermissions';
-import { cn, formatCurrency } from '../../../../lib/utils';
 import adminDashboardService from '../../../../services/adminDashboardService';
+import { formatIndianCurrency, formatIndianNumber } from '../../../../utils/indianFormatters';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -126,7 +117,7 @@ const AdminDashboard = () => {
     },
     {
       title: 'Total Payroll',
-      value: `₹${(stats.totalPayroll || 0).toLocaleString()}`,
+      value: formatIndianCurrency(stats.totalPayroll || 0),
       icon: DollarSign,
       color: 'purple',
       change: 'This month',
@@ -292,7 +283,7 @@ const AdminDashboard = () => {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <button
-              onClick={() => navigate('/users')}
+              onClick={() => navigate('/admin/users')}
               className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
             >
               <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
@@ -306,11 +297,11 @@ const AdminDashboard = () => {
               <span className="text-sm text-gray-700">Leave Requests</span>
             </button>
             <button
-              onClick={() => navigate('/payroll')}
+              onClick={() => navigate('/admin/attendance')}
               className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
             >
-              <DollarSign className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-              <span className="text-sm text-gray-700">Payroll</span>
+              <Clock className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+              <span className="text-sm text-gray-700">Attendance</span>
             </button>
             <button
               onClick={() => navigate('/admin/audit-logs')}

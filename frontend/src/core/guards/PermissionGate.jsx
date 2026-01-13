@@ -4,8 +4,7 @@
  */
 
 import { useMemo } from 'react';
-import useAuth from '../hooks/useAuth';
-import { hasPermission, hasAnyPermission, hasAllPermissions } from '../utils/rolePermissions';
+import useAuthStore from '../../stores/useAuthStore';
 
 /**
  * PermissionGate - Renders children only if user has required permissions
@@ -23,29 +22,29 @@ const PermissionGate = ({
   children,
   fallback = null,
 }) => {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuthStore();
 
   const hasAccess = useMemo(() => {
     if (!user || !user.role) return false;
 
     // Check single permission
     if (permission) {
-      return hasPermission(user.role, permission);
+      return hasPermission(permission);
     }
 
-    // Check any permissions
+    // Check any permissions (user needs at least one)
     if (anyPermissions && anyPermissions.length > 0) {
-      return hasAnyPermission(user.role, anyPermissions);
+      return anyPermissions.some(perm => hasPermission(perm));
     }
 
-    // Check all permissions
+    // Check all permissions (user needs all of them)
     if (allPermissions && allPermissions.length > 0) {
-      return hasAllPermissions(user.role, allPermissions);
+      return allPermissions.every(perm => hasPermission(perm));
     }
 
     // No permission specified, deny by default
     return false;
-  }, [user, permission, anyPermissions, allPermissions]);
+  }, [user, permission, anyPermissions, allPermissions, hasPermission]);
 
   if (!hasAccess) {
     return fallback;

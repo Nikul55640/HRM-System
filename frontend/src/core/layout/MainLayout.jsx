@@ -4,6 +4,7 @@ import Sidebar from "./Sidebar";
 import Footer from "./Footer";
 import { useState } from "react";
 import useNotifications from "../../hooks/useNotifications";
+import NotificationDebug from "../../Debug/NotificationDebug";
 
 
 const MainLayout = () => {

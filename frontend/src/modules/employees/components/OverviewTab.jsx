@@ -1,3 +1,5 @@
+import { formatIndianCurrency, formatIndianDate } from '../../../utils/indianFormatters';
+
 const OverviewTab = ({ employee }) => {
   // Unwrap nested employee object if it exists
   const emp = employee?.employee ?? employee ?? {};
@@ -8,12 +10,7 @@ const OverviewTab = ({ employee }) => {
   const job = emp?.jobInfo || {};
 
   const formatDate = (date) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
+    return formatIndianDate(date);
   };
 
   const InfoSection = ({ title, children }) => (
@@ -111,7 +108,7 @@ const OverviewTab = ({ employee }) => {
         />
         <InfoItem label="Employment Type" value={job?.employeeType} />
         <InfoItem label="Joining Date" value={formatDate(job?.joiningDate)} />
-        <InfoItem label="Salary" value={job?.salary ? `${job.salary.toLocaleString()}` : 'N/A'} />
+        <InfoItem label="Salary" value={job?.salary ? formatIndianCurrency(job.salary) : 'N/A'} />
         <InfoItem label="Work Location" value={job?.workLocation} />
       </InfoSection>
     </div>

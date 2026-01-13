@@ -57,7 +57,7 @@ export const getProfile = async (req, res) => {
       attributes: [
         'id', 'employeeId', 'firstName', 'lastName', 'gender', 
         'dateOfBirth', 'maritalStatus', 'about', 'phone', 
-        'country', 'address', 'profilePicture', 'nationality', 'bloodGroup'
+        'country', 'address', 'profilePicture', 'profilePhoto', 'nationality', 'bloodGroup'
       ],
       include: [
         {
@@ -185,8 +185,8 @@ export const uploadProfilePhoto = async (req, res) => {
       });
     }
 
-    // Delete old profile photo if exists
-    if (employee.profilePicture) {
+    // Delete old profile photo if exists and it's a file path (not base64)
+    if (employee.profilePicture && !employee.profilePicture.startsWith('data:')) {
       const oldPhotoPath = path.join(process.cwd(), employee.profilePicture);
       if (fs.existsSync(oldPhotoPath)) {
         fs.unlinkSync(oldPhotoPath);
@@ -223,6 +223,32 @@ export const uploadProfilePhoto = async (req, res) => {
   }
 };
 
+// Get profile photo file
+export const getProfilePhoto = async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const photoPath = path.join(process.cwd(), 'uploads', 'profile-photos', filename);
+    
+    // Check if file exists
+    if (!fs.existsSync(photoPath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profile photo not found',
+      });
+    }
+    
+    // Send the file
+    res.sendFile(photoPath);
+  } catch (error) {
+    logger.error('Error serving profile photo:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to serve profile photo',
+      error: error.message,
+    });
+  }
+};
+
 // Delete profile photo
 export const deleteProfilePhoto = async (req, res) => {
   try {
@@ -237,8 +263,8 @@ export const deleteProfilePhoto = async (req, res) => {
       });
     }
 
-    // Delete photo file if exists
-    if (employee.profilePicture) {
+    // Delete photo file if exists and it's a file path (not base64)
+    if (employee.profilePicture && !employee.profilePicture.startsWith('data:')) {
       const photoPath = path.join(process.cwd(), employee.profilePicture);
       if (fs.existsSync(photoPath)) {
         fs.unlinkSync(photoPath);
@@ -280,7 +306,7 @@ export const changePassword = async (req, res) => {
     }
 
     // Get user record
-    const user = await User.findByPk(userId);
+    const user = await User.scope('withPassword').findByPk(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -306,13 +332,9 @@ export const changePassword = async (req, res) => {
       });
     }
 
-    // Hash new password
-    const saltRounds = 12;
-    const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
-
-    // Update password
+    // Update password (let the model hook handle hashing)
     await user.update({
-      password: hashedNewPassword,
+      password: newPassword,
       updatedBy: userId,
     });
 

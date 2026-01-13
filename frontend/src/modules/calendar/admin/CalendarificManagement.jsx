@@ -3,7 +3,7 @@
  * Admin interface for managing Calendarific API integration
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
 import { Input } from '../../../shared/ui/input';
@@ -29,6 +29,8 @@ import {
   RotateCcw
 } from 'lucide-react';
 
+import { formatIndianDateTime } from '../../../utils/indianFormatters';
+
 const CalendarificManagement = () => {
   
   // State management
@@ -40,6 +42,14 @@ const CalendarificManagement = () => {
   const [holidayStats, setHolidayStats] = useState(null);
   const [lastSyncTime, setLastSyncTime] = useState(null);
   
+  // Prevent state updates after unmount
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
+  
   // Form states
   const [selectedCountry, setSelectedCountry] = useState('IN');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -48,13 +58,26 @@ const CalendarificManagement = () => {
   const [bulkStartYear, setBulkStartYear] = useState(new Date().getFullYear());
   const [bulkEndYear, setBulkEndYear] = useState(new Date().getFullYear() + 1);
 
+  // Memoized static data
+  const popularCountries = useMemo(() => calendarificService.getPopularCountries(), []);
+  const holidayTypes = useMemo(() => calendarificService.getHolidayTypes(), []);
+
+  // Safe state setter helper
+  const safeSetState = (setter) => {
+    return (...args) => {
+      if (mountedRef.current) {
+        setter(...args);
+      }
+    };
+  };
+
   // Load initial data
   useEffect(() => {
     loadInitialData();
   }, []);
 
   const loadInitialData = async () => {
-    setLoading(true);
+    safeSetState(setLoading)(true);
     try {
       await Promise.all([
         testApiConnection(),
@@ -64,31 +87,31 @@ const CalendarificManagement = () => {
     } catch (error) {
       console.error('Error loading initial data:', error);
     } finally {
-      setLoading(false);
+      safeSetState(setLoading)(false);
     }
   };
 
   const testApiConnection = async () => {
     try {
       const result = await calendarificService.testConnection();
-      setApiStatus(result);
+      safeSetState(setApiStatus)(result);
       
       if (result.success) {
         // Load countries if API is working
         const countriesResult = await calendarificService.getSupportedCountries();
         if (countriesResult.success) {
-          setCountries(countriesResult.data);
+          safeSetState(setCountries)(countriesResult.data);
         }
       }
     } catch (error) {
-      setApiStatus({ success: false, message: error.message });
+      safeSetState(setApiStatus)({ success: false, message: error.message });
     }
   };
 
   const loadSyncStatus = async () => {
     try {
       const result = await calendarificService.getSyncStatus();
-      setSyncStats(result.data);
+      safeSetState(setSyncStats)(result.data);
     } catch (error) {
       console.error('Error loading sync status:', error);
     }
@@ -101,7 +124,7 @@ const CalendarificManagement = () => {
         year: selectedYear
       });
       if (result.success) {
-        setHolidayStats(result.data);
+        safeSetState(setHolidayStats)(result.data);
       }
     } catch (error) {
       console.error('Error loading holiday stats:', error);
@@ -109,7 +132,7 @@ const CalendarificManagement = () => {
   };
 
   const handlePreviewHolidays = async () => {
-    setLoading(true);
+    safeSetState(setLoading)(true);
     try {
       // Preview all selected types
       const previewPromises = selectedTypes.map(type => 
@@ -146,7 +169,7 @@ const CalendarificManagement = () => {
         return dateA - dateB;
       });
       
-      setPreviewData({
+      safeSetState(setPreviewData)({
         country: selectedCountry,
         year: selectedYear,
         holidays: allHolidays,
@@ -159,12 +182,12 @@ const CalendarificManagement = () => {
     } catch (error) {
       toast.error(`Preview Failed: ${error.message}`);
     } finally {
-      setLoading(false);
+      safeSetState(setLoading)(false);
     }
   };
 
   const handleSyncHolidays = async (dryRun = false) => {
-    setLoading(true);
+    safeSetState(setLoading)(true);
     try {
       const validation = calendarificService.validateSyncParams({
         country: selectedCountry,
@@ -190,7 +213,7 @@ const CalendarificManagement = () => {
         if (!dryRun) {
           await loadSyncStatus();
           await loadHolidayStats();
-          setLastSyncTime(new Date().toLocaleString());
+          safeSetState(setLastSyncTime)(formatIndianDateTime(new Date()));
         }
       } else {
         throw new Error(result.message);
@@ -198,12 +221,12 @@ const CalendarificManagement = () => {
     } catch (error) {
       toast.error(`Sync Failed: ${error.message}`);
     } finally {
-      setLoading(false);
+      safeSetState(setLoading)(false);
     }
   };
 
   const handleBulkSync = async () => {
-    setLoading(true);
+    safeSetState(setLoading)(true);
     try {
       const validation = calendarificService.validateSyncParams({
         country: selectedCountry,
@@ -228,14 +251,14 @@ const CalendarificManagement = () => {
         
         await loadSyncStatus();
         await loadHolidayStats();
-        setLastSyncTime(new Date().toLocaleString());
+        safeSetState(setLastSyncTime)(formatIndianDateTime(new Date()));
       } else {
         throw new Error(result.message);
       }
     } catch (error) {
       toast.error(`Bulk Sync Failed: ${error.message}`);
     } finally {
-      setLoading(false);
+      safeSetState(setLoading)(false);
     }
   };
 
@@ -244,9 +267,6 @@ const CalendarificManagement = () => {
     if (status === 'disconnected') return <XCircle className="h-4 w-4 text-red-500" />;
     return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
   };
-
-  const popularCountries = calendarificService.getPopularCountries();
-  const holidayTypes = calendarificService.getHolidayTypes();
 
   return (
     <div className="space-y-6">
@@ -397,7 +417,7 @@ const CalendarificManagement = () => {
                   <Input
                     type="number"
                     value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    onChange={(e) => setSelectedYear(Number(e.target.value) || new Date().getFullYear())}
                     min="2020"
                     max="2030"
                   />
@@ -597,7 +617,7 @@ const CalendarificManagement = () => {
                   <Input
                     type="number"
                     value={bulkStartYear}
-                    onChange={(e) => setBulkStartYear(parseInt(e.target.value))}
+                    onChange={(e) => setBulkStartYear(Number(e.target.value) || new Date().getFullYear())}
                     min="2020"
                     max="2030"
                   />
@@ -608,7 +628,7 @@ const CalendarificManagement = () => {
                   <Input
                     type="number"
                     value={bulkEndYear}
-                    onChange={(e) => setBulkEndYear(parseInt(e.target.value))}
+                    onChange={(e) => setBulkEndYear(Number(e.target.value) || new Date().getFullYear())}
                     min="2020"
                     max="2030"
                   />
@@ -666,7 +686,7 @@ const CalendarificManagement = () => {
                   <Input
                     type="number"
                     value={selectedYear}
-                    onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                    onChange={(e) => setSelectedYear(Number(e.target.value) || new Date().getFullYear())}
                     min="2020"
                     max="2030"
                   />

@@ -5,6 +5,7 @@ import { Badge } from '../../../shared/ui/badge';
 import { Users, Clock, AlertCircle, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../../services/api';
+import { formatIndianTime } from '../../../utils/indianFormatters';
 
 const ShiftDetails = ({ shiftId, onClose }) => {
   const [shift, setShift] = useState(null);
@@ -215,7 +216,7 @@ const ShiftDetails = ({ shiftId, onClose }) => {
             {shift.overtimeEnabled && (
               <div>
                 <p className="text-sm text-gray-600">Overtime Threshold</p>
-                <p className="text-lg font-semibold">{shift.overtimeThresholdMinutes} min</p>
+                <p className="text-lg font-semibold">{formatIndianTime(shift.overtimeThresholdMinutes)}</p>
               </div>
             )}
           </div>

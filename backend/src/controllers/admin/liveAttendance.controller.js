@@ -147,46 +147,6 @@ export const getLiveAttendance = async (req, res) => {
       });
     });
 
-    // Only show mock data in development if no real records exist
-    const isDev = process.env.NODE_ENV !== "production";
-
-    if (liveAttendance.length === 0 && isDev) {
-      const mockData = [
-        {
-          employeeId: "mock-emp-1",
-          fullName: "John Smith",
-          email: "john.smith@company.com",
-          department: "Engineering",
-          position: "Senior Developer",
-          currentSession: {
-            sessionId: "mock-session-1",
-            checkInTime: new Date(Date.now() - 4 * 60 * 60 * 1000),
-            workLocation: "office",
-            locationDetails: "Main Office - Floor 3",
-            status: "active",
-            currentBreak: null,
-            totalWorkedMinutes: 240,
-            totalBreakMinutes: 15,
-            breakCount: 1,
-          },
-        },
-      ];
-
-      liveAttendance = mockData.filter((emp) => {
-        if (department && department !== "all" && emp.department !== department)
-          return false;
-
-        if (
-          workLocation &&
-          workLocation !== "all" &&
-          emp.currentSession.workLocation !== workLocation
-        )
-          return false;
-
-        return true;
-      });
-    }
-
     // Sort by check-in time (newest first)
     liveAttendance.sort(
       (a, b) =>
@@ -205,7 +165,7 @@ export const getLiveAttendance = async (req, res) => {
       newValues: {
         activeEmployees: liveAttendance.length,
         filters: { department, workLocation },
-        usingMockData: isDev && records.length === 0,
+        usingMockData: false, // Always false - no mock data
       },
       ipAddress: req.ip,
       userAgent: req.get("User-Agent"),
@@ -230,16 +190,30 @@ export const getLiveAttendance = async (req, res) => {
         // ✅ ENHANCED: Include late and incomplete counts
         late: liveAttendance.filter(e => e.isLate).length,
         overtime: liveAttendance.filter(e => {
-          // Check if employee is in overtime (simplified logic)
-          const workedHours = e.currentSession.totalWorkedMinutes / 60;
-          return workedHours > 8; // Assuming 8-hour standard workday
+          // ✅ IMPROVEMENT: Better overtime calculation using shift data
+          if (!e.shift?.shiftEndTime) return false;
+          
+          try {
+            const now = new Date();
+            const today = now.toISOString().split('T')[0];
+            const [hours, minutes] = e.shift.shiftEndTime.split(':').map(Number);
+            const shiftEndTime = new Date(today);
+            shiftEndTime.setHours(hours, minutes, 0, 0);
+            
+            return now > shiftEndTime;
+          } catch (error) {
+            console.warn('Error calculating overtime for employee:', e.employeeId, error);
+            return false;
+          }
         }).length,
         incomplete: 0, // Live attendance shows active sessions, incomplete would be from previous days
       },
       meta: {
-        usingMockData: isDev && records.length === 0,
+        usingMockData: false, // Always false - no mock data
         realRecordsFound: records.length,
       },
+      // ✅ IMPROVEMENT: Include server time for accurate client-side calculations
+      serverTime: new Date().toISOString(),
     });
   } catch (error) {
     console.error("Error fetching live attendance:", error);

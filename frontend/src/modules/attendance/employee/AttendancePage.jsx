@@ -5,10 +5,12 @@ import EnhancedClockInOut from "./EnhancedClockInOut";
 import SessionHistoryView from "./SessionHistoryView";
 import AttendanceStatsWidget from "./AttendanceStatsWidget";
 import ShiftStatusWidget from "../components/ShiftStatusWidget";
-import { Download, AlertTriangle, Clock, CheckCircle } from "lucide-react";
+import { Download, AlertTriangle, Clock, CheckCircle, Calendar, BarChart3, History } from "lucide-react";
 import { toast } from "react-toastify";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
 import { Badge } from "../../../shared/ui/badge";
+import { Button } from "../../../shared/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../shared/ui/tabs";
 import {
   getMonthName,
   downloadBlob,
@@ -126,163 +128,164 @@ const AttendancePage = () => {
   const years = [2023, 2024, 2025];
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Attendance</h1>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          {/* Month Select */}
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-          >
-            {months.map((m) => (
-              <option key={m} value={m}>
-                {getMonthName(m)}
-              </option>
-            ))}
-          </select>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header Section */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 py-6">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Attendance Dashboard</h1>
+              <p className="text-gray-600 mt-1">Track your attendance and manage your work schedule</p>
+            </div>
+            
+            {/* Controls */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {months.map((m) => (
+                  <option key={m} value={m}>
+                    {getMonthName(m)}
+                  </option>
+                ))}
+              </select>
 
-          {/* Year Select */}
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>
-                {y}
-              </option>
-            ))}
-          </select>
+              <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+                className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>
+                    {y}
+                  </option>
+                ))}
+              </select>
 
-          {/* Export Button */}
-          <button
-            onClick={handleExport}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center gap-2 w-full sm:w-auto btn-touch"
-          >
-            <Download className="w-4 h-4" />
-            <span className="hidden sm:inline">Export</span>
-          </button>
+              <Button onClick={handleExport} className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Export Report
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
-      <Card className="rounded-2xl shadow-sm border border-gray-100 mb-6">
-  <CardContent className="p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-    <h1 className="text-2xl font-semibold text-gray-900">
-      Attendance
-    </h1>
 
-    <div className="flex flex-wrap gap-3">
-      {/* Month */}
- <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-            className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {months.map((m) => (
-              <option key={m} value={m}>
-                {getMonthName(m)}
-              </option>
-            ))}
-          </select>
-      {/* Year */}
-      <select className="px-4 py-2 rounded-full border bg-white text-sm">
-        ...
-      </select>
-
-      {/* Export */}
-      <button className="px-4 py-2 bg-blue-600 text-white rounded-full flex items-center gap-2">
-        <Download className="w-4 h-4" />
-        Export
-      </button>
-    </div>
-  </CardContent>
-</Card>
-
-
-      <div className="space-y-6">
-        {/* ✅ NEW: Today's Status Alert */}
-        {todayStats.isLate && (
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-5 w-5 text-yellow-600" />
-                <div>
-                  <p className="font-medium text-yellow-800">
-                    You were late today by {todayStats.lateMinutes} minutes
-                  </p>
-                  <p className="text-sm text-yellow-600">
-                    Please ensure to clock in on time to maintain good attendance.
-                  </p>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Status Alerts */}
+        <div className="space-y-4 mb-8">
+          {todayStats.isLate && (
+            <Card className="border-l-4 border-l-yellow-500 bg-yellow-50">
+              <CardContent className="py-4">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                  <div>
+                    <p className="font-medium text-yellow-800">
+                      You were late today by {todayStats.lateMinutes} minutes
+                    </p>
+                    <p className="text-sm text-yellow-600">
+                      Please ensure to clock in on time to maintain good attendance.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
 
-        {/* ✅ NEW: Incomplete Records Alert */}
-        {todayStats.hasIncompleteRecords && (
-          <Card className="border-orange-200 bg-orange-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <Clock className="h-5 w-5 text-orange-600" />
-                <div>
-                  <p className="font-medium text-orange-800">
-                    Incomplete attendance record detected
-                  </p>
-                  <p className="text-sm text-orange-600">
-                    You have an incomplete attendance record. Please submit a correction request if needed.
-                  </p>
+          {todayStats.hasIncompleteRecords && (
+            <Card className="border-l-4 border-l-orange-500 bg-orange-50">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Clock className="h-5 w-5 text-orange-600" />
+                    <div>
+                      <p className="font-medium text-orange-800">
+                        Incomplete attendance record detected
+                      </p>
+                      <p className="text-sm text-orange-600">
+                        You have an incomplete attendance record. Please submit a correction request if needed.
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+                    Incomplete
+                  </Badge>
                 </div>
-                <Badge className="bg-orange-100 text-orange-800">
-                  Incomplete
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
 
-        {/* ✅ NEW: Good Attendance Recognition */}
-        {!todayStats.isLate && !todayStats.hasIncompleteRecords && todayStats.status === 'present' && (
-          <Card className="border-green-200 bg-green-50">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="font-medium text-green-800">
-                    Great job! You're on time today
-                  </p>
-                  <p className="text-sm text-green-600">
-                    Keep up the excellent attendance record.
-                  </p>
+          {!todayStats.isLate && !todayStats.hasIncompleteRecords && todayStats.status === 'present' && (
+            <Card className="border-l-4 border-l-green-500 bg-green-50">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-800">
+                        Great job! You're on time today
+                      </p>
+                      <p className="text-sm text-green-600">
+                        Keep up the excellent attendance record.
+                      </p>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                    On Time
+                  </Badge>
                 </div>
-                <Badge className="bg-green-100 text-green-800">
-                  On Time
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
-        {/* Shift Status Notifications and Progress */}
-        <ShiftStatusWidget />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {/* Left Column - Clock In/Out & Shift Status */}
+          <div className="xl:col-span-1 space-y-6">
+            <ShiftStatusWidget />
+            <EnhancedClockInOut />
+          </div>
 
-        {/* Enhanced Clock In/Out with Location Selection and Breaks */}
-        <EnhancedClockInOut />
+          {/* Right Column - Tabbed Content */}
+          <div className="xl:col-span-2">
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="overview" className="flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Overview
+                </TabsTrigger>
+                <TabsTrigger value="history" className="flex items-center gap-2">
+                  <History className="w-4 h-4" />
+                  History
+                </TabsTrigger>
+                <TabsTrigger value="analytics" className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Analytics
+                </TabsTrigger>
+              </TabsList>
 
-        {/* Attendance Summary */}
-        <AttendanceSummary 
-          summary={attendanceSummary} 
-          period={`${getMonthName(selectedMonth)} ${selectedYear}`}
-        />
-        
-        <AttendanceStatsWidget 
-          summary={attendanceSummary} 
-        />
-        
-        {/* Session History with Filters */}
-        <SessionHistoryView />
-        
+              <TabsContent value="overview" className="space-y-6 mt-6">
+                <AttendanceSummary 
+                  summary={attendanceSummary} 
+                  period={`${getMonthName(selectedMonth)} ${selectedYear}`}
+                />
+              </TabsContent>
+
+              <TabsContent value="history" className="space-y-6 mt-6">
+                <SessionHistoryView />
+              </TabsContent>
+
+              <TabsContent value="analytics" className="space-y-6 mt-6">
+                <AttendanceStatsWidget 
+                  summary={attendanceSummary} 
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -45,6 +45,44 @@ const useAttendanceStore = create(
         pagination: { ...state.pagination, ...pagination }
       })),
       
+      // Fetch my attendance records
+      fetchMyAttendance: async (params = {}) => {
+        const { filters } = get();
+        set({ loading: true, error: null });
+        
+        try {
+          const requestParams = {
+            ...filters,
+            ...params
+          };
+          
+          const response = await attendanceService.getMyAttendance(requestParams);
+          
+          set({
+            attendanceRecords: response.data || [],
+            loading: false
+          });
+          
+          return response;
+          
+        } catch (error) {
+          const errorMessage = error.response?.data?.message || 
+                              error.response?.data?.error?.message || 
+                              'Failed to fetch attendance records';
+          
+          set({ 
+            attendanceRecords: [],
+            loading: false, 
+            error: errorMessage 
+          });
+          
+          return {
+            success: false,
+            data: [],
+          };
+        }
+      },
+
       // Fetch attendance records
       fetchAttendanceRecords: async (params = {}) => {
         const { filters, pagination } = get();

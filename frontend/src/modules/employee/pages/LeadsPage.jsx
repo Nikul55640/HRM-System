@@ -9,6 +9,8 @@ import { usePermissions } from "../../../core/hooks";
 import { MODULES } from "../../../core/utils/rolePermissions";
 import useAuth from "../../../core/hooks/useAuth";
 
+import { formatIndianCurrency } from '../../../utils/indianFormatters';
+
 const LeadsPage = () => {
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -301,7 +303,7 @@ const LeadsPage = () => {
               <div>
                 <p className="text-xs sm:text-sm text-gray-600">Est. Value</p>
                 <p className="text-sm sm:text-2xl font-bold">
-                  ${leads.reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0).toLocaleString()}
+                  {formatIndianCurrency(leads.reduce((sum, lead) => sum + (lead.estimatedValue || 0), 0))}
                 </p>
               </div>
             </div>
@@ -345,7 +347,7 @@ const LeadsPage = () => {
                           <span className="font-medium">Email:</span> {lead.email}
                         </div>
                         <div>
-                          <span className="font-medium">Est. Value:</span> ${lead.estimatedValue?.toLocaleString()}
+                          <span className="font-medium">Est. Value:</span> {formatIndianCurrency(lead.estimatedValue)}
                         </div>
                       </div>
                       

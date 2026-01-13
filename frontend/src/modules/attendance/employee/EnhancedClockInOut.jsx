@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
-import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users, RefreshCw, Bug, AlertTriangle, Zap } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users, RefreshCw, Bug, AlertTriangle, Zap, AlarmClockMinus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LocationSelectionModal from './LocationSelectionModal';
 import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore';
 import { attendanceDebugger } from '../../../utils/attendanceDebugger';
+import { formatIndianTime, formatIndianTimeString } from '../../../utils/indianFormatters';
+import useAuthStore from '../../../stores/useAuthStore';
 
 const EnhancedClockInOut = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -176,11 +178,7 @@ const EnhancedClockInOut = () => {
   };
 
   const formatTime = (date) => {
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
+    return formatIndianTimeString(date);
   };
 
   const formatDate = (date) => {
@@ -193,9 +191,7 @@ const EnhancedClockInOut = () => {
   };
 
   const formatDuration = (minutes) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
+    return formatIndianTime(minutes);
   };
 
   const calculateWorkedMinutes = (checkInTime) => {
@@ -303,7 +299,7 @@ const EnhancedClockInOut = () => {
                     {/* Late Status */}
                     {todayRecord?.isLate && (
                       <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                        ⏰ Late ({todayRecord.lateMinutes}m)
+                        <AlarmClockMinus /> Late ({todayRecord.lateMinutes}m)
                       </span>
                     )}
                   </div>
@@ -328,10 +324,7 @@ const EnhancedClockInOut = () => {
                   <div>
                     <div className="text-muted-foreground">Clock In</div>
                     <div className="font-semibold">
-                      {new Date(todayRecord?.clockIn).toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {formatIndianTimeString(todayRecord?.clockIn)}
                     </div>
                     {/* Show expected vs actual */}
                     {todayRecord?.shift && (
@@ -391,7 +384,7 @@ const EnhancedClockInOut = () => {
                             const breakDuration = Math.floor((new Date() - breakStartTime) / (1000 * 60));
                             return (
                               <div className="text-xs text-orange-600 mt-1">
-                                Started: {breakStartTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} 
+                                Started: {formatIndianTimeString(breakStartTime)} 
                                 ({formatDuration(breakDuration)} ago)
                               </div>
                             );
@@ -564,7 +557,10 @@ const EnhancedClockInOut = () => {
             {/* Enhanced Debug Info
             {process.env.NODE_ENV === 'development' && (
               <div className="text-xs bg-gray-100 p-3 rounded mt-2 space-y-2">
-                <div className="font-bold text-gray-800">🔍 Debug Information:</div>
+                <div className="font-bold text-gray-800 flex items-center gap-2">
+                  <Search className="w-4 h-4" />
+                  Debug Information:
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <div className="font-semibold">Status:</div>
@@ -655,7 +651,7 @@ const EnhancedClockInOut = () => {
                       try {
                         const response = await fetch('/api/employee/attendance/today', {
                           headers: {
-                            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                            'Authorization': `Bearer ${useAuthStore.getState().token}`,
                             'Content-Type': 'application/json'
                           }
                         });

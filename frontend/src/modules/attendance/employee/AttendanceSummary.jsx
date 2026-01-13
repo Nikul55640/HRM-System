@@ -2,6 +2,7 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Clock, Calendar, TrendingUp, AlertCircle, Coffee, Timer, Award, AlertTriangle } from 'lucide-react';
+import { formatIndianTime } from '../../../utils/indianFormatters';
 
 const AttendanceSummary = ({ summary, period }) => {
   // Default values if summary is not provided or incomplete
@@ -48,12 +49,9 @@ const AttendanceSummary = ({ summary, period }) => {
     ? Math.round(((data.presentDays - data.lateDays) / data.presentDays) * 100)
     : 0;
 
-  // Convert minutes to hours and minutes
+  // Convert minutes to hours and minutes using Indian formatting
   const formatWorkTime = (minutes) => {
-    const totalMinutes = Number(minutes) || 0;
-    const hours = Math.floor(totalMinutes / 60);
-    const mins = totalMinutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+    return formatIndianTime(minutes);
   };
 
   // Safe number formatting

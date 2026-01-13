@@ -3,23 +3,34 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/
 import { Button } from '../../../../shared/ui/button';
 import { Plus, Edit, Trash2, Megaphone } from 'lucide-react';
 import { toast } from 'react-toastify';
-import { formatDate } from '../../../ess/utils/essHelpers';
+import { formatIndianDate } from '../../../../utils/indianFormatters';
+import { PermissionGate } from '../../../../core/guards';
+import { MODULES } from '../../../../core/utils/rolePermissions';
+import { LoadingSpinner } from '../../../../shared/components';
+import useAuth from '../../../../core/hooks/useAuth';
 
 const AnnouncementsPage = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     content: '',
     priority: 'normal',
   });
 
+  const { user } = useAuth();
+
   const fetchAnnouncements = async () => {
     try {
       setLoading(true);
-      // Mock data
+      // TODO: Replace with actual API call when backend is ready
+      // const response = await api.get('/admin/announcements');
+      // setAnnouncements(response.data.data);
+      
+      // Mock data with Indian date formatting
       setAnnouncements([
         {
           _id: '1',
@@ -27,7 +38,7 @@ const AnnouncementsPage = () => {
           content: 'Office will be closed on January 1st for New Year celebration.',
           priority: 'high',
           createdAt: new Date(),
-          author: 'HR Department',
+          author: user?.firstName ? `${user.firstName} ${user.lastName}` : 'HR Department',
         },
         {
           _id: '2',
@@ -39,6 +50,7 @@ const AnnouncementsPage = () => {
         },
       ]);
     } catch (error) {
+      console.error('Error fetching announcements:', error);
       toast.error('Failed to load announcements');
     } finally {
       setLoading(false);
@@ -58,16 +70,31 @@ const AnnouncementsPage = () => {
     }
 
     try {
+      setSubmitting(true);
+      
+      // TODO: Replace with actual API call when backend is ready
+      // if (editingAnnouncement) {
+      //   await api.put(`/admin/announcements/${editingAnnouncement._id}`, formData);
+      //   toast.success('Announcement updated successfully');
+      // } else {
+      //   await api.post('/admin/announcements', formData);
+      //   toast.success('Announcement created successfully');
+      // }
+      
       if (editingAnnouncement) {
-        toast.success('Announcement updated');
+        toast.success('Announcement updated successfully');
       } else {
-        toast.success('Announcement created');
+        toast.success('Announcement created successfully');
       }
+      
       setShowModal(false);
       resetForm();
       fetchAnnouncements();
     } catch (error) {
+      console.error('Error saving announcement:', error);
       toast.error('Failed to save announcement');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -77,9 +104,13 @@ const AnnouncementsPage = () => {
     }
 
     try {
-      toast.success('Announcement deleted');
+      // TODO: Replace with actual API call when backend is ready
+      // await api.delete(`/admin/announcements/${_id}`);
+      
+      toast.success('Announcement deleted successfully');
       fetchAnnouncements();
     } catch (error) {
+      console.error('Error deleting announcement:', error);
       toast.error('Failed to delete announcement');
     }
   };
@@ -104,8 +135,8 @@ const AnnouncementsPage = () => {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <p className="text-gray-500">Loading announcements...</p>
+      <div className="p-6 flex items-center justify-center">
+        <LoadingSpinner />
       </div>
     );
   }
@@ -117,10 +148,12 @@ const AnnouncementsPage = () => {
           <h1 className="text-2xl font-semibold text-gray-800">Announcements</h1>
           <p className="text-gray-500 text-sm mt-1">Manage company-wide announcements</p>
         </div>
-        <Button onClick={() => setShowModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          New Announcement
-        </Button>
+        <PermissionGate permission={MODULES.ANNOUNCEMENT?.CREATE}>
+          <Button onClick={() => setShowModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            New Announcement
+          </Button>
+        </PermissionGate>
       </div>
 
       {/* Announcements List */}
@@ -150,32 +183,36 @@ const AnnouncementsPage = () => {
                     <div className="flex items-center gap-4 text-xs text-gray-500">
                       <span>By {announcement.author}</span>
                       <span>•</span>
-                      <span>{formatDate(announcement.createdAt)}</span>
+                      <span>{formatIndianDate(announcement.createdAt)}</span>
                     </div>
                   </div>
                   <div className="flex gap-2 ml-4">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditingAnnouncement(announcement);
-                        setFormData({
-                          title: announcement.title,
-                          content: announcement.content,
-                          priority: announcement.priority,
-                        });
-                        setShowModal(true);
-                      }}
-                    >
-                      <Edit className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDelete(announcement._id)}
-                    >
-                      <Trash2 className="w-4 h-4 text-red-600" />
-                    </Button>
+                    <PermissionGate permission={MODULES.ANNOUNCEMENT?.EDIT}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setEditingAnnouncement(announcement);
+                          setFormData({
+                            title: announcement.title,
+                            content: announcement.content,
+                            priority: announcement.priority,
+                          });
+                          setShowModal(true);
+                        }}
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                    </PermissionGate>
+                    <PermissionGate permission={MODULES.ANNOUNCEMENT?.DELETE}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(announcement._id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </PermissionGate>
                   </div>
                 </div>
               </CardContent>
@@ -250,8 +287,8 @@ const AnnouncementsPage = () => {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" className="flex-1">
-                    {editingAnnouncement ? 'Update' : 'Create'}
+                  <Button type="submit" className="flex-1" disabled={submitting}>
+                    {submitting ? 'Saving...' : (editingAnnouncement ? 'Update' : 'Create')}
                   </Button>
                 </div>
               </form>

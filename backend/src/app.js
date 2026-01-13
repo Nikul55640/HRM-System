@@ -5,6 +5,7 @@ import compression from "compression";
 import hpp from "hpp";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
+import path from "path";
 import config from "./config/index.js";
 import errorHandler from "./middleware/errorHandler.js";
 import logger from "./utils/logger.js";
@@ -101,6 +102,14 @@ app.use(cookieParser());
 // COMPRESSION
 // ===================================================
 app.use(compression());
+
+// ===================================================
+// STATIC FILES
+// ===================================================
+app.use('/uploads', (req, res, next) => {
+  logger.info(`Static file request: ${req.path}`);
+  next();
+}, express.static(path.join(process.cwd(), 'uploads')));
 
 // ===================================================
 // RATE LIMITING

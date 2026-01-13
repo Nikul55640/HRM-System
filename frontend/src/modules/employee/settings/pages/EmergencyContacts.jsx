@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Star, Phone, MapPin } from 'lucide-react';
+import { Plus, Edit, Trash2, Star, Phone, MapPin, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/card';
 import { Button } from '../../../../shared/ui/button';
 import { Badge } from '../../../../shared/ui/badge';
@@ -24,6 +24,7 @@ const EmergencyContacts = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingContact, setEditingContact] = useState(null);
   const [deletingContact, setDeletingContact] = useState(null);
+  const [error, setError] = useState(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -33,15 +34,21 @@ const EmergencyContacts = () => {
   const fetchEmergencyContacts = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await employeeSettingsService.getEmergencyContacts();
       
       if (response.success) {
-        setContacts(response.data);
+        setContacts(response.data || []);
+      } else {
+        throw new Error(response.message || 'Failed to load emergency contacts');
       }
     } catch (error) {
+      console.error('Error fetching emergency contacts:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to load emergency contacts.';
+      setError(errorMessage);
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to load emergency contacts.',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -176,7 +183,34 @@ const EmergencyContacts = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-500">Loading emergency contacts...</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Emergency Contacts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to Load</h3>
+                <p className="text-gray-500 mb-4">{error}</p>
+                <Button onClick={fetchEmergencyContacts} variant="outline">
+                  Try Again
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -189,13 +223,19 @@ const EmergencyContacts = () => {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Emergency Contacts</CardTitle>
+            <div>
+              <CardTitle>Emergency Contacts</CardTitle>
+              <p className="text-sm text-gray-500 mt-1">
+                Manage your emergency contacts for workplace safety
+              </p>
+            </div>
             <Button
               onClick={() => setShowForm(true)}
               className="flex items-center space-x-2"
+              disabled={contacts.length >= 5} // Limit to 5 contacts
             >
               <Plus className="w-4 h-4" />
-              <span>Add Emergency Contact</span>
+              <span>Add Contact</span>
             </Button>
           </div>
         </CardHeader>
@@ -206,8 +246,9 @@ const EmergencyContacts = () => {
                 <Phone className="w-8 h-8 text-gray-400" />
               </div>
               <h3 className="text-lg font-medium text-gray-900 mb-2">No Emergency Contacts</h3>
-              <p className="text-gray-500 mb-4">
-                Add emergency contacts so we can reach someone in case of an emergency.
+              <p className="text-gray-500 mb-4 max-w-md mx-auto">
+                Add emergency contacts so we can reach someone in case of an emergency. 
+                This helps ensure your safety and well-being at work.
               </p>
               <Button
                 onClick={() => setShowForm(true)}
@@ -218,83 +259,99 @@ const EmergencyContacts = () => {
               </Button>
             </div>
           ) : (
-            <div className="grid gap-4">
-              {contacts.map((contact) => (
-                <Card key={contact.id} className="relative">
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <h3 className="text-lg font-medium text-gray-900">
-                            {contact.name}
-                          </h3>
-                          {contact.isPrimary && (
-                            <Badge variant="default" className="flex items-center space-x-1">
-                              <Star className="w-3 h-3" />
-                              <span>Primary</span>
+            <div className="space-y-4">
+              {contacts.length >= 5 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <div className="flex items-center space-x-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600" />
+                    <p className="text-sm text-amber-800">
+                      You've reached the maximum limit of 5 emergency contacts.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
+              <div className="grid gap-4">
+                {contacts.map((contact) => (
+                  <Card key={contact.id} className="relative hover:shadow-md transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <h3 className="text-lg font-medium text-gray-900">
+                              {contact.name}
+                            </h3>
+                            {contact.isPrimary && (
+                              <Badge variant="default" className="flex items-center space-x-1">
+                                <Star className="w-3 h-3 fill-current" />
+                                <span>Primary</span>
+                              </Badge>
+                            )}
+                            <Badge variant="outline">
+                              {getRelationshipLabel(contact.relationship)}
                             </Badge>
-                          )}
-                          <Badge variant="outline">
-                            {getRelationshipLabel(contact.relationship)}
-                          </Badge>
-                        </div>
-                        
-                        <div className="space-y-1 text-sm text-gray-600">
-                          <div className="flex items-center space-x-2">
-                            <Phone className="w-4 h-4" />
-                            <span>{contact.phone}</span>
                           </div>
                           
-                          {contact.alternatePhone && (
+                          <div className="space-y-1 text-sm text-gray-600">
                             <div className="flex items-center space-x-2">
-                              <Phone className="w-4 h-4" />
-                              <span>{contact.alternatePhone} (Alternate)</span>
+                              <Phone className="w-4 h-4 flex-shrink-0" />
+                              <span>{contact.phone}</span>
                             </div>
+                            
+                            {contact.alternatePhone && (
+                              <div className="flex items-center space-x-2">
+                                <Phone className="w-4 h-4 flex-shrink-0" />
+                                <span>{contact.alternatePhone} <span className="text-gray-400">(Alternate)</span></span>
+                              </div>
+                            )}
+                            
+                            {contact.address && (
+                              <div className="flex items-start space-x-2">
+                                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                <span className="line-clamp-2">{contact.address}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-1 ml-4">
+                          {!contact.isPrimary && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSetPrimary(contact.id)}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                              title="Set as primary contact"
+                            >
+                              <Star className="w-4 h-4" />
+                            </Button>
                           )}
                           
-                          {contact.address && (
-                            <div className="flex items-start space-x-2">
-                              <MapPin className="w-4 h-4 mt-0.5" />
-                              <span>{contact.address}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        {!contact.isPrimary && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleSetPrimary(contact.id)}
-                            className="text-blue-600 hover:text-blue-700"
+                            onClick={() => setEditingContact(contact)}
+                            className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                            title="Edit contact"
                           >
-                            <Star className="w-4 h-4" />
+                            <Edit className="w-4 h-4" />
                           </Button>
-                        )}
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingContact(contact)}
-                          className="text-gray-600 hover:text-gray-700"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeletingContact(contact)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeletingContact(contact)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            title="Delete contact"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

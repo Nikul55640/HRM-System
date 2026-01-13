@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { formatIndianCurrency } from '../../../utils/indianFormatters';
 import { toast } from 'react-hot-toast';
 import api from '../../../services/api';
 import ActivityForm from './ActivityForm';
@@ -114,11 +115,7 @@ const LeadDetails = ({ leadId }) => {
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return 'N/A';
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
+    return formatIndianCurrency(amount);
   };
 
   const formatDate = (dateString) => {

@@ -93,11 +93,29 @@ const ProfileSettings = () => {
     }
   };
 
-  const handlePhotoUpdate = (newPhotoUrl) => {
-    setProfile(prev => ({
-      ...prev,
-      profilePhoto: newPhotoUrl
-    }));
+  const handlePhotoUpdate = async (newPhotoUrl) => {
+    try {
+      // Update local state immediately for better UX
+      setProfile(prev => ({
+        ...prev,
+        profilePhoto: newPhotoUrl,
+        profilePicture: newPhotoUrl // Update both fields for consistency
+      }));
+      
+      // Refresh the entire profile to ensure consistency with backend
+      const response = await employeeSettingsService.getProfile();
+      if (response.success) {
+        setProfile(response.data);
+      }
+    } catch (error) {
+      console.error('Error refreshing profile after photo update:', error);
+      // If refresh fails, keep the local update
+      toast({
+        title: 'Warning',
+        description: 'Photo updated but failed to refresh profile data.',
+        variant: 'default',
+      });
+    }
   };
 
   if (loading) {
@@ -126,7 +144,7 @@ const ProfileSettings = () => {
         <CardContent className="space-y-6">
           {/* Profile Photo Section */}
           <ProfilePhotoUploader
-            currentPhoto={profile?.profilePhoto}
+            currentPhoto={profile?.profilePhoto || profile?.profilePicture}
             onPhotoUpdate={handlePhotoUpdate}
           />
 

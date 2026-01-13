@@ -64,11 +64,17 @@ const EmergencyContactForm = ({
               variant="ghost"
               size="sm"
               onClick={handleClose}
-              className="h-6 w-6 p-0"
+              className="h-6 w-6 p-0 hover:bg-gray-100"
             >
               <X className="h-4 w-4" />
             </Button>
           </DialogTitle>
+          <p className="text-sm text-gray-500">
+            {mode === 'create' 
+              ? 'Add someone we can contact in case of an emergency.'
+              : 'Update the emergency contact information.'
+            }
+          </p>
         </DialogHeader>
 
         <form onSubmit={formik.handleSubmit} className="space-y-4">
@@ -173,15 +179,20 @@ const EmergencyContactForm = ({
           </div>
 
           {/* Primary Contact */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-start space-x-2 p-3 bg-blue-50 rounded-lg">
             <Checkbox
               id="isPrimary"
               checked={formik.values.isPrimary}
               onCheckedChange={(checked) => formik.setFieldValue('isPrimary', checked)}
             />
-            <Label htmlFor="isPrimary" className="text-sm font-medium">
-              Set as primary emergency contact
-            </Label>
+            <div className="flex-1">
+              <Label htmlFor="isPrimary" className="text-sm font-medium cursor-pointer">
+                Set as primary emergency contact
+              </Label>
+              <p className="text-xs text-gray-600 mt-1">
+                Your primary contact will be reached first in case of an emergency.
+              </p>
+            </div>
           </div>
 
           {/* Action Buttons */}

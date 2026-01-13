@@ -6,26 +6,36 @@ import { Icon } from "../../shared/components";
 import useAuth from "../hooks/useAuth";
 import { usePermissions } from "../hooks";
 import { MODULES } from "../utils/rolePermissions";
-import { X, Menu } from "lucide-react";
+import { X } from "lucide-react";
 
 const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }) => {
-  const [openSections, setOpenSections] = useState([
-    "General",
-    "My Self Service",
-  ]);
+  // ===================================================
+  // STATE MANAGEMENT
+  // ===================================================
+  const [openSections, setOpenSections] = useState(["General", "My Self Service"]);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  
+  // ===================================================
+  // CONSTANTS
+  // ===================================================
   const DEFAULT_OPEN_SECTIONS = ["General", "My Self Service"];
-
+  
+  // ===================================================
+  // HOOKS
+  // ===================================================
   const location = useLocation();
   const { user } = useAuth();
   const { can } = usePermissions();
 
+  // ===================================================
+  // EFFECTS
+  // ===================================================
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname, setMobileMenuOpen]);
 
-  // Close mobile menu on escape key
+  // Handle escape key and body scroll for mobile menu
   useEffect(() => {
     const handleEscape = (e) => {
       if (e.key === 'Escape') {
@@ -46,6 +56,9 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
     };
   }, [mobileMenuOpen, setMobileMenuOpen]);
 
+  // ===================================================
+  // UTILITY FUNCTIONS
+  // ===================================================
   const isActive = (path) =>
     location.pathname === path || location.pathname.startsWith(path + "/");
 
@@ -57,11 +70,17 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
     );
   };
 
-  // Navigation structure based on actual routes and permissions
+  const handleNavClick = () => {
+    setIsSidebarExpanded(false);
+    setLayoutSidebarExpanded(false);
+    setMobileMenuOpen(false);
+  };
+
+  // ===================================================
+  // NAVIGATION CONFIGURATION
+  // ===================================================
   const allNavItems = [
-    // ===================================================
     // GENERAL SECTION - Always visible
-    // ===================================================
     {
       section: "General",
       icon: "Home",
@@ -76,9 +95,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
       ],
     },
 
-    // ===================================================
     // EMPLOYEE SELF-SERVICE SECTION - Employee only
-    // ===================================================
     {
       section: "My Self Service",
       icon: "User",
@@ -139,41 +156,41 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           icon: "CalendarRange",
           showIf: () => user?.role === "Employee" && can.do(MODULES.CALENDAR.VIEW_OWN),
         },
-        {
-          name: "Settings",
-          path: "/employee/settings",
-          icon: "Settings",
-          showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
-          subItems: [
-            {
-              name: "Profile",
-              path: "/employee/settings/profile",
-              icon: "User",
-              showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
-            },
-            {
-              name: "Security",
-              path: "/employee/settings/security",
-              icon: "Shield",
-              showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
-            },
-            {
-              name: "Emergency Contacts",
-              path: "/employee/settings/emergency-contacts",
-              icon: "Phone",
-              showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
-            },
-          ],
-        },
       ],
     },
 
-    // ===================================================
+    // EMPLOYEE SETTINGS SECTION
+    {
+      section: "Settings",
+      icon: "Settings",
+      collapsible: true,
+      showIf: () => user?.role === "Employee",
+      items: [
+        {
+          name: "Profile",
+          path: "/employee/settings/profile",
+          icon: "User",
+          showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
+        },
+        {
+          name: "Security",
+          path: "/employee/settings/security",
+          icon: "Shield",
+          showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
+        },
+        {
+          name: "Emergency Contacts",
+          path: "/employee/settings/emergency-contacts",
+          icon: "Phone",
+          showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
+        },
+      ]
+    },
+
     // HR ADMINISTRATION SECTION
-    // ===================================================
     {
       section: "HR Administration",
-      icon: "Settings",
+      icon: "Users",
       collapsible: true,
       showIf: () =>
         (user?.role === "HR" || user?.role === "HR_Manager" || user?.role === "SuperAdmin") &&
@@ -183,7 +200,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           MODULES.LEAVE.VIEW_ALL,
         ]),
       items: [
-        // Employee Management - HR can view and edit employees
+        // Employee Management
         {
           name: "Employees",
           path: "/admin/employees",
@@ -203,7 +220,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.UPDATE_ANY]),
         },
 
-        // Attendance Management - HR can view all, edit, approve corrections, mark absent
+        // Attendance Management
         {
           name: "Attendance Management",
           path: "/admin/attendance",
@@ -223,7 +240,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
         },
 
-        // Leave Management - HR can approve/reject leave (but not override - that's Admin only)
+        // Leave Management
         {
           name: "Leave Requests",
           path: "/admin/leave",
@@ -236,7 +253,6 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           icon: "Scale",
           showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCES),
         },
-        // Leave Balance Rollover - Admin only (removed from HR)
         {
           name: "Leave Balance Rollover",
           path: "/admin/leave-balance-rollover",
@@ -252,7 +268,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => can.doAny([MODULES.LEAD.CREATE, MODULES.LEAD.MANAGE]),
         },
 
-        // Shift Management - HR can assign shifts (but not create shift rules - that's Admin only)
+        // Shift Management
         {
           name: "Shift Management",
           path: "/admin/shifts",
@@ -268,27 +284,33 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.UPDATE_ANY]),
         },
 
-        // Calendar Management - HR can view company holidays, add events/holidays (but not delete holidays)
+        // Announcements Management
         {
-          name: "Calendar View",
-          path: "/admin/calendar",
-          icon: "Calendar",
-          showIf: () => can.doAny([MODULES.CALENDAR.VIEW_ALL, MODULES.CALENDAR.VIEW_OWN]),
+          name: "Announcements",
+          path: "/admin/announcements",
+          icon: "Megaphone",
+          showIf: () => can.doAny([MODULES.ANNOUNCEMENT.VIEW, MODULES.ANNOUNCEMENT.CREATE]),
         },
+
+        // Calendar Management
+
         {
           name: "Calendar Management",
           path: "/admin/calendar/management",
           icon: "CalendarCog",
           showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_EVENTS, MODULES.CALENDAR.MANAGE_HOLIDAYS]),
         },
-        // Smart Calendar - HR can add events/holidays, Admin can create shift rules
         {
           name: "Smart Calendar",
           path: "/admin/calendar/smart",
           icon: "Settings",
-          showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_SMART_CALENDAR, MODULES.CALENDAR.VIEW_SMART_CALENDAR, MODULES.CALENDAR.MANAGE_EVENTS, MODULES.CALENDAR.MANAGE_HOLIDAYS]),
+          showIf: () => can.doAny([
+            MODULES.CALENDAR.MANAGE_SMART_CALENDAR, 
+            MODULES.CALENDAR.VIEW_SMART_CALENDAR, 
+            MODULES.CALENDAR.MANAGE_EVENTS, 
+            MODULES.CALENDAR.MANAGE_HOLIDAYS
+          ]),
         },
-        // Calendarific Integration - Holiday sync from external API
         {
           name: "Holiday Sync",
           path: "/admin/calendar/calendarific",
@@ -312,13 +334,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
       ],
     },
 
-    // ===================================================
-    // CALENDAR VIEWS SECTION - Removed (now unified)
-    // ===================================================
-
-    // ===================================================
     // SYSTEM ADMINISTRATION SECTION
-    // ===================================================
     {
       section: "System Administration",
       icon: "Shield",
@@ -353,10 +369,12 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
     },
   ];
 
+  // ===================================================
+  // NAVIGATION PROCESSING
+  // ===================================================
   // Filter navigation based on permissions
   const nav = allNavItems
     .filter((section) => {
-      // Check if section should be shown
       if (section.showIf && typeof section.showIf === "function") {
         return section.showIf();
       }
@@ -365,7 +383,6 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
     .map((section) => ({
       ...section,
       items: section.items.filter((item) => {
-        // Check if item should be shown
         if (item.showIf && typeof item.showIf === "function") {
           return item.showIf();
         }
@@ -374,19 +391,102 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
     }))
     .filter((section) => section.items.length > 0);
 
+  // Calculate total badges for notifications
   const totalBadges = nav.reduce(
     (sum, group) =>
-      sum +
-      group.items.reduce((itemSum, item) => itemSum + (item.badge || 0), 0),
+      sum + group.items.reduce((itemSum, item) => itemSum + (item.badge || 0), 0),
     0
   );
 
-  const handleNavClick = () => {
-    setIsSidebarExpanded(false);
-    setLayoutSidebarExpanded(false);
-    setMobileMenuOpen(false);
-  };
+  // ===================================================
+  // COMPONENT HELPERS
+  // ===================================================
+  const SidebarHeader = ({ isMobile = false }) => (
+    <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+      {isMobile && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setMobileMenuOpen(false)}
+          className="p-2"
+        >
+          <X className="w-5 h-5" />
+        </Button>
+      )}
 
+      <div className={`flex items-center gap-3 ${isMobile ? 'flex-1 justify-center' : ''}`}>
+        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+          <span className="text-white font-semibold text-lg">HR</span>
+        </div>
+        {(isMobile || isSidebarExpanded) && (
+          <div>
+            <h1 className="text-base font-semibold text-gray-800">HRM System</h1>
+            <p className="text-xs text-gray-500">Management</p>
+          </div>
+        )}
+      </div>
+
+      {!isMobile && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            const next = !isSidebarExpanded;
+            setIsSidebarExpanded(next);
+            setLayoutSidebarExpanded(next);
+            setOpenSections(next ? DEFAULT_OPEN_SECTIONS : []);
+          }}
+        >
+          {isSidebarExpanded ? (
+            <Icon name="ChevronLeft" className="w-5 h-5" />
+          ) : (
+            <Icon name="ChevronRight" className="w-5 h-5" />
+          )}
+        </Button>
+      )}
+    </div>
+  );
+
+  const SidebarFooter = () => (
+    <div className="p-4 border-t border-gray-200">
+      <div className="text-xs text-gray-500 text-center">
+        <div className="font-medium text-gray-700">HRM System v1.0</div>
+        <div className="mt-1">© 2025</div>
+      </div>
+    </div>
+  );
+
+  const NavigationItem = ({ item, isMobile = false }) => (
+    <Link
+      to={item.path}
+      onClick={handleNavClick}
+      className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
+        (isMobile || isSidebarExpanded)
+          ? "gap-3 px-3 justify-start"
+          : "justify-center"
+      } ${
+        isActive(item.path)
+          ? "bg-blue-50 text-blue-700 font-medium"
+          : "text-gray-600 hover:bg-gray-50"
+      }`}
+    >
+      <Icon name={item.icon} className="w-5 h-5 flex-shrink-0" />
+      {(isMobile || isSidebarExpanded) && (
+        <>
+          <span className="flex-1">{item.name}</span>
+          {item.badge && item.badge > 0 && (
+            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">
+              {item.badge}
+            </span>
+          )}
+        </>
+      )}
+    </Link>
+  );
+
+  // ===================================================
+  // RENDER
+  // ===================================================
   return (
     <>
       {/* Mobile Overlay */}
@@ -405,27 +505,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
-        {/* Mobile Header */}
-        <div className="p-3 border-b border-gray-200 flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setMobileMenuOpen(false)}
-            className="p-2"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-
-          <div className="flex items-center gap-3 flex-1 justify-center">
-            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-semibold text-lg">HR</span>
-            </div>
-            <div>
-              <h1 className="text-base font-semibold text-gray-800">HRM System</h1>
-              <p className="text-xs text-gray-500">Management</p>
-            </div>
-          </div>
-        </div>
+        <SidebarHeader isMobile={true} />
 
         {/* Mobile Navigation */}
         <div className="flex-1 overflow-y-auto">
@@ -461,58 +541,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
                 {(!group.collapsible || openSections.includes(group.section)) && (
                   <div className="space-y-1 mt-1">
                     {group.items.map((item) => (
-                      <div key={item.path}>
-                        {item.subItems ? (
-                          <div>
-                            <div className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors text-gray-600 hover:bg-gray-50">
-                              <Icon name={item.icon} className="w-5 h-5 flex-shrink-0" />
-                              <span>{item.name}</span>
-                            </div>
-                            <div className="ml-8 mt-1 space-y-1">
-                              {item.subItems
-                                .filter((subItem) => {
-                                  if (subItem.showIf && typeof subItem.showIf === "function") {
-                                    return subItem.showIf();
-                                  }
-                                  return true;
-                                })
-                                .map((subItem) => (
-                                  <Link
-                                    key={subItem.path}
-                                    to={subItem.path}
-                                    onClick={handleNavClick}
-                                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                                      isActive(subItem.path)
-                                        ? "bg-blue-50 text-blue-700 font-medium"
-                                        : "text-gray-600 hover:bg-gray-50"
-                                    }`}
-                                  >
-                                    <Icon name={subItem.icon} className="w-4 h-4 flex-shrink-0" />
-                                    <span>{subItem.name}</span>
-                                  </Link>
-                                ))}
-                            </div>
-                          </div>
-                        ) : (
-                          <Link
-                            to={item.path}
-                            onClick={handleNavClick}
-                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                              isActive(item.path)
-                                ? "bg-blue-50 text-blue-700 font-medium"
-                                : "text-gray-600 hover:bg-gray-50"
-                            }`}
-                          >
-                            <Icon name={item.icon} className="w-5 h-5 flex-shrink-0" />
-                            <span className="flex-1">{item.name}</span>
-                            {item.badge && item.badge > 0 && (
-                              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">
-                                {item.badge}
-                              </span>
-                            )}
-                          </Link>
-                        )}
-                      </div>
+                      <NavigationItem key={item.path} item={item} isMobile={true} />
                     ))}
                   </div>
                 )}
@@ -521,13 +550,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           </nav>
         </div>
 
-        {/* Mobile Footer */}
-        <div className="p-4 border-t border-gray-200">
-          <div className="text-xs text-gray-500 text-center">
-            <div className="font-medium text-gray-700">HRM System v1.0</div>
-            <div className="mt-1">© 2025</div>
-          </div>
-        </div>
+        <SidebarFooter />
       </aside>
 
       {/* Desktop Sidebar */}
@@ -548,37 +571,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           setOpenSections([]);
         }}
       >
-        {/* Desktop Header */}
-        <div className="p-3 border-b border-gray-200 flex items-center justify-between">
-          {isSidebarExpanded && (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-semibold text-lg">HR</span>
-              </div>
-              <div>
-                <h1 className="text-base font-semibold text-gray-800">HRM System</h1>
-                <p className="text-xs text-gray-500">Management</p>
-              </div>
-            </div>
-          )}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const next = !isSidebarExpanded;
-              setIsSidebarExpanded(next);
-              setLayoutSidebarExpanded(next);
-              setOpenSections(next ? DEFAULT_OPEN_SECTIONS : []);
-            }}
-          >
-            {isSidebarExpanded ? (
-              <Icon name="ChevronLeft" className="w-5 h-5" />
-            ) : (
-              <Icon name="ChevronRight" className="w-5 h-5" />
-            )}
-          </Button>
-        </div>
+        <SidebarHeader />
 
         {/* Desktop Badges */}
         {isSidebarExpanded && totalBadges > 0 && (
@@ -633,79 +626,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
                 {(!group.collapsible || openSections.includes(group.section)) && (
                   <div className="space-y-1 mt-1">
                     {group.items.map((item) => (
-                      <div key={item.path}>
-                        {item.subItems ? (
-                          <div>
-                            <div
-                              className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
-                                isSidebarExpanded
-                                  ? "gap-3 px-3 justify-start"
-                                  : "justify-center"
-                              } ${
-                                location.pathname.startsWith(item.path)
-                                  ? "bg-blue-50 text-blue-700 font-medium"
-                                  : "text-gray-600 hover:bg-gray-50"
-                              }`}
-                            >
-                              <Icon name={item.icon} className="w-5 h-5 flex-shrink-0" />
-                              {isSidebarExpanded && <span>{item.name}</span>}
-                            </div>
-                            
-                            {isSidebarExpanded && (
-                              <div className="ml-8 mt-1 space-y-1">
-                                {item.subItems
-                                  .filter((subItem) => {
-                                    if (subItem.showIf && typeof subItem.showIf === "function") {
-                                      return subItem.showIf();
-                                    }
-                                    return true;
-                                  })
-                                  .map((subItem) => (
-                                    <Link
-                                      key={subItem.path}
-                                      to={subItem.path}
-                                      onClick={handleNavClick}
-                                      className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
-                                        isActive(subItem.path)
-                                          ? "bg-blue-50 text-blue-700 font-medium"
-                                          : "text-gray-600 hover:bg-gray-50"
-                                      }`}
-                                    >
-                                      <Icon name={subItem.icon} className="w-4 h-4 flex-shrink-0" />
-                                      <span>{subItem.name}</span>
-                                    </Link>
-                                  ))}
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <Link
-                            to={item.path}
-                            onClick={handleNavClick}
-                            className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
-                              isSidebarExpanded
-                                ? "gap-3 px-3 justify-start"
-                                : "justify-center"
-                            } ${
-                              isActive(item.path)
-                                ? "bg-blue-50 text-blue-700 font-medium"
-                                : "text-gray-600 hover:bg-gray-50"
-                            }`}
-                          >
-                            <Icon name={item.icon} className="w-5 h-5 flex-shrink-0" />
-                            {isSidebarExpanded && (
-                              <>
-                                <span className="flex-1">{item.name}</span>
-                                {item.badge && item.badge > 0 && (
-                                  <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">
-                                    {item.badge}
-                                  </span>
-                                )}
-                              </>
-                            )}
-                          </Link>
-                        )}
-                      </div>
+                      <NavigationItem key={item.path} item={item} />
                     ))}
                   </div>
                 )}
@@ -714,15 +635,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           </nav>
         </div>
 
-        {/* Desktop Footer */}
-        {isSidebarExpanded && (
-          <div className="p-4 border-t border-gray-200">
-            <div className="text-xs text-gray-500 text-center">
-              <div className="font-medium text-gray-700">HRM System v1.0</div>
-              <div className="mt-1">© 2025</div>
-            </div>
-          </div>
-        )}
+        {isSidebarExpanded && <SidebarFooter />}
       </aside>
     </>
   );

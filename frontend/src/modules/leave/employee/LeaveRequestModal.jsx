@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'react-toastify';
-import { X, Calendar, Clock, AlertTriangle } from 'lucide-react';
+import { X, Calendar, Clock, AlertTriangle, Lightbulb } from 'lucide-react';
 
 import { Button } from '../../../shared/ui/button';
 import { Input } from '../../../shared/ui/input';
@@ -212,9 +212,10 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
             
             {/* Retroactive Leave Note */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-sm text-blue-700">
-                <span className="font-medium">💡 Note:</span> You can apply for past dates if you forgot to submit your leave request earlier. 
-                Retroactive leave applications may require additional approval.
+              <p className="text-sm text-blue-700 flex items-start gap-2">
+                <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <span><span className="font-medium">Note:</span> You can apply for past dates if you forgot to submit your leave request earlier. 
+                Retroactive leave applications may require additional approval.</span>
               </p>
             </div>
           </div>
