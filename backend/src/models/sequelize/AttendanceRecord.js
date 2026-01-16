@@ -80,7 +80,7 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
   // Status
   status: {
     type: DataTypes.ENUM('present', 'absent', 'leave', 'half_day', 'holiday', 'incomplete', 'pending_correction'),
-    defaultValue: 'present',
+    defaultValue: 'incomplete',
   },
   statusReason: {
     type: DataTypes.STRING,
@@ -324,9 +324,8 @@ AttendanceRecord.getMonthlySummary = async function (employeeId, year, month) {
   return {
     totalDays: records.length,
     presentDays: records.filter(r => r.status === 'present').length,
-    absentDays: records.filter(r => r.status === 'absent').length,
+    leaveDays: records.filter(r => r.status === 'leave').length, // ✅ Renamed from absentDays
     halfDays: records.filter(r => r.status === 'half_day').length,
-    leaveDays: records.filter(r => r.status === 'leave').length,
     holidayDays: records.filter(r => r.status === 'holiday').length,
     totalWorkHours: totalWorkHours,
     totalOvertimeHours: records.reduce((sum, r) => sum + (parseFloat(r.overtimeHours) || 0), 0),

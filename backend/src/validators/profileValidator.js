@@ -72,9 +72,48 @@ export const validateProfileUpdate = [
   
   body('contactInfo.address')
     .optional()
-    .trim()
-    .isLength({ max: 500 })
-    .withMessage('Address must not exceed 500 characters'),
+    .custom((value) => {
+      // Allow address to be an object or string
+      if (typeof value === 'object' && value !== null) {
+        // Validate address object structure
+        const allowedFields = ['street', 'city', 'state', 'zipCode', 'country'];
+        const fields = Object.keys(value);
+        
+        // Check if all fields are allowed
+        for (const field of fields) {
+          if (!allowedFields.includes(field)) {
+            throw new Error(`Invalid address field: ${field}`);
+          }
+        }
+        
+        // Validate each field length if present
+        if (value.street && value.street.length > 200) {
+          throw new Error('Street address must not exceed 200 characters');
+        }
+        if (value.city && value.city.length > 100) {
+          throw new Error('City must not exceed 100 characters');
+        }
+        if (value.state && value.state.length > 100) {
+          throw new Error('State must not exceed 100 characters');
+        }
+        if (value.zipCode && value.zipCode.length > 20) {
+          throw new Error('ZIP code must not exceed 20 characters');
+        }
+        if (value.country && value.country.length > 100) {
+          throw new Error('Country must not exceed 100 characters');
+        }
+        
+        return true;
+      } else if (typeof value === 'string') {
+        // Allow legacy string format
+        if (value.length > 500) {
+          throw new Error('Address must not exceed 500 characters');
+        }
+        return true;
+      }
+      
+      throw new Error('Address must be an object or string');
+    }),
 
   // Validation result handler
   (req, res, next) => {

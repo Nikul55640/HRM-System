@@ -212,8 +212,16 @@ const employeeSelfService = {
     },
     
     getSummary: async (month, year) => {
-      const response = await api.get(`/employee/attendance/summary/${year}/${month}`);
-      return response.data;
+      try {
+        console.log(`📊 [ESS] Fetching attendance summary for ${year}/${month}`);
+        const response = await api.get(`/employee/attendance/summary/${year}/${month}`);
+        console.log('✅ [ESS] Attendance summary fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch attendance summary:', error);
+        toast.error(error.message || 'Failed to load attendance summary');
+        throw error;
+      }
     },
     
     exportReport: async (month, year) => {

@@ -16,6 +16,8 @@ const PersonalInfoForm = ({ initialData, onSubmit, loading }) => {
       gender: initialData?.gender || '',
       dateOfBirth: initialData?.dateOfBirth ? new Date(initialData.dateOfBirth).toISOString().split('T')[0] : '',
       maritalStatus: initialData?.maritalStatus || '',
+      nationality: initialData?.nationality || '',
+      bloodGroup: initialData?.bloodGroup || '',
       about: initialData?.about || '',
     },
     validationSchema: personalInfoSchema,
@@ -38,10 +40,21 @@ const PersonalInfoForm = ({ initialData, onSubmit, loading }) => {
     { value: 'widowed', label: 'Widowed' },
   ];
 
+  const bloodGroupOptions = [
+    { value: 'A+', label: 'A+' },
+    { value: 'A-', label: 'A-' },
+    { value: 'B+', label: 'B+' },
+    { value: 'B-', label: 'B-' },
+    { value: 'AB+', label: 'AB+' },
+    { value: 'AB-', label: 'AB-' },
+    { value: 'O+', label: 'O+' },
+    { value: 'O-', label: 'O-' },
+  ];
+
   return (
-    <Card>
+    <Card className="rounded-2xl border border-gray-100 shadow-sm">
       <CardHeader>
-        <CardTitle>Personal Information</CardTitle>
+        <CardTitle className="text-base font-semibold">Personal Information</CardTitle>
       </CardHeader>
       <CardContent>
         <form onSubmit={formik.handleSubmit} className="space-y-6">
@@ -123,7 +136,7 @@ const PersonalInfoForm = ({ initialData, onSubmit, loading }) => {
             </div>
 
             {/* Marital Status */}
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2">
               <Label htmlFor="maritalStatus">Marital Status</Label>
               <Select
                 value={formik.values.maritalStatus}
@@ -142,6 +155,47 @@ const PersonalInfoForm = ({ initialData, onSubmit, loading }) => {
               </Select>
               {formik.touched.maritalStatus && formik.errors.maritalStatus && (
                 <p className="text-sm text-red-500">{formik.errors.maritalStatus}</p>
+              )}
+            </div>
+
+            {/* Nationality */}
+            <div className="space-y-2">
+              <Label htmlFor="nationality">Nationality</Label>
+              <Input
+                id="nationality"
+                name="nationality"
+                type="text"
+                placeholder="Enter your nationality"
+                value={formik.values.nationality}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                className={formik.touched.nationality && formik.errors.nationality ? 'border-red-500' : ''}
+              />
+              {formik.touched.nationality && formik.errors.nationality && (
+                <p className="text-sm text-red-500">{formik.errors.nationality}</p>
+              )}
+            </div>
+
+            {/* Blood Group */}
+            <div className="space-y-2">
+              <Label htmlFor="bloodGroup">Blood Group</Label>
+              <Select
+                value={formik.values.bloodGroup}
+                onValueChange={(value) => formik.setFieldValue('bloodGroup', value)}
+              >
+                <SelectTrigger className={formik.touched.bloodGroup && formik.errors.bloodGroup ? 'border-red-500' : ''}>
+                  <SelectValue placeholder="Select blood group" />
+                </SelectTrigger>
+                <SelectContent>
+                  {bloodGroupOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {formik.touched.bloodGroup && formik.errors.bloodGroup && (
+                <p className="text-sm text-red-500">{formik.errors.bloodGroup}</p>
               )}
             </div>
           </div>

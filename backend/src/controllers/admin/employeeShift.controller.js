@@ -1,6 +1,7 @@
 import { EmployeeShift, Employee, Shift, User } from '../../models/sequelize/index.js';
 import { Op } from 'sequelize';
 import auditService from '../../services/audit/audit.service.js';
+import { getLocalDateString, addDays } from '../../utils/dateUtils.js';
 
 const EmployeeShiftController = {
   // Get employee shift assignments
@@ -88,7 +89,8 @@ const EmployeeShiftController = {
   async getCurrentEmployeeShift(req, res) {
     try {
       const { employeeId } = req.params;
-      const { date = new Date().toISOString().split('T')[0] } = req.query;
+      // ✅ FIX: Use local timezone
+      const { date = getLocalDateString() } = req.query;
 
       const currentShift = await EmployeeShift.findOne({
         where: {
@@ -181,7 +183,8 @@ const EmployeeShiftController = {
       // End any existing active assignments for this employee from the effective date
       await EmployeeShift.update(
         { 
-          endDate: new Date(new Date(effectiveDate).getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          // ✅ FIX: Use local timezone and addDays utility
+          endDate: getLocalDateString(addDays(new Date(effectiveDate), -1)),
           isActive: false
         },
         {
@@ -338,7 +341,8 @@ const EmployeeShiftController = {
   async endShiftAssignment(req, res) {
     try {
       const { id } = req.params;
-      const { endDate = new Date().toISOString().split('T')[0] } = req.body;
+      // ✅ FIX: Use local timezone
+      const { endDate = getLocalDateString() } = req.body;
 
       const assignment = await EmployeeShift.findByPk(id);
 
@@ -413,7 +417,8 @@ const EmployeeShiftController = {
           // End existing assignments
           await EmployeeShift.update(
             { 
-              endDate: new Date(new Date(assignmentData.effectiveDate).getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+              // ✅ FIX: Use local timezone and addDays utility
+              endDate: getLocalDateString(addDays(new Date(assignmentData.effectiveDate), -1)),
               isActive: false
             },
             {

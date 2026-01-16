@@ -5,6 +5,7 @@
 
 import { Holiday, User, AuditLog } from '../../models/index.js';
 import { Op } from 'sequelize';
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 class HolidayService {
     /**
@@ -505,7 +506,8 @@ class HolidayService {
      */
     async getUpcomingHolidays(limit = 5) {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            // ✅ FIX: Use local timezone, not UTC
+            const today = getLocalDateString();
 
             const holidays = await Holiday.findAll({
                 where: {
@@ -611,7 +613,8 @@ class HolidayService {
                         if (holidayDate >= startDate && holidayDate <= endDate) {
                             generatedHolidays.push({
                                 ...holiday.toJSON(),
-                                date: holidayDate.toISOString().split('T')[0],
+                                // ✅ FIX: Use local timezone, not UTC
+                                date: getLocalDateString(holidayDate),
                                 id: `${holiday.id}_${year}`,
                                 isGenerated: true
                             });

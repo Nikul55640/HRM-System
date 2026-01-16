@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
-import { Calendar, Settings, Grid, List, BarChart3, Users, Plus } from 'lucide-react';
+import { Calendar, Settings, Grid, List, BarChart3, Users, Plus , TabletSmartphone } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import UnifiedCalendarView from '../components/UnifiedCalendarView';
 
@@ -50,23 +50,6 @@ const CalendarManagement = () => {
                 </Button>
               </div>
 
-              {/* Quick Actions - Responsive */}
-              <div className="flex gap-2 sm:gap-3">
-                <Link to="/admin/calendar/smart-calendar" className="flex-1 sm:flex-none">
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                    <Settings className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Smart Calendar</span>
-                    <span className="sm:hidden">Settings</span>
-                  </Button>
-                </Link>
-                <Link to="/admin/calendar/analytics" className="flex-1 sm:flex-none">
-                  <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Analytics</span>
-                    <span className="sm:hidden">Stats</span>
-                  </Button>
-                </Link>
-              </div>
             </div>
           </div>
         </div>
@@ -152,33 +135,20 @@ const CalendarManagement = () => {
               </div>
               
               <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
-                <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Add Event</span>
-                  <span className="sm:hidden">Event</span>
-                </Button>
                 
-                <Link to="/admin/calendar/smart-calendar" className="contents">
+                <Link to="/admin/calendar/smart" className="contents">
                   <Button variant="outline" size="sm">
                     <Settings className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Manage Holidays</span>
-                    <span className="sm:hidden">Holidays</span>
-                  </Button>
-                </Link>
-                
-                <Link to="/admin/calendar/working-rules" className="contents">
-                  <Button variant="outline" size="sm">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Working Rules</span>
-                    <span className="sm:hidden">Rules</span>
+                    <span className="hidden sm:inline">Smart Calendar</span>
+                    <span className="sm:hidden">Smart</span>
                   </Button>
                 </Link>
                 
                 <Link to="/admin/calendar/calendarific" className="contents">
                   <Button variant="outline" size="sm">
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">External API</span>
-                    <span className="sm:hidden">API</span>
+                    <Calendar className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Holiday Sync</span>
+                    <span className="sm:hidden">Sync</span>
                   </Button>
                 </Link>
               </div>
@@ -198,8 +168,8 @@ const CalendarManagement = () => {
         <div className="mt-4 sm:mt-6 block sm:hidden">
           <Card>
             <CardContent className="p-3">
-              <h3 className="text-sm font-semibold text-gray-900 mb-2">
-                📱 Mobile Tips
+              <h3 className="text-sm font-semibold flex justify-center  text-gray-900 mb-2">
+                <TabletSmartphone /> Mobile Tips
               </h3>
               <ul className="text-xs text-gray-600 space-y-1">
                 <li>• Tap calendar days to add events</li>
@@ -214,7 +184,7 @@ const CalendarManagement = () => {
         {/* Desktop-specific Features */}
         <div className="mt-4 sm:mt-6 hidden lg:block">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Recent Activity */}
+            {/* Recent Activity
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Recent Activity</CardTitle>
@@ -238,10 +208,10 @@ const CalendarManagement = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
             {/* Upcoming Events */}
-            <Card>
+            {/* <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Upcoming Events</CardTitle>
               </CardHeader>
@@ -261,9 +231,9 @@ const CalendarManagement = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
 
-            {/* Calendar Stats */}
+            {/* Calendar Stats
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">Calendar Insights</CardTitle>
@@ -299,7 +269,7 @@ const CalendarManagement = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         </div>
       </div>

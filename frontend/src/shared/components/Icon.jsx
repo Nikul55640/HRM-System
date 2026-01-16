@@ -35,7 +35,7 @@ import {
   Info,
   Search,
   Filter,
-
+ShieldUser,
   Download,
   Upload,
   Edit,
@@ -158,6 +158,7 @@ const iconMap = {
   User,
   Lock,
   UserPlus,
+  ShieldUser,
   Unlock,
   Shield,
   Award,

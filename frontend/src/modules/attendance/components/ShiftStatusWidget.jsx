@@ -26,6 +26,7 @@ const ShiftStatusWidget = () => {
     return () => clearInterval(timer);
   }, []);
 
+  
   // Generate notifications based on shift status
   useEffect(() => {
     if (!todayRecord?.shift) return;
@@ -34,6 +35,13 @@ const ShiftStatusWidget = () => {
     const today = now.toISOString().split('T')[0];
     const shift = todayRecord.shift;
     const { isClockedIn, isOnBreak } = getAttendanceStatus();
+    
+    // ✅ Don't show any warnings if already clocked out for the day
+    const hasClockedOut = todayRecord.clockOut !== null && todayRecord.clockOut !== undefined;
+    if (hasClockedOut) {
+      setNotifications([]);
+      return;
+    }
 
     const newNotifications = [];
 
@@ -226,8 +234,8 @@ const ShiftStatusWidget = () => {
         );
       })}
 
-      {/* Shift Progress */}
-     {shiftProgress && (
+      {/* Shift Progress - Only show if not clocked out */}
+     {shiftProgress && !todayRecord?.clockOut && (
   <Card className="rounded-2xl shadow-md border border-gray-100">
     <CardHeader className="pb-2">
       <CardTitle className="text-base font-semibold flex items-center gap-2">
@@ -288,6 +296,24 @@ const ShiftStatusWidget = () => {
     </CardContent>
   </Card>
 )}
+
+      {/* Shift Completed Message - Show when clocked out */}
+      {todayRecord?.clockOut && (
+        <Card className="rounded-2xl shadow-md border border-green-100 bg-green-50">
+          <CardContent className="p-6 flex flex-col items-center gap-3">
+            <CheckCircle className="h-12 w-12 text-green-600" />
+            <div className="text-center">
+              <h3 className="font-semibold text-green-900 text-lg">Shift Completed!</h3>
+              <p className="text-sm text-green-700 mt-1">
+                You've successfully clocked out for today
+              </p>
+              <div className="mt-3 text-sm text-green-600">
+                {todayRecord.shift.shiftStartTime} – {todayRecord.shift.shiftEndTime}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
     </div>
   );

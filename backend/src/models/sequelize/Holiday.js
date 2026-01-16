@@ -1,5 +1,6 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../../config/sequelize.js';
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 const Holiday = sequelize.define('Holiday', {
   id: {
@@ -201,7 +202,8 @@ Holiday.getHolidaysInRange = async function(startDate, endDate, filters = {}) {
       if (holidayDate >= startDate && holidayDate <= endDate) {
         generatedRecurringHolidays.push({
           ...holiday.toJSON(),
-          date: holidayDate.toISOString().split('T')[0], // YYYY-MM-DD format
+          // ✅ FIX: Use local timezone
+          date: getLocalDateString(holidayDate),
           id: `${holiday.id}_${year}`, // Unique ID for each year
           isGenerated: true
         });

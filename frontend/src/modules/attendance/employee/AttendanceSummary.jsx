@@ -8,7 +8,7 @@ const AttendanceSummary = ({ summary, period }) => {
   // Default values if summary is not provided or incomplete
   const defaultSummary = {
     presentDays: 0,
-    absentDays: 0,
+    leaveDays: 0, // ✅ Backend uses leaveDays
     lateDays: 0,
     earlyDepartures: 0,
     totalWorkedMinutes: 0,
@@ -18,7 +18,8 @@ const AttendanceSummary = ({ summary, period }) => {
     overtimeHours: 0,
     incompleteDays: 0,
     totalLateMinutes: 0,
-    totalEarlyExitMinutes: 0
+    totalEarlyExitMinutes: 0,
+    halfDays: 0
   };
 
   // Safely merge summary with defaults, ensuring all numeric values are valid
@@ -26,7 +27,7 @@ const AttendanceSummary = ({ summary, period }) => {
     ...defaultSummary,
     ...summary,
     presentDays: Number(summary?.presentDays) || 0,
-    absentDays: Number(summary?.absentDays) || 0,
+    leaveDays: Number(summary?.leaveDays) || 0, // ✅ Backend uses leaveDays
     lateDays: Number(summary?.lateDays) || 0,
     earlyDepartures: Number(summary?.earlyDepartures) || 0,
     totalWorkedMinutes: Number(summary?.totalWorkedMinutes) || 0,
@@ -36,7 +37,8 @@ const AttendanceSummary = ({ summary, period }) => {
     overtimeHours: Number(summary?.overtimeHours) || 0,
     incompleteDays: Number(summary?.incompleteDays) || 0,
     totalLateMinutes: Number(summary?.totalLateMinutes) || 0,
-    totalEarlyExitMinutes: Number(summary?.totalEarlyExitMinutes) || 0
+    totalEarlyExitMinutes: Number(summary?.totalEarlyExitMinutes) || 0,
+    halfDays: Number(summary?.halfDays) || 0
   };
 
   // Calculate attendance percentage
@@ -60,6 +62,52 @@ const AttendanceSummary = ({ summary, period }) => {
     return num.toFixed(decimals);
   };
 
+  // Calculate monthly metrics
+  const calculateMonthlyMetrics = () => {
+    const totalMinutes = data.totalWorkedMinutes || 0;
+    const totalHoursWorked = totalMinutes / 60;
+    const workingDaysInMonth = data.totalDays || 1; // Avoid division by zero
+    const actualWorkDays = data.presentDays || 0;
+    
+    // 🔒 VALIDATION: Cap unrealistic values (max 24 hours per day)
+    const maxPossibleHours = actualWorkDays * 24;
+    const validatedTotalHours = Math.min(totalHoursWorked, maxPossibleHours);
+    
+    // Show warning if data seems incorrect
+    if (totalHoursWorked > maxPossibleHours) {
+      console.warn(`⚠️ Attendance data error: ${totalHoursWorked.toFixed(1)}h worked in ${actualWorkDays} days is impossible (max: ${maxPossibleHours}h)`);
+      console.warn('This suggests bad data in the database. Please check attendance records.');
+    }
+    
+    // Average hours per working day (based on days actually worked)
+    const avgHoursPerDay = actualWorkDays > 0 ? validatedTotalHours / actualWorkDays : 0;
+    
+    // Cap average to 24 hours per day
+    const validatedAvgHours = Math.min(avgHoursPerDay, 24);
+    
+    // Expected hours for the month (assuming 8 hours per working day)
+    const expectedHours = workingDaysInMonth * 8;
+    
+    // Actual vs Expected percentage
+    const workHoursPercentage = expectedHours > 0 ? (validatedTotalHours / expectedHours) * 100 : 0;
+    
+    // Projected hours for full month (if not all days are completed)
+    const projectedHours = validatedAvgHours * workingDaysInMonth;
+    
+    return {
+      totalHoursWorked: validatedTotalHours,
+      avgHoursPerDay: validatedAvgHours,
+      expectedHours,
+      workHoursPercentage,
+      projectedHours,
+      workingDaysInMonth,
+      actualWorkDays,
+      hasDataError: totalHoursWorked > maxPossibleHours
+    };
+  };
+
+  const monthlyMetrics = calculateMonthlyMetrics();
+
   const summaryCards = [
     {
       title: 'Present Days',
@@ -70,12 +118,12 @@ const AttendanceSummary = ({ summary, period }) => {
       description: `Out of ${data.totalDays} working days`
     },
     {
-      title: 'Absent Days',
-      value: data.absentDays,
+      title: 'Leave Days',
+      value: data.leaveDays, // ✅ Backend uses leaveDays
       icon: AlertCircle,
       color: 'text-red-600',
       bgColor: 'bg-red-50',
-      description: 'Days not present'
+      description: 'Days on leave'
     },
     {
       title: 'Late Arrivals',
@@ -142,6 +190,24 @@ const AttendanceSummary = ({ summary, period }) => {
         </div>
       </div>
 
+      {/* Data Error Warning */}
+      {monthlyMetrics.hasDataError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-semibold text-red-900">Data Error Detected</h3>
+            <p className="text-sm text-red-700 mt-1">
+              The attendance data shows impossible work hours (more than 24 hours per day). 
+              This indicates corrupted data in the database. Please contact your administrator 
+              to review and correct the attendance records.
+            </p>
+            <p className="text-xs text-red-600 mt-2">
+              Note: Values have been capped to realistic limits for display purposes.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Primary Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((card, index) => {
@@ -206,7 +272,7 @@ const AttendanceSummary = ({ summary, period }) => {
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Clock className="w-5 h-5" />
-              Work Hours Analysis
+              Work Hours Analysis - {period || 'This Month'}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -214,13 +280,32 @@ const AttendanceSummary = ({ summary, period }) => {
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Total Hours Worked:</span>
                 <span className="font-semibold">
-                  {formatWorkTime(data.totalWorkedMinutes)}
+                  {safeToFixed(monthlyMetrics.totalHoursWorked, 1)}h
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-gray-600">Average Daily Hours:</span>
+                <span className="text-gray-600">Expected Hours (Month):</span>
+                <span className="font-semibold text-gray-500">
+                  {safeToFixed(monthlyMetrics.expectedHours, 1)}h
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Work Completion:</span>
+                <span className={`font-semibold ${monthlyMetrics.workHoursPercentage >= 100 ? 'text-green-600' : monthlyMetrics.workHoursPercentage >= 90 ? 'text-blue-600' : 'text-yellow-600'}`}>
+                  {safeToFixed(monthlyMetrics.workHoursPercentage, 1)}%
+                </span>
+              </div>
+              <div className="h-px bg-gray-200 my-2"></div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Avg Hours/Day:</span>
+                <span className="font-semibold text-blue-600">
+                  {safeToFixed(monthlyMetrics.avgHoursPerDay, 1)}h
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Working Days:</span>
                 <span className="font-semibold">
-                  {safeToFixed(data.averageWorkHours, 1)}h
+                  {monthlyMetrics.actualWorkDays} / {monthlyMetrics.workingDaysInMonth}
                 </span>
               </div>
               <div className="flex justify-between items-center">
@@ -231,7 +316,7 @@ const AttendanceSummary = ({ summary, period }) => {
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-gray-600">Break Time:</span>
-                <span className="font-semibold text-blue-600">
+                <span className="font-semibold text-orange-600">
                   {formatWorkTime(data.totalBreakMinutes)}
                 </span>
               </div>
@@ -285,7 +370,7 @@ const AttendanceSummary = ({ summary, period }) => {
 AttendanceSummary.propTypes = {
   summary: PropTypes.shape({
     presentDays: PropTypes.number,
-    absentDays: PropTypes.number,
+    leaveDays: PropTypes.number, // ✅ Backend uses leaveDays
     lateDays: PropTypes.number,
     earlyDepartures: PropTypes.number,
     totalWorkedMinutes: PropTypes.number,
@@ -295,10 +380,12 @@ AttendanceSummary.propTypes = {
     overtimeHours: PropTypes.number,
     incompleteDays: PropTypes.number,
     totalLateMinutes: PropTypes.number,
-    totalEarlyExitMinutes: PropTypes.number
+    totalEarlyExitMinutes: PropTypes.number,
+    halfDays: PropTypes.number
   }),
   period: PropTypes.string
 };
+
 
 AttendanceSummary.defaultProps = {
   summary: null,

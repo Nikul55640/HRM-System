@@ -5,6 +5,7 @@
 
 import attendanceService from '../../services/admin/attendance.service.js';
 import logger from '../../utils/logger.js';
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 /**
  * Wrapper for consistent API responses
@@ -27,13 +28,10 @@ const employeeAttendanceController = {
         ipAddress: req.ip,
         userAgent: req.headers["user-agent"],
       };
-
       const result = await attendanceService.clockIn(req.body, req.user, metadata);
-
       if (!result.success) {
         return sendResponse(res, false, result.message, null, 400);
       }
-
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Clock In Error", error);
@@ -50,9 +48,7 @@ const employeeAttendanceController = {
         ipAddress: req.ip,
         userAgent: req.headers["user-agent"],
       };
-
       const result = await attendanceService.clockOut(req.body, req.user, metadata);
-
       if (!result.success) {
         return sendResponse(res, false, result.message, null, 400);
       }
@@ -73,13 +69,10 @@ const employeeAttendanceController = {
         ipAddress: req.ip,
         userAgent: req.headers["user-agent"],
       };
-
       const result = await attendanceService.startBreak(req.user, metadata);
-
       if (!result.success) {
         return sendResponse(res, false, result.message, null, 400);
       }
-
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Start Break Error", error);
@@ -116,11 +109,9 @@ const employeeAttendanceController = {
   getTodayAttendance: async (req, res) => {
     try {
       const result = await attendanceService.getTodayAttendance(req.user);
-
       if (!result.success) {
         return sendResponse(res, false, result.message, null, 400);
       }
-
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Get Today Attendance Error", error);
@@ -138,20 +129,17 @@ const employeeAttendanceController = {
         ipAddress: req.ip,
         userAgent: req.headers["user-agent"],
       };
-
       const result = await attendanceService.requestAttendanceCorrection(
         attendanceId,
         req.body,
         req.user,
         metadata
       );
-
       if (!result.success) {
         const statusCode = result.message.includes('not found') ? 404 :
           result.message.includes('only request correction for your own') ? 403 : 400;
         return sendResponse(res, false, result.message, null, statusCode);
       }
-
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Request Correction Error", error);
@@ -167,13 +155,10 @@ const employeeAttendanceController = {
       const filters = {
         ...req.query
       };
-
       const result = await attendanceService.getEmployeeOwnAttendanceRecords(filters, req.user, req.query);
-
       if (!result.success) {
         return sendResponse(res, false, result.message, null, 400);
       }
-
       return sendResponse(res, true, result.message, result.data.records, 200, result.data.pagination);
     } catch (error) {
       logger.error("Controller: Get My Attendance Records Error", error);
@@ -216,13 +201,11 @@ const employeeAttendanceController = {
       if (!startDate || !endDate) {
         return sendResponse(res, false, "Start date and end date are required", null, 400);
       }
-
       const filters = {
         employeeId: req.user.employee?.id,
         dateFrom: startDate,
         dateTo: endDate
       };
-
       const result = await attendanceService.getAttendanceRecords(filters, req.user, { limit: 100 });
 
       if (!result.success) {
@@ -254,7 +237,8 @@ const employeeAttendanceController = {
   getAttendanceStatus: async (req, res) => {
     try {
       const { date } = req.query;
-      const targetDate = date || new Date().toISOString().split('T')[0];
+      // ✅ FIX: Use local timezone, not UTC
+      const targetDate = date || getLocalDateString();
 
       const filters = {
         employeeId: req.user.employee?.id,

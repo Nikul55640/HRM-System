@@ -6,6 +6,7 @@
 
 import { WorkingRule } from '../../models/index.js';
 import { Op } from 'sequelize';
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 class DateCalculationService {
   /**
@@ -89,7 +90,8 @@ class DateCalculationService {
    */
   static async getActiveWorkingRule(date = null) {
     const checkDate = date ? new Date(date) : new Date();
-    const dateStr = checkDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    // ✅ FIX: Use local timezone, not UTC
+    const dateStr = getLocalDateString(checkDate);
     
     const workingRule = await WorkingRule.findOne({
       where: {

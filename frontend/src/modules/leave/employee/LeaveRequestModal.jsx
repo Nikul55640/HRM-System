@@ -277,8 +277,9 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
                 </p>
               )}
               {isRetroactiveLeave() && (
-                <p className="text-orange-600 text-sm mt-2">
-                  📅 This is a retroactive leave application for past dates. It may require additional approval.
+                <p className="text-orange-600 text-sm mt-2 flex items-center gap-1">
+                  <Calendar className="w-4 h-4 flex-shrink-0" />
+                  This is a retroactive leave application for past dates. It may require additional approval.
                 </p>
               )}
             </div>

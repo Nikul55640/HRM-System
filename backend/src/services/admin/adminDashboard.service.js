@@ -10,8 +10,6 @@ const adminDashboardService = {
   getDashboardStats: async () => {
     try {
       console.log('📊 [ADMIN DASHBOARD SERVICE] Fetching dashboard stats...');
-
-      // Run all dashboard queries in parallel (better performance)
       const [
         totalEmployees,
         activeEmployees,

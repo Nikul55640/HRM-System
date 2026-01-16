@@ -4,6 +4,7 @@ import DateCalculationService from '../../services/core/dateCalculation.service.
 import { CompanyEvent, Holiday, LeaveRequest, Employee, WorkingRule } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 /**
  * Get Smart Monthly Calendar Data
@@ -146,7 +147,8 @@ export const getSmartDailyCalendar = async (req, res) => {
     res.json({
       success: true,
       data: {
-        date: checkDate.toISOString().split('T')[0],
+        // ✅ FIX: Use local timezone
+        date: getLocalDateString(checkDate),
         dayStatus,
         attendanceRequired,
         events,
@@ -396,7 +398,7 @@ async function getBirthdaysForMonth(month) {
         employeeCode: emp.employeeId,
         date: new Date(new Date().getFullYear(), month - 1, new Date(emp.dateOfBirth).getDate()),
         type: 'birthday',
-        title: `🎂 ${emp.firstName} ${emp.lastName}'s Birthday`
+        title: `${emp.firstName} ${emp.lastName}'s Birthday`
       }));
   });
 }
@@ -420,7 +422,7 @@ async function getAnniversariesForMonth(month) {
         employeeCode: emp.employeeId,
         date: new Date(new Date().getFullYear(), month - 1, new Date(emp.joiningDate).getDate()),
         type: 'anniversary',
-        title: `🎊 ${emp.firstName} ${emp.lastName}'s Work Anniversary`
+        title: `${emp.firstName} ${emp.lastName}'s Work Anniversary`
       }));
   });
 }
@@ -450,7 +452,7 @@ async function getBirthdaysForDay(date) {
         employeeCode: emp.employeeId,
         date: date,
         type: 'birthday',
-        title: `🎂 ${emp.firstName} ${emp.lastName}'s Birthday`
+        title: `${emp.firstName} ${emp.lastName}'s Birthday`
       }));
   });
 }
@@ -480,7 +482,7 @@ async function getAnniversariesForDay(date) {
         employeeCode: emp.employeeId,
         date: date,
         type: 'anniversary',
-        title: `🎊 ${emp.firstName} ${emp.lastName}'s Work Anniversary`
+        title: `${emp.firstName} ${emp.lastName}'s Work Anniversary`
       }));
   });
 }

@@ -1,62 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/card';
+import { Button } from '../../../../shared/ui/button';
 import { useToast } from '../../../../core/hooks/use-toast';
+import { LoadingSpinner } from '../../../../shared/components';
+import { useProfile } from '../../../../services/useEmployeeSelfService';
 import ProfilePhotoUploader from '../components/ProfilePhotoUploader';
 import PersonalInfoForm from '../components/PersonalInfoForm';
 import ContactInfoForm from '../components/ContactInfoForm';
-import employeeSettingsService from '../services/employeeSettingsService';
 
 const ProfileSettings = () => {
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { profile, loading, error, getProfile, updateProfile } = useProfile();
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchProfile();
+    getProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const fetchProfile = async () => {
-    try {
-      setLoading(true);
-      const response = await employeeSettingsService.getProfile();
-      
-      if (response.success) {
-        setProfile(response.data);
-      }
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: error.response?.data?.message || 'Failed to load profile data.',
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handlePersonalInfoSubmit = async (personalInfo) => {
     try {
       setSaving(true);
-      const response = await employeeSettingsService.updateProfile({
-        personalInfo
+      await updateProfile({ personalInfo });
+      
+      toast({
+        title: 'Success',
+        description: 'Personal information updated successfully.',
       });
-
-      if (response.success) {
-        setProfile(prev => ({
-          ...prev,
-          ...response.data
-        }));
-        
-        toast({
-          title: 'Success',
-          description: 'Personal information updated successfully.',
-        });
-      }
     } catch (error) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to update personal information.',
+        description: error.message || 'Failed to update personal information.',
         variant: 'destructive',
       });
     } finally {
@@ -67,25 +41,16 @@ const ProfileSettings = () => {
   const handleContactInfoSubmit = async (contactInfo) => {
     try {
       setSaving(true);
-      const response = await employeeSettingsService.updateProfile({
-        contactInfo
+      await updateProfile({ contactInfo });
+      
+      toast({
+        title: 'Success',
+        description: 'Contact information updated successfully.',
       });
-
-      if (response.success) {
-        setProfile(prev => ({
-          ...prev,
-          ...response.data
-        }));
-        
-        toast({
-          title: 'Success',
-          description: 'Contact information updated successfully.',
-        });
-      }
     } catch (error) {
       toast({
         title: 'Error',
-        description: error.response?.data?.message || 'Failed to update contact information.',
+        description: error.message || 'Failed to update contact information.',
         variant: 'destructive',
       });
     } finally {
@@ -93,23 +58,17 @@ const ProfileSettings = () => {
     }
   };
 
-  const handlePhotoUpdate = async (newPhotoUrl) => {
+  const handlePhotoUpdate = async () => {
     try {
-      // Update local state immediately for better UX
-      setProfile(prev => ({
-        ...prev,
-        profilePhoto: newPhotoUrl,
-        profilePicture: newPhotoUrl // Update both fields for consistency
-      }));
+      // Refresh profile to get updated photo URL
+      await getProfile();
       
-      // Refresh the entire profile to ensure consistency with backend
-      const response = await employeeSettingsService.getProfile();
-      if (response.success) {
-        setProfile(response.data);
-      }
+      toast({
+        title: 'Success',
+        description: 'Profile photo updated successfully.',
+      });
     } catch (error) {
       console.error('Error refreshing profile after photo update:', error);
-      // If refresh fails, keep the local update
       toast({
         title: 'Warning',
         description: 'Photo updated but failed to refresh profile data.',
@@ -118,7 +77,7 @@ const ProfileSettings = () => {
     }
   };
 
-  if (loading) {
+  if (loading || !profile) {
     return (
       <div className="space-y-6">
         <Card>
@@ -127,7 +86,28 @@ const ProfileSettings = () => {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <LoadingSpinner />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile Settings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+              <p className="text-red-600 font-medium">Failed to load profile</p>
+              <p className="text-gray-500 text-sm">{error}</p>
+              <Button onClick={getProfile}>
+                Try Again
+              </Button>
             </div>
           </CardContent>
         </Card>

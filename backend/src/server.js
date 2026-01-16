@@ -19,6 +19,15 @@ const server = app.listen(PORT, () => {
       logger.warn('Cron jobs not initialized. Run "npm install" in backend directory to enable scheduled tasks.');
     });
 
+    // 🔥 CRITICAL: Initialize attendance finalization cron job
+    import('./jobs/attendanceFinalization.js').then((mod) => {
+      if (mod && mod.scheduleAttendanceFinalization) {
+        mod.scheduleAttendanceFinalization();
+      }
+    }).catch((error) => {
+      logger.warn('Attendance finalization cron job not initialized:', error.message);
+    });
+
     // Initialize leave balance rollover cron job
     import('./services/cron/leaveBalanceRollover.service.js').then((mod) => {
       if (mod && mod.default && mod.default.initialize) {

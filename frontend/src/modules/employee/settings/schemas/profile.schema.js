@@ -32,6 +32,12 @@ export const personalInfoSchema = yup.object({
   maritalStatus: yup
     .string()
     .oneOf(['single', 'married', 'divorced', 'widowed'], 'Please select a valid marital status'),
+  nationality: yup
+    .string()
+    .max(100, 'Nationality must not exceed 100 characters'),
+  bloodGroup: yup
+    .string()
+    .oneOf(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'], 'Please select a valid blood group'),
   about: yup
     .string()
     .max(500, 'About section must not exceed 500 characters')
@@ -46,9 +52,21 @@ export const contactInfoSchema = yup.object({
   country: yup
     .string()
     .max(100, 'Country name must not exceed 100 characters'),
-  address: yup
+  street: yup
     .string()
-    .max(500, 'Address must not exceed 500 characters')
+    .max(200, 'Street address must not exceed 200 characters'),
+  city: yup
+    .string()
+    .max(100, 'City name must not exceed 100 characters'),
+  state: yup
+    .string()
+    .max(100, 'State/Province must not exceed 100 characters'),
+  zipCode: yup
+    .string()
+    .max(20, 'ZIP/Postal code must not exceed 20 characters'),
+  addressCountry: yup
+    .string()
+    .max(100, 'Country name must not exceed 100 characters')
 });
 
 export const profilePhotoSchema = yup.object({

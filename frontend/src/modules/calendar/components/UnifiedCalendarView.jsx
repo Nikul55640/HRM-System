@@ -16,7 +16,12 @@ import {
   Award,
   RefreshCw,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  PartyPopper,
+  CalendarCheck,
+  Cake,
+  Heart,
+  FileText
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { format, parseISO } from 'date-fns';
@@ -319,8 +324,9 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
               : 'View holidays, leaves, and important dates'
             }
             {!canManageCalendar && (
-              <span className="block text-amber-600 text-sm mt-1">
-                📝 Only Admin and HR Manager can create/edit events
+              <span className=" text-amber-600 text-sm mt-1 flex items-center gap-1">
+                <FileText className="w-4 h-4 flex-shrink-0" />
+                Only Admin and HR Manager can create/edit events
               </span>
             )}
           
@@ -565,23 +571,25 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                     
                     {/* Events for this day */}
                     <div className="mt-1 space-y-1">
-                      {dayEvents.slice(0, window.innerWidth < 640 ? 1 : 2).map((event) => (
-                        <div
-                          key={event._id || event.id}
-                          className={`text-xs px-1 py-0.5 rounded border cursor-pointer hover:opacity-80 ${getEventColor(event.type)}`}
-                          title={event.title || event.name}
-                        >
-                          <div className="flex items-center gap-1">
-                            <span className="text-xs">
-                              {event.type === 'holiday' ? '🎉' : 
-                               event.type === 'leave' ? '📅' : 
-                               event.type === 'birthday' ? '🎂' :
-                               event.type === 'anniversary' ? '🎊' : '📝'}
-                            </span>
-                            <span className="truncate text-xs hidden sm:inline">{event.title || event.name}</span>
+                      {dayEvents.slice(0, window.innerWidth < 640 ? 1 : 2).map((event) => {
+                        const EventIcon = event.type === 'holiday' ? PartyPopper : 
+                                         event.type === 'leave' ? CalendarCheck : 
+                                         event.type === 'birthday' ? Cake :
+                                         event.type === 'anniversary' ? Heart : FileText;
+                        
+                        return (
+                          <div
+                            key={event._id || event.id}
+                            className={`text-xs px-1 py-0.5 rounded border cursor-pointer hover:opacity-80 ${getEventColor(event.type)}`}
+                            title={event.title || event.name}
+                          >
+                            <div className="flex items-center gap-1">
+                              <EventIcon className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate text-xs hidden sm:inline">{event.title || event.name}</span>
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                       
                       {/* Show "+X more" if there are more events */}
                       {dayEvents.length > (window.innerWidth < 640 ? 1 : 2) && (
@@ -613,19 +621,21 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                   })}
                 </div>
                 <div className="space-y-1">
-                  {getEventsForDate(hoveredDay).map((event, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <span className="text-sm">
-                        {event.type === 'holiday' ? '🎉' : 
-                         event.type === 'leave' ? '📅' : 
-                         event.type === 'birthday' ? '🎂' :
-                         event.type === 'anniversary' ? '🎊' : '📝'}
-                      </span>
-                      <span className="text-xs text-gray-700 truncate">
-                        {event.title || event.name}
-                      </span>
-                    </div>
-                  ))}
+                  {getEventsForDate(hoveredDay).map((event, idx) => {
+                    const EventIcon = event.type === 'holiday' ? PartyPopper : 
+                                     event.type === 'leave' ? CalendarCheck : 
+                                     event.type === 'birthday' ? Cake :
+                                     event.type === 'anniversary' ? Heart : FileText;
+                    
+                    return (
+                      <div key={idx} className="flex items-center gap-2">
+                        <EventIcon className="w-4 h-4 flex-shrink-0" />
+                        <span className="text-xs text-gray-700 truncate">
+                          {event.title || event.name}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -678,8 +688,6 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
           setSelectedDate(null);
         }}
       />
-
-      {/* Remove holiday modal - holidays managed in Smart Calendar */}
     </div>
   );
 };

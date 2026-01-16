@@ -1,14 +1,8 @@
-/**
- * Calendarific Management Component
- * Admin interface for managing Calendarific API integration
- */
-
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
 import { Input } from '../../../shared/ui/input';
 import { Label } from '../../../shared/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
 import { Checkbox } from '../../../shared/ui/checkbox';
 import { Badge } from '../../../shared/ui/badge';
 import { Alert, AlertDescription } from '../../../shared/ui/alert';
@@ -19,175 +13,176 @@ import {
   Calendar, 
   Download, 
   RefreshCw, 
-  CheckCircle, 
-  XCircle, 
   AlertTriangle,
   Globe2,
   BarChart3,
-  Settings,
   Eye,
   RotateCcw
 } from 'lucide-react';
 
 import { formatIndianDateTime } from '../../../utils/indianFormatters';
+import { DEFAULT_SELECTED_TYPES } from './constants/holidayTypes';
+
+// Import sub-components
+import ApiStatusCard from './components/ApiStatusCard';
+import CountryYearSelector from './components/CountryYearSelector';
+import HolidayTypeSelector from './components/HolidayTypeSelector';
+import HolidayPreviewList from './components/HolidayPreviewList';
 
 const CalendarificManagement = () => {
   
-  // State management
-  const [loading, setLoading] = useState(false);
+  // ===================================================
+  // STATE MANAGEMENT - Separated loading states
+  // ===================================================
+  const [apiLoading, setApiLoading] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [syncLoading, setSyncLoading] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
+  
   const [apiStatus, setApiStatus] = useState(null);
-  const [countries, setCountries] = useState([]);
   const [previewData, setPreviewData] = useState(null);
-  const [syncStats, setSyncStats] = useState(null);
+  const [previewError, setPreviewError] = useState(null);
   const [holidayStats, setHolidayStats] = useState(null);
   const [lastSyncTime, setLastSyncTime] = useState(null);
-  
-  // Prevent state updates after unmount
-  const mountedRef = useRef(true);
-  useEffect(() => {
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
   
   // Form states
   const [selectedCountry, setSelectedCountry] = useState('IN');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedTypes, setSelectedTypes] = useState(['national', 'religious']);
+  const [selectedTypes, setSelectedTypes] = useState(DEFAULT_SELECTED_TYPES);
   const [overwriteExisting, setOverwriteExisting] = useState(false);
   const [bulkStartYear, setBulkStartYear] = useState(new Date().getFullYear());
   const [bulkEndYear, setBulkEndYear] = useState(new Date().getFullYear() + 1);
 
   // Memoized static data
   const popularCountries = useMemo(() => calendarificService.getPopularCountries(), []);
-  const holidayTypes = useMemo(() => calendarificService.getHolidayTypes(), []);
 
-  // Safe state setter helper
-  const safeSetState = (setter) => {
-    return (...args) => {
-      if (mountedRef.current) {
-        setter(...args);
-      }
-    };
-  };
-
-  // Load initial data
+  // ===================================================
+  // INITIALIZATION
+  // ===================================================
   useEffect(() => {
-    loadInitialData();
+    // Only load stats on mount - NO automatic API test
+    loadHolidayStats();
   }, []);
 
   const loadInitialData = async () => {
-    safeSetState(setLoading)(true);
+    // Removed automatic API test - only called manually via button
+    setApiLoading(true);
     try {
-      await Promise.all([
-        testApiConnection(),
-        loadSyncStatus(),
-        loadHolidayStats()
-      ]);
+      await testApiConnection();
+      await loadHolidayStats();
     } catch (error) {
       console.error('Error loading initial data:', error);
     } finally {
-      safeSetState(setLoading)(false);
+      setApiLoading(false);
     }
   };
 
+  // ===================================================
+  // API OPERATIONS
+  // ===================================================
   const testApiConnection = async () => {
+    console.log('🔍 [TEST CONNECTION] Starting API connection test...');
+    console.log('🔍 [TEST CONNECTION] Current apiStatus:', apiStatus);
+    
     try {
+      console.log('🔍 [TEST CONNECTION] Calling calendarificService.testConnection()...');
       const result = await calendarificService.testConnection();
-      safeSetState(setApiStatus)(result);
       
-      if (result.success) {
-        // Load countries if API is working
-        const countriesResult = await calendarificService.getSupportedCountries();
-        if (countriesResult.success) {
-          safeSetState(setCountries)(countriesResult.data);
-        }
+      console.log('✅ [TEST CONNECTION] Response received:', result);
+      console.log('✅ [TEST CONNECTION] Success:', result.success);
+      console.log('✅ [TEST CONNECTION] Message:', result.message);
+      console.log('✅ [TEST CONNECTION] Data:', result.data);
+      
+      setApiStatus(result);
+      console.log('✅ [TEST CONNECTION] State updated with result');
+      
+      if (!result.success) {
+        console.warn('⚠️ [TEST CONNECTION] API test failed:', result.message);
+        toast.error(`API Connection Failed: ${result.message}`);
+      } else {
+        console.log('🎉 [TEST CONNECTION] API test successful!');
+        toast.success('API connection successful!');
       }
     } catch (error) {
-      safeSetState(setApiStatus)({ success: false, message: error.message });
-    }
-  };
-
-  const loadSyncStatus = async () => {
-    try {
-      const result = await calendarificService.getSyncStatus();
-      safeSetState(setSyncStats)(result.data);
-    } catch (error) {
-      console.error('Error loading sync status:', error);
+      console.error('❌ [TEST CONNECTION] Error caught:', error);
+      console.error('❌ [TEST CONNECTION] Error message:', error.message);
+      console.error('❌ [TEST CONNECTION] Error stack:', error.stack);
+      
+      const errorStatus = { success: false, message: error.message || 'Failed to connect to Calendarific API' };
+      setApiStatus(errorStatus);
+      console.log('❌ [TEST CONNECTION] Error state set:', errorStatus);
+      
+      toast.error(`API Connection Error: ${error.message}`);
     }
   };
 
   const loadHolidayStats = async () => {
+    setStatsLoading(true);
     try {
       const result = await calendarificService.getHolidayStats({
         country: selectedCountry,
         year: selectedYear
       });
       if (result.success) {
-        safeSetState(setHolidayStats)(result.data);
+        setHolidayStats(result.data);
       }
     } catch (error) {
       console.error('Error loading holiday stats:', error);
+    } finally {
+      setStatsLoading(false);
     }
   };
 
   const handlePreviewHolidays = async () => {
-    safeSetState(setLoading)(true);
+    if (selectedTypes.length === 0) {
+      toast.error('Please select at least one holiday type');
+      return;
+    }
+
+    setPreviewLoading(true);
+    setPreviewError(null);
+    
     try {
-      // Preview all selected types
-      const previewPromises = selectedTypes.map(type => 
-        calendarificService.previewHolidays({
-          country: selectedCountry,
-          year: selectedYear,
-          type
-        })
-      );
-      
-      const results = await Promise.all(previewPromises);
-      
-      // Combine all holidays from different types
-      const allHolidays = [];
-      let totalCount = 0;
-      
-      results.forEach((result, index) => {
-        if (result.success) {
-          const typeLabel = selectedTypes[index];
-          result.data.holidays.forEach(holiday => {
-            allHolidays.push({
-              ...holiday,
-              sourceType: typeLabel
-            });
-          });
-          totalCount += result.data.holidays.length;
-        }
-      });
-      
-      // Sort holidays by date
-      allHolidays.sort((a, b) => {
-        const dateA = new Date(a.date || `${selectedYear}-${a.recurringDate}`);
-        const dateB = new Date(b.date || `${selectedYear}-${b.recurringDate}`);
-        return dateA - dateB;
-      });
-      
-      safeSetState(setPreviewData)({
+      // ✅ BATCH PREVIEW - ONE API CALL instead of multiple
+      // This SAVES API CREDITS significantly
+      const result = await calendarificService.batchPreviewHolidays({
         country: selectedCountry,
         year: selectedYear,
-        holidays: allHolidays,
-        count: totalCount,
         types: selectedTypes
       });
       
-      toast.success(`Found ${totalCount} holidays across ${selectedTypes.length} categories for ${selectedCountry} in ${selectedYear}`);
+      if (result.success) {
+        setPreviewData({
+          country: selectedCountry,
+          year: selectedYear,
+          holidays: result.data.holidays,
+          count: result.data.count,
+          types: selectedTypes,
+          breakdown: result.data.breakdown
+        });
+        
+        toast.success(`Found ${result.data.count} holidays across ${selectedTypes.length} categories`);
+      } else {
+        throw new Error(result.message || 'Preview failed');
+      }
       
     } catch (error) {
-      toast.error(`Preview Failed: ${error.message}`);
+      const errorMsg = error.message || 'Failed to preview holidays';
+      setPreviewError(errorMsg);
+      toast.error(`Preview Failed: ${errorMsg}`);
     } finally {
-      safeSetState(setLoading)(false);
+      setPreviewLoading(false);
     }
   };
 
   const handleSyncHolidays = async (dryRun = false) => {
-    safeSetState(setLoading)(true);
+    if (selectedTypes.length === 0) {
+      toast.error('Please select at least one holiday type');
+      return;
+    }
+
+    setSyncLoading(true);
+    
     try {
       const validation = calendarificService.validateSyncParams({
         country: selectedCountry,
@@ -211,9 +206,8 @@ const CalendarificManagement = () => {
         toast.success(`${message}: ${result.message}`);
         
         if (!dryRun) {
-          await loadSyncStatus();
           await loadHolidayStats();
-          safeSetState(setLastSyncTime)(formatIndianDateTime(new Date()));
+          setLastSyncTime(formatIndianDateTime(new Date()));
         }
       } else {
         throw new Error(result.message);
@@ -221,12 +215,18 @@ const CalendarificManagement = () => {
     } catch (error) {
       toast.error(`Sync Failed: ${error.message}`);
     } finally {
-      safeSetState(setLoading)(false);
+      setSyncLoading(false);
     }
   };
 
   const handleBulkSync = async () => {
-    safeSetState(setLoading)(true);
+    if (selectedTypes.length === 0) {
+      toast.error('Please select at least one holiday type');
+      return;
+    }
+
+    setSyncLoading(true);
+    
     try {
       const validation = calendarificService.validateSyncParams({
         country: selectedCountry,
@@ -249,24 +249,32 @@ const CalendarificManagement = () => {
       if (result.success) {
         toast.success(`Bulk Sync Completed: Processed ${result.data.yearsProcessed} years with ${result.data.successfulYears} successful`);
         
-        await loadSyncStatus();
         await loadHolidayStats();
-        safeSetState(setLastSyncTime)(formatIndianDateTime(new Date()));
+        setLastSyncTime(formatIndianDateTime(new Date()));
       } else {
         throw new Error(result.message);
       }
     } catch (error) {
       toast.error(`Bulk Sync Failed: ${error.message}`);
     } finally {
-      safeSetState(setLoading)(false);
+      setSyncLoading(false);
     }
   };
 
-  const getStatusIcon = (status) => {
-    if (status === 'connected') return <CheckCircle className="h-4 w-4 text-green-500" />;
-    if (status === 'disconnected') return <XCircle className="h-4 w-4 text-red-500" />;
-    return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
-  };
+  // ===================================================
+  // RENDER
+  // ===================================================
+  const isAnyLoading = apiLoading || previewLoading || syncLoading || statsLoading;
+  // Fix: Use strict equality check for apiStatus.success
+  const isApiReady = apiStatus?.success === true;
+
+  // Debug logging
+  console.log('CalendarificManagement State:', {
+    apiStatus,
+    isApiReady,
+    selectedTypes,
+    isAnyLoading
+  });
 
   return (
     <div className="space-y-3">
@@ -281,50 +289,11 @@ const CalendarificManagement = () => {
       </div>
 
       {/* API Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            API Status
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {apiStatus ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                {getStatusIcon(apiStatus.success ? 'connected' : 'disconnected')}
-                <div>
-                  <p className="font-medium">
-                    {apiStatus.success ? 'Connected' : 'Disconnected'}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {apiStatus.message}
-                  </p>
-                </div>
-                {apiStatus.success && apiStatus.data?.holidayCount && (
-                  <Badge variant="secondary">
-                    {apiStatus.data.holidayCount} holidays available
-                  </Badge>
-                )}
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={testApiConnection}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                Test Connection
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              <span>Testing connection...</span>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <ApiStatusCard 
+        apiStatus={apiStatus}
+        loading={apiLoading}
+        onTestConnection={testApiConnection}
+      />
 
       {/* Quick Actions */}
       {apiStatus?.success && (
@@ -343,7 +312,7 @@ const CalendarificManagement = () => {
                   setSelectedTypes(['national']);
                   handlePreviewHolidays();
                 }}
-                disabled={loading}
+                disabled={isAnyLoading}
               >
                 <Calendar className="h-4 w-4 mr-2" />
                 Preview National Holidays
@@ -354,7 +323,7 @@ const CalendarificManagement = () => {
                   setSelectedTypes(['national', 'religious']);
                   handleSyncHolidays(false);
                 }}
-                disabled={loading}
+                disabled={isAnyLoading}
               >
                 <Download className="h-4 w-4 mr-2" />
                 Quick Sync (National + Religious)
@@ -365,7 +334,7 @@ const CalendarificManagement = () => {
                   setSelectedTypes(['national', 'religious', 'local', 'observance']);
                   handlePreviewHolidays();
                 }}
-                disabled={loading}
+                disabled={isAnyLoading}
               >
                 <Eye className="h-4 w-4 mr-2" />
                 Preview All Types
@@ -396,102 +365,20 @@ const CalendarificManagement = () => {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <Label htmlFor="country">Country</Label>
-                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {popularCountries.map((country) => (
-                        <SelectItem key={country.code} value={country.code}>
-                          {country.flag} {country.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <CountryYearSelector
+                  country={selectedCountry}
+                  year={selectedYear}
+                  countries={popularCountries}
+                  onCountryChange={setSelectedCountry}
+                  onYearChange={setSelectedYear}
+                  disabled={syncLoading}
+                />
 
-                <div>
-                  <Label htmlFor="year">Year</Label>
-                  <Input
-                    type="number"
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value) || new Date().getFullYear())}
-                    min="2020"
-                    max="2030"
-                  />
-                </div>
-
-                <div>
-                  <Label>Holiday Types</Label>
-                  <div className="space-y-2 mt-2 border rounded-lg p-2 bg-gray-50">
-                    <div className="flex items-center space-x-2 mb-2 pb-2 border-b">
-                      <Checkbox
-                        id="select-all"
-                        checked={selectedTypes.length === holidayTypes.length}
-                        onCheckedChange={(checked) => {
-                          if (checked) {
-                            setSelectedTypes(holidayTypes.map(t => t.value));
-                          } else {
-                            setSelectedTypes([]);
-                          }
-                        }}
-                      />
-                      <Label htmlFor="select-all" className="text-sm font-medium">
-                        Select All ({selectedTypes.length}/{holidayTypes.length})
-                      </Label>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => {
-                          setSelectedTypes(['national', 'religious']);
-                        }}
-                      >
-                        Reset to Default
-                      </Button>
-                    </div>
-                    {holidayTypes.map((type) => (
-                      <div key={type.value} className={`flex items-center space-x-2 p-2 rounded transition-colors ${
-                        selectedTypes.includes(type.value) ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-100'
-                      }`}>
-                        <Checkbox
-                          id={type.value}
-                          checked={selectedTypes.includes(type.value)}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              setSelectedTypes(prev => [...prev, type.value]);
-                            } else {
-                              setSelectedTypes(prev => prev.filter(t => t !== type.value));
-                            }
-                          }}
-                        />
-                        <div className="flex items-center gap-2 flex-1">
-                          <span className="text-lg">{type.icon}</span>
-                          <div>
-                            <Label htmlFor={type.value} className="text-sm font-medium cursor-pointer">
-                              {type.label}
-                            </Label>
-                            <p className="text-xs text-muted-foreground">{type.description}</p>
-                          </div>
-                        </div>
-                        {selectedTypes.includes(type.value) && (
-                          <Badge variant="secondary" className="text-xs">Selected</Badge>
-                        )}
-                      </div>
-                    ))}
-                    {selectedTypes.length === 0 && (
-                      <div className="text-sm text-red-500 bg-red-50 p-2 rounded border border-red-200">
-                        ⚠️ Please select at least one holiday type
-                      </div>
-                    )}
-                    {selectedTypes.length > 0 && (
-                      <div className="text-sm text-green-600 bg-green-50 p-2 rounded border border-green-200">
-                        ✅ {selectedTypes.length} type(s) selected: {selectedTypes.join(', ')}
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <HolidayTypeSelector
+                  selectedTypes={selectedTypes}
+                  onTypesChange={setSelectedTypes}
+                  disabled={syncLoading}
+                />
               </div>
 
               <div className="flex items-center space-x-2">
@@ -499,6 +386,7 @@ const CalendarificManagement = () => {
                   id="overwrite"
                   checked={overwriteExisting}
                   onCheckedChange={setOverwriteExisting}
+                  disabled={syncLoading}
                 />
                 <Label htmlFor="overwrite">
                   Overwrite existing holidays
@@ -515,16 +403,38 @@ const CalendarificManagement = () => {
                 <Button 
                   onClick={() => handleSyncHolidays(true)} 
                   variant="outline"
-                  disabled={loading || !apiStatus?.success || selectedTypes.length === 0}
+                  disabled={syncLoading || selectedTypes.length === 0 || apiStatus?.success === false}
+                  title={
+                    apiStatus?.success === false 
+                      ? 'API connection failed - please test connection first' 
+                      : selectedTypes.length === 0 
+                      ? 'Select at least one holiday type' 
+                      : ''
+                  }
                 >
-                  <Eye className="h-4 w-4 mr-2" />
+                  {syncLoading ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Eye className="h-4 w-4 mr-2" />
+                  )}
                   Dry Run
                 </Button>
                 <Button 
                   onClick={() => handleSyncHolidays(false)}
-                  disabled={loading || !apiStatus?.success || selectedTypes.length === 0}
+                  disabled={syncLoading || selectedTypes.length === 0 || apiStatus?.success === false}
+                  title={
+                    apiStatus?.success === false 
+                      ? 'API connection failed - please test connection first' 
+                      : selectedTypes.length === 0 
+                      ? 'Select at least one holiday type' 
+                      : ''
+                  }
                 >
-                  <Download className="h-4 w-4 mr-2" />
+                  {syncLoading ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Download className="h-4 w-4 mr-2" />
+                  )}
                   Sync Holidays
                 </Button>
               </div>
@@ -544,14 +454,32 @@ const CalendarificManagement = () => {
             <CardContent className="space-y-3">
               <Button 
                 onClick={handlePreviewHolidays}
-                disabled={loading || !apiStatus?.success || selectedTypes.length === 0}
+                disabled={previewLoading || selectedTypes.length === 0 || apiStatus?.success === false}
+                title={
+                  apiStatus?.success === false 
+                    ? 'API connection failed - please test connection first' 
+                    : selectedTypes.length === 0 
+                    ? 'Select at least one holiday type' 
+                    : ''
+                }
               >
-                <Calendar className="h-4 w-4 mr-2" />
+                {previewLoading ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Calendar className="h-4 w-4 mr-2" />
+                )}
                 Load Preview ({selectedTypes.length} types)
               </Button>
 
+              {previewError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{previewError}</AlertDescription>
+                </Alert>
+              )}
+
               {previewData && (
-                  <div className="space-y-3">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">
                       {previewData.country} - {previewData.year}
@@ -562,32 +490,14 @@ const CalendarificManagement = () => {
                     </div>
                   </div>
                   
-                  <div className="max-h-96 overflow-y-auto space-y-2">
-                    {previewData.holidays.map((holiday, index) => {
-                      const formatted = calendarificService.formatHolidayForDisplay(holiday);
-                      return (
-                        <div key={index} className="flex items-center justify-between p-2 border rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg">{formatted.categoryIcon}</span>
-                            <div>
-                              <p className="font-medium">{holiday.name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {formatted.displayDate} • {formatted.typeLabel}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Badge variant="outline" style={{ backgroundColor: holiday.color + '20', color: holiday.color }}>
-                              {holiday.category}
-                            </Badge>
-                            <Badge variant="secondary" className="text-xs">
-                              {holiday.sourceType}
-                            </Badge>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <HolidayPreviewList holidays={previewData.holidays} />
+                </div>
+              )}
+
+              {!previewData && !previewError && !previewLoading && (
+                <div className="text-center p-8 text-muted-foreground">
+                  <p>No preview loaded</p>
+                  <p className="text-sm mt-2">Click "Load Preview" to see holidays</p>
                 </div>
               )}
             </CardContent>
@@ -615,31 +525,48 @@ const CalendarificManagement = () => {
                 <div>
                   <Label htmlFor="startYear">Start Year</Label>
                   <Input
+                    id="startYear"
                     type="number"
                     value={bulkStartYear}
                     onChange={(e) => setBulkStartYear(Number(e.target.value) || new Date().getFullYear())}
                     min="2020"
                     max="2030"
+                    disabled={syncLoading}
                   />
                 </div>
 
                 <div>
                   <Label htmlFor="endYear">End Year</Label>
                   <Input
+                    id="endYear"
                     type="number"
                     value={bulkEndYear}
                     onChange={(e) => setBulkEndYear(Number(e.target.value) || new Date().getFullYear())}
                     min="2020"
                     max="2030"
+                    disabled={syncLoading}
                   />
                 </div>
               </div>
 
               <Button 
                 onClick={handleBulkSync}
-                disabled={loading || !apiStatus?.success || bulkEndYear < bulkStartYear || selectedTypes.length === 0}
+                disabled={syncLoading || bulkEndYear < bulkStartYear || selectedTypes.length === 0 || apiStatus?.success === false}
+                title={
+                  apiStatus?.success === false 
+                    ? 'API connection failed - please test connection first' 
+                    : bulkEndYear < bulkStartYear 
+                    ? 'End year must be after start year' 
+                    : selectedTypes.length === 0 
+                    ? 'Select at least one holiday type' 
+                    : ''
+                }
               >
-                <Download className="h-4 w-4 mr-2" />
+                {syncLoading ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
                 Bulk Sync ({bulkEndYear - bulkStartYear + 1} years, {selectedTypes.length} types)
               </Button>
             </CardContent>
@@ -651,7 +578,7 @@ const CalendarificManagement = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
+                <RotateCcw className="h-4 w-4" />
                 Manage Existing Holidays
               </CardTitle>
             </CardHeader>
@@ -665,40 +592,22 @@ const CalendarificManagement = () => {
               </Alert>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="manage-country">Country</Label>
-                  <Select value={selectedCountry} onValueChange={setSelectedCountry}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {popularCountries.map((country) => (
-                        <SelectItem key={country.code} value={country.code}>
-                          {country.flag} {country.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div>
-                  <Label htmlFor="manage-year">Year</Label>
-                  <Input
-                    type="number"
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(Number(e.target.value) || new Date().getFullYear())}
-                    min="2020"
-                    max="2030"
-                  />
-                </div>
+                <CountryYearSelector
+                  country={selectedCountry}
+                  year={selectedYear}
+                  countries={popularCountries}
+                  onCountryChange={setSelectedCountry}
+                  onYearChange={setSelectedYear}
+                  disabled={statsLoading}
+                />
 
                 <div className="flex items-end">
                   <Button 
                     onClick={loadHolidayStats}
                     variant="outline"
-                    disabled={loading}
+                    disabled={statsLoading}
                   >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                    <RefreshCw className={`h-4 w-4 mr-2 ${statsLoading ? 'animate-spin' : ''}`} />
                     Load Holidays
                   </Button>
                 </div>
@@ -715,7 +624,7 @@ const CalendarificManagement = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleSyncHolidays(false)}
-                        disabled={loading || selectedTypes.length === 0}
+                        disabled={syncLoading || selectedTypes.length === 0}
                       >
                         <RefreshCw className="h-4 w-4 mr-2" />
                         Re-sync Selected Types
@@ -771,8 +680,8 @@ const CalendarificManagement = () => {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button onClick={loadHolidayStats} variant="outline" disabled={loading}>
-                <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              <Button onClick={loadHolidayStats} variant="outline" disabled={statsLoading}>
+                <RefreshCw className={`h-4 w-4 mr-2 ${statsLoading ? 'animate-spin' : ''}`} />
                 Refresh Stats
               </Button>
 

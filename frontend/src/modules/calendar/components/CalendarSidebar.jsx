@@ -9,7 +9,9 @@ import {
   TrendingUp,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Cake,
+  Heart
 } from 'lucide-react';
 import { cn } from '../../../lib/utils';
 
@@ -165,9 +167,9 @@ const CalendarSidebar = ({
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center">
                   <XCircle className="w-4 h-4 text-red-600 mr-2" />
-                  <span className="text-gray-600">Absent</span>
+                  <span className="text-gray-600">Leave</span>
                 </div>
-                <span className="font-medium text-gray-900">{summary.attendanceSummary.absentDays}</span>
+                <span className="font-medium text-gray-900">{summary.attendanceSummary.leaveDays}</span>
               </div>
               
               <div className="flex items-center justify-between text-sm">
@@ -210,10 +212,15 @@ const CalendarSidebar = ({
                   </div>
                   
                   <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-gray-900 truncate">
+                    <div className="text-sm font-medium text-gray-900 truncate flex items-center gap-1">
                       {event.title || event.employeeName}
-                      {event.type === 'birthday' && ' 🎂'}
-                      {event.type === 'anniversary' && ` (${event.years}y) 🎊`}
+                      {event.type === 'birthday' && <Cake className="w-3 h-3 text-pink-600" />}
+                      {event.type === 'anniversary' && (
+                        <>
+                          <span>({event.years}y)</span>
+                          <Heart className="w-3 h-3 text-purple-600" />
+                        </>
+                      )}
                     </div>
                     <div className="text-xs text-gray-500">
                       {formatDate(eventDate)}

@@ -9,7 +9,9 @@ import {
   Clock,
   AlertCircle,
   CheckCircle,
-  XCircle
+  XCircle,
+  Cake,
+  Heart
 } from 'lucide-react';
 
 const CalendarCell = ({
@@ -246,12 +248,13 @@ const CalendarCell = ({
           <div
             key={`birthday-${index}`}
             className={cn(
-              "text-xs px-1 py-0.5 rounded border truncate",
+              "text-xs px-1 py-0.5 rounded border truncate flex items-center gap-1",
               getEventTypeInfo('birthday').color
             )}
             title={`${birthday.employeeName}'s Birthday (${birthday.age} years)`}
           >
-            🎂 {birthday.employeeName}
+            <Cake className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{birthday.employeeName}</span>
           </div>
         ))}
         
@@ -260,12 +263,13 @@ const CalendarCell = ({
           <div
             key={`anniversary-${index}`}
             className={cn(
-              "text-xs px-1 py-0.5 rounded border truncate",
+              "text-xs px-1 py-0.5 rounded border truncate flex items-center gap-1",
               getEventTypeInfo('anniversary').color
             )}
             title={`${anniversary.employeeName} - ${anniversary.years} years`}
           >
-            🎊 {anniversary.employeeName} ({anniversary.years}y)
+            <Heart className="w-3 h-3 flex-shrink-0" />
+            <span className="truncate">{anniversary.employeeName} ({anniversary.years}y)</span>
           </div>
         ))}
         

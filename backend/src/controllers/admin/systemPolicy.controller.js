@@ -7,6 +7,7 @@
 import systemPolicyService from '../../services/admin/systemPolicy.service.js';
 import logger from '../../utils/logger.js';
 import { AuditLog } from '../../models/index.js';
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 /**
  * Wrapper for consistent API responses
@@ -258,7 +259,8 @@ const systemPolicyController = {
 
             // Set headers for JSON download
             res.setHeader('Content-Type', 'application/json');
-            res.setHeader('Content-Disposition', `attachment; filename=system-policies-${new Date().toISOString().split('T')[0]}.json`);
+            // ✅ FIX: Use local timezone for filename
+            res.setHeader('Content-Disposition', `attachment; filename=system-policies-${getLocalDateString()}.json`);
 
             return res.send(result.data);
         } catch (error) {

@@ -10,8 +10,10 @@ class AttendanceCorrectionController {
       const { page = 1, limit = 20, employeeId, dateFrom, dateTo } = req.query;
       const offset = (page - 1) * limit;
 
+      // ✅ FIX: Use correctionRequested flag instead of status
       const whereClause = {
-        status: 'pending_correction'
+        correctionRequested: true,
+        correctionStatus: 'pending'
       };
 
       if (employeeId) {
@@ -105,14 +107,15 @@ class AttendanceCorrectionController {
         newWorkHours = Math.round((newWorkedMinutes / 60) * 100) / 100;
       }
 
-      // Update the record
+      // ✅ CRITICAL FIX: Reset to incomplete so finalization job can re-evaluate
+      // NEVER set status = 'present' manually - let the finalization job decide
       await record.update({
         clockIn: newClockIn,
         clockOut: newClockOut,
         totalBreakMinutes: newBreakTime,
-        workHours: newWorkHours,
-        totalWorkedMinutes: newWorkedMinutes,
-        status: 'present', // Reset to present after correction
+        // DO NOT set workHours/totalWorkedMinutes manually - model hooks will calculate
+        status: 'incomplete',
+        statusReason: 'Correction applied - pending re-evaluation by finalization job',
         correctionReason: reason,
         correctionStatus: 'approved',
         correctedBy: req.user.id,
@@ -223,9 +226,13 @@ class AttendanceCorrectionController {
         });
       }
 
+      // ✅ CRITICAL FIX: Use correctionRequested flag instead of status
       await record.update({
-        status: 'pending_correction',
-        flaggedReason: reason,
+        correctionRequested: true,
+        correctionStatus: 'pending',
+        correctionReason: reason,
+        status: 'incomplete', // Mark as incomplete, not pending_correction
+        statusReason: 'Flagged for correction by admin',
         flaggedBy: req.user.id,
         flaggedAt: new Date()
       });
@@ -403,7 +410,7 @@ class AttendanceCorrectionController {
         });
         
         if (!attendanceRecord) {
-          // Create a new attendance record if none exists
+          // ✅ FIX: Create with incomplete status, not pending_correction
           attendanceRecord = await AttendanceRecord.create({
             employeeId: request.employeeId,
             date: request.date,
@@ -412,7 +419,10 @@ class AttendanceCorrectionController {
             totalBreakMinutes: 0,
             totalWorkedMinutes: 0,
             workHours: 0,
-            status: 'pending_correction',
+            status: 'incomplete',
+            statusReason: 'Created from correction request',
+            correctionRequested: true,
+            correctionStatus: 'pending',
             createdBy: req.user.id
           });
         }
@@ -436,23 +446,14 @@ class AttendanceCorrectionController {
           updateData.totalBreakMinutes = request.requestedBreakMinutes;
         }
 
-        // Recalculate work hours if both clock in and out are available
-        const clockIn = updateData.clockIn || attendanceRecord.clockIn;
-        const clockOut = updateData.clockOut || attendanceRecord.clockOut;
-        const breakMinutes = updateData.totalBreakMinutes !== undefined ? updateData.totalBreakMinutes : attendanceRecord.totalBreakMinutes;
-        
-        if (clockIn && clockOut) {
-          const timeDiff = clockOut - clockIn;
-          const totalMinutes = timeDiff / (1000 * 60);
-          const workedMinutes = Math.max(0, totalMinutes - (breakMinutes || 0));
-          updateData.workHours = Math.round((workedMinutes / 60) * 100) / 100;
-          updateData.totalWorkedMinutes = workedMinutes;
-        }
-
+        // ✅ CRITICAL FIX: Reset to incomplete so finalization job can re-evaluate
+        // NEVER set status = 'present' manually - let the finalization job decide
+        // DO NOT calculate workHours manually - let model hooks handle it
         updateData.correctionReason = request.reason;
         updateData.correctedBy = req.user.id;
         updateData.correctedAt = new Date();
-        updateData.status = 'present';
+        updateData.status = 'incomplete';
+        updateData.statusReason = 'Correction approved - pending re-evaluation by finalization job';
 
         await attendanceRecord.update(updateData);
         
@@ -619,26 +620,19 @@ class AttendanceCorrectionController {
               workHours: record.workHours
             };
 
-            // Calculate new work hours
+            // Prepare new values (model hooks will calculate work hours)
             const newCheckIn = correction.checkIn ? new Date(correction.checkIn) : record.checkIn;
             const newCheckOut = correction.checkOut ? new Date(correction.checkOut) : record.checkOut;
-            let newWorkHours = 0;
-            let newWorkedMinutes = 0;
 
-            if (newCheckIn && newCheckOut) {
-              const timeDiff = newCheckOut - newCheckIn;
-              const totalMinutes = timeDiff / (1000 * 60);
-              newWorkedMinutes = Math.max(0, totalMinutes - (correction.breakTime || record.breakTime || 0));
-              newWorkHours = Math.round((newWorkedMinutes / 60) * 100) / 100;
-            }
-
+            // ✅ CRITICAL FIX: Reset to incomplete so finalization job can re-evaluate
+            // NEVER set status = 'present' manually - let the finalization job decide
             await record.update({
               checkIn: newCheckIn,
               checkOut: newCheckOut,
               breakTime: correction.breakTime !== undefined ? correction.breakTime : record.breakTime,
-              workHours: newWorkHours,
-              workedMinutes: newWorkedMinutes,
-              status: 'present',
+              // DO NOT set workHours/workedMinutes manually - model hooks will calculate
+              status: 'incomplete',
+              statusReason: 'Bulk correction applied - pending re-evaluation',
               correctionReason: reason,
               correctionType: 'bulk',
               correctedBy: req.user.id,

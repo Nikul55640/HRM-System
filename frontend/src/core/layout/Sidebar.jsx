@@ -12,13 +12,13 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
   // ===================================================
   // STATE MANAGEMENT
   // ===================================================
-  const [openSections, setOpenSections] = useState(["General", "My Self Service"]);
+  const [openSections, setOpenSections] = useState(["Overview", "My Workspace"]);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   
   // ===================================================
   // CONSTANTS
   // ===================================================
-  const DEFAULT_OPEN_SECTIONS = ["General", "My Self Service"];
+  const DEFAULT_OPEN_SECTIONS = ["Overview", "My Workspace"];
   
   // ===================================================
   // HOOKS
@@ -71,8 +71,6 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
   };
 
   const handleNavClick = () => {
-    setIsSidebarExpanded(false);
-    setLayoutSidebarExpanded(false);
     setMobileMenuOpen(false);
   };
 
@@ -80,10 +78,10 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
   // NAVIGATION CONFIGURATION
   // ===================================================
   const allNavItems = [
-    // GENERAL SECTION - Always visible
+    // 1️⃣ OVERVIEW - Always visible
     {
-      section: "General",
-      icon: "Home",
+      section: "Overview",
+      icon: "LayoutDashboard",
       collapsible: true,
       showIf: () => true,
       items: [
@@ -93,18 +91,24 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           icon: "LayoutDashboard",
           showIf: () => true,
         },
+        {
+          name: "Notifications",
+          path: "/notifications",
+          icon: "Bell",
+          showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
+        },
       ],
     },
 
-    // EMPLOYEE SELF-SERVICE SECTION - Employee only
+    // 2️⃣ MY WORKSPACE - Employee-focused
     {
-      section: "My Self Service",
+      section: "My Workspace",
       icon: "User",
       collapsible: true,
       showIf: () => user?.role === "Employee",
       items: [
         {
-          name: "My Profile",
+          name: "Profile",
           path: "/employee/profile",
           icon: "User",
           showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
@@ -116,7 +120,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
         },
         {
-          name: "My Attendance",
+          name: "Attendance",
           path: "/employee/attendance",
           icon: "Clock",
           showIf: () => user?.role === "Employee" && can.do(MODULES.ATTENDANCE.VIEW_OWN),
@@ -128,28 +132,22 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => user?.role === "Employee" && can.do(MODULES.ATTENDANCE.VIEW_OWN),
         },
         {
-          name: "My Leave",
+          name: "Leave",
           path: "/employee/leave",
           icon: "CalendarDays",
           showIf: () => user?.role === "Employee" && can.do(MODULES.LEAVE.VIEW_OWN),
         },
         {
-          name: "My Leads",
+          name: "Leads",
           path: "/employee/leads",
           icon: "Target",
           showIf: () => user?.role === "Employee" && can.do(MODULES.LEAD.VIEW_OWN),
         },
         {
-          name: "My Shifts",
+          name: "Shifts",
           path: "/employee/shifts",
           icon: "Calendar",
           showIf: () => user?.role === "Employee" && can.do(MODULES.ATTENDANCE.VIEW_OWN),
-        },
-        {
-          name: "Notifications",
-          path: "/notifications",
-          icon: "Bell",
-          showIf: () => user?.role === "Employee" && can.do(MODULES.EMPLOYEE.VIEW_OWN),
         },
         {
           name: "Calendar",
@@ -160,7 +158,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
       ],
     },
 
-    // EMPLOYEE SETTINGS SECTION
+    // 3️⃣ EMPLOYEE SETTINGS
     {
       section: "Settings",
       icon: "Settings",
@@ -188,32 +186,47 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
       ]
     },
 
-    // HR ADMINISTRATION SECTION
+    // 4️⃣ REQUESTS & APPROVALS - Clear intent
     {
-      section: "HR Administration",
-      icon: "Users",
+      section: "Requests & Approvals",
+      icon: "ClipboardCheck",
       collapsible: true,
       showIf: () =>
         (user?.role === "HR" || user?.role === "HR_Manager" || user?.role === "SuperAdmin") &&
         can.doAny([
-          MODULES.EMPLOYEE.VIEW_ALL,
-          MODULES.ATTENDANCE.VIEW_ALL,
-          MODULES.LEAVE.VIEW_ALL,
+          MODULES.ATTENDANCE.APPROVE_CORRECTION,
+          MODULES.LEAVE.APPROVE_ANY,
         ]),
       items: [
-     
-        // Attendance Management
-        {
-          name: "Attendance Management",
-          path: "/admin/attendance",
-          icon: "Clock4",
-          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
-        },
         {
           name: "Attendance Corrections",
           path: "/admin/attendance/corrections",
           icon: "ClipboardEdit",
-          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.APPROVE_CORRECTION]),
+          showIf: () => can.do(MODULES.ATTENDANCE.APPROVE_CORRECTION),
+        },
+        {
+          name: "Leave Requests",
+          path: "/admin/leave",
+          icon: "FileText",
+          showIf: () => can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
+        },
+      ],
+    },
+
+    // 5️⃣ ATTENDANCE & TIME - One clear place
+    {
+      section: "Attendance & Time",
+      icon: "Clock",
+      collapsible: true,
+      showIf: () =>
+        (user?.role === "HR" || user?.role === "HR_Manager" || user?.role === "SuperAdmin") &&
+        can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
+      items: [
+        {
+          name: "Attendance Overview",
+          path: "/admin/attendance",
+          icon: "Clock4",
+          showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
         },
         {
           name: "Live Attendance",
@@ -221,14 +234,28 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           icon: "Activity",
           showIf: () => can.doAny([MODULES.ATTENDANCE.VIEW_ALL, MODULES.ATTENDANCE.EDIT_ANY]),
         },
-
-        // Leave Management
         {
-          name: "Leave Requests",
-          path: "/admin/leave",
-          icon: "FileText",
-          showIf: () => can.doAny([MODULES.LEAVE.APPROVE_ANY, MODULES.LEAVE.VIEW_ALL]),
+          name: "Shift Management",
+          path: "/admin/shifts",
+          icon: "Clock",
+          showIf: () => can.do(MODULES.ATTENDANCE.MANAGE_SHIFTS),
         },
+      ],
+    },
+
+    // 6️⃣ LEAVE & HOLIDAYS - Reduces duplication
+    {
+      section: "Leave & Holidays",
+      icon: "CalendarDays",
+      collapsible: true,
+      showIf: () =>
+        (user?.role === "HR" || user?.role === "HR_Manager" || user?.role === "SuperAdmin") &&
+        can.doAny([
+          MODULES.LEAVE.VIEW_ALL,
+          MODULES.LEAVE.MANAGE_BALANCE,
+          MODULES.CALENDAR.MANAGE_HOLIDAYS,
+        ]),
+      items: [
         {
           name: "Leave Balances",
           path: "/admin/leave-balances",
@@ -236,48 +263,13 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCE),
         },
         {
-          name: "Leave Balance Rollover",
+          name: "Rollover",
           path: "/admin/leave-balance-rollover",
           icon: "RefreshCw",
           showIf: () => user?.role === "SuperAdmin" && can.do(MODULES.LEAVE.MANAGE_BALANCE),
         },
-
-        // Lead Management
         {
-          name: "Lead Management",
-          path: "/admin/leads",
-          icon: "Target",
-          showIf: () => can.doAny([MODULES.LEAD.CREATE, MODULES.LEAD.MANAGE]),
-        },
-
-        // Shift Management
-        {
-          name: "Shift Management",
-          path: "/admin/shifts",
-          icon: "Clock",
-          showIf: () => can.do(MODULES.ATTENDANCE.MANAGE_SHIFTS),
-        },
-
-        // Bank Details Verification
-        {
-          name: "Bank Verification",
-          path: "/admin/bank-verification",
-          icon: "Banknote",
-          showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.UPDATE_ANY]),
-        },
-
-        // Announcements Management
-        {
-          name: "Announcements",
-          path: "/admin/announcements",
-          icon: "Megaphone",
-          showIf: () => can.doAny([MODULES.ANNOUNCEMENT.VIEW, MODULES.ANNOUNCEMENT.CREATE]),
-        },
-
-        // Calendar Management
-
-        {
-          name: "Calendar Management",
+          name: "Holiday Management",
           path: "/admin/calendar/management",
           icon: "CalendarCog",
           showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_EVENTS, MODULES.CALENDAR.MANAGE_HOLIDAYS]),
@@ -299,35 +291,21 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           icon: "Globe2",
           showIf: () => can.doAny([MODULES.CALENDAR.MANAGE_HOLIDAYS, MODULES.SYSTEM.MANAGE_CONFIG]),
         },
-
-        // Organization Management
-        {
-          name: "Policies",
-          path: "/admin/policies",
-          icon: "FileText",
-          showIf: () => can.doAny([MODULES.SYSTEM.MANAGE_CONFIG, MODULES.SYSTEM.VIEW_CONFIG]),
-        },
-        {
-          name: "Company Documents",
-          path: "/admin/documents",
-          icon: "FolderOpenIcon",
-          showIf: () => can.doAny([MODULES.SYSTEM.MANAGE_CONFIG, MODULES.SYSTEM.VIEW_CONFIG]),
-        },
       ],
     },
+
+    // 7️⃣ PEOPLE - HR mental model
     {
-      section: "Emmployee Management",
-      icon: "users",
+      section: "People",
+      icon: "Users",
       collapsible: true,
       showIf: () =>
-        user?.role === "SuperAdmin" &&
+        (user?.role === "HR" || user?.role === "HR_Manager" || user?.role === "SuperAdmin") &&
         can.doAny([
-          MODULES.USER.VIEW,
-          MODULES.SYSTEM.VIEW_CONFIG,
-          MODULES.SYSTEM.VIEW_AUDIT_LOGS,
+          MODULES.EMPLOYEE.VIEW_ALL,
+          MODULES.DEPARTMENT.VIEW,
         ]),
       items: [
-           // Employee Management
         {
           name: "Employees",
           path: "/admin/employees",
@@ -346,13 +324,57 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           icon: "Award",
           showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.UPDATE_ANY]),
         },
-
+        {
+          name: "Bank Verification",
+          path: "/admin/bank-verification",
+          icon: "Banknote",
+          showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.UPDATE_ANY]),
+        },
+        {
+          name: "Lead Management",
+          path: "/admin/leads",
+          icon: "Target",
+          showIf: () => can.doAny([MODULES.LEAD.CREATE, MODULES.LEAD.MANAGE]),
+        },
       ],
     },
 
-    // SYSTEM ADMINISTRATION SECTION
+    // 8️⃣ ORGANIZATION - Company-wide assets
     {
-      section: "System Administration",
+      section: "Organization",
+      icon: "Building2",
+      collapsible: true,
+      showIf: () =>
+        (user?.role === "HR" || user?.role === "HR_Manager" || user?.role === "SuperAdmin") &&
+        can.doAny([
+          MODULES.SYSTEM.VIEW_CONFIG,
+          MODULES.ANNOUNCEMENT.VIEW,
+        ]),
+      items: [
+        {
+          name: "Policies",
+          path: "/admin/policies",
+          icon: "FileText",
+          showIf: () => can.doAny([MODULES.SYSTEM.MANAGE_CONFIG, MODULES.SYSTEM.VIEW_CONFIG]),
+        },
+        {
+          name: "Documents",
+          path: "/admin/documents",
+          icon: "Folder",
+          showIf: () => can.doAny([MODULES.SYSTEM.MANAGE_CONFIG, MODULES.SYSTEM.VIEW_CONFIG]),
+        },
+        {
+          name: "Announcements",
+          path: "/admin/announcements",
+          icon: "Megaphone",
+          showIf: () => can.doAny([MODULES.ANNOUNCEMENT.VIEW, MODULES.ANNOUNCEMENT.CREATE]),
+        },
+      ],
+    },
+
+    // 9️⃣ SYSTEM - Danger zone
+    {
+      section: "System",
       icon: "Shield",
       collapsible: true,
       showIf: () =>
@@ -364,13 +386,13 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
         ]),
       items: [
         {
-          name: "User Management",
+          name: "Users & Roles",
           path: "/admin/users",
           icon: "UserCog",
           showIf: () => can.do(MODULES.USER.VIEW),
         },
         {
-          name: "System Policies",
+          name: "System Settings",
           path: "/admin/system-policies",
           icon: "Settings",
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
@@ -407,12 +429,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
     }))
     .filter((section) => section.items.length > 0);
 
-  // Calculate total badges for notifications
-  const totalBadges = nav.reduce(
-    (sum, group) =>
-      sum + group.items.reduce((itemSum, item) => itemSum + (item.badge || 0), 0),
-    0
-  );
+  // Badge logic removed - not currently used in navigation items
 
   // ===================================================
   // COMPONENT HELPERS
@@ -441,25 +458,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           </div>
         )}
       </div>
-      {!isMobile && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            const next = !isSidebarExpanded;
-            setIsSidebarExpanded(next);
-            setLayoutSidebarExpanded(next);
-            setOpenSections(next ? DEFAULT_OPEN_SECTIONS : []);
-          }}
-          className="p-1.5"
-        >
-          {isSidebarExpanded ? (
-            <Icon name="ChevronLeft" className="w-4 h-4" />
-          ) : (
-            <Icon name="ChevronRight" className="w-4 h-4" />
-          )}
-        </Button>
-      )}
+      {/* Toggle button removed - using hover-only behavior */}
     </div>
   );
 
@@ -488,14 +487,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
     >
       <Icon name={item.icon} className="w-4 h-4 flex-shrink-0" />
       {(isMobile || isSidebarExpanded) && (
-        <>
-          <span className="flex-1">{item.name}</span>
-          {item.badge && item.badge > 0 && (
-            <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full flex-shrink-0">
-              {item.badge}
-            </span>
-          )}
-        </>
+        <span className="flex-1">{item.name}</span>
       )}
     </Link>
   );
@@ -588,16 +580,6 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
         }}
       >
         <SidebarHeader />
-
-        {/* Desktop Badges */}
-        {isSidebarExpanded && totalBadges > 0 && (
-          <div className="mx-2 mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
-            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-            <span className="text-xs font-medium text-blue-700">
-              {totalBadges} pending action{totalBadges > 1 ? "s" : ""}
-            </span>
-          </div>
-        )}
 
         {/* Desktop Navigation */}
         <div className="flex-1 overflow-y-auto">

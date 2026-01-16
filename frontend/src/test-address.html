@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Address Functionality Test</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+    
+    .content {
+      padding: 30px;
+    }
+    
+    .test-section {
+      margin-bottom: 30px;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .test-section h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    
+    .test-result {
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    
+    .success {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    
+    .error {
+      background: #f8d7da;
+      border: 1px solid #f5c6cb;
+      color: #721c24;
+    }
+    
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffeaa7;
+      color: #856404;
+    }
+    
+    .info {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      color: #0c5460;
+    }
+    
+    button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      margin-right: 10px;
+      margin-bottom: 10px;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+    
+    button:active {
+      transform: translateY(0);
+    }
+    
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+    }
+    
+    input {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 10px;
+      transition: border-color 0.3s;
+    }
+    
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    
+    .status-badge.pass {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    .status-badge.fail {
+      background: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🧪 Address Functionality Test</h1>
+      <p>Test address display, update, and parsing functionality</p>
+    </div>
+    
+    <div class="content">
+      <!-- Login Section -->
+      <div class="test-section">
+        <h2>1. Login Credentials</h2>
+        <input type="email" id="email" placeholder="Email" value="john@hrm.com">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        <div class="button-group">
+          <button onclick="login()">Login</button>
+          <button onclick="clearResults()">Clear Results</button>
+        </div>
+        <div id="login-result"></div>
+      </div>
+      
+      <!-- Fetch Profile Section -->
+      <div class="test-section">
+        <h2>2. Fetch Profile & Check Address</h2>
+        <div class="button-group">
+          <button onclick="fetchProfile()" id="fetch-btn" disabled>Fetch Profile</button>
+        </div>
+        <div id="profile-result"></div>
+      </div>
+      
+      <!-- Update Address Section -->
+      <div class="test-section">
+        <h2>3. Update Address</h2>
+        <input type="text" id="street" placeholder="Street Address" value="123 Test Street">
+        <input type="text" id="city" placeholder="City" value="New York">
+        <input type="text" id="state" placeholder="State" value="NY">
+        <input type="text" id="zipCode" placeholder="ZIP Code" value="10001">
+        <input type="text" id="country" placeholder="Country" value="USA">
+        <div class="button-group">
+          <button onclick="updateAddress()" id="update-btn" disabled>Update Address</button>
+        </div>
+        <div id="update-result"></div>
+      </div>
+      
+      <!-- Verify Section -->
+      <div class="test-section">
+        <h2>4. Verify Updated Address</h2>
+        <div class="button-group">
+          <button onclick="verifyAddress()" id="verify-btn" disabled>Verify Address</button>
+        </div>
+        <div id="verify-result"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:5000/api';
+    let authToken = null;
+
+    function showResult(elementId, message, type = 'info') {
+      const element = document.getElementById(elementId);
+      element.innerHTML = `<div class="test-result ${type}">${message}</div>`;
+    }
+
+    function clearResults() {
+      ['login-result', 'profile-result', 'update-result', 'verify-result'].forEach(id => {
+        document.getElementById(id).innerHTML = '';
+      });
+    }
+
+    async function login() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      try {
+        showResult('login-result', '⏳ Logging in...', 'info');
+        
+        const response = await fetch(`${API_BASE}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.token) {
+          authToken = data.token;
+          showResult('login-result', 
+            `✅ Login successful!\nToken: ${authToken.substring(0, 20)}...\nUser: ${data.user.email}`, 
+            'success'
+          );
+          
+          // Enable other buttons
+          document.getElementById('fetch-btn').disabled = false;
+          document.getElementById('update-btn').disabled = false;
+          document.getElementById('verify-btn').disabled = false;
+        } else {
+          showResult('login-result', `❌ Login failed: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        showResult('login-result', `❌ Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function fetchProfile() {
+      if (!authToken) {
+        showResult('profile-result', '❌ Please login first', 'error');
+        return;
+      }
+      
+      try {
+        showResult('profile-result', '⏳ Fetching profile...', 'info');
+        
+        const response = await fetch(`${API_BASE}/employee/profile`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const address = data.data.address;
+          let addressStatus = '';
+          let statusClass = '';
+          
+          if (address === null) {
+            addressStatus = '⚠️ Address is NULL (needs to be entered)';
+            statusClass = 'warning';
+          } else if (address === '[object Object]') {
+            addressStatus = '❌ Address is BROKEN: [object Object]';
+            statusClass = 'error';
+          } else if (typeof address === 'object') {
+            addressStatus = '✅ Address is a proper object';
+            statusClass = 'success';
+          } else if (typeof address === 'string') {
+            addressStatus = '⚠️ Address is a string (old format)';
+            statusClass = 'warning';
+          }
+          
+          showResult('profile-result', 
+            `${addressStatus}\n\nFull Response:\n${JSON.stringify(data, null, 2)}`,
+            statusClass
+          );
+        } else {
+          showResult('profile-result', `❌ Failed: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        showResult('profile-result', `❌ Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function updateAddress() {
+      if (!authToken) {
+        showResult('update-result', '❌ Please login first', 'error');
+        return;
+      }
+      
+      const addressData = {
+        street: document.getElementById('street').value,
+        city: document.getElementById('city').value,
+        state: document.getElementById('state').value,
+        zipCode: document.getElementById('zipCode').value,
+        country: document.getElementById('country').value
+      };
+      
+      try {
+        showResult('update-result', '⏳ Updating address...', 'info');
+        
+        const response = await fetch(`${API_BASE}/employee/profile`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            contactInfo: { address: addressData }
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const returnedAddress = data.data.address;
+          let status = '';
+          let statusClass = '';
+          
+          if (returnedAddress === '[object Object]') {
+            status = '❌ FAILED: Backend returned [object Object]';
+            statusClass = 'error';
+          } else if (typeof returnedAddress === 'object' && returnedAddress !== null) {
+            status = '✅ SUCCESS: Address saved as object';
+            statusClass = 'success';
+          } else {
+            status = '⚠️ WARNING: Unexpected format';
+            statusClass = 'warning';
+          }
+          
+          showResult('update-result',
+            `${status}\n\nReturned Address:\n${JSON.stringify(returnedAddress, null, 2)}`,
+            statusClass
+          );
+        } else {
+          showResult('update-result', `❌ Failed: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        showResult('update-result', `❌ Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function verifyAddress() {
+      if (!authToken) {
+        showResult('verify-result', '❌ Please login first', 'error');
+        return;
+      }
+      
+      try {
+        showResult('verify-result', '⏳ Verifying address...', 'info');
+        
+        const response = await fetch(`${API_BASE}/employee/profile`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          const address = data.data.address;
+          const expectedAddress = {
+            street: document.getElementById('street').value,
+            city: document.getElementById('city').value,
+            state: document.getElementById('state').value,
+            zipCode: document.getElementById('zipCode').value,
+            country: document.getElementById('country').value
+          };
+          
+          let allMatch = true;
+          let results = [];
+          
+          if (typeof address === 'object' && address !== null) {
+            Object.keys(expectedAddress).forEach(key => {
+              const match = address[key] === expectedAddress[key];
+              allMatch = allMatch && match;
+              results.push(`${match ? '✅' : '❌'} ${key}: ${address[key]}`);
+            });
+            
+            const statusClass = allMatch ? 'success' : 'error';
+            const statusMsg = allMatch 
+              ? '✅ All fields match! Address is working correctly.' 
+              : '❌ Some fields don\'t match.';
+            
+            showResult('verify-result',
+              `${statusMsg}\n\n${results.join('\n')}\n\nFull Address:\n${JSON.stringify(address, null, 2)}`,
+              statusClass
+            );
+          } else {
+            showResult('verify-result',
+              `❌ Address is not an object\nType: ${typeof address}\nValue: ${JSON.stringify(address)}`,
+              'error'
+            );
+          }
+        } else {
+          showResult('verify-result', `❌ Failed: ${data.message}`, 'error');
+        }
+      } catch (error) {
+        showResult('verify-result', `❌ Error: ${error.message}`, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

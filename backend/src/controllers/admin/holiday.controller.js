@@ -2,6 +2,7 @@ import holidayService from '../../services/admin/holiday.service.js';
 import { Holiday, User } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 // Get all holidays
 export const getHolidays = async (req, res) => {
@@ -274,7 +275,8 @@ export const getHolidaysForCalendar = async (req, res) => {
 export const getUpcomingHolidays = async (req, res) => {
   try {
     const { limit = 5 } = req.query;
-    const today = new Date().toISOString().split('T')[0];
+    // ✅ FIX: Use local timezone
+    const today = getLocalDateString();
 
     const holidays = await Holiday.findAll({
       where: {

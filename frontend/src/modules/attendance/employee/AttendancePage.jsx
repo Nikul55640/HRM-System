@@ -17,6 +17,7 @@ import {
 } from "../../ess/utils/essHelpers";
 
 const AttendancePage = () => {
+  
   const {
     attendanceRecords,
     attendanceSummary,

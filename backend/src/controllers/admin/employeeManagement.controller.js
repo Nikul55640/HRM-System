@@ -177,7 +177,7 @@ const employeeManagementController = {
       try {
         if (userAccount && userAccount.id) {
           await notificationService.sendToUser(userAccount.id, {
-            title: 'Welcome to the Team! 🎉',
+            title: 'Welcome to the Team!',
             message: `Welcome ${personalInfo.firstName}! Your employee account has been created successfully. You can now access the HRM system.`,
             type: 'success',
             category: 'system',

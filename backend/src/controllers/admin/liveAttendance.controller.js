@@ -7,6 +7,7 @@ import AttendanceRecord from "../../models/sequelize/AttendanceRecord.js";
 import Employee from "../../models/sequelize/Employee.js";
 import User from "../../models/sequelize/User.js";
 import AuditLog from "../../models/sequelize/AuditLog.js";
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 // Helper: get user ID
 const getUserId = (user) => user.id || user._id;
@@ -195,7 +196,8 @@ export const getLiveAttendance = async (req, res) => {
           
           try {
             const now = new Date();
-            const today = now.toISOString().split('T')[0];
+            // ✅ FIX: Use local timezone, not UTC
+            const today = getLocalDateString(now);
             const [hours, minutes] = e.shift.shiftEndTime.split(':').map(Number);
             const shiftEndTime = new Date(today);
             shiftEndTime.setHours(hours, minutes, 0, 0);

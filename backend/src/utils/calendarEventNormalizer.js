@@ -4,6 +4,7 @@
  */
 
 import { Op } from "sequelize";
+import { getLocalDateString } from './dateUtils.js';
 
 /**
  * Unified Calendar Event Model
@@ -218,7 +219,7 @@ export const normalizeBirthday = (employee, year) => {
     id: `birthday_${employee.id}_${year}`,
     sourceType: 'birthday',
     sourceId: employee.id,
-    title: `🎂 ${employeeName}`,
+    title: `${employeeName}'s Birthday`,
     description: `${employeeName}'s ${age}${getOrdinalSuffix(age)} birthday`,
     eventType: 'birthday',
     startDate: birthdayThisYear,
@@ -253,7 +254,7 @@ export const normalizeAnniversary = (employee, year) => {
     id: `anniversary_${employee.id}_${year}`,
     sourceType: 'anniversary',
     sourceId: employee.id,
-    title: `🎊 ${employeeName} - ${years} years`,
+    title: `${employeeName}'s Work Anniversary`,
     description: `${employeeName}'s ${years}${getOrdinalSuffix(years)} work anniversary`,
     eventType: 'anniversary',
     startDate: anniversaryThisYear,
@@ -362,7 +363,8 @@ export const sortEventsByPriorityAndDate = (events) => {
  */
 export const groupEventsByDate = (events) => {
   return events.reduce((groups, event) => {
-    const dateKey = new Date(event.startDate).toISOString().split('T')[0];
+    // ✅ FIX: Use local timezone
+    const dateKey = getLocalDateString(new Date(event.startDate));
     
     if (!groups[dateKey]) {
       groups[dateKey] = [];

@@ -11,22 +11,43 @@ import { validationResult } from 'express-validator';
  * Test Calendarific API connection
  */
 export const testConnection = async (req, res) => {
+  console.log('🔧 [CONTROLLER] testConnection endpoint hit');
+  console.log('🔧 [CONTROLLER] Request user:', req.user?.email);
+  console.log('🔧 [CONTROLLER] Request role:', req.user?.role);
+  
   try {
+    console.log('🔧 [CONTROLLER] Calling CalendarificService.testConnection()...');
     const result = await CalendarificService.testConnection();
     
-    res.json({
+    console.log('🔧 [CONTROLLER] Service returned:', result);
+    console.log('🔧 [CONTROLLER] Success:', result.success);
+    console.log('🔧 [CONTROLLER] Message:', result.message);
+    console.log('🔧 [CONTROLLER] Holiday count:', result.holidayCount);
+    
+    const response = {
       success: result.success,
       message: result.message,
       data: result.success ? { holidayCount: result.holidayCount } : null
-    });
+    };
+    
+    console.log('🔧 [CONTROLLER] Sending response:', response);
+    res.json(response);
     
   } catch (error) {
+    console.error('🔧 [CONTROLLER] Error caught:', error);
+    console.error('🔧 [CONTROLLER] Error message:', error.message);
+    console.error('🔧 [CONTROLLER] Error stack:', error.stack);
+    
     logger.error('Error testing Calendarific connection:', error);
-    res.status(500).json({
+    
+    const errorResponse = {
       success: false,
       message: 'Failed to test API connection',
       error: error.message
-    });
+    };
+    
+    console.log('🔧 [CONTROLLER] Sending error response:', errorResponse);
+    res.status(500).json(errorResponse);
   }
 };
 
@@ -93,6 +114,96 @@ export const previewHolidays = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to preview holidays',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Batch preview holidays - Multiple types in ONE API call
+ * SAVES API CREDITS by batching requests
+ */
+export const batchPreviewHolidays = async (req, res) => {
+  try {
+    const { 
+      country = 'IN', 
+      year = new Date().getFullYear(), 
+      types = 'national,religious' // Comma-separated types
+    } = req.query;
+
+    const typeArray = types.split(',').map(t => t.trim());
+    
+    logger.info(`Batch preview for ${country} ${year} - Types: ${typeArray.join(', ')}`);
+
+    // Fetch all types (cache will prevent duplicate API calls)
+    const results = await Promise.all(
+      typeArray.map(async (type) => {
+        try {
+          const holidays = await CalendarificService.getHolidays(country, parseInt(year), type);
+          return {
+            type,
+            holidays,
+            count: holidays.length,
+            success: true
+          };
+        } catch (error) {
+          logger.error(`Error fetching ${type} holidays:`, error);
+          return {
+            type,
+            holidays: [],
+            count: 0,
+            success: false,
+            error: error.message
+          };
+        }
+      })
+    );
+
+    // Combine all holidays
+    const allHolidays = [];
+    let totalCount = 0;
+    
+    results.forEach(result => {
+      if (result.success) {
+        result.holidays.forEach(holiday => {
+          allHolidays.push({
+            ...holiday,
+            sourceType: result.type
+          });
+        });
+        totalCount += result.count;
+      }
+    });
+
+    // Sort by date
+    allHolidays.sort((a, b) => {
+      const dateA = new Date(a.date || `${year}-${a.recurringDate}`);
+      const dateB = new Date(b.date || `${year}-${b.recurringDate}`);
+      return dateA - dateB;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        country,
+        year: parseInt(year),
+        types: typeArray,
+        holidays: allHolidays,
+        count: totalCount,
+        breakdown: results.map(r => ({
+          type: r.type,
+          count: r.count,
+          success: r.success
+        }))
+      },
+      message: `Found ${totalCount} holidays across ${typeArray.length} categories`
+    });
+    
+  } catch (error) {
+    logger.error('Error in batch preview:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to batch preview holidays',
       error: error.message
     });
   }

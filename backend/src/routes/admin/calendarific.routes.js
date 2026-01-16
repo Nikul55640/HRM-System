@@ -9,6 +9,7 @@ import {
   testConnection,
   getSupportedCountries,
   previewHolidays,
+  batchPreviewHolidays,
   syncHolidays,
   getSyncStatus,
   getHolidayStats,
@@ -56,6 +57,26 @@ router.get('/preview', [
     .isIn(['national', 'local', 'religious', 'observance'])
     .withMessage('Type must be one of: national, local, religious, observance')
 ], previewHolidays);
+
+/**
+ * @route GET /api/admin/calendarific/batch-preview
+ * @desc Batch preview holidays - Multiple types in ONE request (SAVES API CREDITS)
+ * @access HR, HR_Manager, SuperAdmin
+ */
+router.get('/batch-preview', [
+  query('country')
+    .optional()
+    .isLength({ min: 2, max: 2 })
+    .withMessage('Country code must be 2 characters (ISO 3166-1 alpha-2)'),
+  query('year')
+    .optional()
+    .isInt({ min: 2020, max: 2030 })
+    .withMessage('Year must be between 2020 and 2030'),
+  query('types')
+    .optional()
+    .isString()
+    .withMessage('Types must be comma-separated string (e.g., "national,religious")')
+], batchPreviewHolidays);
 
 /**
  * @route POST /api/admin/calendarific/sync

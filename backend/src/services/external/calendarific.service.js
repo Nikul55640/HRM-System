@@ -13,9 +13,65 @@ class CalendarificService {
     this.baseURL = 'https://calendarific.com/api/v2';
     this.apiKey = process.env.CALENDARIFIC_API_KEY;
     
+    // In-memory cache to reduce API calls
+    this.cache = new Map();
+    this.CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    
     if (!this.apiKey) {
       logger.warn('Calendarific API key not found. Holiday sync will be disabled.');
     }
+  }
+
+  /**
+   * Generate cache key for API requests
+   */
+  getCacheKey(country, year, type) {
+    return `${country}-${year}-${type}`;
+  }
+
+  /**
+   * Check if cached data is still valid
+   */
+  isCacheValid(cacheEntry) {
+    if (!cacheEntry) return false;
+    const now = Date.now();
+    return (now - cacheEntry.timestamp) < this.CACHE_TTL;
+  }
+
+  /**
+   * Get data from cache if valid
+   */
+  getFromCache(country, year, type) {
+    const key = this.getCacheKey(country, year, type);
+    const cached = this.cache.get(key);
+    
+    if (this.isCacheValid(cached)) {
+      logger.info(`Cache HIT for ${key} - Saving API credit`);
+      return cached.data;
+    }
+    
+    logger.info(`Cache MISS for ${key} - Will call API`);
+    return null;
+  }
+
+  /**
+   * Store data in cache
+   */
+  setCache(country, year, type, data) {
+    const key = this.getCacheKey(country, year, type);
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now()
+    });
+    logger.info(`Cached data for ${key}`);
+  }
+
+  /**
+   * Clear cache (useful for testing or manual refresh)
+   */
+  clearCache() {
+    this.cache.clear();
+    logger.info('Calendarific cache cleared');
   }
 
   /**
@@ -30,8 +86,14 @@ class CalendarificService {
       throw new Error('Calendarific API key is not configured');
     }
 
+    // Check cache first - SAVES API CREDITS
+    const cachedData = this.getFromCache(country, year, type);
+    if (cachedData) {
+      return cachedData;
+    }
+
     try {
-      logger.info(`Fetching holidays from Calendarific for ${country} - ${year}`);
+      logger.info(`Fetching holidays from Calendarific for ${country} - ${year} - ${type}`);
       
       const response = await axios.get(`${this.baseURL}/holidays`, {
         params: {
@@ -50,7 +112,12 @@ class CalendarificService {
       const holidays = response.data.response.holidays || [];
       logger.info(`Successfully fetched ${holidays.length} holidays from Calendarific`);
       
-      return this.transformCalendarificHolidays(holidays);
+      const transformedHolidays = this.transformCalendarificHolidays(holidays);
+      
+      // Cache the result for 24 hours
+      this.setCache(country, year, type, transformedHolidays);
+      
+      return transformedHolidays;
       
     } catch (error) {
       if (error.response) {
@@ -393,7 +460,13 @@ class CalendarificService {
    * @returns {Object} - Test result
    */
   async testConnection() {
+    console.log('⚙️ [SERVICE] testConnection() called');
+    console.log('⚙️ [SERVICE] API Key exists:', !!this.apiKey);
+    console.log('⚙️ [SERVICE] API Key (first 10 chars):', this.apiKey ? this.apiKey.substring(0, 10) + '...' : 'N/A');
+    console.log('⚙️ [SERVICE] Base URL:', this.baseURL);
+    
     if (!this.apiKey) {
+      console.warn('⚙️ [SERVICE] No API key configured!');
       return {
         success: false,
         message: 'API key is not configured'
@@ -401,35 +474,56 @@ class CalendarificService {
     }
 
     try {
+      const testParams = {
+        api_key: this.apiKey,
+        country: 'IN',
+        year: new Date().getFullYear(),
+        type: 'national'
+      };
+      
+      console.log('⚙️ [SERVICE] Making test request to Calendarific...');
+      console.log('⚙️ [SERVICE] URL:', `${this.baseURL}/holidays`);
+      console.log('⚙️ [SERVICE] Params:', { ...testParams, api_key: testParams.api_key.substring(0, 10) + '...' });
+      
       // Test with a simple request for current year holidays in India
       const response = await axios.get(`${this.baseURL}/holidays`, {
-        params: {
-          api_key: this.apiKey,
-          country: 'IN',
-          year: new Date().getFullYear(),
-          type: 'national'
-        },
+        params: testParams,
         timeout: 5000
       });
 
+      console.log('⚙️ [SERVICE] Response received');
+      console.log('⚙️ [SERVICE] Response status:', response.status);
+      console.log('⚙️ [SERVICE] Response meta code:', response.data.meta.code);
+      console.log('⚙️ [SERVICE] Holiday count:', response.data.response.holidays?.length || 0);
+
       if (response.data.meta.code === 200) {
-        return {
+        const result = {
           success: true,
           message: 'API connection successful',
           holidayCount: response.data.response.holidays?.length || 0
         };
+        console.log('✅ [SERVICE] Test successful:', result);
+        return result;
       } else {
-        return {
+        const result = {
           success: false,
           message: response.data.meta.error_detail || 'API request failed'
         };
+        console.warn('⚠️ [SERVICE] Test failed:', result);
+        return result;
       }
       
     } catch (error) {
-      return {
+      console.error('❌ [SERVICE] Test error:', error.message);
+      console.error('❌ [SERVICE] Error response:', error.response?.data);
+      console.error('❌ [SERVICE] Error status:', error.response?.status);
+      
+      const result = {
         success: false,
         message: error.response?.data?.meta?.error_detail || error.message
       };
+      console.error('❌ [SERVICE] Returning error result:', result);
+      return result;
     }
   }
 }

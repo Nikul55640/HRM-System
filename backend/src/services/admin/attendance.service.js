@@ -7,6 +7,7 @@ import { AttendanceRecord, Employee, Shift, EmployeeShift, User, AuditLog, Holid
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
 import { ROLES } from '../../config/rolePermissions.js';
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 class AttendanceService {
     /**
@@ -21,9 +22,8 @@ class AttendanceService {
             if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 400 };
             }
-
-            const today = new Date().toISOString().split('T')[0];
-
+            // ✅ FIX: Use local timezone, not UTC
+            const today = getLocalDateString();
             // Check if already clocked in today
             let attendanceRecord = await AttendanceRecord.findOne({
                 where: {
@@ -31,14 +31,11 @@ class AttendanceService {
                     date: today
                 }
             });
-
             if (attendanceRecord && attendanceRecord.clockIn) {
                 throw { message: "Already clocked in for today", statusCode: 400 };
             }
-
             // Get employee's assigned shift
             let assignedShift = null;
-            
             try {
                 const employee = await Employee.findByPk(user.employee?.id, {
                     include: [{
@@ -52,7 +49,6 @@ class AttendanceService {
                         }]
                     }]
                 });
-
                 if (employee && employee.shiftAssignments && employee.shiftAssignments.length > 0) {
                     assignedShift = employee.shiftAssignments[0].shift;
                 }
@@ -60,14 +56,11 @@ class AttendanceService {
                 // If EmployeeShift association fails, just continue with default shift
                 logger.warn('EmployeeShift association not found, using default shift');
             }
-            
             // Fallback to default shift if no specific assignment
             if (!assignedShift) {
                 assignedShift = await Shift.findOne({ where: { isDefault: true } });
             }
-
             const clockInTime = new Date();
-
             // Create or update attendance record
             if (!attendanceRecord) {
                 attendanceRecord = await AttendanceRecord.create({
@@ -89,11 +82,11 @@ class AttendanceService {
                     updatedBy: user.id
                 });
             }
-
             // ✅ STEP 1: CALCULATE LATE AT CLOCK-IN (MANDATORY)
             // This is the ONLY place late should be calculated - immediately on clock-in
             if (assignedShift) {
-                const today = clockInTime.toISOString().split('T')[0];
+                // ✅ FIX: Use local timezone for shift time calculation
+                const today = getLocalDateString(clockInTime);
                 const shiftStartTime = new Date(`${today} ${assignedShift.shiftStartTime}`);
                 const gracePeriodMs = (assignedShift.gracePeriodMinutes || 0) * 60 * 1000;
                 const lateThreshold = new Date(shiftStartTime.getTime() + gracePeriodMs);
@@ -113,13 +106,11 @@ class AttendanceService {
                     status: 'present', // Always present when clocked in
                     updatedBy: user.id
                 });
-
-                // ✅ STEP 1.5: SEND LATE NOTIFICATION IF APPLICABLE
+                // SEND LATE NOTIFICATION IF APPLICABLE
                 if (isLate) {
                     try {
                         // Import notification service dynamically to avoid circular dependency
                         const notificationService = (await import('../notificationService.js')).default;
-                        
                         // Get employee details for notification
                         const employee = await Employee.findByPk(user.employee?.id, {
                             include: [{
@@ -128,14 +119,11 @@ class AttendanceService {
                                 attributes: ['id']
                             }]
                         });
-
                         if (employee) {
                             // Add employee details to attendance record for notification
                             attendanceRecord.employee = employee;
-                            
                             // Send late clock-in notification
                             await notificationService.notifyLateClockIn(attendanceRecord);
-                            
                             logger.info(`Late clock-in notification sent for employee ${employee.id}, late by ${lateMinutes} minutes`);
                         }
                     } catch (notificationError) {
@@ -143,13 +131,10 @@ class AttendanceService {
                         // Don't fail the clock-in if notification fails
                     }
                 }
-
                 logger.info(`Clock-in processed: Employee ${user.employee?.id}, Late: ${isLate}, Minutes: ${lateMinutes}`);
             }
-
             // Reload to get updated data (without problematic associations)
             await attendanceRecord.reload();
-
             // Log clock in action
             await AuditLog.logAction({
                 userId: user.id,
@@ -181,7 +166,6 @@ class AttendanceService {
                     gracePeriodMinutes: assignedShift ? assignedShift.gracePeriodMinutes || 0 : 0
                 }
             };
-
             return {
                 success: true,
                 data: clockInResponse,
@@ -212,7 +196,8 @@ class AttendanceService {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
-            const today = new Date().toISOString().split('T')[0];
+            // ✅ FIX: Use local timezone, not UTC
+            const today = getLocalDateString();
 
             const attendanceRecord = await AttendanceRecord.findOne({
                 where: {
@@ -284,7 +269,8 @@ class AttendanceService {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
-            const today = new Date().toISOString().split('T')[0];
+            // ✅ FIX: Use local timezone, not UTC
+            const today = getLocalDateString();
 
             const attendanceRecord = await AttendanceRecord.findOne({
                 where: {
@@ -296,7 +282,6 @@ class AttendanceService {
             if (!attendanceRecord || !attendanceRecord.canStartBreak()) {
                 throw { message: "Cannot start break. Either not clocked in or already on break", statusCode: 400 };
             }
-
             const breakInTime = new Date();
             let breakSessions = attendanceRecord.breakSessions || [];
             
@@ -430,7 +415,8 @@ class AttendanceService {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
-            const today = new Date().toISOString().split('T')[0];
+            // ✅ FIX: Use local timezone, not UTC
+            const today = getLocalDateString();
 
             const attendanceRecord = await AttendanceRecord.findOne({
                 where: {
@@ -571,7 +557,8 @@ class AttendanceService {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
-            const today = new Date().toISOString().split('T')[0];
+            // ✅ FIX: Use local timezone, not UTC
+            const today = getLocalDateString();
 
             const attendanceRecord = await AttendanceRecord.findOne({
                 where: {
@@ -649,6 +636,15 @@ class AttendanceService {
 
             if (filters.status) {
                 whereClause.status = filters.status;
+            }
+
+            // ✅ NEW: Support correction filters
+            if (filters.correctionRequested !== undefined) {
+                whereClause.correctionRequested = filters.correctionRequested;
+            }
+
+            if (filters.correctionStatus) {
+                whereClause.correctionStatus = filters.correctionStatus;
             }
 
             if (filters.isLate !== undefined) {
@@ -738,6 +734,15 @@ class AttendanceService {
 
             if (filters.status) {
                 whereClause.status = filters.status;
+            }
+
+            // ✅ NEW: Support correction filters
+            if (filters.correctionRequested !== undefined) {
+                whereClause.correctionRequested = filters.correctionRequested;
+            }
+
+            if (filters.correctionStatus) {
+                whereClause.correctionStatus = filters.correctionStatus;
             }
 
             if (filters.isLate !== undefined) {
@@ -856,6 +861,7 @@ class AttendanceService {
 
     /**
      * Approve/Reject attendance correction (HR)
+     * ⚠️ SHIFT-AWARE FIX: After approval, reset to 'incomplete' to let finalization job re-evaluate
      * @param {String} attendanceId - Attendance record ID
      * @param {String} action - 'approve' or 'reject'
      * @param {Object} correctionData - Correction data if approving
@@ -883,6 +889,7 @@ class AttendanceService {
             const oldValues = {
                 clockIn: attendanceRecord.clockIn,
                 clockOut: attendanceRecord.clockOut,
+                status: attendanceRecord.status,
                 correctionStatus: attendanceRecord.correctionStatus
             };
 
@@ -891,7 +898,10 @@ class AttendanceService {
                 const updateData = {
                     correctionStatus: 'approved',
                     correctedBy: user.id,
-                    correctedAt: new Date()
+                    correctedAt: new Date(),
+                    // ✅ CRITICAL FIX: Reset to incomplete so finalization job can re-evaluate
+                    status: 'incomplete',
+                    statusReason: 'Correction approved - pending re-evaluation by finalization job'
                 };
 
                 if (correctionData.clockIn) {
@@ -899,6 +909,9 @@ class AttendanceService {
                 }
                 if (correctionData.clockOut) {
                     updateData.clockOut = correctionData.clockOut;
+                }
+                if (correctionData.totalBreakMinutes !== undefined) {
+                    updateData.totalBreakMinutes = correctionData.totalBreakMinutes;
                 }
 
                 await attendanceRecord.update(updateData);
@@ -925,7 +938,7 @@ class AttendanceService {
                 targetId: attendanceRecord.id,
                 oldValues,
                 newValues: correctionData,
-                description: `${action === 'approve' ? 'Approved' : 'Rejected'} attendance correction`,
+                description: `${action === 'approve' ? 'Approved' : 'Rejected'} attendance correction${action === 'approve' ? ' - reset to incomplete for re-evaluation' : ''}`,
                 ipAddress: metadata.ipAddress,
                 userAgent: metadata.userAgent,
                 severity: 'high'
@@ -934,7 +947,9 @@ class AttendanceService {
             return {
                 success: true,
                 data: attendanceRecord,
-                message: `Correction ${action}d successfully`
+                message: action === 'approve' 
+                    ? 'Correction approved successfully. Record will be re-evaluated by the finalization job.'
+                    : 'Correction rejected successfully'
             };
         } catch (error) {
             logger.error('Error processing attendance correction:', error);
@@ -979,7 +994,8 @@ class AttendanceService {
             const [
                 totalRecords,
                 presentDays,
-                absentDays,
+                halfDays,
+                leaveDays,
                 lateDays,
                 earlyDepartures,
                 averageWorkHours,
@@ -994,7 +1010,11 @@ class AttendanceService {
                     include: [{ model: Employee, as: 'employee', where: employeeFilter, required: true }]
                 }),
                 AttendanceRecord.count({
-                    where: { ...whereClause, status: 'absent' },
+                    where: { ...whereClause, status: 'half_day' },
+                    include: [{ model: Employee, as: 'employee', where: employeeFilter, required: true }]
+                }),
+                AttendanceRecord.count({
+                    where: { ...whereClause, status: 'leave' },
                     include: [{ model: Employee, as: 'employee', where: employeeFilter, required: true }]
                 }),
                 AttendanceRecord.count({
@@ -1017,17 +1037,26 @@ class AttendanceService {
                 })
             ]);
 
+            // ✅ IMPROVED: Correct HRMS attendance rate formula
+            // Attendance Rate = (Present + Half Days * 0.5) / Total Working Days * 100
+            const totalWorkingDays = presentDays + halfDays + leaveDays;
+            const effectivePresent = presentDays + (halfDays * 0.5);
+            const attendanceRate = totalWorkingDays > 0 
+                ? ((effectivePresent / totalWorkingDays) * 100).toFixed(2) 
+                : 0;
+
             return {
                 success: true,
                 data: {
                     totalRecords,
                     presentDays,
-                    absentDays,
+                    halfDays,
+                    leaveDays, // ✅ Renamed from absentDays
                     lateDays,
                     earlyDepartures,
                     averageWorkHours: parseFloat(averageWorkHours[0]?.avgHours || 0).toFixed(2),
                     pendingCorrections,
-                    attendanceRate: totalRecords > 0 ? ((presentDays / totalRecords) * 100).toFixed(2) : 0,
+                    attendanceRate, // ✅ Improved formula
                     punctualityRate: presentDays > 0 ? (((presentDays - lateDays) / presentDays) * 100).toFixed(2) : 0
                 }
             };
@@ -1049,8 +1078,8 @@ class AttendanceService {
      * @param {Object} user - User requesting summary
      * @returns {Promise<Object>} Monthly attendance summary
      */
-    async getMonthlyAttendanceSummary(employeeId, year, month, user) {
-        try {
+async getMonthlyAttendanceSummary(employeeId, year, month, user) {
+     try {
             // Employees can only view their own summary
             if (user.role === ROLES.EMPLOYEE && parseInt(user.employee?.id) !== parseInt(employeeId)) {
                 throw { message: "You can only view your own attendance summary", statusCode: 403 };
@@ -1081,99 +1110,26 @@ class AttendanceService {
     }
 
     /**
-     * ✅ STEP 3: HANDLE "FORGOT CLOCK-OUT" (CRITICAL CORPORATE RULE)
+     * ⚠️ DEPRECATED: Use finalizeDailyAttendance job instead
      * Process end-of-day attendance - Mark as incomplete/absent if no clock-out
-     * This should be called by a scheduled job at the end of each day
+     * 
+     * This method is kept for backward compatibility but internally calls the
+     * shift-aware finalization job to avoid conflicts.
+     * 
+     * @deprecated Use finalizeDailyAttendance from jobs/attendanceFinalization.js
      */
     async processEndOfDayAttendance() {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            logger.warn('processEndOfDayAttendance is deprecated. Use finalizeDailyAttendance job instead.');
             
-            // Find all attendance records that are clocked in but not clocked out
-            const incompleteRecords = await AttendanceRecord.findAll({
-                where: {
-                    date: today,
-                    clockIn: { [Op.ne]: null },
-                    clockOut: null,
-                    status: 'present' // Only process records still marked as present
-                },
-                include: [{
-                    model: Shift,
-                    as: 'shift',
-                    attributes: ['shiftName', 'shiftStartTime', 'shiftEndTime', 'gracePeriodMinutes']
-                }, {
-                    model: Employee,
-                    as: 'employee',
-                    attributes: ['id', 'firstName', 'lastName', 'employeeId']
-                }]
-            });
-
-            const results = [];
-
-            for (const record of incompleteRecords) {
-                if (record.shift) {
-                    const now = new Date();
-                    const shiftEndTime = new Date(`${today} ${record.shift.shiftEndTime}`);
-                    
-                    // ✅ CORPORATE RULE: If past shift end time, mark as incomplete
-                    // No grace period for missing clock-out - this is a policy violation
-                    if (now > shiftEndTime) {
-                        await record.update({
-                            status: 'incomplete',
-                            statusReason: 'Missing clock-out - Auto-marked incomplete',
-                            notes: `Auto-processed at ${now.toISOString()} - Employee failed to clock out`,
-                            updatedBy: 1 // System user
-                        });
-
-                        results.push({
-                            employeeId: record.employee.employeeId,
-                            employeeName: `${record.employee.firstName} ${record.employee.lastName}`,
-                            action: 'marked_incomplete',
-                            reason: 'Missing clock-out after shift end',
-                            shiftEndTime: record.shift.shiftEndTime,
-                            processedAt: now.toISOString()
-                        });
-
-                        // Log the action for audit trail
-                        await AuditLog.logAction({
-                            userId: 1, // System user
-                            action: 'attendance_auto_incomplete',
-                            module: 'attendance',
-                            targetType: 'AttendanceRecord',
-                            targetId: record.id,
-                            description: `Auto-marked as incomplete due to missing clock-out for ${record.employee.firstName} ${record.employee.lastName} (Shift ended: ${record.shift.shiftEndTime})`,
-                            severity: 'medium'
-                        });
-                    }
-                } else {
-                    // No shift assigned - mark as incomplete after 8 hours from clock-in
-                    const clockInTime = new Date(record.clockIn);
-                    const eightHoursLater = new Date(clockInTime.getTime() + (8 * 60 * 60 * 1000));
-                    const now = new Date();
-                    
-                    if (now > eightHoursLater) {
-                        await record.update({
-                            status: 'incomplete',
-                            statusReason: 'Missing clock-out - No shift assigned',
-                            notes: `Auto-processed at ${now.toISOString()} - No shift assigned, 8+ hours since clock-in`,
-                            updatedBy: 1
-                        });
-
-                        results.push({
-                            employeeId: record.employee.employeeId,
-                            employeeName: `${record.employee.firstName} ${record.employee.lastName}`,
-                            action: 'marked_incomplete',
-                            reason: 'Missing clock-out - No shift assigned (8+ hours)',
-                            processedAt: now.toISOString()
-                        });
-                    }
-                }
-            }
-
+            // Import and call the finalization job
+            const { finalizeDailyAttendance } = await import('../jobs/attendanceFinalization.js');
+            const result = await finalizeDailyAttendance();
+            
             return {
                 success: true,
-                message: `Processed ${results.length} incomplete attendance records`,
-                data: results
+                message: 'Attendance finalization completed via shift-aware job',
+                data: result
             };
         } catch (error) {
             logger.error('Error processing end-of-day attendance:', error);
@@ -1186,124 +1142,54 @@ class AttendanceService {
     }
 
     /**
-     * ✅ STEP 4: CHECK FOR ABSENT EMPLOYEES (CORPORATE RULE)
-     * Check if employee should be marked absent for not clocking in
-     * This should be called periodically during the day
+     * ✅ SHIFT-AWARE FIX: Check unfinalized or leave employees
+     * (Renamed conceptually from checkAbsentEmployees)
+     * 
+     * This checks for employees with incomplete or leave status.
+     * The system NO LONGER uses "absent" - everything is either:
+     * - 'leave' (no clock-in or missing clock-out)
+     * - 'incomplete' (pending finalization)
+     * - 'present' or 'half_day' (finalized)
+     * 
+     * @deprecated This logic is now handled by the finalization job
      */
     async checkAbsentEmployees() {
         try {
-            const today = new Date().toISOString().split('T')[0];
-            const now = new Date();
+            logger.warn('checkAbsentEmployees is deprecated. Use finalizeDailyAttendance job instead.');
             
-            // Get all active employees with their shifts
-            const employees = await Employee.findAll({
-                where: { 
-                    status: 'active',
-                    isActive: true 
+            // ✅ FIX: Use local timezone, not UTC
+            const today = getLocalDateString();
+            
+            // Find employees with incomplete or leave status
+            const records = await AttendanceRecord.findAll({
+                where: {
+                    date: today,
+                    status: {
+                        [Op.in]: ['leave', 'incomplete']
+                    }
                 },
                 include: [{
-                    model: EmployeeShift,
-                    as: 'shiftAssignments',
-                    where: { isActive: true },
-                    required: false,
-                    include: [{
-                        model: Shift,
-                        as: 'shift'
-                    }]
+                    model: Employee,
+                    as: 'employee',
+                    attributes: ['id', 'firstName', 'lastName', 'employeeId']
+                }, {
+                    model: Shift,
+                    as: 'shift',
+                    attributes: ['shiftName', 'shiftStartTime', 'shiftEndTime']
                 }]
             });
 
-            const results = [];
-
-            for (const employee of employees) {
-                // Check if employee has attendance record for today
-                const attendanceRecord = await AttendanceRecord.findOne({
-                    where: {
-                        employeeId: employee.id,
-                        date: today
-                    }
-                });
-
-                // If no attendance record exists, check if they should be working
-                if (!attendanceRecord) {
-                    let shouldBeWorking = false;
-                    let shift = null;
-
-                    if (employee.shiftAssignments && employee.shiftAssignments.length > 0) {
-                        shift = employee.shiftAssignments[0].shift;
-                    } else {
-                        // Get default shift if no specific assignment
-                        shift = await Shift.findOne({ where: { isDefault: true } });
-                    }
-
-                    if (shift) {
-                        const shiftStartTime = new Date(`${today} ${shift.shiftStartTime}`);
-                        const gracePeriodMs = (shift.gracePeriodMinutes || 0) * 60 * 1000;
-                        // Corporate rule: Mark absent 1 hour after grace period ends
-                        const absentThreshold = new Date(shiftStartTime.getTime() + gracePeriodMs + (60 * 60 * 1000));
-
-                        if (now > absentThreshold) {
-                            shouldBeWorking = true;
-                        }
-                    }
-
-                    if (shouldBeWorking) {
-                        // Create absent attendance record
-                        const absentRecord = await AttendanceRecord.create({
-                            employeeId: employee.id,
-                            shiftId: shift.id,
-                            date: today,
-                            status: 'absent',
-                            statusReason: 'No clock-in recorded - Auto-marked absent',
-                            halfDayType: null, // Absent employees don't have half-day type
-                            notes: `Auto-processed at ${now.toISOString()} - Employee did not clock in by ${absentThreshold.toLocaleTimeString()}`,
-                            createdBy: 1 // System user
-                        });
-
-                        results.push({
-                            employeeId: employee.employeeId,
-                            employeeName: `${employee.firstName} ${employee.lastName}`,
-                            action: 'marked_absent',
-                            reason: 'No clock-in recorded',
-                            shiftStartTime: shift.shiftStartTime,
-                            absentThreshold: absentThreshold.toLocaleTimeString(),
-                            processedAt: now.toISOString()
-                        });
-
-                        // Log the action for audit trail
-                        await AuditLog.logAction({
-                            userId: 1, // System user
-                            action: 'attendance_auto_absent',
-                            module: 'attendance',
-                            targetType: 'AttendanceRecord',
-                            targetId: absentRecord.id,
-                            description: `Auto-marked as absent for ${employee.firstName} ${employee.lastName} - No clock-in by ${absentThreshold.toLocaleTimeString()} (Shift: ${shift.shiftStartTime})`,
-                            severity: 'medium'
-                        });
-
-                        // ✅ NEW: Send absent notification
-                        try {
-                            const notificationService = (await import('../notificationService.js')).default;
-                            
-                            // Add employee details to record for notification
-                            absentRecord.employee = employee;
-                            absentRecord.shift = shift;
-                            
-                            // Send absent notification to HR/Admin
-                            await notificationService.notifyAbsentEmployee(absentRecord);
-                            
-                            logger.info(`Absent notification sent for employee ${employee.id}`);
-                        } catch (notificationError) {
-                            logger.error('Failed to send absent notification:', notificationError);
-                            // Don't fail the absent marking if notification fails
-                        }
-                    }
-                }
-            }
+            const results = records.map(record => ({
+                employeeId: record.employee.employeeId,
+                employeeName: `${record.employee.firstName} ${record.employee.lastName}`,
+                status: record.status,
+                statusReason: record.statusReason,
+                shiftName: record.shift?.shiftName || 'No shift assigned'
+            }));
 
             return {
                 success: true,
-                message: `Processed ${results.length} absent employees`,
+                message: `Found ${results.length} employees with leave or incomplete status`,
                 data: results
             };
         } catch (error) {
@@ -1311,6 +1197,274 @@ class AttendanceService {
             return {
                 success: false,
                 message: 'Failed to check absent employees',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Get overtime report (HR & Super Admin)
+     * ⚠️ SHIFT-AWARE: Excludes incomplete records by default
+     */
+    async getOvertimeReport(filters = {}, user, pagination = {}) {
+        try {
+            // Role-based access control
+            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+                throw { message: "Unauthorized: Only Super Admin and HR can view overtime reports", statusCode: 403 };
+            }
+
+            const {
+                page = 1,
+                limit = 20,
+                sortBy = 'date',
+                sortOrder = 'DESC'
+            } = pagination;
+            const offset = (page - 1) * limit;
+
+            const whereClause = {
+                // Only include finalized records (exclude incomplete)
+                status: {
+                    [Op.in]: ['present', 'half_day']
+                }
+            };
+
+            // Apply filters
+            if (filters.employeeId) {
+                whereClause.employeeId = filters.employeeId;
+            }
+
+            if (filters.dateFrom && filters.dateTo) {
+                whereClause.date = {
+                    [Op.between]: [filters.dateFrom, filters.dateTo]
+                };
+            } else if (filters.date) {
+                whereClause.date = filters.date;
+            }
+
+            // Filter for overtime (workHours > shift fullDayHours)
+            whereClause.overtimeMinutes = {
+                [Op.gt]: 0
+            };
+
+            // HR can only see employees in their assigned departments
+            let employeeFilter = {};
+            if (user.role === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
+                employeeFilter.department = { [Op.in]: user.assignedDepartments };
+            }
+
+            const { count, rows } = await AttendanceRecord.findAndCountAll({
+                where: whereClause,
+                include: [
+                    {
+                        model: Employee,
+                        as: 'employee',
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department'],
+                        where: employeeFilter,
+                        required: true
+                    },
+                    {
+                        model: Shift,
+                        as: 'shift',
+                        attributes: ['shiftName', 'shiftStartTime', 'shiftEndTime', 'fullDayHours'],
+                        required: false
+                    }
+                ],
+                order: [[sortBy, sortOrder]],
+                limit: parseInt(limit),
+                offset: parseInt(offset)
+            });
+
+            return {
+                success: true,
+                data: {
+                    records: rows,
+                    pagination: {
+                        total: count,
+                        page: parseInt(page),
+                        limit: parseInt(limit),
+                        totalPages: Math.ceil(count / limit)
+                    }
+                }
+            };
+        } catch (error) {
+            logger.error('Error getting overtime report:', error);
+            return {
+                success: false,
+                message: error.message || 'Failed to get overtime report',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Get break violations report (HR & Super Admin)
+     * ⚠️ SHIFT-AWARE: Excludes incomplete records by default
+     */
+    async getBreakViolationsReport(filters = {}, user, pagination = {}) {
+        try {
+            // Role-based access control
+            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+                throw { message: "Unauthorized: Only Super Admin and HR can view break violations", statusCode: 403 };
+            }
+
+            const {
+                page = 1,
+                limit = 20,
+                sortBy = 'date',
+                sortOrder = 'DESC'
+            } = pagination;
+            const offset = (page - 1) * limit;
+
+            const whereClause = {
+                // Only include finalized records (exclude incomplete)
+                status: {
+                    [Op.in]: ['present', 'half_day']
+                }
+            };
+
+            // Apply filters
+            if (filters.employeeId) {
+                whereClause.employeeId = filters.employeeId;
+            }
+
+            if (filters.dateFrom && filters.dateTo) {
+                whereClause.date = {
+                    [Op.between]: [filters.dateFrom, filters.dateTo]
+                };
+            } else if (filters.date) {
+                whereClause.date = filters.date;
+            }
+
+            // HR can only see employees in their assigned departments
+            let employeeFilter = {};
+            if (user.role === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
+                employeeFilter.department = { [Op.in]: user.assignedDepartments };
+            }
+
+            const { count, rows } = await AttendanceRecord.findAndCountAll({
+                where: whereClause,
+                include: [
+                    {
+                        model: Employee,
+                        as: 'employee',
+                        attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department'],
+                        where: employeeFilter,
+                        required: true
+                    },
+                    {
+                        model: Shift,
+                        as: 'shift',
+                        attributes: ['shiftName', 'allowedBreakMinutes'],
+                        required: false
+                    }
+                ],
+                order: [[sortBy, sortOrder]],
+                limit: parseInt(limit),
+                offset: parseInt(offset)
+            });
+
+            // Filter for break violations (totalBreakMinutes > allowedBreakMinutes)
+            const violations = rows.filter(record => {
+                const allowedBreak = record.shift?.allowedBreakMinutes || 60;
+                return record.totalBreakMinutes > allowedBreak;
+            });
+
+            return {
+                success: true,
+                data: {
+                    records: violations,
+                    pagination: {
+                        total: violations.length,
+                        page: parseInt(page),
+                        limit: parseInt(limit),
+                        totalPages: Math.ceil(violations.length / limit)
+                    }
+                }
+            };
+        } catch (error) {
+            logger.error('Error getting break violations report:', error);
+            return {
+                success: false,
+                message: error.message || 'Failed to get break violations report',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Bulk process corrections (HR & Super Admin)
+     */
+    async bulkProcessCorrections(attendanceIds, action, user, metadata = {}) {
+        try {
+            // Only HR and Super Admin can bulk process
+            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+                throw { message: "Unauthorized: Only Super Admin and HR can bulk process corrections", statusCode: 403 };
+            }
+
+            const results = {
+                success: [],
+                failed: []
+            };
+
+            for (const id of attendanceIds) {
+                try {
+                    const result = await this.processAttendanceCorrection(id, action, {}, user, metadata);
+                    if (result.success) {
+                        results.success.push(id);
+                    } else {
+                        results.failed.push({ id, reason: result.message });
+                    }
+                } catch (error) {
+                    results.failed.push({ id, reason: error.message });
+                }
+            }
+
+            return {
+                success: true,
+                message: `Bulk ${action} completed: ${results.success.length} succeeded, ${results.failed.length} failed`,
+                data: results
+            };
+        } catch (error) {
+            logger.error('Error in bulk process corrections:', error);
+            return {
+                success: false,
+                message: error.message || 'Failed to bulk process corrections',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * Export attendance data (HR & Super Admin)
+     * ⚠️ SHIFT-AWARE: Includes status filter to exclude incomplete if needed
+     */
+    async exportAttendanceData(filters = {}, user) {
+        try {
+            // Role-based access control
+            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+                throw { message: "Unauthorized: Only Super Admin and HR can export data", statusCode: 403 };
+            }
+
+            // This would generate an Excel/CSV file
+            // For now, return the data structure
+            const result = await this.getAttendanceRecords(filters, user, { limit: 10000 });
+
+            if (!result.success) {
+                return result;
+            }
+
+            // In a real implementation, this would use a library like xlsx or csv-writer
+            // to generate the actual file
+            return {
+                success: true,
+                data: result.data.records,
+                message: 'Export data prepared successfully'
+            };
+        } catch (error) {
+            logger.error('Error exporting attendance data:', error);
+            return {
+                success: false,
+                message: error.message || 'Failed to export attendance data',
                 error: error.message
             };
         }

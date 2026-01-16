@@ -215,7 +215,8 @@ const getMonthlyCalendarData = async (req, res) => {
       attendanceSummary: legacyFormat.attendance.length > 0 ? {
         totalRecords: legacyFormat.attendance.length,
         presentDays: legacyFormat.attendance.filter(a => a.status === 'present').length,
-        absentDays: legacyFormat.attendance.filter(a => a.status === 'absent').length,
+        leaveDays: legacyFormat.attendance.filter(a => a.status === 'leave').length, // ✅ Renamed from absentDays
+        halfDays: legacyFormat.attendance.filter(a => a.status === 'half_day').length,
         lateDays: legacyFormat.attendance.filter(a => a.isLate).length,
         earlyDepartures: legacyFormat.attendance.filter(a => a.isEarlyDeparture).length
       } : null

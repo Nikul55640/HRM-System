@@ -1,4 +1,3 @@
-// frontend/src/modules/employee/pages/Dashboard/EmployeeDashboard.jsx
 
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -43,7 +42,11 @@ import useAttendanceSessionStore from "../../../../stores/useAttendanceSessionSt
 import { calendarService } from "../../../../services";
 import { isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, subWeeks, subMonths } from "date-fns";
 
-
+// Constants for calendar views
+const CALENDAR_VIEW = {
+  WEEK: 'week',
+  MONTH: 'month'
+};
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
@@ -56,7 +59,7 @@ const EmployeeDashboard = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   
   // Calendar state
-  const [calendarView, setCalendarView] = useState('month'); // 'week' or 'month'
+  const [calendarView, setCalendarView] = useState(CALENDAR_VIEW.MONTH);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarEvents, setCalendarEvents] = useState([]);
 
@@ -74,7 +77,6 @@ const EmployeeDashboard = () => {
 
   // Use shared attendance context
  const {
-   todayRecord,
    isLoading,
    clockIn,
    clockOut,
@@ -85,14 +87,16 @@ const EmployeeDashboard = () => {
   useEffect(() => {
     const fetchAllData = async () => {
       setLoading(true);
+      // Fetch critical data first
       await Promise.all([
         fetchDashboardData(),
         fetchLeaveBalance(),
         fetchAttendanceSummary(),
         fetchTodayRecord(), // Fetch attendance data
         fetchRecentActivities(), // Fetch recent activities from API
-        fetchCalendarEvents(), // Fetch calendar events
       ]);
+      // Fetch calendar events after main data loads (reduces initial load)
+      fetchCalendarEvents();
       setLoading(false);
     };
 
@@ -130,7 +134,10 @@ const EmployeeDashboard = () => {
   useEffect(() => {
     const loadNotifications = async () => {
       try {
-        await getNotifications({ limit: 5 }); // Get latest 5 notifications
+        const result = await getNotifications({ limit: 5 }); // Get latest 5 notifications
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [DASHBOARD] Notifications loaded:', result?.length || 0);
+        }
       } catch (error) {
         console.warn('Failed to load notifications:', error);
       }
@@ -139,22 +146,12 @@ const EmployeeDashboard = () => {
     loadNotifications();
   }, [getNotifications]);
 
-  // Update today activities when todayRecord changes
-  useEffect(() => {
-    // We'll now get activities from API instead of just attendance record
-    if (recentActivities.length === 0) {
-      fetchRecentActivities().catch(error => {
-        console.warn('Failed to fetch recent activities on mount:', error);
-      });
-    }
-  }, []); // Remove todayRecord dependency since we're using API now
-
-
-
   const fetchDashboardData = async () => {
     try {
       const res = await employeeDashboardService.getDashboardData();
-      console.log("DASHBOARD API DATA 👉", res.data);
+      if (process.env.NODE_ENV === 'development') {
+        console.log("DASHBOARD API DATA 👉", res.data);
+      }
       if (res.success) {
         setDashboardData(res.data);
       } else {
@@ -188,9 +185,16 @@ const EmployeeDashboard = () => {
     try {
       const response = await recentActivityService.getTodayActivities();
       
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ [DASHBOARD] Recent activities API full response:', response);
+      }
+      
       if (response.success) {
-        console.log('✅ [DASHBOARD] Recent activities API response:', response.data);
-        setRecentActivities(response.data || []);
+        const activities = response.data || [];
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [DASHBOARD] Activities count:', activities.length);
+        }
+        setRecentActivities(activities);
       } else {
         console.warn('Recent activities API returned error:', response.message);
         setRecentActivities([]);
@@ -204,102 +208,13 @@ const EmployeeDashboard = () => {
     }
   };
 
-  // Helper function to update today's activities based on attendance record (legacy support)
-  const updateTodayActivities = (record) => {
-    const activities = [];
-
-    // Handle both new session format and legacy format
-    if (record.sessions && record.sessions.length > 0) {
-      // New session format
-      record.sessions.forEach(session => {
-        if (session.checkIn) {
-          activities.push({
-            time: format(new Date(session.checkIn), "hh:mm a"),
-            activity: "Clock In",
-            icon: "CheckCircle",
-            status: "completed"
-          });
-        }
-
-        // Add break activities
-        if (session.breaks && Array.isArray(session.breaks)) {
-          session.breaks.forEach(breakItem => {
-            if (breakItem.startTime) {
-              activities.push({
-                time: format(new Date(breakItem.startTime), "hh:mm a"),
-                activity: "Break Start",
-                icon: "Coffee",
-                status: "completed"
-              });
-            }
-            if (breakItem.endTime) {
-              activities.push({
-                time: format(new Date(breakItem.endTime), "hh:mm a"),
-                activity: "Break End",
-                icon: "Play",
-                status: "completed"
-              });
-            }
-          });
-        }
-
-        if (session.checkOut) {
-          activities.push({
-            time: format(new Date(session.checkOut), "hh:mm a"),
-            activity: "Clock Out",
-            icon: "CheckCircle",
-            status: "completed"
-          });
-        } else if (session.status === 'active') {
-          activities.push({
-            time: "--",
-            activity: "Working...",
-            icon: "Timer",
-            status: "current"
-          });
-        } else if (session.status === 'on_break') {
-          activities.push({
-            time: "--",
-            activity: "On Break...",
-            icon: "Coffee",
-            status: "current"
-          });
-        }
-      });
-    } else if (record.checkIn) {
-      // Legacy format
-      activities.push({
-        time: format(new Date(record.checkIn), "hh:mm a"),
-        activity: "Clock In",
-        icon: "CheckCircle",
-        status: "completed"
-      });
-
-      if (record.checkOut) {
-        activities.push({
-          time: format(new Date(record.checkOut), "hh:mm a"),
-          activity: "Clock Out",
-          icon: "CheckCircle",
-          status: "completed"
-        });
-      } else {
-        activities.push({
-          time: "--",
-          activity: "Working...",
-          icon: "Timer",
-          status: "current"
-        });
-      }
-    }
-
-    setTodayActivities(activities);
-  };
-
   const fetchLeaveBalance = async () => {
     try {
       const res = await leaveService.getMyLeaveBalance();
       if (res.success) {
-        console.log('✅ [DASHBOARD] Leave balance API response:', res.data);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [DASHBOARD] Leave balance API response:', res.data);
+        }
         
         // Transform leaveTypes array to flat structure for easier access
         const transformedData = {};
@@ -342,24 +257,40 @@ const EmployeeDashboard = () => {
     try {
       const res = await employeeDashboardService.getAttendanceSummary();
       if (res.success) {
-        console.log('✅ [DASHBOARD] Attendance summary API response:', res.data);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ [DASHBOARD] Attendance summary API response:', res.data);
+        }
+        
+        // Calculate required hours based on working days in current month
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        
+        // Assume 8 hours per working day, ~22 working days per month
+        // Or use actual working days from the data
+        const workingDaysInMonth = 22; // Standard working days
+        const standardHoursPerDay = 8;
+        const requiredHours = workingDaysInMonth * standardHoursPerDay; // 176 hours
+        
         // Normalize attendance summary after API call
         setAttendanceSummary({
           presentDays: res.data.presentDays ?? res.data.present ?? 0,
-          absentDays: res.data.absentDays ?? res.data.absent ?? 0,
+          leaveDays: res.data.leaveDays ?? res.data.leave ?? 0, // ✅ Backend uses leaveDays
           lateDays: res.data.lateDays ?? res.data.late ?? 0,
-          totalHours: res.data.totalHours ?? res.data.workedHours ?? 0,
-          requiredHours: res.data.requiredHours ?? 160
+          // ✅ FIX: Map totalWorkHours from backend to totalHours
+          totalHours: Math.round(res.data.totalWorkHours ?? res.data.totalHours ?? res.data.workedHours ?? 0),
+          requiredHours: res.data.requiredHours ?? requiredHours
         });
       } else {
         console.warn('Attendance summary API returned error:', res.message);
         // Set empty data instead of fallback
         setAttendanceSummary({
           presentDays: 0,
-          absentDays: 0,
+          leaveDays: 0, // ✅ Backend uses leaveDays
           lateDays: 0,
           totalHours: 0,
-          requiredHours: 160
+          requiredHours: 176 // Standard month
         });
       }
     } catch (error) {
@@ -367,10 +298,10 @@ const EmployeeDashboard = () => {
       // Set empty data instead of fallback
       setAttendanceSummary({
         presentDays: 0,
-        absentDays: 0,
+        leaveDays: 0, // ✅ Backend uses leaveDays
         lateDays: 0,
         totalHours: 0,
-        requiredHours: 160
+        requiredHours: 176 // Standard month
       });
     }
   };
@@ -378,11 +309,11 @@ const EmployeeDashboard = () => {
   // Calendar helper functions
   const fetchCalendarEvents = async () => {
     try {
-      const startDate = calendarView === 'week' 
+      const startDate = calendarView === CALENDAR_VIEW.WEEK 
         ? startOfWeek(calendarDate).toISOString().split('T')[0]
         : startOfMonth(calendarDate).toISOString().split('T')[0];
       
-      const endDate = calendarView === 'week'
+      const endDate = calendarView === CALENDAR_VIEW.WEEK
         ? endOfWeek(calendarDate).toISOString().split('T')[0]
         : endOfMonth(calendarDate).toISOString().split('T')[0];
 
@@ -463,7 +394,7 @@ const EmployeeDashboard = () => {
   };
 
   const navigateCalendar = (direction) => {
-    if (calendarView === 'week') {
+    if (calendarView === CALENDAR_VIEW.WEEK) {
       setCalendarDate(prev => direction === 'next' ? addWeeks(prev, 1) : subWeeks(prev, 1));
     } else {
       setCalendarDate(prev => direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1));
@@ -628,7 +559,7 @@ const EmployeeDashboard = () => {
   // Calculate attendance stats from real data with safe fallbacks
   const attendanceStats = {
     present: attendanceSummary?.presentDays || 0,
-    absent: attendanceSummary?.absentDays || 0,
+    leave: attendanceSummary?.leaveDays || 0, // ✅ Backend uses leaveDays
     late: attendanceSummary?.lateDays || 0,
     workedHours: attendanceSummary?.totalHours || 0,
     requiredHours: attendanceSummary?.requiredHours || 160,
@@ -991,9 +922,9 @@ const EmployeeDashboard = () => {
                   </CardTitle>
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => setCalendarView('week')}
+                      onClick={() => setCalendarView(CALENDAR_VIEW.WEEK)}
                       className={`px-2 py-1 text-xs rounded ${
-                        calendarView === 'week' 
+                        calendarView === CALENDAR_VIEW.WEEK 
                           ? 'bg-blue-500 text-white' 
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
@@ -1001,9 +932,9 @@ const EmployeeDashboard = () => {
                       Week
                     </button>
                     <button
-                      onClick={() => setCalendarView('month')}
+                      onClick={() => setCalendarView(CALENDAR_VIEW.MONTH)}
                       className={`px-2 py-1 text-xs rounded ${
-                        calendarView === 'month' 
+                        calendarView === CALENDAR_VIEW.MONTH 
                           ? 'bg-blue-500 text-white' 
                           : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                       }`}
@@ -1020,7 +951,7 @@ const EmployeeDashboard = () => {
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <h3 className="font-medium text-gray-900">
-                    {calendarView === 'week' 
+                    {calendarView === CALENDAR_VIEW.WEEK 
                       ? `Week of ${format(getWeekStart(calendarDate), "MMM dd, yyyy")}`
                       : format(calendarDate, "MMMM yyyy")
                     }
@@ -1034,7 +965,7 @@ const EmployeeDashboard = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                {calendarView === 'month' ? (
+                {calendarView === CALENDAR_VIEW.MONTH ? (
                   <>
                     <div className="grid grid-cols-7 gap-1 text-center text-xs mb-2">
                       {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (

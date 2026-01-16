@@ -123,7 +123,10 @@ export const updateProfile = async (req, res) => {
     if (contactInfo) {
       if (contactInfo.phone) updateData.phone = contactInfo.phone;
       if (contactInfo.country) updateData.country = contactInfo.country;
-      if (contactInfo.address !== undefined) updateData.address = contactInfo.address;
+      if (contactInfo.address !== undefined) {
+        // Store address as object - Sequelize JSON type handles serialization
+        updateData.address = contactInfo.address;
+      }
     }
 
     updateData.updatedBy = req.user.id;

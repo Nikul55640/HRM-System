@@ -28,7 +28,11 @@ const getAttendanceIssues = async (req, res) => {
         [Op.or]: [
           { clockIn: null },
           { clockOut: null },
-          { status: 'pending_correction' }
+          // ✅ FIX: Use correctionRequested flag instead of status
+          { 
+            correctionRequested: true,
+            correctionStatus: 'pending'
+          }
         ]
       },
       include: [

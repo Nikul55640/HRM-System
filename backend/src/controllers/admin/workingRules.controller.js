@@ -5,6 +5,7 @@ import notificationService from '../../services/notificationService.js';
 import { formatDays, validateWorkingDays } from '../../utils/dayUtils.js';
 import { NOTIFICATION_TYPES, NOTIFICATION_CATEGORIES, SYSTEM_ROLES } from '../../constants/notifications.js';
 import isEqual from 'lodash/isEqual.js';
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 /**
  * Get all working rules
@@ -526,7 +527,8 @@ export const checkWorkingDay = async (req, res) => {
     res.json({
       success: true,
       data: {
-        date: checkDate.toISOString().split('T')[0],
+        // ✅ FIX: Use local timezone
+        date: getLocalDateString(checkDate),
         dayOfWeek: checkDate.getDay(),
         isWorkingDay: isWorking,
         isWeekend: isWeekend,

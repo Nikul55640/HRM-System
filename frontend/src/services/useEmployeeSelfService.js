@@ -345,18 +345,19 @@ export const useAttendance = () => {
       
       // Normalize attendance summary to handle different field names
       const normalizedSummary = {
-        presentDays: summary?.presentDays ?? summary?.present ?? 0,
-        absentDays: summary?.absentDays ?? summary?.absent ?? 0,
-        lateDays: summary?.lateDays ?? summary?.late ?? 0,
-        totalHours: summary?.totalWorkHours ?? summary?.totalHours ?? summary?.workedHours ?? 0,
-        requiredHours: summary?.requiredHours ?? 160,
-        totalWorkedMinutes: summary?.totalWorkedMinutes ?? (summary?.totalWorkHours * 60) ?? (summary?.totalHours * 60) ?? 0,
-        averageWorkHours: summary?.averageWorkHours ?? (summary?.totalWorkHours / Math.max(summary?.presentDays ?? 1, 1)) ?? 0,
-        totalDays: summary?.totalDays ?? (summary?.presentDays ?? 0) + (summary?.absentDays ?? 0),
-        earlyDepartures: summary?.earlyDepartures ?? 0,
-        // Add missing fields that AttendanceSummary component expects
+        presentDays: summary?.presentDays ?? 0,
+        absentDays: summary?.leaveDays ?? summary?.absentDays ?? 0, // Backend uses leaveDays
+        lateDays: summary?.lateDays ?? 0,
+        leaveDays: summary?.leaveDays ?? 0, // Keep original for other uses
+        halfDays: summary?.halfDays ?? 0,
+        holidayDays: summary?.holidayDays ?? 0,
+        totalWorkHours: summary?.totalWorkHours ?? 0,
+        totalOvertimeHours: summary?.totalOvertimeHours ?? 0,
+        totalWorkedMinutes: summary?.totalWorkedMinutes ?? 0,
         totalBreakMinutes: summary?.totalBreakMinutes ?? 0,
-        overtimeHours: summary?.totalOvertimeHours ?? summary?.overtimeHours ?? 0,
+        averageWorkHours: summary?.averageWorkHours ?? 0,
+        totalDays: summary?.totalDays ?? 0,
+        earlyDepartures: summary?.earlyDepartures ?? 0,
         incompleteDays: summary?.incompleteDays ?? 0,
         totalLateMinutes: summary?.totalLateMinutes ?? 0,
         totalEarlyExitMinutes: summary?.totalEarlyExitMinutes ?? 0
@@ -487,16 +488,29 @@ export const useNotifications = () => {
     setNotificationsError(null);
     try {
       const result = await employeeSelfService.notifications.list(params);
-      console.log('🔔 [USE NOTIFICATIONS] Notifications API response:', result);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔔 [USE NOTIFICATIONS] Full API response:', result);
+      }
       
-      // Extract notifications array with multiple fallback patterns
-      const list = result?.data?.data || result?.data || (Array.isArray(result) ? result : []);
-      console.log('🔔 [USE NOTIFICATIONS] Extracted notifications:', list);
+      // ✅ FIX: Extract notifications array correctly
+      // Backend returns: { success: true, data: { notifications: [...], pagination: {...} } }
+      const list = result?.data?.notifications || result?.data?.data || result?.data || [];
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔔 [USE NOTIFICATIONS] Extracted notifications array:', list);
+        console.log('🔔 [USE NOTIFICATIONS] Count:', list.length);
+      }
       
       setNotifications(list);
+      
+      // Also update unread count if available
+      const unread = list.filter(n => !n.isRead && !n.read).length;
+      setUnreadCount(unread);
+      
       return list;
     } catch (error) {
       setNotificationsError(error.message);
+      console.error('🔔 [USE NOTIFICATIONS] Error:', error);
       throw error;
     } finally {
       setNotificationsLoading(false);

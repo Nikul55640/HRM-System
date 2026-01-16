@@ -2,11 +2,14 @@
  * Attendance Controller
  * Handles HTTP requests for attendance management with break and late tracking
  * Updated for restructured AttendanceRecord model with enhanced audit logging
+ * ✅ SHIFT-AWARE: Compatible with shift-aware finalization job
  */
 
 import attendanceService from '../../services/admin/attendance.service.js';
 import logger from '../../utils/logger.js';
 import { AuditLog } from '../../models/index.js';
+import { Op } from 'sequelize';
+import { getLocalDateString } from '../../utils/dateUtils.js';
 
 /**
  * Wrapper for consistent API responses
@@ -93,6 +96,7 @@ const attendanceController = {
 
     /**
      * Get monthly attendance summary
+     * ⚠️ SHIFT-AWARE: Excludes incomplete records by default
      */
     getMonthlyAttendanceSummary: async (req, res) => {
         try {
@@ -119,6 +123,7 @@ const attendanceController = {
 
     /**
      * Edit/Override attendance record (Super Admin only)
+     * ⚠️ SHIFT-AWARE FIX: After edit, reset to 'incomplete' for re-evaluation
      */
     editAttendanceRecord: async (req, res) => {
         try {
@@ -133,16 +138,23 @@ const attendanceController = {
                 userAgent: req.headers["user-agent"],
             };
 
-            // This would be implemented as a direct update to attendance record
-            // For now, we'll use the correction approval process
-            const result = await attendanceService.processAttendanceCorrection(id, 'approve', req.body, req.user, metadata);
+            // ✅ CRITICAL: Manual edits must reset status to 'incomplete'
+            // This allows the finalization job to re-evaluate the record
+            // DO NOT force 'present' status - let the job decide based on shift rules
+            const editData = {
+                ...req.body,
+                status: 'incomplete', // Always reset to incomplete
+                statusReason: 'Manually edited by SuperAdmin - pending re-evaluation'
+            };
+
+            const result = await attendanceService.processAttendanceCorrection(id, 'approve', editData, req.user, metadata);
 
             if (!result.success) {
                 const statusCode = result.message.includes('not found') ? 404 : 400;
                 return sendResponse(res, false, result.message, null, statusCode);
             }
 
-            return sendResponse(res, true, "Attendance record updated successfully", result.data);
+            return sendResponse(res, true, "Attendance record updated successfully. Record will be re-evaluated by finalization job.", result.data);
         } catch (error) {
             logger.error("Controller: Edit Attendance Record Error", error);
             return sendResponse(res, false, "Internal server error", null, 500);
@@ -151,11 +163,14 @@ const attendanceController = {
 
     /**
      * Get pending correction requests (HR & Super Admin)
+     * ✅ FIX: Use correctionRequested flag instead of status
      */
     getPendingCorrections: async (req, res) => {
         try {
+            // ✅ FIX: Use correctionRequested flag instead of status
             const filters = {
                 ...req.query,
+                correctionRequested: true,
                 correctionStatus: 'pending'
             };
 
@@ -175,12 +190,15 @@ const attendanceController = {
 
     /**
      * Get late arrivals report (HR & Super Admin)
+     * ⚠️ SHIFT-AWARE: Excludes incomplete records by default
      */
     getLateArrivalsReport: async (req, res) => {
         try {
             const filters = {
                 ...req.query,
-                isLate: true
+                isLate: true,
+                // ✅ Only include finalized records
+                status: { [Op.in]: ['present', 'half_day'] }
             };
 
             const result = await attendanceService.getAttendanceRecords(filters, req.user, req.query);
@@ -199,12 +217,15 @@ const attendanceController = {
 
     /**
      * Get early departures report (HR & Super Admin)
+     * ⚠️ SHIFT-AWARE: Excludes incomplete records by default
      */
     getEarlyDeparturesReport: async (req, res) => {
         try {
             const filters = {
                 ...req.query,
-                isEarlyDeparture: true
+                isEarlyDeparture: true,
+                // ✅ Only include finalized records
+                status: { [Op.in]: ['present', 'half_day'] }
             };
 
             const result = await attendanceService.getAttendanceRecords(filters, req.user, req.query);
@@ -330,7 +351,8 @@ const attendanceController = {
 
             // Set headers for file download
             res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            res.setHeader('Content-Disposition', `attachment; filename=attendance-export-${new Date().toISOString().split('T')[0]}.xlsx`);
+            // ✅ FIX: Use local timezone for filename
+            res.setHeader('Content-Disposition', `attachment; filename=attendance-export-${getLocalDateString()}.xlsx`);
 
             return res.send(result.data);
         } catch (error) {
@@ -341,6 +363,7 @@ const attendanceController = {
 
     /**
      * Process end-of-day attendance (SuperAdmin only)
+     * ⚠️ DEPRECATED: This now calls the shift-aware finalization job
      */
     processEndOfDayAttendance: async (req, res) => {
         try {
@@ -359,6 +382,7 @@ const attendanceController = {
 
     /**
      * Check absent employees (SuperAdmin only)
+     * ⚠️ DEPRECATED: System now uses 'leave' and 'incomplete' instead of 'absent'
      */
     checkAbsentEmployees: async (req, res) => {
         try {

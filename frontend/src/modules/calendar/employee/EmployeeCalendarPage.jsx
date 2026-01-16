@@ -104,7 +104,7 @@ const EmployeeCalendarPage = () => {
               allEvents.push({
                 ...birthday,
                 eventType: "birthday",
-                title: birthday.title || `🎂 ${birthday.employeeName}`,
+                title: birthday.title || `${birthday.employeeName}'s Birthday`,
                 startDate: eventDate,
                 color: birthday.color || getEventTypeConfig("birthday").color,
               });
@@ -117,7 +117,7 @@ const EmployeeCalendarPage = () => {
               allEvents.push({
                 ...anniversary,
                 eventType: "anniversary",
-                title: anniversary.title || `🎊 ${anniversary.employeeName}`,
+                title: anniversary.title || `${anniversary.employeeName}'s Work Anniversary`,
                 startDate: eventDate,
                 color:
                   anniversary.color || getEventTypeConfig("anniversary").color,
