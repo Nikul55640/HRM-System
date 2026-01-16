@@ -437,10 +437,10 @@ const SmartCalendarManagement = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-3 space-y-3">
       {/* Working Rule Form Modal */}
       {showWorkingRuleForm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
           <div className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <WorkingRuleForm
               rule={editingWorkingRule}
@@ -453,11 +453,11 @@ const SmartCalendarManagement = () => {
 
       {/* Calendar Preview Modal */}
       {showPreview && previewData && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3">
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold flex justify-center"><Calendar1Icon/> Calendar Preview - {previewData.year}/{previewData.month}</h2>
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold flex justify-center"><Calendar1Icon/> Calendar Preview - {previewData.year}/{previewData.month}</h2>
                 <Button variant="ghost" size="sm" onClick={() => {
                   console.log('❌ Closing calendar preview modal');
                   setShowPreview(false);
@@ -467,34 +467,34 @@ const SmartCalendarManagement = () => {
               </div>
 
               {/* Preview Summary */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 <div className="text-center p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{previewData.summary.totalDays}</div>
+                  <div className="text-xl font-bold text-blue-600">{previewData.summary.totalDays}</div>
                   <div className="text-sm text-blue-800">Total Days</div>
                 </div>
                 <div className="text-center p-3 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{previewData.summary.workingDays}</div>
+                  <div className="text-xl font-bold text-green-600">{previewData.summary.workingDays}</div>
                   <div className="text-sm text-green-800">Working Days</div>
                 </div>
                 <div className="text-center p-3 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{previewData.summary.holidays}</div>
+                  <div className="text-xl font-bold text-purple-600">{previewData.summary.holidays}</div>
                   <div className="text-sm text-purple-800">Holidays</div>
                 </div>
                 <div className="text-center p-3 bg-orange-50 rounded-lg">
-                  <div className="text-2xl font-bold text-orange-600">{previewData.summary.weekends}</div>
+                  <div className="text-xl font-bold text-orange-600">{previewData.summary.weekends}</div>
                   <div className="text-sm text-orange-800">Weekends</div>
                 </div>
               </div>
 
               {/* Active Working Rule Info */}
               {previewData.activeWorkingRule && (
-                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                   <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
                     <ClipboardList className="w-4 h-4" />
                     Active Working Rule
                   </h3>
                   <p className="text-sm text-gray-600 mb-2">{previewData.activeWorkingRule.ruleName}</p>
-                  <div className="flex gap-4 text-sm">
+                  <div className="flex gap-3 text-sm">
                     <div>
                       <span className="font-medium">Working:</span> {previewData.activeWorkingRule.workingDays.map(d => getDayName(d)).join(', ')}
                     </div>
@@ -509,7 +509,7 @@ const SmartCalendarManagement = () => {
                 <Button onClick={() => {
                   console.log('❌ Closing preview from close button');
                   setShowPreview(false);
-                }} className="px-8">
+                }} className="px-6 py-2">
                   Close Preview
                 </Button>
               </div>
@@ -527,10 +527,10 @@ const SmartCalendarManagement = () => {
       />
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
         <div className="flex-1">
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Smart Calendar Management</h1>
-          <p className="text-sm sm:text-base text-gray-600 mt-1">System rules engine: working days, weekends, holidays, and attendance logic</p>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900">Smart Calendar Management</h1>
+          <p className="text-sm text-gray-600 mt-1">System rules engine: working days, weekends, holidays, and attendance logic</p>
           
           {/* Architecture explanation */}
       
@@ -539,14 +539,14 @@ const SmartCalendarManagement = () => {
           <Button onClick={() => {
             console.log('👁️ Preview Calendar button clicked');
             handlePreviewCalendar();
-          }} variant="outline" className="w-full sm:w-auto">
+          }} variant="outline" className="w-full sm:w-auto px-4 py-2">
             <Calendar className="w-4 h-4 mr-2" />
             Preview Calendar
           </Button>
           <Button onClick={() => {
             console.log('🔄 Refresh button clicked');
             fetchCalendarData();
-          }} variant="outline" className="w-full sm:w-auto">
+          }} variant="outline" className="w-full sm:w-auto px-4 py-2">
             <Calendar className="w-4 h-4 mr-2" />
             Refresh
           </Button>
@@ -555,50 +555,50 @@ const SmartCalendarManagement = () => {
 
       {/* Summary Cards */}
       {calendarSummary && (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <Card>
-            <CardContent className="p-3 sm:p-4">
+            <CardContent className="p-3">
               <div className="flex items-center">
-                <Calendar className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0" />
-                <div className="ml-2 sm:ml-3 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Total Days</p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{calendarSummary.summary?.totalDays || 0}</p>
+                <Calendar className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-gray-600 truncate">Total Days</p>
+                  <p className="text-lg font-bold text-gray-900">{calendarSummary.summary?.totalDays || 0}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-3 sm:p-4">
+            <CardContent className="p-3">
               <div className="flex items-center">
-                <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" />
-                <div className="ml-2 sm:ml-3 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Working Days</p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{calendarSummary.summary?.workingDays || 0}</p>
+                <Clock className="w-4 h-4 text-green-600 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-gray-600 truncate">Working Days</p>
+                  <p className="text-lg font-bold text-gray-900">{calendarSummary.summary?.workingDays || 0}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-3 sm:p-4">
+            <CardContent className="p-3">
               <div className="flex items-center">
-                <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0" />
-                <div className="ml-2 sm:ml-3 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Holidays</p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{calendarSummary.summary?.holidays || 0}</p>
+                <Users className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-gray-600 truncate">Holidays</p>
+                  <p className="text-lg font-bold text-gray-900">{calendarSummary.summary?.holidays || 0}</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card>
-            <CardContent className="p-3 sm:p-4">
+            <CardContent className="p-3">
               <div className="flex items-center">
-                <Settings className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 flex-shrink-0" />
-                <div className="ml-2 sm:ml-3 min-w-0">
-                  <p className="text-xs sm:text-sm font-medium text-gray-600 truncate">Weekends</p>
-                  <p className="text-lg sm:text-2xl font-bold text-gray-900">{calendarSummary.summary?.weekends || 0}</p>
+                <Settings className="w-4 h-4 text-orange-600 flex-shrink-0" />
+                <div className="ml-2 min-w-0">
+                  <p className="text-xs font-medium text-gray-600 truncate">Weekends</p>
+                  <p className="text-lg font-bold text-gray-900">{calendarSummary.summary?.weekends || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -618,13 +618,13 @@ const SmartCalendarManagement = () => {
         </TabsList>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+        <TabsContent value="overview" className="space-y-3">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
             {/* Active Working Rule */}
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-base sm:text-lg">
-                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  <Settings className="w-4 h-4 mr-2" />
                   Active Working Rule
                 </CardTitle>
               </CardHeader>
@@ -675,7 +675,7 @@ const SmartCalendarManagement = () => {
             <Card>
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center text-base sm:text-lg">
-                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                  <Calendar className="w-4 h-4 mr-2" />
                   Recent Holidays
                 </CardTitle>
               </CardHeader>
@@ -710,11 +710,11 @@ const SmartCalendarManagement = () => {
         </TabsContent>
 
         {/* Working Rules Tab */}
-        <TabsContent value="working-rules" className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <TabsContent value="working-rules" className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <h3 className="text-base sm:text-lg font-medium">Working Rules Configuration</h3>
             {canManageWorkingRules && (
-              <Button onClick={handleCreateWorkingRule} className="w-full sm:w-auto">
+              <Button onClick={handleCreateWorkingRule} className="w-full sm:w-auto px-4 py-2">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Working Rule
               </Button>
@@ -726,11 +726,11 @@ const SmartCalendarManagement = () => {
             )}
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {workingRules.map(rule => (
               <Card key={rule.id}>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                <CardContent className="p-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <h4 className="font-medium text-gray-900 text-sm sm:text-base">{rule.ruleName}</h4>
@@ -755,7 +755,7 @@ const SmartCalendarManagement = () => {
                       
                       <p className="text-xs sm:text-sm text-gray-600 mb-3">{rule.description}</p>
                       
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
                         <div>
                           <p className="text-xs font-medium text-gray-700 mb-1">Working Days:</p>
                           <div className="flex flex-wrap gap-1">
@@ -820,17 +820,17 @@ const SmartCalendarManagement = () => {
             
             {workingRules.length === 0 && (
               <Card>
-                <CardContent className="p-6 sm:p-8 text-center">
-                  <Settings className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+                <CardContent className="p-4 sm:p-6 text-center">
+                  <Settings className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 mx-auto mb-3" />
                   <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Working Rules</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-600 mb-3">
                     {canManageWorkingRules 
                       ? "Create your first working rule to define working days and weekends."
                       : "No working rules have been configured yet. Contact your administrator to set up working rules."
                     }
                   </p>
                   {canManageWorkingRules && (
-                    <Button onClick={handleCreateWorkingRule} className="w-full sm:w-auto">
+                    <Button onClick={handleCreateWorkingRule} className="w-full sm:w-auto px-4 py-2">
                       <Plus className="w-4 h-4 mr-2" />
                       Create Working Rule
                     </Button>
@@ -842,22 +842,22 @@ const SmartCalendarManagement = () => {
         </TabsContent>
 
         {/* Holidays Tab */}
-        <TabsContent value="holidays" className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <TabsContent value="holidays" className="space-y-3">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
             <h3 className="text-base sm:text-lg font-medium">Holiday Management</h3>
             {canManageHolidays && (
-              <Button onClick={handleCreateHoliday} className="w-full sm:w-auto">
+              <Button onClick={handleCreateHoliday} className="w-full sm:w-auto px-4 py-2">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Holiday
               </Button>
             )}
           </div>
 
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {holidays.map(holiday => (
               <Card key={holiday.id}>
-                <CardContent className="p-3 sm:p-4">
-                  <div className="flex flex-col sm:flex-row sm:items-start gap-3">
+                <CardContent className="p-3">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 mb-2">
                         <h4 className="font-medium text-gray-900 text-sm sm:text-base">{holiday.name}</h4>
@@ -930,17 +930,17 @@ const SmartCalendarManagement = () => {
             
             {holidays.length === 0 && (
               <Card>
-                <CardContent className="p-6 sm:p-8 text-center">
-                  <Calendar className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400 mx-auto mb-4" />
+                <CardContent className="p-4 sm:p-6 text-center">
+                  <Calendar className="w-8 h-8 sm:w-10 sm:h-10 text-gray-400 mx-auto mb-3" />
                   <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">No Holidays</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <p className="text-sm text-gray-600 mb-3">
                     {canManageHolidays 
                       ? "Add company holidays to help employees plan their time off."
                       : "No holidays have been configured yet."
                     }
                   </p>
                   {canManageHolidays && (
-                    <Button onClick={handleCreateHoliday} className="w-full sm:w-auto">
+                    <Button onClick={handleCreateHoliday} className="w-full sm:w-auto px-4 py-2">
                       <Plus className="w-4 h-4 mr-2" />
                       Add Holiday
                     </Button>

@@ -30,7 +30,7 @@ const StatsCard = ({
   return (
     <div
       className={cn(
-        'bg-white rounded-lg border border-gray-200 p-6 shadow-sm hover:shadow-md transition-shadow duration-200',
+        'bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow duration-200',
         className
       )}
       {...props}
@@ -40,7 +40,7 @@ const StatsCard = ({
           <p className="text-sm font-medium text-gray-600 mb-1">
             {title}
           </p>
-          <p className="text-3xl font-bold text-gray-900 mb-1">
+          <p className="text-xl font-bold text-gray-900 mb-1">
             {value}
           </p>
           {subtitle && (
@@ -69,10 +69,10 @@ const StatsCard = ({
         </div>
         {Icon && (
           <div className={cn(
-            'p-3 rounded-lg border',
+            'p-2 rounded-lg border',
             colorStyles[color]
           )}>
-            <Icon className="w-6 h-6" />
+            <Icon className="w-5 h-5" />
           </div>
         )}
       </div>

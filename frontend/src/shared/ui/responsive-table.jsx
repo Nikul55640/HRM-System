@@ -173,14 +173,14 @@ export const ResponsiveGrid = ({
 // Responsive stats cards
 export const ResponsiveStatsGrid = ({ stats = [], className = "" }) => {
   return (
-    <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6", className)}>
+    <div className={cn("grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4", className)}>
       {stats.map((stat, index) => (
         <Card key={index} className="hover:shadow-md transition-shadow cursor-pointer">
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">{stat.label}</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
+                <p className="text-lg sm:text-xl font-bold text-gray-900 mt-1">{stat.value}</p>
                 {stat.change && (
                   <p className={cn(
                     "text-xs sm:text-sm mt-1",

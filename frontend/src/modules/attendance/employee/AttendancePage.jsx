@@ -130,20 +130,20 @@ const AttendancePage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Section */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-white border-b border-gray-200 rounded-xl ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 py-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 py-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Attendance Dashboard</h1>
+              <h1 className="text-xl font-bold text-gray-900">Attendance Dashboard</h1>
               <p className="text-gray-600 mt-1">Track your attendance and manage your work schedule</p>
             </div>
             
             {/* Controls */}
-            <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex flex-col sm:flex-row gap-2">
               <select
                 value={selectedMonth}
                 onChange={(e) => setSelectedMonth(parseInt(e.target.value))}
-                className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {months.map((m) => (
                   <option key={m} value={m}>
@@ -155,7 +155,7 @@ const AttendancePage = () => {
               <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(parseInt(e.target.value))}
-                className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-lg bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 {years.map((y) => (
                   <option key={y} value={y}>
@@ -173,14 +173,14 @@ const AttendancePage = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Status Alerts */}
-        <div className="space-y-4 mb-8">
+        <div className="space-y-3 mb-6">
           {todayStats.isLate && (
             <Card className="border-l-4 border-l-yellow-500 bg-yellow-50">
-              <CardContent className="py-4">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
+              <CardContent className="py-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-4 w-4 text-yellow-600" />
                   <div>
                     <p className="font-medium text-yellow-800">
                       You were late today by {todayStats.lateMinutes} minutes
@@ -196,10 +196,10 @@ const AttendancePage = () => {
 
           {todayStats.hasIncompleteRecords && (
             <Card className="border-l-4 border-l-orange-500 bg-orange-50">
-              <CardContent className="py-4">
+              <CardContent className="py-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <Clock className="h-5 w-5 text-orange-600" />
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-orange-600" />
                     <div>
                       <p className="font-medium text-orange-800">
                         Incomplete attendance record detected
@@ -219,10 +219,10 @@ const AttendancePage = () => {
 
           {!todayStats.isLate && !todayStats.hasIncompleteRecords && todayStats.status === 'present' && (
             <Card className="border-l-4 border-l-green-500 bg-green-50">
-              <CardContent className="py-4">
+              <CardContent className="py-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-4 w-4 text-green-600" />
                     <div>
                       <p className="font-medium text-green-800">
                         Great job! You're on time today
@@ -242,9 +242,9 @@ const AttendancePage = () => {
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Left Column - Clock In/Out & Shift Status */}
-          <div className="xl:col-span-1 space-y-6">
+          <div className="xl:col-span-1 space-y-4">
             <ShiftStatusWidget />
             <EnhancedClockInOut />
           </div>
@@ -267,18 +267,18 @@ const AttendancePage = () => {
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="overview" className="space-y-6 mt-6">
+              <TabsContent value="overview" className="space-y-4 mt-4">
                 <AttendanceSummary 
                   summary={attendanceSummary} 
                   period={`${getMonthName(selectedMonth)} ${selectedYear}`}
                 />
               </TabsContent>
 
-              <TabsContent value="history" className="space-y-6 mt-6">
+              <TabsContent value="history" className="space-y-4 mt-4">
                 <SessionHistoryView />
               </TabsContent>
 
-              <TabsContent value="analytics" className="space-y-6 mt-6">
+              <TabsContent value="analytics" className="space-y-4 mt-4">
                 <AttendanceStatsWidget 
                   summary={attendanceSummary} 
                 />

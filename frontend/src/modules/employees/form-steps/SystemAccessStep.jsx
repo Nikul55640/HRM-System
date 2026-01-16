@@ -11,13 +11,13 @@ const SystemAccessStep = ({ values, errors, touched, departments = [] }) => {
   const isHRRole = values.systemAccess?.systemRole === 'HR';
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold text-gray-800 mb-4">System Access & Role Assignment</h2>
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold text-gray-800 mb-3">System Access & Role Assignment</h2>
       
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
         <div className="flex items-start">
           <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+            <svg className="h-4 w-4 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
             </svg>
           </div>
@@ -30,16 +30,16 @@ const SystemAccessStep = ({ values, errors, touched, departments = [] }) => {
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* System Role Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-3">
             System Role <span className="text-red-500">*</span>
           </label>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {systemRoles.map((role) => (
               <div key={role.value} className="relative">
-                <label className="flex items-start p-4 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                <label className="flex items-start p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
                   <Field
                     type="radio"
                     name="systemAccess.systemRole"
@@ -66,9 +66,9 @@ const SystemAccessStep = ({ values, errors, touched, departments = [] }) => {
 
         {/* Department Assignment for HR Role */}
         {isHRRole && (
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
             <h3 className="text-sm font-medium text-yellow-800 mb-3">HR Department Assignment</h3>
-            <p className="text-sm text-yellow-700 mb-4">
+            <p className="text-sm text-yellow-700 mb-3">
               Select which departments this HR admin will have access to manage. They will only be able to view and manage employees within these departments.
             </p>
             
@@ -99,7 +99,7 @@ const SystemAccessStep = ({ values, errors, touched, departments = [] }) => {
 
         {/* Access Summary */}
         {values.systemAccess?.systemRole && values.systemAccess.systemRole !== 'none' && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
             <h3 className="text-sm font-medium text-green-800 mb-2">Access Summary</h3>
             <div className="text-sm text-green-700">
               <p className="mb-2">

@@ -126,11 +126,11 @@ const ShiftsPage = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-3 sm:space-y-4 p-3 sm:p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Shifts</h1>
-          <p className="text-sm sm:text-base text-gray-600">View your assigned shifts and schedule</p>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900">My Shifts</h1>
+          <p className="text-sm text-gray-600">View your assigned shifts and schedule</p>
         </div>
         <Button onClick={requestShiftChange} className="flex items-center justify-center gap-2 w-full sm:w-auto">
           <Icon name="Clock" className="w-4 h-4" />
@@ -148,17 +148,17 @@ const ShiftsPage = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               <div>
                 <label className="text-sm font-medium text-gray-500">Shift Name</label>
-                <p className="text-base sm:text-lg font-semibold">{currentShift.name}</p>
+                <p className="text-base font-semibold">{currentShift.name}</p>
                 {currentShift.shiftCode && (
                   <p className="text-sm text-gray-600">Code: {currentShift.shiftCode}</p>
                 )}
               </div>
               <div>
                 <label className="text-sm font-medium text-gray-500">Working Hours</label>
-                <p className="text-base sm:text-lg font-semibold">
+                <p className="text-base font-semibold">
                   {currentShift.startTime} - {currentShift.endTime}
                 </p>
                 {currentShift.gracePeriod && (
@@ -175,7 +175,7 @@ const ShiftsPage = () => {
                 )}
               </div>
             </div>
-            <div className="mt-4">
+            <div className="mt-3">
               <label className="text-sm font-medium text-gray-500">Working Days</label>
               <div className="flex flex-wrap gap-2 mt-1">
                 {currentShift.days.map((day) => (
@@ -186,7 +186,7 @@ const ShiftsPage = () => {
               </div>
             </div>
             {(currentShift.effectiveFrom || currentShift.effectiveTo) && (
-              <div className="mt-4 text-sm text-gray-600">
+              <div className="mt-3 text-sm text-gray-600">
                 <span className="font-medium">Effective Period: </span>
                 {currentShift.effectiveFrom && new Date(currentShift.effectiveFrom).toLocaleDateString()}
                 {currentShift.effectiveTo && ` to ${new Date(currentShift.effectiveTo).toLocaleDateString()}`}
@@ -203,11 +203,11 @@ const ShiftsPage = () => {
           <CardTitle>Shift History</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {shifts.map((shift) => (
               <div
                 key={shift.id}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 border rounded-lg space-y-2 sm:space-y-0"
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 border rounded-lg space-y-2 sm:space-y-0"
               >
                 <div className="flex-1">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">

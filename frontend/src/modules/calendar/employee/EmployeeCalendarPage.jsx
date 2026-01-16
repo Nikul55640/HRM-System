@@ -219,12 +219,12 @@ const dayEvents = events.filter(event => {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+        <h1 className="text-lg sm:text-xl font-bold text-gray-900">
           Calendar
         </h1>
-        <p className="text-sm sm:text-base text-gray-600">
+        <p className="text-sm text-gray-600">
           View holidays, leaves, and important dates
         </p>
         {process.env.NODE_ENV === "development" && (

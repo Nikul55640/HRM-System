@@ -1,6 +1,6 @@
-import EmployeeDashboard from "./EmployeeDashboard";
-import AdminDashboard from "../../../admin/pages/Dashboard/AdminDashboard";
-import useAuth from "../../../../core/hooks/useAuth";
+import EmployeeDashboard from "./EmployeeDashboard.jsx";
+import AdminDashboard from "../../../admin/pages/Dashboard/AdminDashboard.jsx";
+import useAuth from "../../../../core/hooks/useAuth.js";
 
 const Dashboard = () => {
   const { user } = useAuth();

@@ -134,11 +134,11 @@ const ShiftManagement = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+    <div className="space-y-3 sm:space-y-4 p-3 sm:p-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Shift Management</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900">Shift Management</h1>
           <p className="text-sm sm:text-base text-gray-600 mt-1">Create and manage work shifts</p>
         </div>
         <Button 
@@ -151,44 +151,44 @@ const ShiftManagement = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="w-5 h-5 text-blue-600" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-blue-100 rounded-lg">
+                <Clock className="w-4 h-4 text-blue-600" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-gray-600">Total Shifts</p>
-                <p className="text-xl sm:text-2xl font-bold">{stats.totalShifts || 0}</p>
+                <p className="text-lg sm:text-xl font-bold">{stats.totalShifts || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="w-5 h-5 text-green-600" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-green-100 rounded-lg">
+                <CheckCircle className="w-4 h-4 text-green-600" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-gray-600">Active Shifts</p>
-                <p className="text-xl sm:text-2xl font-bold">{stats.activeShifts || 0}</p>
+                <p className="text-lg sm:text-xl font-bold">{stats.activeShifts || 0}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Users className="w-5 h-5 text-purple-600" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-purple-100 rounded-lg">
+                <Users className="w-4 h-4 text-purple-600" />
               </div>
               <div>
                 <p className="text-xs sm:text-sm text-gray-600">Total Assignments</p>
-                <p className="text-xl sm:text-2xl font-bold">{stats.totalAssignments || 0}</p>
+                <p className="text-lg sm:text-xl font-bold">{stats.totalAssignments || 0}</p>
               </div>
             </div>
           </CardContent>

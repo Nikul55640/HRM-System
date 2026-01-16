@@ -185,7 +185,7 @@ const EmployeeList = () => {
 
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-4">
 
       {/* Scope Indicator */}
       {isScoped && (
@@ -194,13 +194,48 @@ const EmployeeList = () => {
           message={`You are viewing employees from your assigned department${
             assignedDepartments.length > 1 ? "s" : ""
           }.`}
-          className="mb-4"
+          className="mb-3"
         />
       )}
 
+ {/* ---------------- Header ---------------- */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Employees</h1>
+
+        {/* Buttons */}
+        <div className="flex flex-col sm:flex-row gap-2">
+
+          {/* View Toggle */}
+          <div className="flex bg-muted rounded-lg p-1">
+            <Button
+              variant={viewMode === "card" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("card")}
+            >
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+
+            <Button
+              variant={viewMode === "table" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {/* Create Employee */}
+          <PermissionGate permission={MODULES.EMPLOYEE.CREATE}>
+            <Button onClick={handleCreateNew}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Employee
+            </Button>
+          </PermissionGate>
+        </div>
+      </div>
       {/* Filters Section */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="mb-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Search */}
           <div className="sm:col-span-2 lg:col-span-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -290,47 +325,13 @@ const EmployeeList = () => {
         </div>
       </div>
 
-      {/* ---------------- Header ---------------- */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Employees</h1>
-
-        {/* Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3">
-
-          {/* View Toggle */}
-          <div className="flex bg-muted rounded-lg p-1">
-            <Button
-              variant={viewMode === "card" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("card")}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant={viewMode === "table" ? "default" : "ghost"}
-              size="sm"
-              onClick={() => setViewMode("table")}
-            >
-              <List className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Create Employee */}
-          <PermissionGate permission={MODULES.EMPLOYEE.CREATE}>
-            <Button onClick={handleCreateNew}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Employee
-            </Button>
-          </PermissionGate>
-        </div>
-      </div>
+     
 
       {/* ---------------- Employee List ---------------- */}
       {!loading && employees.length === 0 ? (
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Users className="h-12 w-12 text-muted-foreground mb-4" />
+          <CardContent className="flex flex-col items-center justify-center py-8">
+            <Users className="h-8 w-8 text-muted-foreground mb-3" />
             <h3 className="text-lg font-semibold mb-2">No employees found</h3>
 
             <PermissionGate permission={MODULES.EMPLOYEE.CREATE}>
@@ -344,7 +345,7 @@ const EmployeeList = () => {
       ) : (
         <>
           {viewMode === "card" ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {employees.map((emp) => (
                 <EmployeeCard
                   key={emp.id || emp._id}
@@ -368,7 +369,7 @@ const EmployeeList = () => {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="mt-6">
+            <div className="mt-4">
               <Pagination
                 currentPage={pagination.page}
                 totalPages={pagination.totalPages}

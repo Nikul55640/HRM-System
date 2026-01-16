@@ -1,257 +1,138 @@
-# Testing Infrastructure
+# HRM System API Test Suite
 
-This directory contains the testing infrastructure for the HRMS backend, including unit tests, integration tests, and property-based tests.
+Comprehensive API testing suite for all backend endpoints.
 
-## Directory Structure
+## Setup
 
-```
-tests/
-├── property/          # Property-based tests using fast-check
-├── unit/             # Unit tests for individual functions/classes
-├── integration/      # Integration tests for API endpoints
-├── models/           # Model-specific tests
-├── utils/            # Test utilities and helpers
-│   ├── generators.js    # Property-based test generators
-│   └── testHelpers.js   # Common test helper functions
-├── setup.js          # Jest setup file
-└── README.md         # This file
+1. Install dependencies (already done if you ran `npm install` in backend):
+```bash
+npm install
 ```
 
-## Test Types
+2. Configure test environment:
+   - Copy `.env.test` and update with your test credentials
+   - Ensure your backend server is running on the configured port
 
-### Unit Tests
-Unit tests verify specific examples, edge cases, and error conditions for individual components.
-
-**Location:** `tests/unit/` or co-located with source files as `*.test.js`
-
-**Example:**
-```javascript
-describe('calculateDuration', () => {
-  test('calculates duration between two timestamps', () => {
-    const start = new Date('2024-01-01T09:00:00');
-    const end = new Date('2024-01-01T17:00:00');
-    expect(calculateDuration(start, end)).toBe(480); // 8 hours = 480 minutes
-  });
-});
+3. Make sure the backend server is running:
+```bash
+npm run dev
 ```
-
-### Property-Based Tests
-Property-based tests verify universal properties that should hold across all valid inputs using fast-check.
-
-**Location:** `tests/property/*.property.test.js`
-
-**Configuration:** Each property test runs a minimum of 100 iterations.
-
-**Example:**
-```javascript
-import fc from 'fast-check';
-import { runPropertyTest, validSessionGen } from '../utils/generators.js';
-
-// **Feature: enhanced-attendance-system, Property 1: Session creation on clock-in**
-test('clock-in creates session with server timestamp', () => {
-  runPropertyTest(
-    fc.property(employeeIdGen, workLocationGen, (employeeId, location) => {
-      const session = clockIn(employeeId, location);
-      expect(session).toBeDefined();
-      expect(session.checkIn).toBeInstanceOf(Date);
-      expect(session.workLocation).toBe(location);
-    })
-  );
-});
-```
-
-### Integration Tests
-Integration tests verify component interactions, especially API endpoints.
-
-**Location:** `tests/integration/`
-
-**Example:**
-```javascript
-import request from 'supertest';
-import app from '../../src/app.js';
-
-describe('POST /employee/attendance/session/start', () => {
-  test('creates new session with valid data', async () => {
-    const response = await request(app)
-      .post('/employee/attendance/session/start')
-      .set('Authorization', `Bearer ${token}`)
-      .send({ workLocation: 'office' });
-    
-    expect(response.status).toBe(200);
-    expect(response.body.success).toBe(true);
-  });
-});
-```
-
-## Test Utilities
-
-### Generators (`utils/generators.js`)
-
-Smart generators for property-based testing:
-
-- `objectIdGen` - MongoDB ObjectId strings
-- `employeeIdGen` - Employee IDs
-- `timestampGen()` - Timestamps within range
-- `workLocationGen` - Work location values
-- `ipAddressGen` - IPv4 addresses
-- `validSessionGen` - Valid session objects
-- `activeSessionGen` - Active sessions (no checkOut)
-- `sessionWithBreaksGen` - Sessions with breaks
-- `validBreakGen` - Valid break objects
-
-### Helpers (`utils/testHelpers.js`)
-
-Common test helper functions:
-
-- `connectTestDB()` - Connect to in-memory MongoDB
-- `disconnectTestDB()` - Disconnect test database
-- `clearTestDB()` - Clear all collections
-- `mockRequest()` - Create mock Express request
-- `mockResponse()` - Create mock Express response
-- `mockUser()` - Create mock user object
-- `mockHRUser()` - Create mock HR admin user
-- `createTestAttendanceData()` - Create test attendance record
-- `createTestSessionData()` - Create test session
-- `createTestBreakData()` - Create test break
 
 ## Running Tests
 
+Run the complete test suite:
 ```bash
-# Run all tests
-npm test
-
-# Run tests in watch mode
-npm run test:watch
-
-# Run with coverage
-npm run test:coverage
-
-# Run only unit tests
-npm run test:unit
-
-# Run only integration tests
-npm run test:integration
-
-# Run only property-based tests
-npm run test:property
+npm run test:api
 ```
 
-## Writing Property Tests
+## Test Coverage
 
-### 1. Tag Each Property Test
+The test suite covers the following modules:
 
-Each property-based test must include a comment tag referencing the design document:
+### Authentication & Health
+- Health check endpoint
+- User login
+- Token verification
+- Get current user
 
-```javascript
-// **Feature: enhanced-attendance-system, Property 1: Session creation on clock-in**
-// **Validates: Requirements 1.1**
-test('property description', () => {
-  // test implementation
-});
-```
+### Admin Dashboard
+- Dashboard statistics
+- Recent activity
 
-### 2. Use Smart Generators
+### Employee Management
+- List all employees
+- Get employee details
+- Employee management operations
 
-Use constrained generators that produce valid test data:
+### Departments & Designations
+- List departments
+- List designations
 
-```javascript
-import { validSessionGen, runPropertyTest } from '../utils/generators.js';
+### Attendance Management
+- Admin attendance records
+- Live attendance tracking
+- Attendance statistics
+- Employee attendance records
+- Attendance corrections
+- Attendance status types
 
-runPropertyTest(
-  fc.property(validSessionGen, (session) => {
-    // session is guaranteed to have checkOut > checkIn
-    expect(session.checkOut.getTime()).toBeGreaterThan(
-      session.checkIn.getTime()
-    );
-  })
-);
-```
+### Leave Management
+- Admin leave requests
+- Leave balances
+- Leave rollover settings
+- Employee leave requests
+- Employee leave balance
 
-### 3. Test One Property Per Test
+### Shift Management
+- Admin shift management
+- Employee shift schedules
+- Current shift information
 
-Each test should verify a single property:
+### Calendar Management
+- Holidays
+- Company events
+- Event types
+- Smart calendar integration
+- Working rules
+- Calendarific integration
+- Employee calendar view
 
-```javascript
-// Good: Tests one property
-test('break duration equals end time minus start time', () => {
-  runPropertyTest(
-    fc.property(validBreakGen, (breakData) => {
-      const expected = Math.round(
-        (breakData.endTime - breakData.startTime) / (1000 * 60)
-      );
-      expect(breakData.durationMinutes).toBe(expected);
-    })
-  );
-});
+### Profile & Settings
+- Employee profile
+- Emergency contacts
+- Bank details
+- User management
+- System configuration
 
-// Bad: Tests multiple properties
-test('break is valid', () => {
-  // Tests duration, timestamps, and ID format
-});
-```
+### Notifications
+- Get notifications
+- Unread count
 
-### 4. Use Minimum 100 Iterations
+### Leads Management
+- Lead tracking and management
 
-All property tests use the standard configuration with 100+ iterations:
+### Audit Logs
+- System audit logs
 
-```javascript
-import { propertyTestConfig, runPropertyTest } from '../utils/generators.js';
+### System Policies
+- Policy management
 
-// Using runPropertyTest helper (recommended)
-runPropertyTest(fc.property(/* ... */));
+### Work Locations
+- Location management
 
-// Or manually with config
-fc.assert(fc.property(/* ... */), propertyTestConfig);
-```
+### Bank Verification
+- Bank account verification
 
-## Best Practices
+### Help & Support
+- Support ticket management
 
-1. **Isolate Tests**: Each test should be independent and not rely on other tests
-2. **Clean Up**: Use `beforeEach` and `afterEach` to set up and tear down test data
-3. **Mock External Dependencies**: Use mocks for external services (email, notifications)
-4. **Test Edge Cases**: Include tests for boundary conditions and error cases
-5. **Descriptive Names**: Use clear, descriptive test names that explain what is being tested
-6. **Fast Tests**: Keep tests fast by using in-memory database and avoiding unnecessary delays
+### Payslips
+- Employee payslip access
 
-## Coverage Goals
+### Employee Dashboard
+- Dashboard data
+- Recent activity
 
-- **Unit Test Coverage**: 80%+ for business logic
-- **Property Tests**: All correctness properties from design document
-- **Integration Tests**: All critical user flows
-- **Edge Cases**: All error conditions and boundary cases
+## Test Results
 
-## Troubleshooting
+The test suite provides:
+- Color-coded output (Pass/Fail/Skip)
+- Detailed test summary
+- Success rate calculation
+- Failed test details
+- Execution time
 
-### Tests Timing Out
+## Configuration
 
-Increase the timeout in jest.config.js or for specific tests:
+Edit `.env.test` to configure:
+- `API_URL`: Backend API base URL
+- `TEST_EMAIL`: Admin user email for authentication
+- `TEST_PASSWORD`: Admin user password
+- Additional test user credentials for different roles
 
-```javascript
-test('slow test', async () => {
-  // test code
-}, 60000); // 60 second timeout
-```
+## Notes
 
-### MongoDB Connection Issues
-
-Ensure mongodb-memory-server is properly installed:
-
-```bash
-npm install --save-dev mongodb-memory-server
-```
-
-### Fast-check Failures
-
-When a property test fails, fast-check provides a counterexample. Use it to debug:
-
-```
-Property failed after 42 tests
-{ seed: 123456789, path: "42:0", endOnFailure: true }
-Counterexample: [ObjectId("507f1f77bcf86cd799439011"), "office"]
-```
-
-Re-run with the seed to reproduce:
-
-```javascript
-fc.assert(property, { seed: 123456789, path: "42:0" });
-```
+- Tests require a running backend server
+- Some tests may be skipped if no data exists
+- Authentication token is obtained once and reused
+- Tests are non-destructive (read-only operations)

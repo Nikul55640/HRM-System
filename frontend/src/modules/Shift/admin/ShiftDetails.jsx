@@ -86,17 +86,17 @@ const ShiftDetails = ({ shiftId, onClose }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Shift Information */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
+            <Clock className="w-4 h-4" />
             Shift Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <p className="text-sm text-gray-600">Shift Name</p>
               <p className="text-lg font-semibold">{shift.shiftName}</p>
@@ -128,7 +128,7 @@ const ShiftDetails = ({ shiftId, onClose }) => {
           </div>
 
           {shift.description && (
-            <div className="pt-4 border-t">
+            <div className="pt-3 border-t">
               <p className="text-sm text-gray-600">Description</p>
               <p className="text-gray-900">{shift.description}</p>
             </div>
@@ -142,7 +142,7 @@ const ShiftDetails = ({ shiftId, onClose }) => {
           <CardTitle>Work Hours Configuration</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <p className="text-sm text-gray-600">Full Day Hours</p>
               <p className="text-lg font-semibold">{shift.fullDayHours}h</p>
@@ -159,12 +159,12 @@ const ShiftDetails = ({ shiftId, onClose }) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5" />
+            <AlertCircle className="w-4 h-4" />
             Attendance Rules
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <p className="text-sm text-gray-600">Grace Period</p>
               <p className="text-lg font-semibold">{shift.gracePeriodMinutes} min</p>
@@ -187,7 +187,7 @@ const ShiftDetails = ({ shiftId, onClose }) => {
           <CardTitle>Break Configuration</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <p className="text-sm text-gray-600">Default Break</p>
               <p className="text-lg font-semibold">{shift.defaultBreakMinutes} min</p>
@@ -206,7 +206,7 @@ const ShiftDetails = ({ shiftId, onClose }) => {
           <CardTitle>Overtime Configuration</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <p className="text-sm text-gray-600">Overtime Enabled</p>
               <Badge className={shift.overtimeEnabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
@@ -227,19 +227,19 @@ const ShiftDetails = ({ shiftId, onClose }) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
+            <Users className="w-4 h-4" />
             Assigned Employees ({assignedEmployees.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {assignedEmployees.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No employees assigned to this shift</p>
+            <p className="text-gray-500 text-center py-6">No employees assigned to this shift</p>
           ) : (
             <div className="space-y-2">
               {assignedEmployees.map((emp) => (
                 <div
                   key={emp.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200"
                 >
                   <div className="flex-1">
                     <p className="font-medium text-gray-900">

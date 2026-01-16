@@ -272,7 +272,7 @@ const EnhancedClockInOut = () => {
           <div className="space-y-6">
             {/* Current Time Display */}
             <div className="text-center">
-              <div className="text-4xl font-bold text-primary mb-2">
+              <div className="text-2xl font-bold text-primary mb-2">
                 {formatTime(currentTime)}
               </div>
               <div className="text-sm text-muted-foreground">{formatDate(currentTime)}</div>

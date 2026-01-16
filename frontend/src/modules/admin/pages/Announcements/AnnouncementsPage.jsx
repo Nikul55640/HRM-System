@@ -142,10 +142,10 @@ const AnnouncementsPage = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 space-y-4">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Announcements</h1>
+          <h1 className="text-lg font-semibold text-gray-800">Announcements</h1>
           <p className="text-gray-500 text-sm mt-1">Manage company-wide announcements</p>
         </div>
         <PermissionGate permission={MODULES.ANNOUNCEMENT?.CREATE}>
@@ -157,36 +157,36 @@ const AnnouncementsPage = () => {
       </div>
 
       {/* Announcements List */}
-      <div className="space-y-4">
+      <div className="space-y-3">
         {announcements.length === 0 ? (
           <Card className="border-gray-200">
-            <CardContent className="py-12 text-center">
-              <Megaphone className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <CardContent className="py-8 text-center">
+              <Megaphone className="w-10 h-10 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-400 text-sm">No announcements yet</p>
             </CardContent>
           </Card>
         ) : (
           announcements.map((announcement) => (
             <Card key={announcement._id} className="border-gray-200">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="text-lg font-semibold text-gray-800">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-base font-semibold text-gray-800">
                         {announcement.title}
                       </h3>
                       <span className={`inline-block px-2 py-1 rounded text-xs font-medium border ${getPriorityColor(announcement.priority)}`}>
                         {announcement.priority}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-3">{announcement.content}</p>
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <p className="text-sm text-gray-600 mb-2">{announcement.content}</p>
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span>By {announcement.author}</span>
                       <span>•</span>
                       <span>{formatIndianDate(announcement.createdAt)}</span>
                     </div>
                   </div>
-                  <div className="flex gap-2 ml-4">
+                  <div className="flex gap-1 ml-3">
                     <PermissionGate permission={MODULES.ANNOUNCEMENT?.EDIT}>
                       <Button
                         variant="ghost"
@@ -226,12 +226,12 @@ const AnnouncementsPage = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <Card className="max-w-lg w-full border-gray-200">
             <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-800">
+              <CardTitle className="text-base font-semibold text-gray-800">
                 {editingAnnouncement ? 'Edit Announcement' : 'New Announcement'}
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Title *

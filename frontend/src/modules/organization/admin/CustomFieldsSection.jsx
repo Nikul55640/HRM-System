@@ -137,7 +137,7 @@ const CustomFieldsSection = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex justify-between items-center mb-3">
         <div>
           <h3 className="text-lg font-medium text-gray-900">Custom Employee Fields</h3>
           <p className="mt-1 text-sm text-gray-500">
@@ -149,7 +149,7 @@ const CustomFieldsSection = () => {
             onClick={handleAddField}
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            <svg className="h-5 w-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             Add Field
@@ -159,12 +159,12 @@ const CustomFieldsSection = () => {
 
       {/* Edit/Add Form */}
       {isEditing && (
-        <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-          <h4 className="text-md font-medium text-gray-900 mb-4">
+        <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 mb-3">
+          <h4 className="text-md font-medium text-gray-900 mb-2">
             {editingField.index !== undefined ? 'Edit Field' : 'Add New Field'}
           </h4>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Field Name <span className="text-red-500">*</span>
@@ -224,7 +224,7 @@ const CustomFieldsSection = () => {
 
           {/* Dropdown Options */}
           {editingField.type === 'dropdown' && (
-            <div className="mt-4">
+            <div className="mt-3">
               <div className="flex justify-between items-center mb-2">
                 <label className="block text-sm font-medium text-gray-700">Dropdown Options</label>
                 <button
@@ -249,7 +249,7 @@ const CustomFieldsSection = () => {
                     onClick={() => removeOption(index)}
                     className="text-red-600 hover:text-red-800"
                   >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -258,7 +258,7 @@ const CustomFieldsSection = () => {
             </div>
           )}
 
-          <div className="mt-6 flex justify-end space-x-3">
+          <div className="mt-3 flex justify-end space-x-2">
             <button
               type="button"
               onClick={handleCancel}
@@ -280,8 +280,8 @@ const CustomFieldsSection = () => {
 
       {/* Fields Table */}
       {customFields.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="text-center py-6 bg-gray-50 rounded-lg">
+          <svg className="mx-auto h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
           </svg>
           <p className="mt-2 text-sm text-gray-500">No custom fields defined yet</p>
@@ -291,11 +291,11 @@ const CustomFieldsSection = () => {
           <table className="min-w-full divide-y divide-gray-300">
             <thead className="bg-gray-50">
               <tr>
-                <th className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900">Field Name</th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Label</th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Type</th>
-                <th className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900">Required</th>
-                <th className="relative py-3.5 pl-3 pr-4 sm:pr-6">
+                <th className="py-2 pl-3 pr-3 text-left text-sm font-semibold text-gray-900">Field Name</th>
+                <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Label</th>
+                <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Type</th>
+                <th className="px-3 py-2 text-left text-sm font-semibold text-gray-900">Required</th>
+                <th className="relative py-2 pl-3 pr-3 sm:pr-4">
                   <span className="sr-only">Actions</span>
                 </th>
               </tr>
@@ -303,23 +303,23 @@ const CustomFieldsSection = () => {
             <tbody className="divide-y divide-gray-200 bg-white">
               {customFields.map((field, index) => (
                 <tr key={index}>
-                  <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900">
+                  <td className="whitespace-nowrap py-2 pl-3 pr-3 text-sm font-medium text-gray-900">
                     {field.name}
                   </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{field.label}</td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">{field.label}</td>
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                       {field.type}
                     </span>
                   </td>
-                  <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500">
+                  <td className="whitespace-nowrap px-3 py-2 text-sm text-gray-500">
                     {field.required ? (
                       <span className="text-green-600">Yes</span>
                     ) : (
                       <span className="text-gray-400">No</span>
                     )}
                   </td>
-                  <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+                  <td className="relative whitespace-nowrap py-2 pl-3 pr-3 text-right text-sm font-medium sm:pr-4">
                     <button
                       onClick={() => handleEditField(field, index)}
                       className="text-indigo-600 hover:text-indigo-900 mr-4"

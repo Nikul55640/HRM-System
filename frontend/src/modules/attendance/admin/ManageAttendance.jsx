@@ -175,11 +175,11 @@ const ManageAttendance = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+    <div className="space-y-3 sm:space-y-4 p-3 sm:p-4">
       {/* Error Display */}
       {error && (
         <Card className="border-red-200 bg-red-50">
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3">
             <div className="flex items-center space-x-2 text-red-800">
               <div className="text-sm font-medium">Error loading attendance data</div>
             </div>
@@ -190,10 +190,10 @@ const ManageAttendance = () => {
 
       {/* Filters */}
       <Card>
-        <CardHeader className="pb-3 sm:pb-4">
-          <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <CardTitle className="text-lg sm:text-xl">Attendance Records</CardTitle>
+              <CardTitle className="text-base sm:text-lg">Attendance Records</CardTitle>
               <CardDescription className="text-sm">
                 View and manage employee attendance records
               </CardDescription>
@@ -210,8 +210,8 @@ const ManageAttendance = () => {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="p-3 sm:p-6">
-          <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <CardContent className="p-3 sm:p-4">
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div className="sm:col-span-2 lg:col-span-2">
               <form onSubmit={handleSearch} className="relative">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -288,19 +288,19 @@ const ManageAttendance = () => {
       </Card>
 
       {/* Stats Overview */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
         {statistics && Object.entries(statistics).map(([key, value]) => (
           <Card key={key}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs sm:text-sm font-medium capitalize truncate">
+              <CardTitle className="text-xs font-medium capitalize truncate">
                 {key.replace(/([A-Z])/g, ' $1').trim()}
               </CardTitle>
-              <div className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground flex-shrink-0">
-                <BarChart2 className="h-3 w-3 sm:h-4 sm:w-4" />
+              <div className="h-3 w-3 text-muted-foreground flex-shrink-0">
+                <BarChart2 className="h-3 w-3" />
               </div>
             </CardHeader>
             <CardContent className="pb-2">
-              <div className="text-xl sm:text-2xl font-bold">{value}</div>
+              <div className="text-lg font-bold">{value}</div>
               <p className="text-xs text-muted-foreground line-clamp-2">
                 {key === 'present' ? 'Employees present today' : ''}
                 {key === 'absent' ? 'Employees absent today' : ''}
@@ -333,7 +333,7 @@ const ManageAttendance = () => {
                 {loading ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
-                      <Loader2 className="mx-auto h-6 w-6 sm:h-8 sm:w-8 animate-spin" />
+                      <Loader2 className="mx-auto h-5 w-5 animate-spin" />
                       <p className="mt-2 text-sm">Loading attendance records...</p>
                     </TableCell>
                   </TableRow>
@@ -344,11 +344,11 @@ const ManageAttendance = () => {
                       <TableRow key={record.id} className={record.status === 'incomplete' ? 'bg-orange-50' : record.isLate ? 'bg-red-50' : ''}>
                         <TableCell className="font-medium">
                           <div className="flex items-center space-x-2">
-                            <div className="h-6 w-6 sm:h-8 sm:w-8 rounded-full bg-muted flex items-center justify-center font-semibold text-xs sm:text-sm flex-shrink-0">
+                            <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center font-semibold text-xs flex-shrink-0">
                               {getEmployeeInitials(record.employee)}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="font-medium text-sm sm:text-base truncate">
+                              <div className="font-medium text-sm truncate">
                                 {getEmployeeFullName(record.employee)}
                               </div>
                               <div className="text-xs text-muted-foreground truncate">

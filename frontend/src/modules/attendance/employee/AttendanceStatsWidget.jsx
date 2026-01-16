@@ -58,12 +58,12 @@ const AttendanceStatsWidget = ({ todayRecord }) => {
       <CardContent>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {stats.map((stat, index) => (
-            <div key={index} className={`${stat.bgColor} rounded-lg p-4`}>
+            <div key={index} className={`${stat.bgColor} rounded-lg p-3`}>
               <div className="flex items-center gap-2 mb-2">
                 <stat.icon className={`h-4 w-4 ${stat.color}`} />
                 <span className="text-xs text-muted-foreground">{stat.label}</span>
               </div>
-              <div className={`text-2xl font-bold ${stat.color}`}>
+              <div className={`text-lg font-bold ${stat.color}`}>
                 {stat.value}
               </div>
             </div>

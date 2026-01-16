@@ -140,8 +140,8 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
   return (
     <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="w-full max-w-[95vw] sm:max-w-md md:max-w-lg lg:max-w-xl max-h-[95vh] overflow-y-auto">
-        <DialogHeader className="pb-4">
-          <DialogTitle className="text-lg sm:text-xl font-semibold">
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-lg font-semibold">
             {holiday ? "Edit Holiday" : "Add Holiday"}
           </DialogTitle>
           <DialogDescription className="text-sm text-gray-600">
@@ -151,7 +151,7 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={formik.handleSubmit} className="space-y-4 sm:space-y-5">
+        <form onSubmit={formik.handleSubmit} className="space-y-3">
           {/* HOLIDAY NAME */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Holiday Name *</Label>
@@ -159,7 +159,7 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
               name="name"
               value={formik.values.name}
               onChange={formik.handleChange}
-              className={`w-full h-10 sm:h-11 text-sm ${formik.errors.name ? "border-red-500" : ""}`}
+              className={`w-full h-9 text-sm ${formik.errors.name ? "border-red-500" : ""}`}
               placeholder="e.g., Diwali, Christmas, Independence Day"
             />
             {formik.errors.name && (
@@ -174,7 +174,7 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
               name="holidayType"
               value={formik.values.holidayType}
               onChange={formik.handleChange}
-              className={`w-full h-10 sm:h-11 border rounded-md px-3 py-2 text-sm bg-white ${
+              className={`w-full h-9 border rounded-md px-3 py-2 text-sm bg-white ${
                 formik.errors.holidayType ? "border-red-500" : "border-gray-300"
               }`}
             >
@@ -184,7 +184,7 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
             {formik.errors.holidayType && (
               <p className="text-xs sm:text-sm text-red-500">{formik.errors.holidayType}</p>
             )}
-            <div className="flex items-start gap-2 mt-2 p-3 bg-blue-50 rounded-md">
+            <div className="flex items-start gap-2 mt-2 p-2 bg-blue-50 rounded-md">
               <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-xs sm:text-sm text-blue-800">
                 <p className="font-medium mb-1">
@@ -209,7 +209,7 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
                   <Button
                     variant="outline"
                     type="button"
-                    className={`w-full h-10 sm:h-11 justify-start text-left font-normal ${
+                    className={`w-full h-9 justify-start text-left font-normal ${
                       formik.errors.date ? "border-red-500" : ""
                     }`}
                   >
@@ -244,7 +244,7 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
                 name="recurringDate"
                 value={formik.values.recurringDate}
                 onChange={formik.handleChange}
-                className={`w-full h-10 sm:h-11 text-sm ${formik.errors.recurringDate ? "border-red-500" : ""}`}
+                className={`w-full h-9 text-sm ${formik.errors.recurringDate ? "border-red-500" : ""}`}
                 placeholder="e.g., 12-25 for December 25th"
                 maxLength={5}
               />
@@ -269,7 +269,7 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
               name="category"
               value={formik.values.category}
               onChange={formik.handleChange}
-              className={`w-full h-10 sm:h-11 border rounded-md px-3 py-2 text-sm bg-white ${
+              className={`w-full h-9 border rounded-md px-3 py-2 text-sm bg-white ${
                 formik.errors.category ? "border-red-500" : "border-gray-300"
               }`}
             >
@@ -311,13 +311,13 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
                 name="color"
                 value={formik.values.color}
                 onChange={formik.handleChange}
-                className="w-12 h-10 sm:h-11 border rounded cursor-pointer flex-shrink-0"
+                className="w-12 h-9 border rounded cursor-pointer flex-shrink-0"
               />
               <Input
                 name="color"
                 value={formik.values.color}
                 onChange={formik.handleChange}
-                className="flex-1 h-10 sm:h-11 text-sm"
+                className="flex-1 h-9 text-sm"
                 placeholder="#dc2626"
               />
             </div>
@@ -342,7 +342,7 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
           </div>
 
           {/* FOOTER */}
-          <DialogFooter className="flex flex-col sm:flex-row gap-3 sm:gap-2 pt-4 border-t">
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-2 border-t">
             <Button 
               type="button" 
               variant="outline" 

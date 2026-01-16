@@ -74,9 +74,9 @@ const Login = () => {
             {/* Header */}
             <div className="text-center mb-6 sm:mb-8">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow">
-                <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-white" />
+                <Building2 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
                 Welcome Back
               </h1>
               <p className="text-sm sm:text-base text-gray-600 mt-1">

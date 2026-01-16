@@ -126,8 +126,8 @@ const ProfileSettings = () => {
             <CardTitle>Profile Settings</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-center py-12">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             </div>
           </CardContent>
         </Card>
@@ -136,12 +136,12 @@ const ProfileSettings = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle>Profile Settings</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-4">
           {/* Profile Photo Section */}
           <ProfilePhotoUploader
             currentPhoto={profile?.profilePhoto || profile?.profilePicture}

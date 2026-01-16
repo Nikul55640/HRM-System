@@ -93,13 +93,13 @@ const HRMCard = ({
 // Specialized card variants for different HRM use cases
 const HRMStatsCard = ({ title, value, subtitle, icon: Icon, trend, className, ...props }) => (
   <Card className={cn("hover:shadow-md transition-shadow duration-200", className)} {...props}>
-    <CardContent className="p-6">
+    <CardContent className="p-4">
       <div className="flex items-center justify-between">
-        <div className="space-y-2">
+        <div className="space-y-1">
           <p className="text-sm font-medium text-gray-600 dark:text-gray-400">
             {title}
           </p>
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          <p className="text-lg font-bold text-gray-900 dark:text-gray-100">
             {value}
           </p>
           {subtitle && (
@@ -109,8 +109,8 @@ const HRMStatsCard = ({ title, value, subtitle, icon: Icon, trend, className, ..
           )}
         </div>
         {Icon && (
-          <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Icon className="h-6 w-6 text-primary" />
+          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Icon className="h-5 w-5 text-primary" />
           </div>
         )}
       </div>
@@ -136,15 +136,15 @@ const HRMListCard = ({ items = [], title, emptyMessage = "No items found", class
         <CardTitle className="text-lg font-semibold">{title}</CardTitle>
       </CardHeader>
     )}
-    <CardContent className={title ? "pt-0" : "p-6"}>
+    <CardContent className={title ? "pt-0" : "p-4"}>
       {items.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-6 text-gray-500">
           {emptyMessage}
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {items.map((item, index) => (
-            <div key={index} className="flex items-center justify-between p-3 rounded-lg border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+            <div key={index} className="flex items-center justify-between p-2 rounded-lg border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
               <div className="flex-1">
                 {item.title && (
                   <p className="font-medium text-gray-900 dark:text-gray-100">

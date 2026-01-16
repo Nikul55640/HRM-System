@@ -80,7 +80,7 @@ const ProfilePage = () => {
         {title}
         <span className="text-gray-400 cursor-help">?</span>
       </div>
-      <div className="text-2xl font-semibold text-blue-600 mt-2">
+      <div className="text-xl font-semibold text-blue-600 mt-2">
         {value}
       </div>
     </div>
@@ -89,28 +89,28 @@ const ProfilePage = () => {
   /* ================= UI ================= */
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
 
       {/* ================= HEADER ================= */}
       <Card className="rounded-2xl border border-gray-100 shadow-sm">
-        <CardContent className="p-6 flex flex-col md:flex-row md:justify-between md:items-start gap-6">
+        <CardContent className="p-4 flex flex-col md:flex-row md:justify-between md:items-start gap-4">
 
           {/* Left */}
-          <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-center sm:items-start">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 items-center sm:items-start">
             {profileImage ? (
               <img
                 src={profileImage}
                 alt="Profile"
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover ring-4 ring-blue-100"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover ring-4 ring-blue-100"
               />
             ) : (
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl sm:text-3xl font-semibold ring-4 ring-blue-100">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg sm:text-xl font-semibold ring-4 ring-blue-100">
                 {initials}
               </div>
             )}
 
             <div className="text-center sm:text-left">
-              <h1 className="text-xl sm:text-2xl font-semibold text-gray-900">
+              <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
                 {safeValue(firstName)} {safeValue(lastName)}
               </h1>
               <p className="text-gray-600 capitalize">{safeValue(gender)}</p>
@@ -123,7 +123,7 @@ const ProfilePage = () => {
           </div>
 
           {/* Right */}
-          <div className="flex flex-col items-center sm:items-end gap-3 w-full sm:w-auto">
+          <div className="flex flex-col items-center sm:items-end gap-2 w-full sm:w-auto">
             <span
               className={`px-4 py-1 rounded-full text-xs font-semibold ${
                 status === "Active"
@@ -154,7 +154,7 @@ const ProfilePage = () => {
       </div>
 
       {/* ================= DETAILS ================= */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
         {/* Personal Info */}
         <Card className="rounded-2xl border border-gray-100 shadow-sm">
@@ -163,7 +163,7 @@ const ProfilePage = () => {
               Personal Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             <InfoRow label="Full Name" value={`${firstName} ${lastName}`} />
             <InfoRow label="Email" value={email} />
             <InfoRow label="Phone" value={phone} />
@@ -184,7 +184,7 @@ const ProfilePage = () => {
               Work & Account Information
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             <InfoRow label="Employee ID" value={employeeId} />
             <InfoRow label="Role" value={role} />
             <InfoRow label="Account Status" value={status} />
@@ -200,7 +200,7 @@ const ProfilePage = () => {
             Address Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-3">
           {address && Object.keys(address).length > 0 ? (
             Object.entries(address).map(([key, value]) => {
               // Format field labels properly

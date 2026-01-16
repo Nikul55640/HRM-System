@@ -148,15 +148,15 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+    <div className="p-3 space-y-3 max-w-4xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800 flex items-center gap-2">
-            <Bell className="w-6 h-6 text-blue-600" />
+          <h1 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+            <Bell className="w-4 h-4 text-blue-600" />
             Notifications
             {/* Connection Status */}
-            <div className="flex items-center gap-2 ml-4">
+            <div className="flex items-center gap-2 ml-3">
               {isConnecting ? (
                 <div className="flex items-center gap-1 text-xs text-yellow-600">
                   <RefreshCw className="animate-spin w-3 h-3" />
@@ -222,8 +222,8 @@ const NotificationsPage = () => {
 
       {/* Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+        <CardContent className="p-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
@@ -266,12 +266,12 @@ const NotificationsPage = () => {
       </Card>
 
       {/* Notifications List */}
-      <div className="space-y-3">
+      <div className="space-y-2">
         {filteredNotifications.length === 0 ? (
           <Card>
-            <CardContent className="p-8 text-center">
-              <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No notifications found</h3>
+            <CardContent className="p-6 text-center">
+              <Bell className="w-10 h-10 text-gray-400 mx-auto mb-3" />
+              <h3 className="text-base font-medium text-gray-900 mb-2">No notifications found</h3>
               <p className="text-gray-500">
                 {searchTerm || filterType !== 'all' || filterStatus !== 'all'
                   ? 'Try adjusting your filters to see more notifications.'
@@ -287,8 +287,8 @@ const NotificationsPage = () => {
                 !notification.isRead ? 'border-l-4 border-l-blue-500 bg-blue-50/30' : ''
               }`}
             >
-              <CardContent className="p-4">
-                <div className="flex items-start gap-4">
+              <CardContent className="p-3">
+                <div className="flex items-start gap-3">
                   {/* Icon */}
                   <div className="mt-1">
                     {getNotificationIcon(notification.type, notification.category)}
@@ -319,7 +319,7 @@ const NotificationsPage = () => {
                       </div>
                     </div>
 
-                    <p className="text-sm text-gray-600 mb-3">
+                    <p className="text-sm text-gray-600 mb-2">
                       {notification.message}
                     </p>
 

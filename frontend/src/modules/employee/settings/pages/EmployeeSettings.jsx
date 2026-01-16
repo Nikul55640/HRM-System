@@ -69,12 +69,12 @@ const EmployeeSettings = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8 space-y-10">
+    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
 
       {/* ================= HEADER ================= */}
       <Card className="rounded-3xl border border-gray-100 shadow-sm">
-        <CardContent className="p-6">
-          <h1 className="text-2xl font-semibold text-gray-900">
+        <CardContent className="p-4">
+          <h1 className="text-lg font-semibold text-gray-900">
             Settings
           </h1>
           <p className="text-gray-600 mt-1">
@@ -84,24 +84,24 @@ const EmployeeSettings = () => {
       </Card>
 
       {/* ================= SETTINGS GRID ================= */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {settingsCategories.map((category) => {
           const IconComponent = category.icon;
 
           return (
             <Link key={category.id} to={category.path}>
               <Card className="rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all cursor-pointer group">
-                <CardContent className="p-6 space-y-4">
+                <CardContent className="p-4 space-y-3">
 
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                     <div
-                      className={`p-3 rounded-xl border ${colorMap[category.color]}`}
+                      className={`p-2 rounded-xl border ${colorMap[category.color]}`}
                     >
-                      <IconComponent className="w-6 h-6" />
+                      <IconComponent className="w-5 h-5" />
                     </div>
 
                     <div>
-                      <h3 className="text-lg font-semibold group-hover:text-blue-600 transition-colors">
+                      <h3 className="text-base font-semibold group-hover:text-blue-600 transition-colors">
                         {category.title}
                       </h3>
                     </div>
@@ -136,12 +136,12 @@ const EmployeeSettings = () => {
       </div>
 
       {/* ================= QUICK ACTIONS ================= */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">
+      <div className="space-y-3">
+        <h2 className="text-base font-semibold text-gray-900">
           Quick Actions
         </h2>
 
-        <div className="flex flex-wrap gap-4">
+        <div className="flex flex-wrap gap-3">
           <Link to="/employee/profile">
             <Button variant="outline" className="rounded-full flex items-center gap-2">
               <User className="w-4 h-4" />
@@ -167,10 +167,10 @@ const EmployeeSettings = () => {
 
       {/* ================= HELP ================= */}
       <Card className="rounded-2xl border border-gray-100 bg-gray-50">
-        <CardContent className="p-6 flex gap-4">
+        <CardContent className="p-4 flex gap-3">
 
-          <div className="p-3 bg-blue-100 rounded-xl">
-            <Settings className="w-5 h-5 text-blue-600" />
+          <div className="p-2 bg-blue-100 rounded-xl">
+            <Settings className="w-4 h-4 text-blue-600" />
           </div>
 
           <div className="space-y-2">

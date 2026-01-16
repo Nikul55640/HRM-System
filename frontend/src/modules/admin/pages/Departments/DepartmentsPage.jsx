@@ -204,11 +204,11 @@ const DepartmentsPage = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-3 sm:space-y-4 p-3 sm:p-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Department Management</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage organizational departments and structure</p>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900">Department Management</h1>
+          <p className="text-sm text-gray-600">Manage organizational departments and structure</p>
         </div>
         <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
           <DialogTrigger asChild>
@@ -219,12 +219,12 @@ const DepartmentsPage = () => {
           </DialogTrigger>
           <DialogContent className="max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl">
+              <DialogTitle className="text-base sm:text-lg">
                 {editingDepartment ? "Edit Department" : "Add New Department"}
               </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 ">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleSubmit} className="space-y-3 ">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium mb-1">Department Name *</label>
                   <Input
@@ -256,7 +256,7 @@ const DepartmentsPage = () => {
                 />
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium mb-1">Parent Department</label>
                   <select
@@ -296,7 +296,7 @@ const DepartmentsPage = () => {
                 />
               </div>
               
-              <div className="flex flex-col sm:flex-row gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row gap-2 pt-3">
                 <Button type="submit" className="flex-1 order-2 sm:order-1">
                   {editingDepartment ? "Update" : "Create"} Department
                 </Button>
@@ -315,58 +315,58 @@ const DepartmentsPage = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-blue-100 rounded-lg">
-                <Icon name="Building2" className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-blue-100 rounded-lg">
+                <Icon name="Building2" className="w-4 h-4 text-blue-600" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-gray-600 truncate">Active Departments</p>
-                <p className="text-lg sm:text-2xl font-bold">{activeDepartmentCount}</p>
+                <p className="text-xs text-gray-600 truncate">Active Departments</p>
+                <p className="text-lg font-bold">{activeDepartmentCount}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-green-100 rounded-lg">
-                <Icon name="Users" className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-green-100 rounded-lg">
+                <Icon name="Users" className="w-4 h-4 text-green-600" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-gray-600 truncate">Total Employees</p>
-                <p className="text-lg sm:text-2xl font-bold">{totalEmployees}</p>
+                <p className="text-xs text-gray-600 truncate">Total Employees</p>
+                <p className="text-lg font-bold">{totalEmployees}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-purple-100 rounded-lg">
-                <Icon name="TreePine" className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-purple-100 rounded-lg">
+                <Icon name="TreePine" className="w-4 h-4 text-purple-600" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-gray-600 truncate">Parent Departments</p>
-                <p className="text-lg sm:text-2xl font-bold">{parentDepartments.length}</p>
+                <p className="text-xs text-gray-600 truncate">Parent Departments</p>
+                <p className="text-lg font-bold">{parentDepartments.length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center gap-2 sm:gap-3">
-              <div className="p-1.5 sm:p-2 bg-red-100 rounded-lg">
-                <Icon name="XCircle" className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+          <CardContent className="p-3">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 bg-red-100 rounded-lg">
+                <Icon name="XCircle" className="w-4 h-4 text-red-600" />
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-xs sm:text-sm text-gray-600 truncate">Inactive Departments</p>
-                <p className="text-lg sm:text-2xl font-bold">{inactiveDepartmentCount}</p>
+                <p className="text-xs text-gray-600 truncate">Inactive Departments</p>
+                <p className="text-lg font-bold">{inactiveDepartmentCount}</p>
               </div>
             </div>
           </CardContent>

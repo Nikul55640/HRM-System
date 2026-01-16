@@ -38,26 +38,26 @@ const TodayView = ({ date, events, loading }) => {
   const isToday = date.toDateString() === new Date().toDateString();
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs sm:text-sm font-medium">Total Events</CardTitle>
-            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
+            <CardTitle className="text-xs font-medium">Total Events</CardTitle>
+            <Calendar className="h-3 w-3 text-muted-foreground" />
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-lg sm:text-2xl font-bold">{todayEvents.length}</div>
+            <div className="text-lg font-bold">{todayEvents.length}</div>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs sm:text-sm font-medium">Meetings</CardTitle>
-            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-blue-500" />
+            <CardTitle className="text-xs font-medium">Meetings</CardTitle>
+            <Users className="h-3 w-3 text-blue-500" />
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-lg sm:text-2xl font-bold">
+            <div className="text-lg font-bold">
               {todayEvents.filter(e => e.eventType === 'meeting').length}
             </div>
           </CardContent>
@@ -65,11 +65,11 @@ const TodayView = ({ date, events, loading }) => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs sm:text-sm font-medium">Holidays</CardTitle>
-            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-red-500" />
+            <CardTitle className="text-xs font-medium">Holidays</CardTitle>
+            <Calendar className="h-3 w-3 text-red-500" />
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-lg sm:text-2xl font-bold">
+            <div className="text-lg font-bold">
               {todayEvents.filter(e => e.eventType === 'holiday').length}
             </div>
           </CardContent>
@@ -77,11 +77,11 @@ const TodayView = ({ date, events, loading }) => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-xs sm:text-sm font-medium">Birthdays</CardTitle>
-            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-pink-500" />
+            <CardTitle className="text-xs font-medium">Birthdays</CardTitle>
+            <Calendar className="h-3 w-3 text-pink-500" />
           </CardHeader>
           <CardContent className="pt-0">
-            <div className="text-lg sm:text-2xl font-bold">
+            <div className="text-lg font-bold">
               {todayEvents.filter(e => e.eventType === 'birthday').length}
             </div>
           </CardContent>
@@ -91,36 +91,36 @@ const TodayView = ({ date, events, loading }) => {
       {/* Today's Schedule */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Calendar className="h-4 w-4 sm:h-5 sm:w-5" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Calendar className="h-4 w-4" />
             <span className="break-words">
               {isToday ? "Today's Schedule" : `Schedule for ${date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}`}
             </span>
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-3 sm:p-6">
+        <CardContent className="p-3 sm:p-4">
           {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
             </div>
           ) : todayEvents.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <div className="text-center py-8 text-muted-foreground">
+              <Calendar className="h-10 w-10 mx-auto mb-3 opacity-50" />
               <p>No events scheduled for this day</p>
             </div>
           ) : (
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-2 sm:space-y-3">
               {todayEvents.map((event) => (
                 <div
                   key={event._id || event.id}
-                  className={`p-3 sm:p-4 rounded-lg border-l-4 ${getEventColor(event.eventType)}`}
+                  className={`p-3 rounded-lg border-l-4 ${getEventColor(event.eventType)}`}
                 >
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-2">
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-2">
                         <div className="flex items-center gap-2">
-                          {renderEventIcon(event.eventType, "h-5 w-5 sm:h-6 sm:w-6 flex-shrink-0")}
-                          <h3 className="font-semibold text-base sm:text-lg break-words">{event.title}</h3>
+                          {renderEventIcon(event.eventType, "h-4 w-4 flex-shrink-0")}
+                          <h3 className="font-semibold text-sm break-words">{event.title}</h3>
                         </div>
                         <Badge variant="outline" className="self-start sm:self-auto">{event.eventType}</Badge>
                       </div>

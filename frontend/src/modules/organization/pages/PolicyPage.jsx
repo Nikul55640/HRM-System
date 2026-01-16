@@ -42,10 +42,10 @@ const PolicyPage = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 space-y-4">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Company Policies</h1>
+          <h1 className="text-lg font-semibold text-gray-800">Company Policies</h1>
           <p className="text-gray-500 text-sm mt-1">Manage company policies and documents</p>
         </div>
         <Button>
@@ -57,7 +57,7 @@ const PolicyPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {policies.map((policy) => (
           <Card key={policy._id} className="border-gray-200">
-            <CardContent className="p-6">
+            <CardContent className="p-4">
               <div className="flex items-start justify-between mb-4">
                 <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                   <FileText className="w-6 h-6 text-blue-600" />

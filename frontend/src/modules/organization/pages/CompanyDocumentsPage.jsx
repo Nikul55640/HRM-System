@@ -32,10 +32,10 @@ const CompanyDocumentsPage = () => {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 space-y-4">
       <div className="flex justify-between items-start">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-800">Company Documents</h1>
+          <h1 className="text-lg font-semibold text-gray-800">Company Documents</h1>
           <p className="text-gray-500 text-sm mt-1">Manage company-wide documents</p>
         </div>
         <Button>

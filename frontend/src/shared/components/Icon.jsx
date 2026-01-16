@@ -201,7 +201,7 @@ const iconMap = {
   Globe2
 };
 
-const Icon = ({ name, className = "w-5 h-5", ...props }) => {
+const Icon = ({ name, className = "w-4 h-4", ...props }) => {
   const LucideIcon = iconMap[name];
   
   if (!LucideIcon) {

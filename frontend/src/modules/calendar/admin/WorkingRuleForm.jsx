@@ -91,10 +91,10 @@ const WorkingRuleForm = ({ rule = null, onSave, onCancel }) => {
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader className="pb-4">
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center text-lg sm:text-xl">
-            <Calendar className="w-5 h-5 mr-2" />
+          <CardTitle className="flex items-center text-lg">
+            <Calendar className="w-4 h-4 mr-2" />
             {rule?.id ? 'Edit Working Rule' : 'Create Working Rule'}
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={onCancel}>
@@ -104,7 +104,7 @@ const WorkingRuleForm = ({ rule = null, onSave, onCancel }) => {
       </CardHeader>
 
       <CardContent className="pt-0">
-        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-3">
           {/* Rule Name */}
           <div className="space-y-2">
             <Label htmlFor="ruleName" className="text-sm font-medium">Rule Name *</Label>
@@ -119,23 +119,23 @@ const WorkingRuleForm = ({ rule = null, onSave, onCancel }) => {
           </div>
 
           {/* Working Days Selection */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Label className="text-sm font-medium">Working Days Configuration *</Label>
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
+            <div className="grid grid-cols-7 gap-1">
               {dayNames.map((day, index) => {
                 const isWorking = formData.workingDays.includes(index);
                 const isWeekend = formData.weekendDays.includes(index);
                 
                 return (
                   <div key={index} className="text-center">
-                    <div className="text-xs font-medium text-gray-600 mb-2">
+                    <div className="text-xs font-medium text-gray-600 mb-1">
                       {day.slice(0, 3)}
                     </div>
                     <div className="space-y-1">
                       <button
                         type="button"
                         onClick={() => handleDayToggle(index, true)}
-                        className={`w-full px-1 sm:px-2 py-1 text-xs rounded ${
+                        className={`w-full px-1 py-1 text-xs rounded ${
                           isWorking 
                             ? 'bg-green-100 text-green-800 border border-green-300' 
                             : 'bg-gray-100 text-gray-600 border border-gray-300'
@@ -146,7 +146,7 @@ const WorkingRuleForm = ({ rule = null, onSave, onCancel }) => {
                       <button
                         type="button"
                         onClick={() => handleDayToggle(index, false)}
-                        className={`w-full px-1 sm:px-2 py-1 text-xs rounded ${
+                        className={`w-full px-1 py-1 text-xs rounded ${
                           isWeekend 
                             ? 'bg-red-100 text-red-800 border border-red-300' 
                             : 'bg-gray-100 text-gray-600 border border-gray-300'
@@ -161,7 +161,7 @@ const WorkingRuleForm = ({ rule = null, onSave, onCancel }) => {
             </div>
             
             {/* Summary */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm">
+            <div className="flex flex-col sm:flex-row gap-2 text-sm">
               <div className="flex-1">
                 <span className="font-medium text-gray-700">Working Days: </span>
                 <div className="inline-flex gap-1 flex-wrap mt-1">
@@ -186,7 +186,7 @@ const WorkingRuleForm = ({ rule = null, onSave, onCancel }) => {
           </div>
 
           {/* Date Range */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-2">
               <Label htmlFor="effectiveFrom" className="text-sm font-medium">Effective From *</Label>
               <Input
@@ -236,7 +236,7 @@ const WorkingRuleForm = ({ rule = null, onSave, onCancel }) => {
           </div>
 
           {/* Actions */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+          <div className="flex flex-col sm:flex-row gap-2 pt-2">
             <Button type="submit" disabled={loading} className="w-full sm:w-auto">
               <Save className="w-4 h-4 mr-2" />
               {loading ? 'Saving...' : (rule?.id ? 'Update Rule' : 'Create Rule')}

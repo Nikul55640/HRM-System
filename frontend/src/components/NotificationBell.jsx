@@ -82,23 +82,23 @@ const NotificationBell = () => {
   const getNotificationIcon = (type, category) => {
     switch (category || type) {
       case 'leave':
-        return <Calendar className="w-5 h-5 text-blue-600" />;
+        return <Calendar className="w-4 h-4 text-blue-600" />;
       case 'attendance':
-        return <Clock className="w-5 h-5 text-orange-600" />;
+        return <Clock className="w-4 h-4 text-orange-600" />;
       case 'shift':
-        return <Users className="w-5 h-5 text-purple-600" />;
+        return <Users className="w-4 h-4 text-purple-600" />;
       case 'system':
-        return <Settings className="w-5 h-5 text-gray-600" />;
+        return <Settings className="w-4 h-4 text-gray-600" />;
       case 'audit':
-        return <FileText className="w-5 h-5 text-green-600" />;
+        return <FileText className="w-4 h-4 text-green-600" />;
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-600" />;
+        return <CheckCircle className="w-4 h-4 text-green-600" />;
       case 'error':
-        return <XCircle className="w-5 h-5 text-red-600" />;
+        return <XCircle className="w-4 h-4 text-red-600" />;
       case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
+        return <AlertTriangle className="w-4 h-4 text-yellow-600" />;
       default:
-        return <Bell className="w-5 h-5 text-blue-600" />;
+        return <Bell className="w-4 h-4 text-blue-600" />;
     }
   };
 
@@ -183,7 +183,7 @@ const NotificationBell = () => {
           "
         >
           {/* Header */}
-          <div className="p-4 border-b border-gray-200">
+          <div className="p-3 border-b border-gray-200">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
               <div>
                 <h3 className="font-semibold text-gray-900">Notifications</h3>
@@ -212,8 +212,8 @@ const NotificationBell = () => {
           {/* Notifications */}
           <div className="overflow-y-auto max-h-[60vh] sm:max-h-80">
             {notifications.length === 0 ? (
-              <div className="p-8 text-center text-gray-500">
-                <Bell className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+              <div className="p-6 text-center text-gray-500">
+                <Bell className="w-10 h-10 mx-auto mb-2 text-gray-300" />
                 <p>No notifications yet</p>
                 <p className="text-sm">You'll see new notifications here</p>
               </div>
@@ -222,11 +222,11 @@ const NotificationBell = () => {
                 {notifications.slice(0, 20).map((notification) => (
                   <div
                     key={notification.id}
-                    className={`p-4 sm:p-3 hover:bg-gray-50 ${
+                    className={`p-3 hover:bg-gray-50 ${
                       !notification.isRead ? 'bg-blue-50' : ''
                     }`}
                   >
-                    <div className="flex gap-3">
+                    <div className="flex gap-2">
                       {getNotificationIcon(
                         notification.type,
                         notification.category
@@ -261,7 +261,7 @@ const NotificationBell = () => {
                                 onClick={(e) =>
                                   handleMarkAsRead(notification.id, e)
                                 }
-                                className="p-2 sm:p-1 hover:text-blue-600"
+                                className="p-1 hover:text-blue-600"
                               >
                                 <Check className="w-4 h-4" />
                               </button>
@@ -270,7 +270,7 @@ const NotificationBell = () => {
                               onClick={(e) =>
                                 handleDelete(notification.id, e)
                               }
-                              className="p-2 sm:p-1 hover:text-red-600"
+                              className="p-1 hover:text-red-600"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>

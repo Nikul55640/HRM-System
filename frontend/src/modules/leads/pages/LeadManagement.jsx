@@ -166,9 +166,9 @@ const LeadManagement = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h1 className="text-xl sm:text-2xl font-bold">Lead Management</h1>
+    <div className="space-y-3 sm:space-y-4 p-3 sm:p-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+        <h1 className="text-lg sm:text-xl font-bold">Lead Management</h1>
         <Button onClick={handleCreateLead} className="w-full sm:w-auto">
           <Plus className="w-4 h-4 mr-2" />
           <span className="hidden sm:inline">Add Lead</span>

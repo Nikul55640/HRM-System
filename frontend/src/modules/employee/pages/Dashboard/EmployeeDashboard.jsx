@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "../../../../shared/ui/card";
 import employeeDashboardService from "../../../../services/employeeDashboardService";
+import recentActivityService from "../../../../services/recentActivityService";
 import { useNotifications } from "../../../../services/useEmployeeSelfService";
 import { usePermissions } from "../../../../core/hooks";
 import { MODULES } from "../../../../core/utils/rolePermissions";
@@ -49,7 +50,8 @@ const EmployeeDashboard = () => {
   const [dashboardData, setDashboardData] = useState(null);
   const [leaveBalance, setLeaveBalance] = useState(null);
   const [attendanceSummary, setAttendanceSummary] = useState(null);
-  const [todayActivities, setTodayActivities] = useState([]);
+  const [recentActivities, setRecentActivities] = useState([]);
+  const [activitiesLoading, setActivitiesLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   
@@ -88,6 +90,7 @@ const EmployeeDashboard = () => {
         fetchLeaveBalance(),
         fetchAttendanceSummary(),
         fetchTodayRecord(), // Fetch attendance data
+        fetchRecentActivities(), // Fetch recent activities from API
         fetchCalendarEvents(), // Fetch calendar events
       ]);
       setLoading(false);
@@ -111,9 +114,15 @@ const EmployeeDashboard = () => {
       fetchTodayRecord(true); // Silent refresh
     }, 30000);
 
+    // Refresh activities every 2 minutes
+    const activitiesRefreshTimer = setInterval(() => {
+      fetchRecentActivities(true); // Silent refresh
+    }, 120000);
+
     return () => {
       clearInterval(timer);
       clearInterval(attendanceRefreshTimer);
+      clearInterval(activitiesRefreshTimer);
     };
   }, [fetchTodayRecord]);
 
@@ -132,12 +141,13 @@ const EmployeeDashboard = () => {
 
   // Update today activities when todayRecord changes
   useEffect(() => {
-    if (todayRecord) {
-      updateTodayActivities(todayRecord);
-    } else {
-      setTodayActivities([]);
+    // We'll now get activities from API instead of just attendance record
+    if (recentActivities.length === 0) {
+      fetchRecentActivities().catch(error => {
+        console.warn('Failed to fetch recent activities on mount:', error);
+      });
     }
-  }, [todayRecord]);
+  }, []); // Remove todayRecord dependency since we're using API now
 
 
 
@@ -171,7 +181,30 @@ const EmployeeDashboard = () => {
     }
   };
 
-  // Helper function to update today's activities based on attendance record
+  // Fetch recent activities from API
+  const fetchRecentActivities = async (silent = false) => {
+    if (!silent) setActivitiesLoading(true);
+    
+    try {
+      const response = await recentActivityService.getTodayActivities();
+      
+      if (response.success) {
+        console.log('✅ [DASHBOARD] Recent activities API response:', response.data);
+        setRecentActivities(response.data || []);
+      } else {
+        console.warn('Recent activities API returned error:', response.message);
+        setRecentActivities([]);
+      }
+    } catch (error) {
+      console.error('Recent activities API error:', error);
+      // Fallback to empty array if API is not available
+      setRecentActivities([]);
+    } finally {
+      if (!silent) setActivitiesLoading(false);
+    }
+  };
+
+  // Helper function to update today's activities based on attendance record (legacy support)
   const updateTodayActivities = (record) => {
     const activities = [];
 
@@ -456,6 +489,7 @@ const EmployeeDashboard = () => {
         fetchLeaveBalance(),
         fetchAttendanceSummary(),
         fetchTodayRecord(true),
+        fetchRecentActivities(true),
         getNotifications({ limit: 5 }),
         fetchCalendarEvents()
       ]);
@@ -485,6 +519,44 @@ const EmployeeDashboard = () => {
         return <Bell className="w-4 h-4 text-gray-500" />;
       default:
         return <Bell className="w-4 h-4 text-gray-500" />;
+    }
+  };
+
+  // Helper function to render activity icons
+  const renderActivityIcon = (iconName, color = 'gray') => {
+    const iconProps = {
+      className: `w-3 h-3 ${
+        color === 'green' ? 'text-green-600' :
+        color === 'blue' ? 'text-blue-600' :
+        color === 'orange' ? 'text-orange-600' :
+        color === 'yellow' ? 'text-yellow-600' :
+        color === 'red' ? 'text-red-600' :
+        color === 'purple' ? 'text-purple-600' :
+        'text-gray-600'
+      }`
+    };
+
+    switch (iconName) {
+      case 'CheckCircle':
+        return <CheckCircle {...iconProps} />;
+      case 'Coffee':
+        return <Coffee {...iconProps} />;
+      case 'Play':
+        return <Play {...iconProps} />;
+      case 'Timer':
+        return <Timer {...iconProps} />;
+      case 'Palmtree':
+        return <Palmtree {...iconProps} />;
+      case 'AlertCircle':
+        return <AlertCircle {...iconProps} />;
+      case 'Target':
+        return <Target {...iconProps} />;
+      case 'User':
+        return <User {...iconProps} />;
+      case 'FileText':
+        return <FileText {...iconProps} />;
+      default:
+        return <Activity {...iconProps} />;
     }
   };
 
@@ -575,16 +647,16 @@ const EmployeeDashboard = () => {
 
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-6xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 p-3 md:p-4">
+      <div className="max-w-6xl mx-auto space-y-4">
         
         {/* 🟢 SECTION 1: HEADER */}
         <Card className="bg-white shadow-sm rounded-xl border-0">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
               {/* Left side */}
               <div className="space-y-2">
-                <h1 className="text-2xl font-bold text-gray-900">
+                <h1 className="text-lg font-bold text-gray-900">
                   Hello, {fullName || "Employee"}
                   <span className="ml-2 text-yellow-500">👋</span>
                 </h1>
@@ -608,7 +680,7 @@ const EmployeeDashboard = () => {
               </div>
 
               {/* Right side */}
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
                 {/* Refresh button */}
                 <button
                   onClick={refreshDashboard}
@@ -616,14 +688,14 @@ const EmployeeDashboard = () => {
                   className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
                   title="Refresh dashboard"
                 >
-                  <Activity className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} />
+                  <Activity className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                 </button>
                 
-                <div className="text-center space-y-2">
+                <div className="text-center space-y-1">
                   <button
                     onClick={isClockedIn ? handleClockOut : handleClockIn}
                     disabled={isLoading}
-                    className={`px-8 py-3 rounded-lg font-semibold text-white transition-all duration-200 ${
+                    className={`px-6 py-2 rounded-lg font-semibold text-white transition-all duration-200 ${
                       isClockedIn
                         ? "bg-red-500 hover:bg-red-600"
                         : "bg-green-500 hover:bg-green-600"
@@ -651,7 +723,7 @@ const EmployeeDashboard = () => {
         </Card>
 
         {/* 🟢 SECTION 2: STAT CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard
             title={
               <div className="flex items-center gap-2">
@@ -727,63 +799,69 @@ const EmployeeDashboard = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           {/* 🟢 SECTION 3: TODAY'S ACTIVITY TIMELINE */}
           <div className="lg:col-span-2">
             <Card className="bg-white shadow-sm rounded-xl border-0">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Activity className="w-5 h-5 text-blue-600" />
-                  Today – {format(new Date(), "dd MMM")}
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Activity className="w-4 h-4 text-blue-600" />
+                  Recent Activity
+                  {activitiesLoading && (
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin ml-2"></div>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {todayActivities.length > 0 ? (
-                    todayActivities.map((activity, index) => (
-                      <div key={index} className="flex items-center gap-4">
-                        <div className={`p-2 rounded-full ${
+                <div className="space-y-3">
+                  {activitiesLoading && recentActivities.length === 0 ? (
+                    <div className="text-center py-4">
+                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                      <p className="text-sm text-gray-500">Loading activities...</p>
+                    </div>
+                  ) : recentActivities.length > 0 ? (
+                    recentActivities.slice(0, 8).map((activity, index) => (
+                      <div key={activity.id || index} className="flex items-center gap-3">
+                        <div className={`p-1.5 rounded-full ${
                           activity.status === 'completed' ? 'bg-green-100' :
-                          activity.status === 'current' ? 'bg-orange-100' : 'bg-gray-100'
+                          activity.status === 'current' ? 'bg-orange-100' :
+                          activity.status === 'pending' ? 'bg-yellow-100' :
+                          activity.status === 'rejected' ? 'bg-red-100' :
+                          'bg-gray-100'
                         }`}>
-                          {activity.icon === 'CheckCircle' && (
-                            <CheckCircle className={`w-4 h-4 ${
-                              activity.status === 'completed' ? 'text-green-600' :
-                              activity.status === 'current' ? 'text-orange-600 animate-pulse' : 'text-gray-600'
-                            }`} />
-                          )}
-                          {activity.icon === 'Coffee' && (
-                            <Coffee className={`w-4 h-4 ${
-                              activity.status === 'completed' ? 'text-green-600' :
-                              activity.status === 'current' ? 'text-orange-600 animate-pulse' : 'text-gray-600'
-                            }`} />
-                          )}
-                          {activity.icon === 'Play' && (
-                            <Play className={`w-4 h-4 ${
-                              activity.status === 'completed' ? 'text-green-600' :
-                              activity.status === 'current' ? 'text-orange-600 animate-pulse' : 'text-gray-600'
-                            }`} />
-                          )}
-                          {activity.icon === 'Timer' && (
-                            <Timer className={`w-4 h-4 ${
-                              activity.status === 'completed' ? 'text-green-600' :
-                              activity.status === 'current' ? 'text-orange-600 animate-pulse' : 'text-gray-600'
-                            }`} />
-                          )}
+                          {renderActivityIcon(activity.icon, activity.color)}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-medium text-gray-900">{activity.activity}</span>
-                            <span className="text-sm text-gray-500">{activity.time}</span>
+                            <div>
+                              <span className="font-medium text-gray-900 text-sm">{activity.title}</span>
+                              {activity.description && (
+                                <p className="text-xs text-gray-500 mt-0.5">{activity.description}</p>
+                              )}
+                            </div>
+                            <span className="text-sm text-gray-500">
+                              {recentActivityService.formatTime(activity.timestamp)}
+                            </span>
                           </div>
                         </div>
                       </div>
                     ))
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Clock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-                      <p className="text-sm text-gray-500">No activities recorded for today</p>
-                      <p className="text-sm">Clock in to start tracking your day</p>
+                    <div className="text-center py-6 text-gray-500">
+                      <Clock className="w-6 h-6 mx-auto mb-2 text-gray-400" />
+                      <p className="text-sm text-gray-500">No recent activities</p>
+                      <p className="text-sm">Your activities will appear here</p>
+                    </div>
+                  )}
+                  
+                  {recentActivities.length > 8 && (
+                    <div className="text-center pt-2 border-t">
+                      <button 
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                        onClick={() => navigate('/employee/activities')}
+                      >
+                        View all activities →
+                      </button>
                     </div>
                   )}
                 </div>
@@ -791,12 +869,12 @@ const EmployeeDashboard = () => {
             </Card>
 
             {/* 🟢 SECTION 4: QUICK ACTIONS */}
-            <Card className="bg-white shadow-sm rounded-xl border-0 mt-6">
+            <Card className="bg-white shadow-sm rounded-xl border-0 mt-4">
               <CardHeader>
-                <CardTitle className="text-lg">Quick Actions</CardTitle>
+                <CardTitle className="text-base">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-3">
                   <QuickActionButton
                     icon={<FileText className="w-6 h-6" />}
                     label="Apply Leave"
@@ -836,25 +914,25 @@ const EmployeeDashboard = () => {
           </div>
 
           {/* Right Column */}
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* 🟢 SECTION 5: NOTIFICATIONS */}
             <Card className="bg-white shadow-sm rounded-xl border-0">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Bell className="w-5 h-5 text-yellow-600" />
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Bell className="w-4 h-4 text-yellow-600" />
                   Notifications
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {notificationsLoading ? (
-                    <div className="text-center py-4">
-                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                    <div className="text-center py-3">
+                      <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
                       <p className="text-sm text-gray-500">Loading notifications...</p>
                     </div>
                   ) : notificationsError ? (
-                    <div className="text-center py-4">
-                      <AlertCircle className="w-6 h-6 text-red-500 mx-auto mb-2" />
+                    <div className="text-center py-3">
+                      <AlertCircle className="w-5 h-5 text-red-500 mx-auto mb-2" />
                       <p className="text-sm text-red-600">Failed to load notifications</p>
                     </div>
                   ) : notifications && notifications.length > 0 ? (
@@ -862,7 +940,7 @@ const EmployeeDashboard = () => {
                       {notifications.slice(0, 5).map((notification, index) => (
                         <div 
                           key={notification.id || index} 
-                          className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                          className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
                             notification.read ? 'bg-gray-50' : 'bg-blue-50 border border-blue-200'
                           }`}
                           onClick={() => !notification.read && markAsRead(notification.id)}
@@ -893,8 +971,8 @@ const EmployeeDashboard = () => {
                       </button>
                     </>
                   ) : (
-                    <div className="text-center py-8 text-gray-500">
-                      <Bell className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                    <div className="text-center py-6 text-gray-500">
+                      <Bell className="w-6 h-6 mx-auto mb-2 text-gray-400" />
                       <p className="text-sm">No notifications</p>
                       <p className="text-xs">You're all caught up!</p>
                     </div>
@@ -907,8 +985,8 @@ const EmployeeDashboard = () => {
             <Card className="bg-white shadow-sm rounded-xl border-0">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Calendar className="w-5 h-5 text-purple-600" />
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Calendar className="w-4 h-4 text-purple-600" />
                     Calendar
                   </CardTitle>
                   <div className="flex items-center gap-1">
@@ -1066,7 +1144,7 @@ const EmployeeDashboard = () => {
                 </div>
                 
                 <button 
-                  className="w-full mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium"
+                  className="w-full mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
                   onClick={() => navigate('/employee/calendar')}
                 >
                   View Full Calendar →
@@ -1107,7 +1185,7 @@ StatCard.propTypes = {
 const QuickActionButton = ({ icon, label, onClick }) => (
   <button
     onClick={onClick}
-    className="flex flex-col items-center justify-center p-6 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-105 group"
+    className="flex flex-col items-center justify-center p-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200 hover:scale-105 group"
   >
     <div className="text-blue-600 mb-2 group-hover:scale-110 transition-transform">
       {icon}

@@ -144,10 +144,10 @@ const ProfilePhotoUploader = ({ currentPhoto, onPhotoUpdate }) => {
   };
 
   return (
-    <Card className="p-6">
-      <div className="flex flex-col items-center space-y-4">
+    <Card className="p-4">
+      <div className="flex flex-col items-center space-y-3">
         <div className="relative">
-          <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-lg">
+          <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-lg">
             {preview ? (
               <img
                 src={getImageUrl(preview)}
@@ -165,22 +165,22 @@ const ProfilePhotoUploader = ({ currentPhoto, onPhotoUpdate }) => {
               />
             ) : null}
             <div className={`fallback-avatar w-full h-full flex items-center justify-center bg-gray-200 ${preview ? 'hidden' : ''}`}>
-              <User className="w-16 h-16 text-gray-400" />
+              <User className="w-12 h-12 text-gray-400" />
             </div>
           </div>
           
           {/* Camera icon overlay */}
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="absolute bottom-0 right-0 w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-700 transition-colors"
+            className="absolute bottom-0 right-0 w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white shadow-lg hover:bg-blue-700 transition-colors"
             disabled={uploading}
           >
-            <Camera className="w-5 h-5" />
+            <Camera className="w-4 h-4" />
           </button>
         </div>
 
         <div className="text-center">
-          <h3 className="text-lg font-medium text-gray-900">Profile Photo</h3>
+          <h3 className="text-base font-medium text-gray-900">Profile Photo</h3>
           <p className="text-sm text-gray-500 mt-1">
             JPG or PNG. Max size 2MB.
           </p>

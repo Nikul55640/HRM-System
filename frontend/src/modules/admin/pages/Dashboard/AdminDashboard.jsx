@@ -125,17 +125,17 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
       {/* Header */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-semibold text-gray-800">Admin Dashboard</h1>
+        <h1 className="text-lg sm:text-xl font-semibold text-gray-800">Admin Dashboard</h1>
         <p className="text-gray-500 text-sm mt-1">
           Welcome back, {user?.fullName || 'Admin'}
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           const colorClasses = {
@@ -147,17 +147,17 @@ const AdminDashboard = () => {
 
           return (
             <Card key={index} className="border-gray-200">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-gray-600">{stat.title}</p>
-                    <p className="text-2xl font-semibold text-gray-800 mt-2">
+                    <p className="text-lg font-semibold text-gray-800 mt-1">
                       {stat.value}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">{stat.change}</p>
                   </div>
-                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${colorClasses[stat.color]}`}>
-                    <Icon className="w-6 h-6" />
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClasses[stat.color]}`}>
+                    <Icon className="w-5 h-5" />
                   </div>
                 </div>
               </CardContent>
@@ -167,7 +167,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <Card className="border-gray-200">
           <CardHeader>
             <CardTitle className="text-base font-semibold text-gray-800">
@@ -175,7 +175,7 @@ const AdminDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-gray-800">
+            <div className="text-xl font-semibold text-gray-800">
               {stats.departmentCount || 0}
             </div>
             <p className="text-sm text-gray-500 mt-1">Active departments</p>
@@ -189,7 +189,7 @@ const AdminDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-gray-800">
+            <div className="text-xl font-semibold text-gray-800">
               {stats.newHiresThisMonth || 0}
             </div>
             <p className="text-sm text-gray-500 mt-1">This month</p>
@@ -203,7 +203,7 @@ const AdminDashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-semibold text-gray-800">
+            <div className="text-xl font-semibold text-gray-800">
               {stats.pendingDocuments || 0}
             </div>
             <p className="text-sm text-gray-500 mt-1">Awaiting review</p>
@@ -212,7 +212,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Pending Tasks & Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Pending Tasks */}
         <Card className="border-gray-200">
           <CardHeader>
@@ -225,7 +225,7 @@ const AdminDashboard = () => {
               {dashboardData?.pendingTasks?.map((task) => (
                 <div
                   key={task.id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
                   onClick={() => {
                     if (task.task.includes('leave')) navigate('/admin/leave-requests');
                     if (task.task.includes('payroll')) navigate('/payroll');
@@ -256,9 +256,9 @@ const AdminDashboard = () => {
           <CardContent>
             <div className="space-y-3">
               {dashboardData?.recentActivities?.map((activity) => (
-                <div key={activity.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-4 h-4 text-blue-600" />
+                <div key={activity.id} className="flex items-start gap-2 p-2 bg-gray-50 rounded-lg">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-3 h-3 text-blue-600" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-700">{activity.action}</p>
@@ -281,33 +281,33 @@ const AdminDashboard = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <button
               onClick={() => navigate('/admin/users')}
-              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
+              className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
             >
-              <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+              <Users className="w-5 h-5 text-blue-600 mx-auto mb-2" />
               <span className="text-sm text-gray-700">Manage Users</span>
             </button>
             <button
               onClick={() => navigate('/admin/leave')}
-              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
+              className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
             >
-              <Calendar className="w-6 h-6 text-green-600 mx-auto mb-2" />
+              <Calendar className="w-5 h-5 text-green-600 mx-auto mb-2" />
               <span className="text-sm text-gray-700">Leave Requests</span>
             </button>
             <button
               onClick={() => navigate('/admin/attendance')}
-              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
+              className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
             >
-              <Clock className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+              <Clock className="w-5 h-5 text-purple-600 mx-auto mb-2" />
               <span className="text-sm text-gray-700">Attendance</span>
             </button>
             <button
               onClick={() => navigate('/admin/audit-logs')}
-              className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
+              className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 text-center"
             >
-              <FileText className="w-6 h-6 text-orange-600 mx-auto mb-2" />
+              <FileText className="w-5 h-5 text-orange-600 mx-auto mb-2" />
               <span className="text-sm text-gray-700">Audit Logs</span>
             </button>
           </div>

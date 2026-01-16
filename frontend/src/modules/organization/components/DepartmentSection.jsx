@@ -105,7 +105,7 @@ const DepartmentSection = () => {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800">Department Management</h2>
+          <h2 className="text-lg font-bold text-gray-800">Department Management</h2>
           <p className="text-gray-600 mt-1">
             Manage organizational departments and their hierarchy
           </p>

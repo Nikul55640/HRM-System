@@ -182,7 +182,7 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-3">
       {/* Basic Information */}
       <Card>
         <CardHeader>
@@ -191,8 +191,8 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
             Basic Information
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <CardContent className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor="shiftName" className="text-sm">Shift Name *</Label>
               <Input
@@ -230,7 +230,7 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
             />
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <div className="flex items-center gap-2">
               <Switch
                 id="isActive"
@@ -260,8 +260,8 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
             Shift Timing
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <CardContent className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div className="space-y-1">
               <Label htmlFor="shiftStartTime" className="text-sm">Start Time *</Label>
               <Input
@@ -297,7 +297,7 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
           {/* Weekly Off Days */}
           <div className="space-y-2">
             <Label className="text-sm">Weekly Off Days</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1">
               {weekDays.map((day) => (
                 <Badge
                   key={day.value}
@@ -318,8 +318,8 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
         <CardHeader>
           <CardTitle className="text-lg">Work Hours</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <CardContent className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor="fullDayHours" className="text-sm">Full Day Hours *</Label>
               <Input
@@ -358,8 +358,8 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
         <CardHeader>
           <CardTitle className="text-lg">Attendance Rules</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <CardContent className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
             <div className="space-y-1">
               <Label htmlFor="gracePeriodMinutes" className="text-sm">Grace Period (min)</Label>
               <Input
@@ -409,8 +409,8 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
         <CardHeader>
           <CardTitle className="text-lg">Break Configuration</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <CardContent className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             <div className="space-y-1">
               <Label htmlFor="defaultBreakMinutes" className="text-sm">Default Break (min)</Label>
               <Input
@@ -446,7 +446,7 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
         <CardHeader>
           <CardTitle className="text-lg">Overtime</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2">
           <div className="flex items-center gap-2">
             <Switch
               id="overtimeEnabled"
@@ -474,7 +474,7 @@ const ShiftForm = ({ shift, onSuccess, onCancel }) => {
       </Card>
 
       {/* Action Buttons */}
-      <div className="flex justify-end gap-2 pt-4 border-t">
+      <div className="flex justify-end gap-2 pt-3 border-t">
         <Button
           type="button"
           variant="outline"

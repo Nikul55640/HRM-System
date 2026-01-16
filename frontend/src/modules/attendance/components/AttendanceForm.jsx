@@ -212,9 +212,9 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white p-6 shadow-lg">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-semibold">
+      <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg bg-white p-4 shadow-lg">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">
             {record ? 'Edit Attendance Record' : 'Add New Attendance Record'}
           </h2>
           <button
@@ -225,7 +225,7 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
           {/* Employee Selection */}
           <div className="space-y-2">
             <Label htmlFor="employee">Employee *</Label>
@@ -337,7 +337,7 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
 
           {/* Clock In/Out Times (only shown for present status) */}
           {status === 'present' && (
-            <div className="space-y-4">
+            <div className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="clockIn">Clock In *</Label>
@@ -372,10 +372,10 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
               </div>
               
               {/* Working Hours Display */}
-              <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
                 <div className="flex justify-between items-center">
                   <span className="text-sm font-medium text-blue-900">Total Working Hours:</span>
-                  <span id="workingHours" className="font-mono text-lg font-bold text-blue-900">--:--</span>
+                  <span id="workingHours" className="font-mono text-base font-bold text-blue-900">--:--</span>
                 </div>
               </div>
             </div>
@@ -394,7 +394,7 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
           </div>
 
           {/* Form Actions */}
-          <div className="flex justify-end space-x-3 pt-6 border-t">
+          <div className="flex justify-end space-x-3 pt-4 border-t">
             <Button
               type="button"
               variant="outline"

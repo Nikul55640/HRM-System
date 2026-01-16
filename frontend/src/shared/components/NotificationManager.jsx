@@ -22,7 +22,7 @@ const NotificationManager = () => {
         case 'success':
           toast.success(
             <NotificationContent
-              icon={<CheckCircle className="w-5 h-5" />}
+              icon={<CheckCircle className="w-4 h-4" />}
               message={notification.message}
             />,
             toastOptions
@@ -31,7 +31,7 @@ const NotificationManager = () => {
         case 'error':
           toast.error(
             <NotificationContent
-              icon={<XCircle className="w-5 h-5" />}
+              icon={<XCircle className="w-4 h-4" />}
               message={notification.message}
             />,
             toastOptions
@@ -40,7 +40,7 @@ const NotificationManager = () => {
         case 'warning':
           toast.warning(
             <NotificationContent
-              icon={<AlertTriangle className="w-5 h-5" />}
+              icon={<AlertTriangle className="w-4 h-4" />}
               message={notification.message}
             />,
             toastOptions
@@ -50,7 +50,7 @@ const NotificationManager = () => {
         default:
           toast.info(
             <NotificationContent
-              icon={<Info className="w-5 h-5" />}
+              icon={<Info className="w-4 h-4" />}
               message={notification.message}
             />,
             toastOptions
@@ -70,7 +70,7 @@ const NotificationManager = () => {
  * Custom notification content component
  */
 const NotificationContent = ({ icon, message }) => (
-  <div className="flex items-start gap-3">
+  <div className="flex items-start gap-2">
     <div className="flex-shrink-0 mt-0.5">{icon}</div>
     <div className="flex-1">
       <p className="text-sm font-medium">{message}</p>

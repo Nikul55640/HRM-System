@@ -152,7 +152,7 @@ const AttendanceCorrections = () => {
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold">Attendance Corrections</h1>
+          <h1 className="text-lg sm:text-xl font-semibold">Attendance Corrections</h1>
           <p className="text-sm text-gray-600 mt-1">Review and process attendance correction requests</p>
         </div>
       </div>
@@ -160,12 +160,12 @@ const AttendanceCorrections = () => {
       {/* FILTERS */}
       <Card className="rounded-2xl">
         <CardHeader className="pb-3 sm:pb-4">
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
             <Calendar className="w-4 h-4" />
             Filters
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-3 sm:p-6">
+        <CardContent className="p-3 sm:p-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <Input
               placeholder="Employee ID"
@@ -266,7 +266,7 @@ const AttendanceCorrections = () => {
         <Dialog open onOpenChange={() => setSelectedRequest(null)}>
           <DialogContent className="max-w-md mx-4 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-lg sm:text-xl">Process Correction Request</DialogTitle>
+              <DialogTitle className="text-base sm:text-lg">Process Correction Request</DialogTitle>
             </DialogHeader>
 
             <div className="space-y-3 text-sm">
@@ -334,7 +334,7 @@ const RequestList = ({
   if (loading)
     return (
       <div className="py-10 text-center">
-        <Loader2 className="mx-auto animate-spin w-6 h-6 sm:w-8 sm:h-8" />
+        <Loader2 className="mx-auto animate-spin w-5 h-5 sm:w-6 sm:h-6" />
         <p className="mt-2 text-sm text-gray-600">Loading...</p>
       </div>
     );
@@ -348,7 +348,7 @@ const RequestList = ({
 
   return (
     <Card className="rounded-2xl">
-      <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6">
+      <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-4">
         {data.map((req) => (
           <div
             key={req.id}

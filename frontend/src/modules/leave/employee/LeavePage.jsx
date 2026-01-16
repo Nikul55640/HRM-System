@@ -167,16 +167,16 @@ const LeavePage = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto">
+    <div className="p-3 sm:p-4 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-3">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">My Leave</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900">My Leave</h1>
           <p className="text-gray-600 mt-1">
             Manage your leave requests and view balance
           </p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+        <div className="flex flex-col sm:flex-row gap-2">
           <button
             onClick={refreshBalance}
             disabled={balanceLoading}

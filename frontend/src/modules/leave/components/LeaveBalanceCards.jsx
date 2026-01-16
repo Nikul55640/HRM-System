@@ -15,9 +15,9 @@ const LeaveBalanceCards = ({ balances = null }) => {
   if (!balances) {
     console.log('[LEAVE BALANCE CARDS] No balances provided');
     return (
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
         <div className="flex items-center gap-2">
-          <AlertCircle className="w-5 h-5 text-yellow-600" />
+          <AlertCircle className="w-4 h-4 text-yellow-600" />
           <p className="text-yellow-800 font-medium">No leave balance assigned</p>
         </div>
         <p className="text-sm text-yellow-700 mt-1">
@@ -38,9 +38,9 @@ const LeaveBalanceCards = ({ balances = null }) => {
     if (validLeaveTypes.length === 0) {
       console.log('[LEAVE BALANCE CARDS] No valid leave types found');
       return (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-yellow-600" />
+            <AlertCircle className="w-4 h-4 text-yellow-600" />
             <p className="text-yellow-800 font-medium">No valid leave types found</p>
           </div>
           <p className="text-sm text-yellow-700 mt-1">
@@ -51,7 +51,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
     }
     
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         {validLeaveTypes.map((leaveType, index) => (
           <Card key={`${leaveType.type}-${index}`} className="border-gray-200">
             <CardHeader className="pb-2">
@@ -62,7 +62,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
             <CardContent>
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="text-2xl font-bold text-gray-900">
+                  <span className="text-xl font-bold text-gray-900">
                     {leaveType.remaining || leaveType.available || 0}
                   </span>
                   <span className="text-sm text-gray-500">
@@ -99,7 +99,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
   if (availableDirectTypes.length > 0) {
     console.log('✅ [LEAVE BALANCE CARDS] Found direct leave type properties:', availableDirectTypes);
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         {availableDirectTypes.map((type) => {
           const leaveData = balances[type];
           return (
@@ -112,7 +112,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-2xl font-bold text-gray-900">
+                    <span className="text-xl font-bold text-gray-900">
                       {leaveData.remaining || leaveData.available || leaveData || 0}
                     </span>
                     <span className="text-sm text-gray-500">
@@ -151,7 +151,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
 
   // Fallback to old format if leaveTypes doesn't exist
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
       <Card className="border-gray-200">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-gray-600 flex items-center gap-2">
@@ -160,7 +160,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-semibold text-gray-800">{balances.total || 0}</div>
+          <div className="text-xl font-semibold text-gray-800">{balances.total || 0}</div>
           <p className="text-xs text-gray-500 mt-1">days per year</p>
         </CardContent>
       </Card>
@@ -173,7 +173,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-semibold text-green-600">{balances.available || 0}</div>
+          <div className="text-xl font-semibold text-green-600">{balances.available || 0}</div>
           <p className="text-xs text-gray-500 mt-1">days remaining</p>
         </CardContent>
       </Card>
@@ -186,7 +186,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-semibold text-blue-600">{balances.used || 0}</div>
+          <div className="text-xl font-semibold text-blue-600">{balances.used || 0}</div>
           <p className="text-xs text-gray-500 mt-1">days taken</p>
         </CardContent>
       </Card>

@@ -135,7 +135,7 @@ const AttendanceSummary = ({ summary, period }) => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Attendance Summary</h2>
+          <h2 className="text-lg font-bold text-gray-900">Attendance Summary</h2>
           {period && (
             <p className="text-gray-600 mt-1">Period: {period}</p>
           )}
@@ -143,26 +143,26 @@ const AttendanceSummary = ({ summary, period }) => {
       </div>
 
       {/* Primary Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {summaryCards.map((card, index) => {
           const Icon = card.icon;
           return (
             <Card key={index} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-6">
+              <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-600 mb-1">
                       {card.title}
                     </p>
-                    <p className="text-3xl font-bold text-gray-900">
+                    <p className="text-xl font-bold text-gray-900">
                       {card.value}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
                       {card.description}
                     </p>
                   </div>
-                  <div className={`p-3 rounded-full ${card.bgColor}`}>
-                    <Icon className={`w-6 h-6 ${card.color}`} />
+                  <div className={`p-2 rounded-full ${card.bgColor}`}>
+                    <Icon className={`w-5 h-5 ${card.color}`} />
                   </div>
                 </div>
               </CardContent>
@@ -183,7 +183,7 @@ const AttendanceSummary = ({ summary, period }) => {
                     <p className="text-sm font-medium text-gray-600 mb-1">
                       {metric.title}
                     </p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-lg font-bold text-gray-900">
                       {metric.value}
                     </p>
                     <p className="text-xs text-gray-500 mt-1">

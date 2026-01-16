@@ -14,11 +14,11 @@ const OverviewTab = ({ employee }) => {
   };
 
   const InfoSection = ({ title, children }) => (
-    <div className="mb-4 sm:mb-6">
-      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 pb-2 border-b border-gray-200">
+    <div className="mb-3 sm:mb-4">
+      <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2 sm:mb-3 pb-2 border-b border-gray-200">
         {title}
       </h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         {children}
       </div>
     </div>
@@ -32,7 +32,7 @@ const OverviewTab = ({ employee }) => {
   );
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-3 sm:space-y-4">
       {!emp || Object.keys(emp).length === 0 && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-3 sm:px-4 py-3 rounded text-sm">
           <strong>Notice:</strong> Employee data is loading...
@@ -58,8 +58,8 @@ const OverviewTab = ({ employee }) => {
 
       {/* Address */}
       {contact?.address && (
-        <div className="mb-4 sm:mb-6">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 pb-2 border-b border-gray-200">
+        <div className="mb-3 sm:mb-4">
+          <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2 sm:mb-3 pb-2 border-b border-gray-200">
             Current Address
           </h3>
           <div className="text-sm sm:text-base text-gray-900 break-words">
@@ -84,12 +84,12 @@ const OverviewTab = ({ employee }) => {
 
       {/* Emergency Contacts */}
       {emp?.emergencyContact && (
-        <div className="mb-4 sm:mb-6">
-          <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4 pb-2 border-b border-gray-200">
+        <div className="mb-3 sm:mb-4">
+          <h3 className="text-sm sm:text-base font-semibold text-gray-800 mb-2 sm:mb-3 pb-2 border-b border-gray-200">
             Emergency Contact
           </h3>
-          <div className="bg-gray-50 p-3 sm:p-4 rounded-lg">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <InfoItem label="Name" value={emp.emergencyContact.name} />
               <InfoItem label="Relationship" value={emp.emergencyContact.relationship} />
               <InfoItem label="Phone" value={emp.emergencyContact.phone} />

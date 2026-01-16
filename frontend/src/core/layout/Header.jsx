@@ -81,9 +81,9 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
               variant="ghost"
               size="sm"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2"
+              className="lg:hidden p-1.5"
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4 h-4" />
             </Button>
 
             {/* Search */}
@@ -93,7 +93,7 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                 <input
                   type="text"
                   placeholder="Search..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                  className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 />
               </div>
             </div>
@@ -109,7 +109,7 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                 asChild
               >
                 <Link to="/help">
-                  <HelpCircle className="w-5 h-5" />
+                  <HelpCircle className="w-4 h-4" />
                 </Link>
               </Button>
 
@@ -125,7 +125,7 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                   className="hidden sm:flex"
                 >
                   <Link to="/admin/settings">
-                    <Settings className="w-5 h-5" />
+                    <Settings className="w-4 h-4" />
                   </Link>
                 </Button>
               )}
@@ -137,11 +137,11 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
               <div className="relative" ref={userMenuRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
-                  className="flex items-center gap-3 px-2 py-1.5 hover:bg-gray-50 rounded-lg"
+                  className="flex items-center gap-2 px-2 py-1 hover:bg-gray-50 rounded-lg"
                 >
                   {/* User Avatar with Initials */}
-                  <div className={`w-9 h-9 ${getAvatarColor(user?.role)} rounded-lg flex items-center justify-center`}>
-                    <span className="text-white font-medium text-sm">{getUserInitials()}</span>
+                  <div className={`w-6 h-6 ${getAvatarColor(user?.role)} rounded-lg flex items-center justify-center`}>
+                    <span className="text-white font-medium text-xs">{getUserInitials()}</span>
                   </div>
                   
                   {/* User Info */}
@@ -167,12 +167,12 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                     ></div>
                     
                     {/* Menu */}
-                    <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-white rounded-lg border border-gray-200 shadow-lg py-2 z-20">
+                    <div className="absolute right-0 mt-1 w-56 sm:w-64 bg-white rounded-lg border border-gray-200 shadow-lg py-1 z-20">
                       {/* User Info Header */}
-                      <div className="px-4 py-3 border-b border-gray-200">
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 ${getAvatarColor(user?.role)} rounded-lg flex items-center justify-center flex-shrink-0`}>
-                            <span className="text-white font-medium">{getUserInitials()}</span>
+                      <div className="px-3 py-2 border-b border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-6 h-6 ${getAvatarColor(user?.role)} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                            <span className="text-white font-medium text-xs">{getUserInitials()}</span>
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="text-sm font-medium text-gray-800 truncate">
@@ -197,7 +197,7 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                       <div className="py-1">
                         <Link
                           to="employee/profile"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                           onClick={() => setShowUserMenu(false)}
                         >
                           <User className="w-4 h-4" />
@@ -206,7 +206,7 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                         
                         <Link
                           to="/notifications"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                           onClick={() => setShowUserMenu(false)}
                         >
                           <Mail className="w-4 h-4" />
@@ -216,7 +216,7 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                         {(user?.role === 'SuperAdmin' || user?.role === 'HR_Manager') && (
                           <Link
                             to="/settings"
-                            className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                            className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                             onClick={() => setShowUserMenu(false)}
                           >
                             <Settings className="w-4 h-4" />
@@ -226,7 +226,7 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
 
                         <Link
                           to="/help"
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-50"
                           onClick={() => setShowUserMenu(false)}
                         >
                           <HelpCircle className="w-4 h-4" />
@@ -238,7 +238,7 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                       <div className="border-t border-gray-200 pt-1 mt-1">
                         <button
                           onClick={handleLogout}
-                          className="flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 w-full"
+                          className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-600 hover:bg-red-50 w-full"
                         >
                           <LogOut className="w-4 h-4" />
                           Logout

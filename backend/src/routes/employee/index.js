@@ -12,6 +12,7 @@ import notificationsRoutes from './notifications.routes.js';
 import shiftRoutes from './shift.routes.js';
 import calendarRoutes from './employeeCalendar.routes.js';
 import payslipsRoutes from './payslips.routes.js';
+import recentActivityRoutes from './recentActivity.routes.js';
 
 const router = express.Router();
 
@@ -27,5 +28,6 @@ router.use('/shifts', shiftRoutes);
 router.use('/calendar', calendarRoutes);
 router.use('/', notificationsRoutes);
 router.use('/', payslipsRoutes);
+router.use('/recent-activities', recentActivityRoutes);
 
 export default router;

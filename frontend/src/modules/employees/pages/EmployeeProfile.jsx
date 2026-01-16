@@ -142,18 +142,18 @@ const EmployeeProfile = () => {
   return (
     <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6">
       {/* Header Section */}
-      <div className="bg-white rounded-lg shadow-md p-4 sm:p-6 mb-4 sm:mb-6">
-        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 lg:gap-6">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 flex-1">
+      <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 mb-3 sm:mb-4">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-4">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-4 flex-1">
             {/* Profile Photo */}
             {currentEmployee.profilePicture ? (
               <img
                 src={currentEmployee.personalInfo?.profilePhoto || currentEmployee.profilePicture}
                 alt={`${currentEmployee.personalInfo?.firstName || currentEmployee.firstName} ${currentEmployee.personalInfo?.lastName || currentEmployee.lastName}`}
-                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover flex-shrink-0"
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover flex-shrink-0"
               />
             ) : (
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl sm:text-3xl font-semibold flex-shrink-0">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-blue-500 flex items-center justify-center text-white text-lg sm:text-xl font-semibold flex-shrink-0">
                 {getInitials(
                   currentEmployee.personalInfo?.firstName || currentEmployee.firstName,
                   currentEmployee.personalInfo?.lastName || currentEmployee.lastName
@@ -163,11 +163,11 @@ const EmployeeProfile = () => {
 
             {/* Basic Info */}
             <div className="text-center sm:text-left flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-800 break-words">
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-800 break-words">
                 {currentEmployee.personalInfo?.firstName || currentEmployee.firstName}{" "}
                 {currentEmployee.personalInfo?.lastName || currentEmployee.lastName}
               </h1>
-              <p className="text-base sm:text-lg text-gray-600 mt-1 break-words">
+              <p className="text-sm sm:text-base text-gray-600 mt-1 break-words">
                 {currentEmployee.jobInfo?.designation || currentEmployee.jobInfo?.jobTitle || currentEmployee.designation}
               </p>
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-4 mt-2">
@@ -194,7 +194,7 @@ const EmployeeProfile = () => {
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto lg:flex-shrink-0">
             <button
               onClick={() => navigate("/admin/employees")}
-              className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm sm:text-base order-2 sm:order-1"
+              className="px-3 sm:px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors text-sm order-2 sm:order-1"
             >
               <span className="sm:hidden">Back</span>
               <span className="hidden sm:inline">Back to List</span>
@@ -202,7 +202,7 @@ const EmployeeProfile = () => {
             {canEdit() && (
               <button
                 onClick={handleEdit}
-                className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base order-1 sm:order-2"
+                className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-sm order-1 sm:order-2"
               >
                 <svg
                   className="w-4 h-4 sm:w-5 sm:h-5"
@@ -264,7 +264,7 @@ const EmployeeProfile = () => {
         </div>
 
         {/* Tab Content */}
-        <div className="p-3 sm:p-6">
+        <div className="p-3 sm:p-4">
           {activeTab === "overview" && (
             <>
               {console.log('EmployeeProfile - Passing currentEmployee to OverviewTab:', currentEmployee)}

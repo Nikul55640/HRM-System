@@ -172,7 +172,7 @@ const AttendanceCorrectionRequests = () => {
 
       {/* HEADER */}
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-semibold">
+        <h1 className="text-lg font-semibold">
           Attendance Correction Requests
         </h1>
 

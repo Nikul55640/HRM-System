@@ -48,13 +48,13 @@ const ForgotPassword = () => {
     <div className="h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-[380px]">
         <Card className="border-none shadow-xl rounded-2xl bg-white">
-          <CardContent className="px-6 py-5">
+          <CardContent className="px-4 py-4">
             {/* Header */}
-            <div className="text-center mb-5">
-              <div className="w-11 h-11 bg-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow">
-                <Building2 className="w-6 h-6 text-white" />
+            <div className="text-center mb-4">
+              <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center mx-auto mb-2 shadow">
+                <Building2 className="w-5 h-5 text-white" />
               </div>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-lg font-semibold text-gray-900">
                 Forgot Password
               </h1>
               <p className="text-sm text-gray-600">
@@ -70,7 +70,7 @@ const ForgotPassword = () => {
                   Email Address
                 </label>
                 <div className="relative mt-1">
-                  <User className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                  <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
                   <input
                     type="email"
                     value={email}

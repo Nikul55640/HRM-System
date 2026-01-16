@@ -214,61 +214,61 @@ const DesignationsPage = () => {
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+    <div className="space-y-3 p-3">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold">Designation Management</h1>
+          <h1 className="text-lg sm:text-xl font-bold">Designation Management</h1>
           <p className="text-sm text-gray-600 mt-1">Manage job positions and roles</p>
         </div>
-        <Button onClick={handleCreateDesignation} className="w-full sm:w-auto">
+        <Button onClick={handleCreateDesignation} className="w-full sm:w-auto px-4 py-2">
           <Plus className="w-4 h-4 mr-2" />
           Add Designation
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Card>
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-gray-600 truncate">Total Designations</p>
-                <p className="text-lg sm:text-2xl font-bold">{stats.total}</p>
+                <p className="text-lg sm:text-xl font-bold">{stats.total}</p>
               </div>
-              <Briefcase className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 flex-shrink-0" />
+              <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-gray-600 truncate">Active Designations</p>
-                <p className="text-lg sm:text-2xl font-bold">{stats.active}</p>
+                <p className="text-lg sm:text-xl font-bold">{stats.active}</p>
               </div>
-              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" />
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-gray-600 truncate">Inactive Designations</p>
-                <p className="text-lg sm:text-2xl font-bold">{stats.inactive}</p>
+                <p className="text-lg sm:text-xl font-bold">{stats.inactive}</p>
               </div>
-              <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-3 sm:p-4">
+          <CardContent className="p-3">
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <p className="text-xs sm:text-sm text-gray-600 truncate">Departments</p>
-                <p className="text-lg sm:text-2xl font-bold">{Object.keys(stats.byDepartment).length}</p>
+                <p className="text-lg sm:text-xl font-bold">{Object.keys(stats.byDepartment).length}</p>
               </div>
-              <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 flex-shrink-0" />
+              <Building2 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 flex-shrink-0" />
             </div>
           </CardContent>
         </Card>
@@ -276,15 +276,15 @@ const DesignationsPage = () => {
 
       {/* Search and Filter */}
       <Card>
-        <CardContent className="p-3 sm:p-4">
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+        <CardContent className="p-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <div className="flex-1 relative">
-              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+              <Search className="w-4 h-4 absolute left-3 top-2.5 text-gray-400" />
               <Input
                 placeholder="Search designations..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-9"
               />
             </div>
             <select
@@ -302,10 +302,10 @@ const DesignationsPage = () => {
 
       {/* Designations List */}
       <Card>
-        <CardHeader className="pb-3 sm:pb-4">
+        <CardHeader className="pb-3">
           <CardTitle className="text-base sm:text-lg">Designations ({filteredDesignations.length})</CardTitle>
         </CardHeader>
-        <CardContent className="p-3 sm:p-6">
+        <CardContent className="p-3 sm:p-4">
           {loading ? (
             <div className="text-center py-8">Loading...</div>
           ) : filteredDesignations.length === 0 ? (
@@ -313,11 +313,11 @@ const DesignationsPage = () => {
               {searchTerm ? 'No designations found matching your search' : 'No designations found'}
             </div>
           ) : (
-            <div className="space-y-3 sm:space-y-4">
+            <div className="space-y-2">
               {filteredDesignations.map((designation) => (
-                <div key={designation.id} className="border rounded-lg p-3 sm:p-4 hover:bg-gray-50">
-                  <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3 lg:gap-4">
-                    <div className="space-y-2 sm:space-y-3 flex-1 min-w-0">
+                <div key={designation.id} className="border rounded-lg p-3 hover:bg-gray-50">
+                  <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-3">
+                    <div className="space-y-2 flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-center gap-2">
                         <span className="font-medium text-base sm:text-lg truncate">{designation.title}</span>
                         <div className="flex flex-wrap gap-2">
@@ -356,12 +356,12 @@ const DesignationsPage = () => {
                       )}
                     </div>
 
-                    <div className="flex flex-row lg:flex-col gap-2 lg:ml-4 justify-end lg:justify-start">
+                    <div className="flex flex-row lg:flex-col gap-2 lg:ml-3 justify-end lg:justify-start">
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => handleToggleStatus(designation)}
-                        className={`h-8 w-8 p-0 ${designation.isActive ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}`}
+                        className={`h-7 w-7 p-0 ${designation.isActive ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}`}
                       >
                         {designation.isActive ? (
                           <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -373,7 +373,7 @@ const DesignationsPage = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleEditDesignation(designation)}
-                        className="h-8 w-8 p-0"
+                        className="h-7 w-7 p-0"
                       >
                         <Edit className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
@@ -381,7 +381,7 @@ const DesignationsPage = () => {
                         variant="outline" 
                         size="sm"
                         onClick={() => handleDeleteDesignation(designation.id)}
-                        className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
+                        className="text-red-600 hover:text-red-700 h-7 w-7 p-0"
                         disabled={designation.employeeCount > 0}
                       >
                         <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />

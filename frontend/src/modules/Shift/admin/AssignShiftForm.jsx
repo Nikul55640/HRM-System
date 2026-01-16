@@ -122,10 +122,10 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Shift Info */}
       <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4">
+        <CardContent className="p-3">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-blue-600">Assigning to Shift</p>
@@ -136,7 +136,7 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
                 {shift.shiftStartTime} - {shift.shiftEndTime}
               </p>
             </div>
-            <Badge className="bg-blue-600 text-white text-lg px-3 py-1">
+            <Badge className="bg-blue-600 text-white text-lg px-2 py-1">
               {assignedEmployees.length} assigned
             </Badge>
           </div>
@@ -168,7 +168,7 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
         </CardHeader>
         <CardContent>
           {getFilteredEmployees().length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">
+            <p className="text-sm text-gray-500 text-center py-3">
               {availableEmployees.length === 0 ? 'No employees available' : 'All employees are already assigned'}
             </p>
           ) : (
@@ -176,7 +176,7 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
               {getFilteredEmployees().map((emp) => (
                 <div
                   key={emp.id || emp._id}
-                  className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
+                  className="flex items-center justify-between p-2 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">
@@ -204,19 +204,19 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-lg">
-            <Users className="w-5 h-5" />
+            <Users className="w-4 w-4" />
             Assigned Employees ({assignedEmployees.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
           {assignedEmployees.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-4">No employees assigned yet</p>
+            <p className="text-sm text-gray-500 text-center py-3">No employees assigned yet</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {assignedEmployees.map((assignment) => (
                 <div
                   key={assignment.id}
-                  className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200"
+                  className="flex items-center justify-between p-2 bg-green-50 rounded-lg border border-green-200"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-900">
@@ -243,7 +243,7 @@ const AssignShiftForm = ({ shift, onSuccess, onCancel }) => {
       </Card>
 
       {/* Action Buttons */}
-      <div className="flex justify-end gap-2 pt-4 border-t">
+      <div className="flex justify-end gap-2 pt-3 border-t">
         <Button
           variant="outline"
           onClick={onCancel}

@@ -67,7 +67,7 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {history.map((item) => {
         const isExpanded = expandedId === item.id;
 
@@ -77,14 +77,14 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
             className="border border-gray-200 rounded-xl transition"
           >
             {/* ===== HEADER (ALWAYS VISIBLE) ===== */}
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
                 <CardTitle className="flex items-center gap-2 text-lg">
-                  <FileText className="h-5 w-5 text-primary" />
+                  <FileText className="h-4 w-4 text-primary" />
                   {item.leaveType}
                 </CardTitle>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <ApprovalStatusBadge status={item.status} />
 
                   <Button
@@ -109,7 +109,7 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
             </CardHeader>
 
             {/* ===== BASIC INFO ===== */}
-            <CardContent className="text-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <CardContent className="text-sm grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
                 <span className="text-gray-500 flex items-center gap-1">
                   <Calendar className="h-4 w-4" /> From
@@ -136,12 +136,12 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
 
             {/* ===== EXPANDED DETAILS ===== */}
             {isExpanded && (
-              <CardContent className="border-t bg-gray-50 space-y-4 text-sm">
+              <CardContent className="border-t bg-gray-50 space-y-3 text-sm">
                 {/* Reason */}
                 {item.reason && (
                   <div>
                     <span className="text-gray-500">Reason</span>
-                    <p className="mt-1 bg-white p-3 rounded-md border">
+                    <p className="mt-1 bg-white p-2 rounded-md border">
                       {item.reason}
                     </p>
                   </div>
@@ -149,7 +149,7 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
 
                 {/* Approved */}
                 {item.status === "approved" && (
-                  <div className="bg-green-50 border border-green-200 rounded-md p-3">
+                  <div className="bg-green-50 border border-green-200 rounded-md p-2">
                     <div className="flex items-center gap-2 text-green-700">
                       <CheckCircle className="h-4 w-4" />
                       Approved
@@ -168,7 +168,7 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
 
                 {/* Rejected */}
                 {item.status === "rejected" && item.rejectionReason && (
-                  <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                  <div className="bg-red-50 border border-red-200 rounded-md p-2">
                     <div className="flex items-center gap-2 text-red-700">
                       <XCircle className="h-4 w-4" />
                       Rejected
@@ -179,7 +179,7 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
 
                 {/* Cancelled */}
                 {item.status === "cancelled" && item.cancellationReason && (
-                  <div className="bg-gray-100 border rounded-md p-3">
+                  <div className="bg-gray-100 border rounded-md p-2">
                     <span className="font-medium text-gray-700">
                       Cancellation Reason
                     </span>

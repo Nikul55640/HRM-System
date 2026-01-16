@@ -84,6 +84,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
     {
       section: "General",
       icon: "Home",
+      collapsible: true,
       showIf: () => true,
       items: [
         {
@@ -200,26 +201,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           MODULES.LEAVE.VIEW_ALL,
         ]),
       items: [
-        // Employee Management
-        {
-          name: "Employees",
-          path: "/admin/employees",
-          icon: "Users",
-          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_ALL),
-        },
-        {
-          name: "Departments",
-          path: "/admin/departments",
-          icon: "Building2",
-          showIf: () => can.doAny([MODULES.DEPARTMENT.VIEW, MODULES.DEPARTMENT.CREATE]),
-        },
-        {
-          name: "Designations",
-          path: "/admin/designations",
-          icon: "Award",
-          showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.UPDATE_ANY]),
-        },
-
+     
         // Attendance Management
         {
           name: "Attendance Management",
@@ -251,13 +233,13 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           name: "Leave Balances",
           path: "/admin/leave-balances",
           icon: "Scale",
-          showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCES),
+          showIf: () => can.do(MODULES.LEAVE.MANAGE_BALANCE),
         },
         {
           name: "Leave Balance Rollover",
           path: "/admin/leave-balance-rollover",
           icon: "RefreshCw",
-          showIf: () => user?.role === "SuperAdmin" && can.do(MODULES.LEAVE.MANAGE_BALANCES),
+          showIf: () => user?.role === "SuperAdmin" && can.do(MODULES.LEAVE.MANAGE_BALANCE),
         },
 
         // Lead Management
@@ -331,6 +313,40 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           icon: "FolderOpenIcon",
           showIf: () => can.doAny([MODULES.SYSTEM.MANAGE_CONFIG, MODULES.SYSTEM.VIEW_CONFIG]),
         },
+      ],
+    },
+    {
+      section: "Emmployee Management",
+      icon: "users",
+      collapsible: true,
+      showIf: () =>
+        user?.role === "SuperAdmin" &&
+        can.doAny([
+          MODULES.USER.VIEW,
+          MODULES.SYSTEM.VIEW_CONFIG,
+          MODULES.SYSTEM.VIEW_AUDIT_LOGS,
+        ]),
+      items: [
+           // Employee Management
+        {
+          name: "Employees",
+          path: "/admin/employees",
+          icon: "Users",
+          showIf: () => can.do(MODULES.EMPLOYEE.VIEW_ALL),
+        },
+        {
+          name: "Departments",
+          path: "/admin/departments",
+          icon: "Building2",
+          showIf: () => can.doAny([MODULES.DEPARTMENT.VIEW, MODULES.DEPARTMENT.CREATE]),
+        },
+        {
+          name: "Designations",
+          path: "/admin/designations",
+          icon: "Award",
+          showIf: () => can.doAny([MODULES.EMPLOYEE.VIEW_ALL, MODULES.EMPLOYEE.UPDATE_ANY]),
+        },
+
       ],
     },
 
@@ -408,24 +424,23 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           variant="ghost"
           size="sm"
           onClick={() => setMobileMenuOpen(false)}
-          className="p-2"
+          className="p-1"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </Button>
       )}
 
-      <div className={`flex items-center gap-3 ${isMobile ? 'flex-1 justify-center' : ''}`}>
-        <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-          <span className="text-white font-semibold text-lg">HR</span>
+      <div className={`flex items-center gap-2 p-0 ${isMobile ? 'flex-1 justify-center' : ''}`}>
+        <div className="w-8 h-8 m-1 bg-blue-600 rounded-lg flex items-center justify-center">
+          <span className="text-white font-semibold text-xs">HR</span>
         </div>
         {(isMobile || isSidebarExpanded) && (
-          <div>
-            <h1 className="text-base font-semibold text-gray-800">HRM System</h1>
+          <div className="p-0.5" >
+            <h1 className="text-sm  font-semibold text-gray-800">HRM System</h1>
             <p className="text-xs text-gray-500">Management</p>
           </div>
         )}
       </div>
-
       {!isMobile && (
         <Button
           variant="ghost"
@@ -436,11 +451,12 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
             setLayoutSidebarExpanded(next);
             setOpenSections(next ? DEFAULT_OPEN_SECTIONS : []);
           }}
+          className="p-1.5"
         >
           {isSidebarExpanded ? (
-            <Icon name="ChevronLeft" className="w-5 h-5" />
+            <Icon name="ChevronLeft" className="w-4 h-4" />
           ) : (
-            <Icon name="ChevronRight" className="w-5 h-5" />
+            <Icon name="ChevronRight" className="w-4 h-4" />
           )}
         </Button>
       )}
@@ -448,7 +464,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
   );
 
   const SidebarFooter = () => (
-    <div className="p-4 border-t border-gray-200">
+    <div className="p-3 border-t border-gray-200">
       <div className="text-xs text-gray-500 text-center">
         <div className="font-medium text-gray-700">HRM System v1.0</div>
         <div className="mt-1">© 2025</div>
@@ -460,9 +476,9 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
     <Link
       to={item.path}
       onClick={handleNavClick}
-      className={`w-full flex items-center py-2 rounded-lg text-sm transition-colors ${
+      className={`w-full flex items-center py-1.5 rounded-lg text-sm transition-colors ${
         (isMobile || isSidebarExpanded)
-          ? "gap-3 px-3 justify-start"
+          ? "gap-2 px-2 justify-start"
           : "justify-center"
       } ${
         isActive(item.path)
@@ -470,12 +486,12 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           : "text-gray-600 hover:bg-gray-50"
       }`}
     >
-      <Icon name={item.icon} className="w-5 h-5 flex-shrink-0" />
+      <Icon name={item.icon} className="w-4 h-4 flex-shrink-0" />
       {(isMobile || isSidebarExpanded) && (
         <>
           <span className="flex-1">{item.name}</span>
           {item.badge && item.badge > 0 && (
-            <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">
+            <span className="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full flex-shrink-0">
               {item.badge}
             </span>
           )}
@@ -509,37 +525,37 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
 
         {/* Mobile Navigation */}
         <div className="flex-1 overflow-y-auto">
-          <nav className="mt-4 px-3 space-y-2">
+          <nav className="mt-2 px-2 space-y-1">
             {nav.map((group) => (
               <div key={group.section}>
                 {/* Section Header */}
                 {group.collapsible ? (
                   <button
                     onClick={() => toggleSection(group.section)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                       openSections.includes(group.section)
                         ? "bg-gray-100 text-gray-900"
                         : "text-gray-600 hover:bg-gray-50"
                     }`}
                   >
-                    <Icon name={group.icon} className="w-5 h-5" />
+                    <Icon name={group.icon} className="w-4 h-4" />
                     <span className="flex-1 text-left">{group.section}</span>
                     <Icon
                       name="ChevronDown"
-                      className={`w-4 h-4 transition-transform ${
+                      className={`w-3 h-3 transition-transform ${
                         openSections.includes(group.section) ? "rotate-180" : ""
                       }`}
                     />
                   </button>
                 ) : (
-                  <div className="text-xs uppercase text-gray-500 font-medium px-3 py-2">
+                  <div className="text-xs uppercase text-gray-500 font-medium px-2 py-1.5">
                     {group.section}
                   </div>
                 )}
 
                 {/* Menu Items */}
                 {(!group.collapsible || openSections.includes(group.section)) && (
-                  <div className="space-y-1 mt-1">
+                  <div className="space-y-0.5 mt-1">
                     {group.items.map((item) => (
                       <NavigationItem key={item.path} item={item} isMobile={true} />
                     ))}
@@ -575,7 +591,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
 
         {/* Desktop Badges */}
         {isSidebarExpanded && totalBadges > 0 && (
-          <div className="mx-4 mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+          <div className="mx-2 mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
             <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
             <span className="text-xs font-medium text-blue-700">
               {totalBadges} pending action{totalBadges > 1 ? "s" : ""}
@@ -585,14 +601,14 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
 
         {/* Desktop Navigation */}
         <div className="flex-1 overflow-y-auto">
-          <nav className="mt-4 px-3 space-y-2">
+          <nav className="mt-2 px-4 space-y-1">
             {nav.map((group) => (
               <div key={group.section}>
                 {/* Section Header */}
                 {group.collapsible ? (
                   <button
                     onClick={() => toggleSection(group.section)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                       openSections.includes(group.section)
                         ? "bg-gray-100 text-gray-900"
                         : "text-gray-600 hover:bg-gray-50"
@@ -600,14 +616,14 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
                   >
                     <Icon
                       name={group.icon}
-                      className={isSidebarExpanded ? "w-5 h-5" : "w-6 h-6"}
+                      className={isSidebarExpanded ? "w-4 h-4" : "w-5 h-5"}
                     />
                     {isSidebarExpanded && (
                       <>
                         <span className="flex-1 text-left">{group.section}</span>
                         <Icon
                           name="ChevronDown"
-                          className={`w-4 h-4 transition-transform ${
+                          className={`w-3 h-3 transition-transform ${
                             openSections.includes(group.section) ? "rotate-180" : ""
                           }`}
                         />
@@ -616,7 +632,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
                   </button>
                 ) : (
                   isSidebarExpanded && (
-                    <div className="text-xs uppercase text-gray-500 font-medium px-3 py-2">
+                    <div className="text-xs uppercase text-gray-500 font-medium px-2 py-1.5">
                       {group.section}
                     </div>
                   )
@@ -624,7 +640,7 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
 
                 {/* Menu Items */}
                 {(!group.collapsible || openSections.includes(group.section)) && (
-                  <div className="space-y-1 mt-1">
+                  <div className="space-y-0.5 mt-1">
                     {group.items.map((item) => (
                       <NavigationItem key={item.path} item={item} />
                     ))}

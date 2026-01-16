@@ -159,7 +159,7 @@ const BankVerificationPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-4">
       
       {/* Debug Panel - Development Only
       {process.env.NODE_ENV === 'development' && (
@@ -181,13 +181,13 @@ const BankVerificationPage = () => {
       )}
        */}
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Bank Details Verification</h1>
+          <h1 className="text-lg font-bold text-gray-900">Bank Details Verification</h1>
           <p className="text-gray-600 mt-1">Review and approve employee bank details</p>
         </div>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Badge variant="outline" className="flex items-center gap-2">
             <Clock className="w-4 h-4" />
             {pendingVerifications.length} Pending
@@ -202,8 +202,8 @@ const BankVerificationPage = () => {
 
       {/* Search and Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row gap-4">
+        <CardContent className="p-3">
+          <div className="flex flex-col sm:flex-row gap-2">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
               <input
@@ -226,8 +226,8 @@ const BankVerificationPage = () => {
       {/* Pending Verifications List */}
    {filteredEmployees.length === 0 ? (
   <Card className="border border-dashed">
-    <CardContent className="py-14 text-center">
-      <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+    <CardContent className="py-8 text-center">
+      <CheckCircle className="w-8 h-8 text-green-500 mx-auto mb-3"/>
       <h3 className="text-lg font-semibold text-gray-900">
         All Caught Up
       </h3>
@@ -237,17 +237,17 @@ const BankVerificationPage = () => {
     </CardContent>
   </Card>
 ) : (
-  <div className="space-y-4">
+  <div className="space-y-3">
     {filteredEmployees.map((employee) => (
       <Card
         key={employee.employeeId}
         className="border border-gray-200 hover:shadow-md transition"
       >
-        <CardContent className="p-5">
-          <div className="flex flex-col lg:flex-row gap-6">
+        <CardContent className="p-3">
+          <div className="flex flex-col lg:flex-row gap-3">
 
             {/* LEFT : Employee + Bank Info */}
-            <div className="flex-1 space-y-4">
+            <div className="flex-1 space-y-2">
 
               {/* Header */}
               <div className="flex items-start justify-between">
@@ -271,7 +271,7 @@ const BankVerificationPage = () => {
               </div>
 
               {/* Bank Details */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 border rounded-md p-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-gray-50 border rounded-md p-2">
 
                 <InfoItem
                   icon={<Building2 className="w-4 h-4" />}
@@ -333,11 +333,11 @@ const BankVerificationPage = () => {
       {showModal && selectedEmployee && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
+            <div className="p-3">
               
               {/* Modal Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold">Verify Bank Details</h2>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-lg font-semibold">Verify Bank Details</h2>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -348,10 +348,10 @@ const BankVerificationPage = () => {
               </div>
 
               {/* Employee Details */}
-              <div className="space-y-4 mb-6">
-                <div className="p-4 bg-blue-50 rounded-lg">
+              <div className="space-y-2 mb-3">
+                <div className="p-2 bg-blue-50 rounded-lg">
                   <h3 className="font-medium text-blue-900 mb-2">Employee Information</h3>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="text-blue-700">Name:</span>
                       <p className="font-medium">{selectedEmployee.employeeName}</p>
@@ -368,12 +368,12 @@ const BankVerificationPage = () => {
                 </div>
 
                 {/* Bank Details to Verify */}
-                <div className="p-4 bg-yellow-50 rounded-lg">
+                <div className="p-2 bg-yellow-50 rounded-lg">
                   <h3 className="font-medium text-yellow-900 mb-2 flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4" />
                     Bank Details for Verification
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div>
                       <span className="text-yellow-700">Bank Name:</span>
                       <p className="font-medium">{selectedEmployee.bankName}</p>
@@ -410,14 +410,14 @@ const BankVerificationPage = () => {
                     value={rejectionReason}
                     onChange={(e) => setRejectionReason(e.target.value)}
                     placeholder="Provide reason for rejection (e.g., Invalid IFSC code, Account number mismatch, etc.)"
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows={3}
                   />
                 </div>
               </div>
 
               {/* Modal Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 justify-end">
+              <div className="flex flex-col sm:flex-row gap-2 justify-end">
                 <Button
                   variant="outline"
                   onClick={() => setShowModal(false)}

@@ -283,9 +283,9 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
 
   if (!canManageCalendar && showManagementFeatures) {
     return (
-      <div className="p-6">
+      <div className="p-4">
         <Card>
-          <CardContent className="p-6 text-center">
+          <CardContent className="p-4 text-center">
             <h3 className="text-lg font-semibold text-red-900 mb-2">Access Denied</h3>
             <p className="text-red-700">You don't have permission to manage calendar events.</p>
           </CardContent>
@@ -296,9 +296,9 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
 
   if (loading) {
     return (
-      <div className="p-6">
-        <div className="text-center py-8">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <div className="p-4">
+        <div className="text-center py-6">
+          <div className="w-6 h-6 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
           <p className="text-gray-500">Loading calendar data...</p>
         </div>
       </div>
@@ -306,9 +306,9 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-4 space-y-3 sm:space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
             {showManagementFeatures ? 'Calendar Management' : 'Calendar'}
@@ -365,8 +365,8 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
         <>
           {/* Filters */}
           <Card>
-            <CardContent className="p-4">
-              <div className="flex flex-wrap gap-4 items-center">
+            <CardContent className="p-3">
+              <div className="flex flex-wrap gap-3 items-center">
                 <div className="flex-1 min-w-64">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -420,9 +420,9 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                     return (
                       <div
                         key={item._id || item.id}
-                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                        className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
                       >
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-full ${typeInfo.color}`}>
                             <IconComponent className="w-4 h-4" />
                           </div>
@@ -430,7 +430,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                             <h3 className="font-medium text-gray-900">
                               {item.title || item.name}
                             </h3>
-                            <div className="flex items-center gap-4 text-sm text-gray-500">
+                            <div className="flex items-center gap-3 text-sm text-gray-500">
                               <span>
                                 {displayDate && format(parseISO(displayDate), 'MMM dd, yyyy')}
                                 {endDate && endDate !== displayDate && 
@@ -522,7 +522,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
           </CardHeader>
           <CardContent>
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-1 sm:gap-2">
+            <div className="grid grid-cols-7 gap-1">
               {/* Day Headers */}
               {dayNames.map(day => (
                 <div key={day} className="text-center text-xs font-medium text-gray-600 py-2">
@@ -598,7 +598,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
             {/* Hover Tooltip */}
             {hoveredDay && (
               <div
-                className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-w-xs pointer-events-none"
+                className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-2 max-w-xs pointer-events-none"
                 style={{
                   left: `${tooltipPosition.x}px`,
                   top: `${tooltipPosition.y}px`,
@@ -631,7 +631,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
             )}
 
             {/* Legend */}
-            <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-4 justify-center text-xs sm:text-sm">
+            <div className="mt-3 sm:mt-4 flex flex-wrap gap-2 sm:gap-3 justify-center text-xs sm:text-sm">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-50 border border-red-200 rounded"></div>
                 <span className="text-gray-600">Holiday</span>

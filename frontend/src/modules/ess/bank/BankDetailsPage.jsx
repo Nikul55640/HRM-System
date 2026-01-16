@@ -131,12 +131,12 @@ const BankDetailsPage = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-4 sm:space-y-6">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-3 sm:py-4 space-y-3">
 
       {/* ================= HEADER ================= */}
       <Card className="rounded-2xl border border-gray-100 shadow-sm">
-        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-          <CardTitle className="text-lg sm:text-xl font-semibold">
+        <CardHeader className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+          <CardTitle className="text-lg font-semibold">
             Bank Details
           </CardTitle>
           <Button
@@ -152,9 +152,9 @@ const BankDetailsPage = () => {
 
       {/* ================= FORM ================= */}
       <Card className="rounded-2xl border border-gray-100 shadow-sm">
-        <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-5">
+        <CardContent className="p-3 space-y-3">
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <InputField
               label="Account Holder Name *"
               name="accountHolderName"
@@ -174,7 +174,7 @@ const BankDetailsPage = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <InputField
               label="IFSC Code *"
               name="ifscCode"
@@ -222,7 +222,7 @@ const BankDetailsPage = () => {
 
           {/* ================= ACTIONS ================= */}
           {editing && (
-            <div className="flex justify-end gap-3 pt-4">
+            <div className="flex justify-end gap-2 pt-2">
               <Button variant="outline" onClick={() => setEditing(false)}>
                 Cancel
               </Button>
@@ -236,19 +236,19 @@ const BankDetailsPage = () => {
 
       {/* ================= STATUS ================= */}
       <Card className="rounded-2xl border border-gray-100 shadow-sm">
-        <CardContent className="p-5 space-y-3 text-sm">
+        <CardContent className="p-3 space-y-2 text-sm">
           {bankDetails.isVerified ? (
-            <div className="flex items-center gap-2 text-green-700 bg-green-50 p-3 rounded-md">
+            <div className="flex items-center gap-2 text-green-700 bg-green-50 p-2 rounded-md">
               <CheckCircle className="w-4 h-4" />
               Bank details verified by HR
             </div>
           ) : bankDetails.accountNumber ? (
-            <div className="flex items-center gap-2 text-yellow-700 bg-yellow-50 p-3 rounded-md">
+            <div className="flex items-center gap-2 text-yellow-700 bg-yellow-50 p-2 rounded-md">
               <AlertCircle className="w-4 h-4" />
               Pending HR verification
             </div>
           ) : (
-            <div className="flex items-center gap-2 text-orange-700 bg-orange-50 p-3 rounded-md">
+            <div className="flex items-center gap-2 text-orange-700 bg-orange-50 p-2 rounded-md">
               <AlertCircle className="w-4 h-4" />
               No bank details added yet
             </div>

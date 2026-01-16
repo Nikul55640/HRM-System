@@ -269,11 +269,11 @@ const CalendarificManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Calendarific Integration</h1>
+          <h1 className="text-lg font-bold">Calendarific Integration</h1>
           <p className="text-muted-foreground">
             Manage holiday synchronization with Calendarific API
           </p>
@@ -284,7 +284,7 @@ const CalendarificManagement = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
+            <Settings className="h-4 w-4" />
             API Status
           </CardTitle>
         </CardHeader>
@@ -331,7 +331,7 @@ const CalendarificManagement = () => {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Globe2 className="h-5 w-5" />
+              <Globe2 className="h-4 w-4" />
               Quick Actions
             </CardTitle>
           </CardHeader>
@@ -376,7 +376,7 @@ const CalendarificManagement = () => {
       )}
 
       {/* Main Tabs */}
-      <Tabs defaultValue="sync" className="space-y-4">
+      <Tabs defaultValue="sync" className="space-y-3">
         <TabsList>
           <TabsTrigger value="sync">Holiday Sync</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
@@ -386,16 +386,16 @@ const CalendarificManagement = () => {
         </TabsList>
 
         {/* Holiday Sync Tab */}
-        <TabsContent value="sync" className="space-y-4">
+        <TabsContent value="sync" className="space-y-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <RotateCcw className="h-5 w-5" />
+                <RotateCcw className="h-4 w-4" />
                 Sync Holidays
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <CardContent className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <Label htmlFor="country">Country</Label>
                   <Select value={selectedCountry} onValueChange={setSelectedCountry}>
@@ -425,8 +425,8 @@ const CalendarificManagement = () => {
 
                 <div>
                   <Label>Holiday Types</Label>
-                  <div className="space-y-2 mt-2 border rounded-lg p-3 bg-gray-50">
-                    <div className="flex items-center space-x-2 mb-3 pb-2 border-b">
+                  <div className="space-y-2 mt-2 border rounded-lg p-2 bg-gray-50">
+                    <div className="flex items-center space-x-2 mb-2 pb-2 border-b">
                       <Checkbox
                         id="select-all"
                         checked={selectedTypes.length === holidayTypes.length}
@@ -533,15 +533,15 @@ const CalendarificManagement = () => {
         </TabsContent>
 
         {/* Preview Tab */}
-        <TabsContent value="preview" className="space-y-4">
+        <TabsContent value="preview" className="space-y-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Eye className="h-5 w-5" />
+                <Eye className="h-4 w-4" />
                 Preview Holidays
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <Button 
                 onClick={handlePreviewHolidays}
                 disabled={loading || !apiStatus?.success || selectedTypes.length === 0}
@@ -551,7 +551,7 @@ const CalendarificManagement = () => {
               </Button>
 
               {previewData && (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">
                       {previewData.country} - {previewData.year}
@@ -566,8 +566,8 @@ const CalendarificManagement = () => {
                     {previewData.holidays.map((holiday, index) => {
                       const formatted = calendarificService.formatHolidayForDisplay(holiday);
                       return (
-                        <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex items-center gap-3">
+                        <div key={index} className="flex items-center justify-between p-2 border rounded-lg">
+                          <div className="flex items-center gap-2">
                             <span className="text-lg">{formatted.categoryIcon}</span>
                             <div>
                               <p className="font-medium">{holiday.name}</p>
@@ -595,15 +595,15 @@ const CalendarificManagement = () => {
         </TabsContent>
 
         {/* Bulk Sync Tab */}
-        <TabsContent value="bulk" className="space-y-4">
+        <TabsContent value="bulk" className="space-y-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Download className="h-5 w-5" />
+                <Download className="h-4 w-4" />
                 Bulk Sync Multiple Years
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
@@ -647,15 +647,15 @@ const CalendarificManagement = () => {
         </TabsContent>
 
         {/* Manage Holidays Tab */}
-        <TabsContent value="manage" className="space-y-4">
+        <TabsContent value="manage" className="space-y-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Settings className="h-5 w-5" />
+                <Settings className="h-4 w-4" />
                 Manage Existing Holidays
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <Alert>
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>
@@ -705,7 +705,7 @@ const CalendarificManagement = () => {
               </div>
 
               {holidayStats && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="font-medium">
                       Holidays in Database ({holidayStats.breakdown.total} total)
@@ -723,27 +723,27 @@ const CalendarificManagement = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 border rounded-lg bg-blue-50">
-                      <div className="text-2xl font-bold text-blue-600">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="text-center p-3 border rounded-lg bg-blue-50">
+                      <div className="text-xl font-bold text-blue-600">
                         {holidayStats.breakdown.national}
                       </div>
                       <div className="text-sm text-muted-foreground">National</div>
                     </div>
-                    <div className="text-center p-4 border rounded-lg bg-purple-50">
-                      <div className="text-2xl font-bold text-purple-600">
+                    <div className="text-center p-3 border rounded-lg bg-purple-50">
+                      <div className="text-xl font-bold text-purple-600">
                         {holidayStats.breakdown.religious}
                       </div>
                       <div className="text-sm text-muted-foreground">Religious</div>
                     </div>
-                    <div className="text-center p-4 border rounded-lg bg-green-50">
-                      <div className="text-2xl font-bold text-green-600">
+                    <div className="text-center p-3 border rounded-lg bg-green-50">
+                      <div className="text-xl font-bold text-green-600">
                         {holidayStats.breakdown.local}
                       </div>
                       <div className="text-sm text-muted-foreground">Local</div>
                     </div>
-                    <div className="text-center p-4 border rounded-lg bg-gray-50">
-                      <div className="text-2xl font-bold text-gray-600">
+                    <div className="text-center p-3 border rounded-lg bg-gray-50">
+                      <div className="text-xl font-bold text-gray-600">
                         {holidayStats.breakdown.total}
                       </div>
                       <div className="text-sm text-muted-foreground">Total</div>
@@ -762,31 +762,31 @@ const CalendarificManagement = () => {
         </TabsContent>
 
         {/* Statistics Tab */}
-        <TabsContent value="stats" className="space-y-4">
+        <TabsContent value="stats" className="space-y-3">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
+                <BarChart3 className="h-4 w-4" />
                 Holiday Statistics
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-3">
               <Button onClick={loadHolidayStats} variant="outline" disabled={loading}>
                 <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
                 Refresh Stats
               </Button>
 
               {holidayStats && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">
+                <div className="space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="text-center p-3 border rounded-lg">
+                      <div className="text-xl font-bold text-blue-600">
                         {holidayStats.breakdown.national}
                       </div>
                       <div className="text-sm text-muted-foreground">National</div>
                     </div>
-                    <div className="text-center p-4 border rounded-lg">
-                      <div className="text-2xl font-bold text-purple-600">
+                    <div className="text-center p-3 border rounded-lg">
+                      <div className="text-xl font-bold text-purple-600">
                         {holidayStats.breakdown.religious}
                       </div>
                       <div className="text-sm text-muted-foreground">Religious</div>
