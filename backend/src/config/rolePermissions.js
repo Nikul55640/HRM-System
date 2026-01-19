@@ -50,6 +50,7 @@ export const MODULES = {
     VIEW_OWN: "attendance.view.own",
     VIEW_TEAM: "attendance.view.team",
     VIEW_ALL: "attendance.view.all",
+    VIEW_COMPANY_STATUS: "attendance.view.company.status", // ✅ NEW: Employee-safe company status
     CLOCK_IN_OUT: "attendance.clock",
     REQUEST_CORRECTION: "attendance.correction.request",
     APPROVE_CORRECTION: "attendance.correction.approve",
@@ -232,6 +233,7 @@ export const ROLE_PERMISSIONS = {
     MODULES.ATTENDANCE.VIEW_OWN,
     MODULES.ATTENDANCE.CLOCK_IN_OUT,
     MODULES.ATTENDANCE.REQUEST_CORRECTION,
+    MODULES.ATTENDANCE.VIEW_COMPANY_STATUS, // ✅ NEW: Can see company-wide leave/WFH status
 
     MODULES.LEAVE.VIEW_OWN,
     MODULES.LEAVE.APPLY,

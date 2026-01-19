@@ -49,6 +49,7 @@ import workingRulesRoutes from "./routes/admin/workingRules.routes.js";
 import bankVerificationRoutes from "./routes/admin/bankVerification.routes.js";
 import calendarificRoutes from "./routes/admin/calendarific.routes.js";
 import attendanceFinalizationRoutes from "./routes/admin/attendanceFinalization.routes.js";
+import adminConfigRoutes from "./routes/admin/adminConfig.routes.js";
 
 // HRM Modules
 import calendarRoutes from "./routes/calendar.routes.js";
@@ -176,7 +177,7 @@ app.use("/api/admin/working-rules", workingRulesRoutes);
 app.use("/api/admin/bank-verification", bankVerificationRoutes);
 app.use("/api/admin/calendarific", calendarificRoutes);
 app.use("/api/admin/attendance-finalization", attendanceFinalizationRoutes);
-app.use("/api/admin/config", configRoutes);
+app.use("/api/admin/config", adminConfigRoutes);
 
 // AUTH SECTION
 app.use("/api/auth", authRoutes);

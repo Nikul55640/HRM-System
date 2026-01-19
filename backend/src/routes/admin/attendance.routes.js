@@ -48,6 +48,7 @@ router.get(
   checkAnyPermission([
     MODULES.ATTENDANCE.VIEW_ALL,
     MODULES.ATTENDANCE.VIEW_TEAM,
+  
   ]),
   liveAttendanceController.getLiveAttendance
 );

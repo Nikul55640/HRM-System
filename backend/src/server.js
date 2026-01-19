@@ -28,6 +28,16 @@ const server = app.listen(PORT, () => {
       logger.warn('Attendance finalization cron job not initialized:', error.message);
     });
 
+    // ✅ NEW: Initialize attendance auto-correction cron job
+    import('./jobs/attendanceAutoCorrection.js').then((mod) => {
+      if (mod && mod.startAttendanceAutoCorrection) {
+        mod.startAttendanceAutoCorrection();
+        logger.info('📅 Attendance auto-correction job scheduled');
+      }
+    }).catch((error) => {
+      logger.warn('Attendance auto-correction cron job not initialized:', error.message);
+    });
+
     // Initialize leave balance rollover cron job
     import('./services/cron/leaveBalanceRollover.service.js').then((mod) => {
       if (mod && mod.default && mod.default.initialize) {

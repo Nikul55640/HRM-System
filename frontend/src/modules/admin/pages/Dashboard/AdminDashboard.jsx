@@ -227,7 +227,7 @@ const AdminDashboard = () => {
                   key={task.id}
                   className="flex items-center justify-between p-2 bg-gray-50 rounded-lg hover:bg-gray-100 cursor-pointer"
                   onClick={() => {
-                    if (task.task.includes('leave')) navigate('/admin/leave-requests');
+                    if (task.task.includes('leave')) navigate('/admin/leave');
                     if (task.task.includes('payroll')) navigate('/payroll');
                   }}
                 >

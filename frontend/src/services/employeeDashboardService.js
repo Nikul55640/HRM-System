@@ -1,5 +1,6 @@
 import api from './api';
 import { format, addDays, startOfWeek, endOfWeek, parseISO } from 'date-fns';
+import birthdayService from './birthdayService';
 
 const employeeDashboardService = {
   /**
@@ -16,11 +17,12 @@ const employeeDashboardService = {
       const month = String(now.getMonth() + 1).padStart(2, '0');
 
       // Fetch all data in parallel for better performance
-      const [profileRes, attendanceRes, leaveBalanceRes, leaveHistoryRes] = await Promise.allSettled([
+      const [profileRes, attendanceRes, leaveBalanceRes, leaveHistoryRes, birthdaysRes] = await Promise.allSettled([
         api.get('/employee/profile'),
         api.get(`/employee/attendance/summary/${year}/${month}`),
         api.get('/employee/leave-balance'),
         api.get('/employee/leave-history'),
+        birthdayService.getUpcomingYearlyBirthdays(5), // Get 5 upcoming birthdays from entire year
       ]);
 
       // Debug: Log raw responses
@@ -29,6 +31,7 @@ const employeeDashboardService = {
         attendanceRes: attendanceRes.status === 'fulfilled' ? attendanceRes.value.data : attendanceRes.reason,
         leaveBalanceRes: leaveBalanceRes.status === 'fulfilled' ? leaveBalanceRes.value.data : leaveBalanceRes.reason,
         leaveHistoryRes: leaveHistoryRes.status === 'fulfilled' ? leaveHistoryRes.value.data : leaveHistoryRes.reason,
+        birthdaysRes: birthdaysRes.status === 'fulfilled' ? birthdaysRes.value.data : birthdaysRes.reason,
       });
 
       // Extract data safely with multiple fallback patterns
@@ -48,11 +51,16 @@ const employeeDashboardService = {
         ? (leaveHistoryRes.value.data?.data || leaveHistoryRes.value.data || [])
         : [];
 
+      const birthdaysData = birthdaysRes.status === 'fulfilled' 
+        ? (birthdaysRes.value.data || [])
+        : [];
+
       console.log('✅ [EMPLOYEE DASHBOARD SERVICE] Extracted data:', {
         profileData: profileData ? 'Found' : 'Missing',
         attendanceData: attendanceData ? 'Found' : 'Missing',
         leaveBalanceData: leaveBalanceData ? 'Found' : 'Missing',
         leaveHistoryData: Array.isArray(leaveHistoryData) ? `${leaveHistoryData.length} items` : 'Invalid',
+        birthdaysData: Array.isArray(birthdaysData) ? `${birthdaysData.length} birthdays` : 'Invalid',
       });
 
       // Calculate attendance rate from last 30 days
@@ -130,7 +138,7 @@ const employeeDashboardService = {
           attendanceRate: Math.round(attendanceRate),
           leaveRequests: recentLeaves.length,
         },
-        birthdays: [], // TODO: Implement when team/directory endpoint is available
+        birthdays: birthdaysData.map(birthday => birthdayService.formatBirthdayForDisplay(birthday)), // Format birthdays for display
         leaveToday: [], // TODO: Implement when team/directory endpoint is available
         wfhToday: [], // TODO: Implement when team/directory endpoint is available
         weekEvents: weekEvents.sort((a, b) => new Date(a.date) - new Date(b.date)),
@@ -203,6 +211,101 @@ const employeeDashboardService = {
       return {
         success: false,
         message: error.response?.data?.message || 'Failed to load leave balance',
+      };
+    }
+  },
+
+  /**
+   * Get all employees on leave today (company-wide)
+   */
+  getTodayLeaveData: async () => {
+    try {
+      console.log('🏖️ [EMPLOYEE DASHBOARD SERVICE] Fetching today\'s leave data (employee-safe)...');
+      
+      // Use the new employee-safe company status endpoint
+      const response = await api.get('/employee/company/leave-today');
+      
+      if (response.data?.success) {
+        const leaveData = response.data.data || [];
+        
+        console.log('✅ [EMPLOYEE DASHBOARD SERVICE] Leave data loaded:', leaveData.length, 'employees');
+        
+        return {
+          success: true,
+          data: leaveData,
+        };
+      } else {
+        console.warn('Leave data API returned error:', response.data?.message);
+        return {
+          success: false,
+          message: response.data?.message || 'Failed to load leave data',
+          data: [],
+        };
+      }
+    } catch (error) {
+      console.error('❌ [EMPLOYEE DASHBOARD SERVICE] Failed to fetch leave data:', error);
+      
+      // Handle permission errors gracefully
+      if (error.response?.status === 403) {
+        return {
+          success: false,
+          message: 'Insufficient permissions to view company leave data',
+          data: [],
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to load leave data',
+        data: [],
+      };
+    }
+  },
+
+  /**
+   * Get all employees working from home today (company-wide)
+   * ✅ SECURE: Uses employee-safe endpoint with proper RBAC
+   */
+  getTodayWFHData: async () => {
+    try {
+      console.log('🏠 [EMPLOYEE DASHBOARD SERVICE] Fetching today\'s WFH data (employee-safe)...');
+      
+      // Use the new employee-safe company status endpoint
+      const response = await api.get('/employee/company/wfh-today');
+      
+      if (response.data?.success) {
+        const wfhData = response.data.data || [];
+        
+        console.log('✅ [EMPLOYEE DASHBOARD SERVICE] WFH data loaded:', wfhData.length, 'employees');
+        
+        return {
+          success: true,
+          data: wfhData,
+        };
+      } else {
+        console.warn('WFH data API returned error:', response.data?.message);
+        return {
+          success: false,
+          message: response.data?.message || 'Failed to load WFH data',
+          data: [],
+        };
+      }
+    } catch (error) {
+      console.error('❌ [EMPLOYEE DASHBOARD SERVICE] Failed to fetch WFH data:', error);
+      
+      // Handle permission errors gracefully
+      if (error.response?.status === 403) {
+        return {
+          success: false,
+          message: 'Insufficient permissions to view company WFH data',
+          data: [],
+        };
+      }
+      
+      return {
+        success: false,
+        message: error.response?.data?.message || 'Failed to load WFH data',
+        data: [],
       };
     }
   },

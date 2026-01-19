@@ -22,8 +22,9 @@ class AttendanceService {
             if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 400 };
             }
-            // ✅ FIX: Use local timezone, not UTC
+
             const today = getLocalDateString();
+            
             // Check if already clocked in today
             let attendanceRecord = await AttendanceRecord.findOne({
                 where: {
@@ -31,9 +32,15 @@ class AttendanceService {
                     date: today
                 }
             });
-            if (attendanceRecord && attendanceRecord.clockIn) {
-                throw { message: "Already clocked in for today", statusCode: 400 };
+
+            // 🚫 APPLY ENHANCED BUTTON CONTROL RULES
+            if (attendanceRecord) {
+                const canClockIn = attendanceRecord.canClockIn();
+                if (!canClockIn.allowed) {
+                    throw { message: canClockIn.reason, statusCode: 400 };
+                }
             }
+
             // Get employee's assigned shift
             let assignedShift = null;
             try {
@@ -53,14 +60,31 @@ class AttendanceService {
                     assignedShift = employee.shiftAssignments[0].shift;
                 }
             } catch (error) {
-                // If EmployeeShift association fails, just continue with default shift
                 logger.warn('EmployeeShift association not found, using default shift');
             }
+
             // Fallback to default shift if no specific assignment
             if (!assignedShift) {
                 assignedShift = await Shift.findOne({ where: { isDefault: true } });
             }
+
             const clockInTime = new Date();
+            
+            // Extract work mode from request
+            const workMode = clockInData.workMode || 'office';
+            
+            // 🔍 LOG: Verify data is being received
+            console.log('🔍 Clock-in data verification:', {
+                workMode,
+                hasLocation: !!clockInData.location,
+                locationData: clockInData.location ? {
+                    type: clockInData.location.type,
+                    hasCoordinates: !!(clockInData.location.coordinates?.latitude)
+                } : null,
+                hasDeviceInfo: !!clockInData.deviceInfo,
+                deviceInfoKeys: clockInData.deviceInfo ? Object.keys(clockInData.deviceInfo) : []
+            });
+            
             // Create or update attendance record
             if (!attendanceRecord) {
                 attendanceRecord = await AttendanceRecord.create({
@@ -68,24 +92,25 @@ class AttendanceService {
                     shiftId: assignedShift?.id || null,
                     date: today,
                     clockIn: clockInTime,
+                    workMode: workMode,
                     location: clockInData.location || null,
                     deviceInfo: clockInData.deviceInfo || null,
-                    status: 'present',
+                    status: 'incomplete', // ✅ Start as incomplete, will be evaluated on clock-out
                     createdBy: user.id
                 });
             } else {
                 await attendanceRecord.update({
                     clockIn: clockInTime,
+                    workMode: workMode,
                     location: clockInData.location || null,
                     deviceInfo: clockInData.deviceInfo || null,
-                    status: 'present',
+                    status: 'incomplete', // ✅ Start as incomplete
                     updatedBy: user.id
                 });
             }
-            // ✅ STEP 1: CALCULATE LATE AT CLOCK-IN (MANDATORY)
-            // This is the ONLY place late should be calculated - immediately on clock-in
+
+            // Calculate late status at clock-in
             if (assignedShift) {
-                // ✅ FIX: Use local timezone for shift time calculation
                 const today = getLocalDateString(clockInTime);
                 const shiftStartTime = new Date(`${today} ${assignedShift.shiftStartTime}`);
                 const gracePeriodMs = (assignedShift.gracePeriodMinutes || 0) * 60 * 1000;
@@ -99,19 +124,17 @@ class AttendanceService {
                     isLate = true;
                 }
 
-                // Update immediately - late status must be visible right after clock-in
+                // Update late status immediately
                 await attendanceRecord.update({
                     lateMinutes: lateMinutes,
                     isLate: isLate,
-                    status: 'present', // Always present when clocked in
                     updatedBy: user.id
                 });
-                // SEND LATE NOTIFICATION IF APPLICABLE
+
+                // Send late notification if applicable
                 if (isLate) {
                     try {
-                        // Import notification service dynamically to avoid circular dependency
                         const notificationService = (await import('../notificationService.js')).default;
-                        // Get employee details for notification
                         const employee = await Employee.findByPk(user.employee?.id, {
                             include: [{
                                 model: User,
@@ -120,21 +143,18 @@ class AttendanceService {
                             }]
                         });
                         if (employee) {
-                            // Add employee details to attendance record for notification
                             attendanceRecord.employee = employee;
-                            // Send late clock-in notification
                             await notificationService.notifyLateClockIn(attendanceRecord);
-                            logger.info(`Late clock-in notification sent for employee ${employee.id}, late by ${lateMinutes} minutes`);
                         }
                     } catch (notificationError) {
                         logger.error('Failed to send late clock-in notification:', notificationError);
-                        // Don't fail the clock-in if notification fails
                     }
                 }
-                logger.info(`Clock-in processed: Employee ${user.employee?.id}, Late: ${isLate}, Minutes: ${lateMinutes}`);
             }
-            // Reload to get updated data (without problematic associations)
+
+            // Reload to get updated data
             await attendanceRecord.reload();
+
             // Log clock in action
             await AuditLog.logAction({
                 userId: user.id,
@@ -142,22 +162,20 @@ class AttendanceService {
                 module: 'attendance',
                 targetType: 'AttendanceRecord',
                 targetId: attendanceRecord.id,
-                description: `Clocked in at ${clockInTime.toLocaleTimeString()}${attendanceRecord.isLate ? ` (Late by ${attendanceRecord.lateMinutes} minutes)` : ''}`,
+                description: `Clocked in at ${clockInTime.toLocaleTimeString()} (${workMode})${attendanceRecord.isLate ? ` - Late by ${attendanceRecord.lateMinutes} minutes` : ''}`,
                 ipAddress: metadata.ipAddress,
                 userAgent: metadata.userAgent,
                 severity: 'low'
             });
 
-            // ✅ STEP 2: RETURN IMMEDIATE LATE STATUS TO FRONTEND
-            // This gives the UI all the information needed to show late status immediately
             const clockInResponse = {
                 ...attendanceRecord.toJSON(),
-                // Add computed fields for immediate display
                 clockInSummary: {
                     clockInTime: clockInTime.toLocaleTimeString('en-US', { 
                         hour: '2-digit', 
                         minute: '2-digit' 
                     }),
+                    workMode: workMode,
                     shiftStartTime: assignedShift ? assignedShift.shiftStartTime : null,
                     isLate: attendanceRecord.isLate,
                     lateMinutes: attendanceRecord.lateMinutes,
@@ -166,12 +184,13 @@ class AttendanceService {
                     gracePeriodMinutes: assignedShift ? assignedShift.gracePeriodMinutes || 0 : 0
                 }
             };
+
             return {
                 success: true,
                 data: clockInResponse,
                 message: attendanceRecord.isLate ? 
-                    `Clocked in successfully. You are late by ${attendanceRecord.lateMinutes} minutes.` : 
-                    'Clocked in successfully. You are on time!'
+                    `Clocked in successfully (${workMode}). You are late by ${attendanceRecord.lateMinutes} minutes.` : 
+                    `Clocked in successfully (${workMode}). You are on time!`
             };
         } catch (error) {
             logger.error('Error in clock in:', error);
@@ -196,7 +215,6 @@ class AttendanceService {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
             }
 
-            // ✅ FIX: Use local timezone, not UTC
             const today = getLocalDateString();
 
             const attendanceRecord = await AttendanceRecord.findOne({
@@ -206,16 +224,17 @@ class AttendanceService {
                 }
             });
 
-            if (!attendanceRecord || !attendanceRecord.clockIn) {
-                throw { message: "No clock in record found for today", statusCode: 400 };
+            if (!attendanceRecord) {
+                throw { message: "No attendance record found for today", statusCode: 400 };
             }
 
-            if (attendanceRecord.clockOut) {
-                throw { message: "Already clocked out for today", statusCode: 400 };
+            // 🚫 APPLY ENHANCED BUTTON CONTROL RULES
+            const canClockOut = attendanceRecord.canClockOut();
+            if (!canClockOut.allowed) {
+                throw { message: canClockOut.reason, statusCode: 400 };
             }
 
             // Check if there's an active break session - must end break before clocking out
-            // canEndBreak() returns true if there IS an active break session
             if (attendanceRecord.breakSessions && attendanceRecord.breakSessions.some(session => session.breakIn && !session.breakOut)) {
                 throw { message: "Please end your current break session before clocking out", statusCode: 400 };
             }
@@ -227,7 +246,8 @@ class AttendanceService {
                 updatedBy: user.id
             });
 
-            // The working hours calculation will be handled by the model hook
+            // Reload to get updated data with calculated hours and status
+            await attendanceRecord.reload();
 
             // Log clock out action
             await AuditLog.logAction({
@@ -236,16 +256,30 @@ class AttendanceService {
                 module: 'attendance',
                 targetType: 'AttendanceRecord',
                 targetId: attendanceRecord.id,
-                description: `Clocked out at ${clockOutTime.toLocaleTimeString()}. Total hours: ${attendanceRecord.workHours}`,
+                description: `Clocked out at ${clockOutTime.toLocaleTimeString()}. Status: ${attendanceRecord.status}, Hours: ${attendanceRecord.workHours}`,
                 ipAddress: metadata.ipAddress,
                 userAgent: metadata.userAgent,
                 severity: 'low'
             });
 
+            const clockOutResponse = {
+                ...attendanceRecord.toJSON(),
+                clockOutSummary: {
+                    clockOutTime: clockOutTime.toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                    }),
+                    totalHours: attendanceRecord.workHours,
+                    status: attendanceRecord.status,
+                    statusReason: attendanceRecord.statusReason,
+                    workMode: attendanceRecord.workMode || 'office'
+                }
+            };
+
             return {
                 success: true,
-                data: attendanceRecord,
-                message: 'Clocked out successfully'
+                data: clockOutResponse,
+                message: `Clocked out successfully. Status: ${attendanceRecord.status}, Hours worked: ${attendanceRecord.workHours}`
             };
         } catch (error) {
             logger.error('Error in clock out:', error);
@@ -595,6 +629,82 @@ class AttendanceService {
             return {
                 success: false,
                 message: error.message || 'Failed to get attendance status',
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * 🚫 NEW: Get button states for attendance controls
+     * @param {Object} user - User requesting button states
+     * @returns {Promise<Object>} Button states with reasons
+     */
+    async getButtonStates(user) {
+        try {
+            if (!user.employee?.id) {
+                throw { message: "No employee profile linked to this user", statusCode: 404 };
+            }
+
+            const today = getLocalDateString();
+
+            // Get or create today's attendance record
+            let attendanceRecord = await AttendanceRecord.findOne({
+                where: {
+                    employeeId: user.employee?.id,
+                    date: today
+                }
+            });
+
+            // If no record exists, create a minimal one for button state evaluation
+            if (!attendanceRecord) {
+                attendanceRecord = AttendanceRecord.build({
+                    employeeId: user.employee?.id,
+                    date: today,
+                    status: 'incomplete'
+                });
+            }
+
+            // Get button states using the new enhanced methods
+            const canClockIn = attendanceRecord.canClockIn();
+            const canClockOut = attendanceRecord.canClockOut();
+            const canStartBreak = attendanceRecord.canStartBreak();
+            const canEndBreak = attendanceRecord.canEndBreak();
+
+            const buttonStates = {
+                clockIn: {
+                    enabled: canClockIn.allowed,
+                    reason: canClockIn.reason
+                },
+                clockOut: {
+                    enabled: canClockOut.allowed,
+                    reason: canClockOut.reason
+                },
+                startBreak: {
+                    enabled: canStartBreak.allowed,
+                    reason: canStartBreak.reason
+                },
+                endBreak: {
+                    enabled: canEndBreak.allowed,
+                    reason: canEndBreak.reason
+                },
+                // Additional context
+                currentStatus: attendanceRecord.status,
+                hasClockIn: !!attendanceRecord.clockIn,
+                hasClockOut: !!attendanceRecord.clockOut,
+                isOnBreak: !!attendanceRecord.getCurrentBreakSession?.(),
+                workMode: attendanceRecord.workMode || 'office'
+            };
+
+            return {
+                success: true,
+                data: buttonStates,
+                message: 'Button states retrieved successfully'
+            };
+        } catch (error) {
+            logger.error('Error getting button states:', error);
+            return {
+                success: false,
+                message: error.message || 'Failed to get button states',
                 error: error.message
             };
         }
@@ -1123,7 +1233,7 @@ async getMonthlyAttendanceSummary(employeeId, year, month, user) {
             logger.warn('processEndOfDayAttendance is deprecated. Use finalizeDailyAttendance job instead.');
             
             // Import and call the finalization job
-            const { finalizeDailyAttendance } = await import('../jobs/attendanceFinalization.js');
+            const { finalizeDailyAttendance } = await import('../../jobs/attendanceFinalization.js');
             const result = await finalizeDailyAttendance();
             
             return {
@@ -1142,56 +1252,20 @@ async getMonthlyAttendanceSummary(employeeId, year, month, user) {
     }
 
     /**
-     * ✅ SHIFT-AWARE FIX: Check unfinalized or leave employees
-     * (Renamed conceptually from checkAbsentEmployees)
-     * 
-     * This checks for employees with incomplete or leave status.
-     * The system NO LONGER uses "absent" - everything is either:
-     * - 'leave' (no clock-in or missing clock-out)
-     * - 'incomplete' (pending finalization)
-     * - 'present' or 'half_day' (finalized)
+     * ✅ CORRECT: Check employees who haven't clocked in yet (informational only)
+     * This should NOT permanently mark absent - just warn/log
      * 
      * @deprecated This logic is now handled by the finalization job
      */
     async checkAbsentEmployees() {
         try {
-            logger.warn('checkAbsentEmployees is deprecated. Use finalizeDailyAttendance job instead.');
+            logger.warn('checkAbsentEmployees is deprecated. Use checkAbsentEmployees from finalization job instead.');
             
-            // ✅ FIX: Use local timezone, not UTC
-            const today = getLocalDateString();
+            // Import and call the finalization job
+            const { checkAbsentEmployees } = await import('../../jobs/attendanceFinalization.js');
+            const result = await checkAbsentEmployees();
             
-            // Find employees with incomplete or leave status
-            const records = await AttendanceRecord.findAll({
-                where: {
-                    date: today,
-                    status: {
-                        [Op.in]: ['leave', 'incomplete']
-                    }
-                },
-                include: [{
-                    model: Employee,
-                    as: 'employee',
-                    attributes: ['id', 'firstName', 'lastName', 'employeeId']
-                }, {
-                    model: Shift,
-                    as: 'shift',
-                    attributes: ['shiftName', 'shiftStartTime', 'shiftEndTime']
-                }]
-            });
-
-            const results = records.map(record => ({
-                employeeId: record.employee.employeeId,
-                employeeName: `${record.employee.firstName} ${record.employee.lastName}`,
-                status: record.status,
-                statusReason: record.statusReason,
-                shiftName: record.shift?.shiftName || 'No shift assigned'
-            }));
-
-            return {
-                success: true,
-                message: `Found ${results.length} employees with leave or incomplete status`,
-                data: results
-            };
+            return result;
         } catch (error) {
             logger.error('Error checking absent employees:', error);
             return {

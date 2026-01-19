@@ -44,6 +44,7 @@ const AnnouncementsPage = lazy(() => import("../modules/admin/pages/Announcement
 // System Configuration
 const UserManagement = lazy(() => import("../modules/organization/admin/UserManagement"));
 const SystemConfig = lazy(() => import("../modules/organization/admin/SystemConfig"));
+const AdminSettingsPage = lazy(() => import("../modules/admin/pages/Settings/AdminSettingsPage"));
 
 export const adminRoutes = [
   // Employee Management - HR can view and edit, but not delete
@@ -57,7 +58,7 @@ export const adminRoutes = [
 
   // Designation Management
   { path: "/admin/designations", element: <DesignationsPage />, roles: ["SuperAdmin", "HR"] },
-
+  
   // Attendance Management - HR can view all, edit, approve corrections, mark absent/holiday
   { path: "/admin/attendance", element: <ManageAttendance />, roles: ["SuperAdmin", "HR"] },
   { path: "/admin/attendance/corrections", element: <AttendanceCorrections />, roles: ["SuperAdmin", "HR"] },
@@ -100,5 +101,6 @@ export const adminRoutes = [
   // System Administration - SuperAdmin only
   { path: "/admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },
   { path: "/admin/system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
+  { path: "/admin/settings", element: <AdminSettingsPage />, roles: ["SuperAdmin"] },
   { path: "/admin/audit-logs", element: <AuditLogsPage />, roles: ["SuperAdmin"] },
 ];

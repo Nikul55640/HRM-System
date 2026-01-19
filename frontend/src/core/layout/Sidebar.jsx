@@ -392,9 +392,15 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => can.do(MODULES.USER.VIEW),
         },
         {
-          name: "System Settings",
-          path: "/admin/system-policies",
+          name: "Admin Settings",
+          path: "/admin/settings",
           icon: "Settings",
+          showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
+        },
+        {
+          name: "System Policies",
+          path: "/admin/system-policies",
+          icon: "FileText",
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
         },
         {

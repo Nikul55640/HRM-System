@@ -13,6 +13,7 @@ import shiftRoutes from './shift.routes.js';
 import calendarRoutes from './employeeCalendar.routes.js';
 import payslipsRoutes from './payslips.routes.js';
 import recentActivityRoutes from './recentActivity.routes.js';
+import companyStatusRoutes from './companyStatus.routes.js'; // ✅ NEW: Employee-safe company status
 
 const router = express.Router();
 
@@ -29,5 +30,6 @@ router.use('/calendar', calendarRoutes);
 router.use('/', notificationsRoutes);
 router.use('/', payslipsRoutes);
 router.use('/recent-activities', recentActivityRoutes);
+router.use('/company', companyStatusRoutes); // ✅ NEW: /employee/company/* endpoints
 
 export default router;

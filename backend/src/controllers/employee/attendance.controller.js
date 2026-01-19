@@ -24,14 +24,41 @@ const employeeAttendanceController = {
    */
   clockIn: async (req, res) => {
     try {
+      // 🔥 ENHANCED: Merge request metadata with frontend device info
       const metadata = {
         ipAddress: req.ip,
         userAgent: req.headers["user-agent"],
+        // Add any additional server-side metadata
+        serverTimestamp: new Date().toISOString(),
+        requestHeaders: {
+          'x-forwarded-for': req.headers['x-forwarded-for'],
+          'x-real-ip': req.headers['x-real-ip']
+        }
       };
-      const result = await attendanceService.clockIn(req.body, req.user, metadata);
+
+      // 🔥 ENHANCED: Combine frontend deviceInfo with server metadata
+      const enhancedClockInData = {
+        ...req.body,
+        // Merge device info if provided from frontend
+        deviceInfo: req.body.deviceInfo ? {
+          ...req.body.deviceInfo,
+          serverMetadata: metadata
+        } : metadata
+      };
+
+      console.log('🔍 Enhanced clock-in data:', {
+        workMode: enhancedClockInData.workMode,
+        hasLocation: !!enhancedClockInData.location,
+        hasDeviceInfo: !!enhancedClockInData.deviceInfo,
+        locationDetails: enhancedClockInData.locationDetails
+      });
+
+      const result = await attendanceService.clockIn(enhancedClockInData, req.user, metadata);
+      
       if (!result.success) {
         return sendResponse(res, false, result.message, null, 400);
       }
+      
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Clock In Error", error);
@@ -104,7 +131,7 @@ const employeeAttendanceController = {
   },
 
   /**
-   * Get today's attendance status
+   * Get today's attendance status with button controls
    */
   getTodayAttendance: async (req, res) => {
     try {
@@ -115,6 +142,22 @@ const employeeAttendanceController = {
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Get Today Attendance Error", error);
+      return sendResponse(res, false, "Internal server error", null, 500);
+    }
+  },
+
+  /**
+   * 🚫 NEW: Get button states for attendance controls
+   */
+  getButtonStates: async (req, res) => {
+    try {
+      const result = await attendanceService.getButtonStates(req.user);
+      if (!result.success) {
+        return sendResponse(res, false, result.message, null, 400);
+      }
+      return sendResponse(res, true, "Button states retrieved successfully", result.data);
+    } catch (error) {
+      logger.error("Controller: Get Button States Error", error);
       return sendResponse(res, false, "Internal server error", null, 500);
     }
   },

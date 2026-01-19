@@ -18,6 +18,13 @@ router.get(
   attendanceController.getTodayAttendance
 );
 
+// 🚫 NEW: GET button states for attendance controls
+router.get(
+  "/attendance/button-states",
+  authenticate,
+  attendanceController.getButtonStates
+);
+
 // GET attendance status for specific date
 router.get(
   "/attendance/status",

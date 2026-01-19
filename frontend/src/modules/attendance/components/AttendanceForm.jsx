@@ -37,8 +37,7 @@ const AttendanceForm = ({ record, onClose, onSubmit }) => {
       // Fallback to hardcoded options
       setStatusOptions([
         { value: 'present', label: 'Present' },
-        { value: 'absent', label: 'Absent' },
-        { value: 'leave', label: 'On Leave' },
+        { value: 'leave', label: 'On Leave' }, // ✅ FIXED: Use 'leave' instead of 'absent'
         { value: 'half_day', label: 'Half Day' },
         { value: 'holiday', label: 'Holiday' },
         { value: 'incomplete', label: 'Incomplete' },

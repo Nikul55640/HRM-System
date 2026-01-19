@@ -84,8 +84,8 @@ const CalendarCell = ({
     switch (record.status) {
       case 'present':
         return 'text-green-600';
-      case 'absent':
-        return 'text-red-600';
+      case 'leave': // ✅ FIXED: Use 'leave' instead of 'absent'
+        return 'text-blue-600';
       case 'half_day':
         return 'text-blue-600';
       case 'leave':
@@ -108,7 +108,7 @@ const CalendarCell = ({
     switch (record.status) {
       case 'present':
         return CheckCircle;
-      case 'absent':
+      case 'leave': // ✅ FIXED: Use 'leave' instead of 'absent'
         return XCircle;
       case 'half_day':
         return Clock;
@@ -133,8 +133,8 @@ const CalendarCell = ({
     switch (record.status) {
       case 'present':
         return `Present - ${record.clockIn ? 'Clocked in at ' + new Date(record.clockIn).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'On time'}`;
-      case 'absent':
-        return 'Absent';
+      case 'leave': // ✅ FIXED: Use 'leave' instead of 'absent'
+        return 'On Leave';
       case 'half_day':
         return 'Half Day';
       case 'leave':

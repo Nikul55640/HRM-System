@@ -27,7 +27,6 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     type: DataTypes.DATEONLY,
     allowNull: false,
   },
-
   // Clock In/Out Times
   clockIn: {
     type: DataTypes.DATE,
@@ -76,7 +75,6 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
-
   // Status
   status: {
     type: DataTypes.ENUM('present', 'absent', 'leave', 'half_day', 'holiday', 'incomplete', 'pending_correction'),
@@ -86,7 +84,6 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     type: DataTypes.STRING,
     allowNull: true,
   },
-
   // Half Day Details
   halfDayType: {
     type: DataTypes.ENUM('first_half', 'second_half', 'full_day'),
@@ -105,6 +102,11 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
   },
 
   // Location & Device Info
+  workMode: {
+    type: DataTypes.ENUM('office', 'wfh', 'hybrid', 'field'),
+    defaultValue: 'office',
+    comment: 'Work mode: office, work from home, hybrid, or field work'
+  },
   location: {
     type: DataTypes.JSON,
     allowNull: true,
@@ -202,25 +204,142 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
 });
 
 // Instance methods
+// 🚫 SMART BUTTON CONTROLS - PREVENT USER ERRORS
 AttendanceRecord.prototype.canClockIn = function () {
-  return !this.clockIn;
+  // ❌ Cannot clock in if:
+  // - On leave or holiday (protected statuses)
+  // - Already clocked in
+  // - Already marked absent/present for the day (day is closed)
+  if (['leave', 'holiday'].includes(this.status)) {
+    return { 
+      allowed: false, 
+      reason: `Cannot clock in - you are on ${this.status} today` 
+    };
+  }
+  
+  if (this.clockIn) {
+    return { 
+      allowed: false, 
+      reason: 'Already clocked in today' 
+    };
+  }
+
+  if (['absent', 'present'].includes(this.status)) {
+    return { 
+      allowed: false, 
+      reason: 'Attendance already finalized for today' 
+    };
+  }
+
+  // ✅ NEW: Check for pending correction status
+  if (this.status === 'pending_correction') {
+    return { 
+      allowed: false, 
+      reason: 'Attendance correction pending - contact HR' 
+    };
+  }
+
+  return { allowed: true, reason: null };
 };
 
 AttendanceRecord.prototype.canClockOut = function () {
-  return this.clockIn && !this.clockOut;
+  // ❌ Cannot clock out if:
+  // - No clock-in recorded
+  // - Already clocked out
+  // - On leave or holiday (protected statuses)
+  // - Already marked absent (day is closed)
+  if (!this.clockIn) {
+    return { 
+      allowed: false, 
+      reason: 'Must clock in first' 
+    };
+  }
+
+  if (this.clockOut) {
+    return { 
+      allowed: false, 
+      reason: 'Already clocked out today' 
+    };
+  }
+
+  if (['leave', 'holiday'].includes(this.status)) {
+    return { 
+      allowed: false, 
+      reason: `Cannot clock out - you are on ${this.status} today` 
+    };
+  }
+
+  if (this.status === 'absent') {
+    return { 
+      allowed: false, 
+      reason: 'Attendance marked as absent - contact HR for correction' 
+    };
+  }
+
+  // ✅ NEW: Check for pending correction status
+  if (this.status === 'pending_correction') {
+    return { 
+      allowed: false, 
+      reason: 'Attendance correction pending - contact HR' 
+    };
+  }
+
+  return { allowed: true, reason: null };
 };
 
 AttendanceRecord.prototype.canStartBreak = function () {
-  if (!this.clockIn || this.clockOut) return false;
+  // ❌ Cannot start break if:
+  // - Not clocked in or already clocked out
+  // - On leave/holiday/absent
+  // - Already on break
+  if (!this.clockIn || this.clockOut) {
+    return { 
+      allowed: false, 
+      reason: 'Must be clocked in to take break' 
+    };
+  }
+
+  if (['leave', 'holiday', 'absent'].includes(this.status)) {
+    return { 
+      allowed: false, 
+      reason: `Cannot take break - status is ${this.status}` 
+    };
+  }
+
+  // Check if already on break
   const breakSessions = this.breakSessions || [];
-  // Can start break if no active break session
-  return !breakSessions.some(session => session.breakIn && !session.breakOut);
+  const activeBreak = breakSessions.find(session => session.breakIn && !session.breakOut);
+  
+  if (activeBreak) {
+    return { 
+      allowed: false, 
+      reason: 'Already on break - end current break first' 
+    };
+  }
+
+  return { allowed: true, reason: null };
 };
 
 AttendanceRecord.prototype.canEndBreak = function () {
+  // ✅ Can only end break if currently on break
+  if (!this.clockIn || this.clockOut) {
+    return { 
+      allowed: false, 
+      reason: 'Must be clocked in to end break' 
+    };
+  }
+
   const breakSessions = this.breakSessions || [];
-  // Can end break if there's an active break session
-  return breakSessions.some(session => session.breakIn && !session.breakOut);
+  const activeBreak = breakSessions.find(session => session.breakIn && !session.breakOut);
+  
+  if (!activeBreak) {
+    return { 
+      allowed: false, 
+      reason: 'Not currently on break' 
+    };
+  }
+
+  return { allowed: true, reason: null };
 };
 
 AttendanceRecord.prototype.getCurrentBreakSession = function () {
@@ -229,7 +348,10 @@ AttendanceRecord.prototype.getCurrentBreakSession = function () {
 };
 
 AttendanceRecord.prototype.calculateWorkingHours = function () {
-  if (!this.clockIn || !this.clockOut) return 0;
+  if (!this.clockIn || !this.clockOut) {
+    this.workHours = 0;
+    return 0;
+  }
 
   const clockInTime = new Date(this.clockIn);
   const clockOutTime = new Date(this.clockOut);
@@ -242,6 +364,58 @@ AttendanceRecord.prototype.calculateWorkingHours = function () {
   this.workHours = Math.round((workingMinutes / 60) * 100) / 100;
 
   return this.workHours;
+};
+
+// 🧠 MASTER RULE ENGINE - SINGLE SOURCE OF TRUTH FOR STATUS
+AttendanceRecord.prototype.evaluateStatus = function (shift) {
+  // 🔒 PROTECTED STATUSES - Leave and holiday override everything - never change these
+  if (['leave', 'holiday'].includes(this.status)) {
+    return;
+  }
+
+  // 🚫 RULE 1: No clock-in at all = ABSENT
+  if (!this.clockIn) {
+    this.status = 'absent';
+    this.statusReason = 'No clock-in recorded';
+    this.halfDayType = null;
+    return;
+  }
+
+  // ⏳ RULE 2: Clock-in but no clock-out = INCOMPLETE (during day) or ABSENT (after day ends)
+  if (this.clockIn && !this.clockOut) {
+    // During the day, mark as incomplete
+    // After day ends (handled by cron job), this becomes absent or pending_correction
+    this.status = 'incomplete';
+    this.statusReason = 'Clock-out pending';
+    this.halfDayType = null;
+    return;
+  }
+
+  // ✅ RULE 3: Both clock-in and clock-out exist - calculate hours and determine status
+  this.calculateWorkingHours();
+
+  const workedHours = this.workHours || 0;
+  const fullDayHours = shift?.fullDayHours || 8;
+  const halfDayHours = shift?.halfDayHours || 4;
+
+  // Full day worked
+  if (workedHours >= fullDayHours) {
+    this.status = 'present';
+    this.halfDayType = 'full_day';
+    this.statusReason = `Worked ${workedHours.toFixed(2)} hours`;
+  } 
+  // Half day worked
+  else if (workedHours >= halfDayHours) {
+    this.status = 'half_day';
+    this.halfDayType = this.determineHalfDayType(shift);
+    this.statusReason = `Worked ${workedHours.toFixed(2)} hours (half day)`;
+  } 
+  // 🔑 CRITICAL FIX: Any work done = half_day (never absent if clocked in)
+  else {
+    this.status = 'half_day';
+    this.halfDayType = this.determineHalfDayType(shift);
+    this.statusReason = `Worked ${workedHours.toFixed(2)} hours (below minimum)`;
+  }
 };
 
 // ✅ NEW: Determine half-day type based on timing
@@ -341,6 +515,134 @@ AttendanceRecord.getMonthlySummary = async function (employeeId, year, month) {
   };
 };
 
+// 🔄 AUTO-CORRECTION METHODS
+AttendanceRecord.markMissedClockOuts = async function (date) {
+  const { Op } = await import('sequelize');
+  
+  // Mark records with clock-in but no clock-out as pending correction
+  const updatedRecords = await AttendanceRecord.update(
+    {
+      status: 'pending_correction',
+      statusReason: 'Missed clock-out - requires correction'
+    },
+    {
+      where: {
+        date: date,
+        clockIn: { [Op.not]: null },
+        clockOut: null,
+        status: { [Op.notIn]: ['leave', 'holiday'] }
+      },
+      returning: true
+    }
+  );
+
+  console.log(`✅ Marked ${updatedRecords[0]} records as pending correction for missed clock-outs on ${date}`);
+  return updatedRecords[0];
+};
+
+AttendanceRecord.markAbsentForNoClockIn = async function (date) {
+  const { Op } = await import('sequelize');
+  
+  // Mark records with no clock-in as absent
+  const updatedRecords = await AttendanceRecord.update(
+    {
+      status: 'absent',
+      statusReason: 'No attendance recorded'
+    },
+    {
+      where: {
+        date: date,
+        clockIn: null,
+        status: { [Op.notIn]: ['leave', 'holiday'] }
+      },
+      returning: true
+    }
+  );
+
+  console.log(`✅ Marked ${updatedRecords[0]} records as absent for no clock-in on ${date}`);
+  return updatedRecords[0];
+};
+
+// 🧹 DATA CLEANUP METHODS
+AttendanceRecord.fixBadData = async function () {
+  const { Op } = await import('sequelize');
+  
+  console.log('🧹 Starting attendance data cleanup...');
+  
+  // Fix 1: Present without clock-out
+  const fixedPresent = await AttendanceRecord.update(
+    { 
+      status: 'incomplete',
+      statusReason: 'Fixed: was present without clock-out'
+    },
+    {
+      where: {
+        clockIn: { [Op.not]: null },
+        clockOut: null,
+        status: 'present'
+      }
+    }
+  );
+  
+  // Fix 2: Half day but >= full day hours
+  const fixedHalfDay = await AttendanceRecord.update(
+    { 
+      status: 'present',
+      halfDayType: 'full_day',
+      statusReason: 'Fixed: upgraded from half-day to present'
+    },
+    {
+      where: {
+        workHours: { [Op.gte]: 8 },
+        status: 'half_day'
+      }
+    }
+  );
+  
+  // Fix 3: Leave days with clock-in data
+  const fixedLeave = await AttendanceRecord.update(
+    { 
+      clockIn: null,
+      clockOut: null,
+      workHours: 0,
+      totalWorkedMinutes: 0
+    },
+    {
+      where: {
+        status: 'leave',
+        clockIn: { [Op.not]: null }
+      }
+    }
+  );
+
+  // Fix 4: 🔥 CRITICAL FIX - Absent records with clock-in data
+  const fixedAbsent = await AttendanceRecord.update(
+    {
+      status: 'half_day',
+      statusReason: 'Auto-fixed: had clock-in data, cannot be absent'
+    },
+    {
+      where: {
+        clockIn: { [Op.not]: null },
+        status: 'absent'
+      }
+    }
+  );
+  
+  console.log(`✅ Data cleanup complete:`);
+  console.log(`   - Fixed ${fixedPresent[0]} present records without clock-out`);
+  console.log(`   - Fixed ${fixedHalfDay[0]} half-day records with full hours`);
+  console.log(`   - Fixed ${fixedLeave[0]} leave records with clock data`);
+  console.log(`   - Fixed ${fixedAbsent[0]} absent records with clock-in data`);
+  
+  return {
+    fixedPresent: fixedPresent[0],
+    fixedHalfDay: fixedHalfDay[0],
+    fixedLeave: fixedLeave[0],
+    fixedAbsent: fixedAbsent[0]
+  };
+};
+
 AttendanceRecord.prototype.toCalendarEvent = function () {
   return {
     title: this.status,
@@ -351,92 +653,46 @@ AttendanceRecord.prototype.toCalendarEvent = function () {
 };
 
 // Hooks for automatic calculations
-// ❌ REMOVE DUPLICATE LATE CALCULATION FROM beforeSave HOOK
-// Late should ONLY be calculated at clock-in, not when saving complete records
 AttendanceRecord.beforeSave(async (record) => {
+  // 🔐 CRITICAL SAFETY: Prevent absent status when clock-in exists
+  if (record.clockIn && record.status === 'absent') {
+    throw new Error('Invalid state: cannot mark absent when clock-in exists');
+  }
+
+  // Only process if we have shift information
+  if (!record.shiftId) return;
+
+  const { Shift } = await import('./index.js');
+  const shift = await Shift.findByPk(record.shiftId);
+  if (!shift) return;
+
+  // Calculate working hours and other metrics only when both clock-in and clock-out exist
   if (record.clockIn && record.clockOut) {
-    // Calculate working hours
     record.calculateWorkingHours();
 
-    // Get shift information for early exit, overtime, and half-day calculations
-    if (record.shiftId) {
-      const { Shift } = await import('./index.js');
-      const shift = await Shift.findByPk(record.shiftId);
+    // Calculate early exit minutes
+    const today = record.date;
+    const shiftEndTime = new Date(`${today} ${shift.shiftEndTime}`);
+    const clockOutTime = new Date(record.clockOut);
+    const earlyThresholdMs = (shift.earlyDepartureThresholdMinutes || 0) * 60 * 1000;
 
-      if (shift) {
-        // ❌ REMOVED: Late calculation (now done at clock-in only)
-        // Late minutes and isLate are set at clock-in and should not be recalculated
+    if (clockOutTime < new Date(shiftEndTime.getTime() - earlyThresholdMs)) {
+      record.earlyExitMinutes = Math.floor((shiftEndTime - clockOutTime) / (1000 * 60));
+      record.isEarlyDeparture = true;
+    }
 
-        // Calculate early exit minutes
-        const today = record.date;
-        const shiftEndTime = new Date(`${today} ${shift.shiftEndTime}`);
-        const clockOutTime = new Date(record.clockOut);
-        const earlyThresholdMs = (shift.earlyDepartureThresholdMinutes || 0) * 60 * 1000;
-
-        if (clockOutTime < new Date(shiftEndTime.getTime() - earlyThresholdMs)) {
-          record.earlyExitMinutes = Math.floor((shiftEndTime - clockOutTime) / (1000 * 60));
-          record.isEarlyDeparture = true;
-        }
-
-        // Calculate overtime
-        if (shift.overtimeEnabled && clockOutTime > shiftEndTime) {
-          const overtimeThresholdMs = (shift.overtimeThresholdMinutes || 0) * 60 * 1000;
-          if (clockOutTime > new Date(shiftEndTime.getTime() + overtimeThresholdMs)) {
-            record.overtimeMinutes = Math.floor((clockOutTime - shiftEndTime) / (1000 * 60));
-            record.overtimeHours = Math.round((record.overtimeMinutes / 60) * 100) / 100;
-          }
-        }
-
-        // ✅ NEW: Auto-detect half-day status and type
-        const workedHours = record.workHours || 0;
-        const fullDayHours = shift.fullDayHours || 8;
-        const halfDayHours = shift.halfDayHours || 4;
-
-        if (workedHours >= fullDayHours) {
-          // Full day worked
-          record.halfDayType = 'full_day';
-          if (record.status === 'half_day') {
-            record.status = 'present'; // Upgrade from half-day to present
-          }
-        } else if (workedHours >= halfDayHours) {
-          // Half day worked - determine which half
-          const wasHalfDay = record.status === 'half_day';
-          record.status = 'half_day';
-          record.halfDayType = record.determineHalfDayType(shift);
-          
-          // Send notification if this is a new half-day detection
-          if (!wasHalfDay && record.changed('status')) {
-            // Schedule notification after save completes
-            process.nextTick(async () => {
-              try {
-                const notificationService = (await import('../notificationService.js')).default;
-                const { Employee, User } = await import('./index.js');
-                
-                // Get employee details for notification
-                const employee = await Employee.findByPk(record.employeeId, {
-                  include: [{ model: User, as: 'user', attributes: ['id'] }]
-                });
-                
-                if (employee) {
-                  record.employee = employee;
-                  await notificationService.notifyHalfDayDetected(record);
-                }
-              } catch (error) {
-                console.error('Failed to send half-day notification:', error);
-              }
-            });
-          }
-        } else {
-          // Less than half day worked
-          if (record.status === 'present') {
-            record.status = 'half_day';
-            record.halfDayType = record.determineHalfDayType(shift);
-            record.statusReason = `Worked only ${workedHours.toFixed(2)} hours (less than ${halfDayHours} required for half day)`;
-          }
-        }
+    // Calculate overtime
+    if (shift.overtimeEnabled && clockOutTime > shiftEndTime) {
+      const overtimeThresholdMs = (shift.overtimeThresholdMinutes || 0) * 60 * 1000;
+      if (clockOutTime > new Date(shiftEndTime.getTime() + overtimeThresholdMs)) {
+        record.overtimeMinutes = Math.floor((clockOutTime - shiftEndTime) / (1000 * 60));
+        record.overtimeHours = Math.round((record.overtimeMinutes / 60) * 100) / 100;
       }
     }
   }
+
+  // 🧠 APPLY MASTER RULE ENGINE - SINGLE SOURCE OF TRUTH
+  record.evaluateStatus(shift);
 });
 
 export default AttendanceRecord;

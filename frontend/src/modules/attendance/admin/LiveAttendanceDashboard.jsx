@@ -285,7 +285,8 @@ const LiveAttendanceDashboard = () => {
             options: [
               { value: 'office', label: 'Office' },
               { value: 'wfh', label: 'Work From Home' },
-              { value: 'client_site', label: 'Client Site' }
+              { value: 'hybrid', label: 'Hybrid' },
+              { value: 'field', label: 'Field Work' }
             ]
           }
         ]}
@@ -335,7 +336,6 @@ const LiveAttendanceDashboard = () => {
             const overtimeMinutes = getOvertimeMinutes(employee, currentTime);
             const inOvertime = isInOvertime(employee, currentTime);
             const performanceIndicators = getPerformanceIndicators(employee);
-            const locationInfo = getLocationInfo(employee.currentSession?.workLocation);
             
             return (
               <DataCard

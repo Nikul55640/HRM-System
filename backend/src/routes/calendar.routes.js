@@ -1,8 +1,14 @@
 import express from 'express';
 import calendarViewController from '../controllers/calendar/calendarView.controller.js';
 import { authenticate, authorize } from '../middleware/authenticate.js';
+import calendarViewRoutes from './calendar/calendarView.routes.js';
 
 const router = express.Router();
+
+// =========================================================
+// CALENDAR VIEW ROUTES (Monthly, Daily, etc.)
+// =========================================================
+router.use('/view', calendarViewRoutes);
 
 // =========================================================
 // PUBLIC CALENDAR ROUTES (All authenticated users)

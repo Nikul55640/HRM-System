@@ -134,9 +134,9 @@ const adminDashboardService = {
 
       return {
         present: records.filter(r => r.status === 'present').length,
-        absent: records.filter(r => r.status === 'absent').length,
+        absent: records.filter(r => r.status === 'leave').length, // ✅ FIXED: Use 'leave' instead of 'absent'
         late: records.filter(r => r.status === 'late').length,
-        onLeave: records.filter(r => r.status === 'on_leave').length,
+        onLeave: records.filter(r => r.status === 'leave').length, // ✅ FIXED: Use 'leave' instead of 'on_leave'
       };
     } catch (error) {
       console.error('❌ [ADMIN DASHBOARD SERVICE] Failed to fetch attendance stats:', error);

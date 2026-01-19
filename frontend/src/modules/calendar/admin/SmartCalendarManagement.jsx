@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/car
 import { Button } from '../../../shared/ui/button';
 import { Badge } from '../../../shared/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../shared/ui/tabs';
-import { Calendar, Settings, Clock, Users, AlertCircle, CheckCircle, Plus, Edit, Trash2 , X, Calendar1Icon, ClipboardList } from 'lucide-react';
+import { Calendar, Settings, Clock, Users, AlertCircle, CheckCircle, Plus, Edit, Trash2 , X, Calendar1Icon, ClipboardList ,TriangleAlert } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { smartCalendarService, api } from '../../../services';
 import WorkingRuleForm from './WorkingRuleForm';
@@ -721,7 +721,7 @@ const SmartCalendarManagement = () => {
             )}
             {!canManageWorkingRules && (
               <div className="text-sm text-gray-500 bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-                ℹ️ Only administrators can create or modify working rules
+                 Only administrators can create or modify working rules
               </div>
             )}
           </div>
@@ -747,8 +747,8 @@ const SmartCalendarManagement = () => {
                         )}
                         {/* Warning for active rule editing */}
                         {rule.isActive && canManageWorkingRules && (
-                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                            ⚠️ Live Rule
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 gap-1 border-amber-200 text-xs">
+                            <TriangleAlert size={14} /> Live Rule
                           </Badge>
                         )}
                       </div>

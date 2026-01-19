@@ -74,30 +74,23 @@ const seedDatabase = async () => {
     const employees = await Employee.bulkCreate([
       {
         employeeId: 'EMP002',
-        personalInfo: {
-          firstName: 'HR',
-          lastName: 'Manager',
-          email: 'hr@hrms.com',
-          phone: '+1234567891',
-          dateOfBirth: '1988-05-15',
-          gender: 'female',
-          maritalStatus: 'married'
-        },
-        contactInfo: {
-          address: '456 HR Avenue',
-          city: 'HR City',
-          state: 'HR State',
-          zipCode: '12346',
-          country: 'USA'
-        },
-        jobInfo: {
-          designation: 'HR Manager',
-          department: 'Human Resources',
-          employmentType: 'full-time',
-          joiningDate: '2024-01-15',
-          salary: 70000,
-          reportingManager: null // Reports to SuperAdmin (but SuperAdmin is not an employee)
-        },
+        firstName: 'HR',
+        lastName: 'Manager',
+        phone: '+1234567891',
+        dateOfBirth: '1988-05-15',
+        gender: 'female',
+        maritalStatus: 'married',
+        address: '456 HR Avenue',
+        city: 'HR City',
+        state: 'HR State',
+        zipCode: '12346',
+        country: 'USA',
+        designation: 'HR Manager',
+        department: 'Human Resources',
+        employmentType: 'full_time',
+        joiningDate: '2024-01-15',
+        salary: 70000,
+        reportingManager: null,
         status: 'Active',
         isActive: true,
         createdAt: new Date(),
@@ -105,30 +98,23 @@ const seedDatabase = async () => {
       },
       {
         employeeId: 'EMP003',
-        personalInfo: {
-          firstName: 'John',
-          lastName: 'Doe',
-          email: 'john.doe@hrms.com',
-          phone: '+1234567892',
-          dateOfBirth: '1992-03-20',
-          gender: 'male',
-          maritalStatus: 'single'
-        },
-        contactInfo: {
-          address: '789 Employee Lane',
-          city: 'Employee City',
-          state: 'Employee State',
-          zipCode: '12347',
-          country: 'USA'
-        },
-        jobInfo: {
-          designation: 'Software Developer',
-          department: 'Information Technology',
-          employmentType: 'full-time',
-          joiningDate: '2024-02-01',
-          salary: 60000,
-          reportingManager: 'EMP002' // Reports to HR Manager
-        },
+        firstName: 'John',
+        lastName: 'Doe',
+        phone: '+1234567892',
+        dateOfBirth: '1992-03-20',
+        gender: 'male',
+        maritalStatus: 'single',
+        address: '789 Employee Lane',
+        city: 'Employee City',
+        state: 'Employee State',
+        zipCode: '12347',
+        country: 'USA',
+        designation: 'Software Developer',
+        department: 'Information Technology',
+        employmentType: 'full_time',
+        joiningDate: '2024-02-01',
+        salary: 60000,
+        reportingManager: 'EMP002',
         status: 'Active',
         isActive: true,
         createdAt: new Date(),
@@ -136,30 +122,71 @@ const seedDatabase = async () => {
       },
       {
         employeeId: 'EMP004',
-        personalInfo: {
-          firstName: 'Jane',
-          lastName: 'Smith',
-          email: 'jane.smith@hrms.com',
-          phone: '+1234567893',
-          dateOfBirth: '1991-07-10',
-          gender: 'female',
-          maritalStatus: 'married'
-        },
-        contactInfo: {
-          address: '321 Sales Street',
-          city: 'Sales City',
-          state: 'Sales State',
-          zipCode: '12348',
-          country: 'USA'
-        },
-        jobInfo: {
-          designation: 'Sales Executive',
-          department: 'Sales',
-          employmentType: 'full-time',
-          joiningDate: '2024-02-15',
-          salary: 55000,
-          reportingManager: 'EMP002' // Reports to HR Manager
-        },
+        firstName: 'Jane',
+        lastName: 'Smith',
+        phone: '+1234567893',
+        dateOfBirth: '1991-07-10',
+        gender: 'female',
+        maritalStatus: 'married',
+        address: '321 Sales Street',
+        city: 'Sales City',
+        state: 'Sales State',
+        zipCode: '12348',
+        country: 'USA',
+        designation: 'Sales Executive',
+        department: 'Sales',
+        employmentType: 'full_time',
+        joiningDate: '2024-02-15',
+        salary: 55000,
+        reportingManager: 'EMP002',
+        status: 'Active',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        employeeId: 'EMP005',
+        firstName: 'Alice',
+        lastName: 'Johnson',
+        phone: '+1234567894',
+        dateOfBirth: '1990-01-25',
+        gender: 'female',
+        maritalStatus: 'single',
+        address: '555 Marketing Ave',
+        city: 'Marketing City',
+        state: 'Marketing State',
+        zipCode: '12349',
+        country: 'USA',
+        designation: 'Marketing Manager',
+        department: 'Marketing',
+        employmentType: 'full_time',
+        joiningDate: '2023-03-10',
+        salary: 65000,
+        reportingManager: 'EMP002',
+        status: 'Active',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        employeeId: 'EMP006',
+        firstName: 'Bob',
+        lastName: 'Wilson',
+        phone: '+1234567895',
+        dateOfBirth: '1985-12-05',
+        gender: 'male',
+        maritalStatus: 'married',
+        address: '777 Finance Blvd',
+        city: 'Finance City',
+        state: 'Finance State',
+        zipCode: '12350',
+        country: 'USA',
+        designation: 'Finance Manager',
+        department: 'Finance',
+        employmentType: 'full_time',
+        joiningDate: '2022-06-20',
+        salary: 75000,
+        reportingManager: 'EMP002',
         status: 'Active',
         isActive: true,
         createdAt: new Date(),
@@ -213,6 +240,26 @@ const seedDatabase = async () => {
         password: hashedPassword,
         role: 'Employee',
         employeeId: employees[2].id,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        name: 'Alice Johnson',
+        email: 'alice.johnson@hrms.com',
+        password: hashedPassword,
+        role: 'Employee',
+        employeeId: employees[3].id,
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      {
+        name: 'Bob Wilson',
+        email: 'bob.wilson@hrms.com',
+        password: hashedPassword,
+        role: 'Employee',
+        employeeId: employees[4].id,
         isActive: true,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -404,7 +451,7 @@ const seedDatabase = async () => {
         priority: 'high',
         estimatedValue: 50000.00,
         expectedCloseDate: new Date('2025-03-01'),
-        assignedTo: employees[3].id, // Jane Smith
+        assignedTo: employees[2].id, // Jane Smith
         description: 'Interested in our HR management solution for their growing company',
         tags: ['enterprise', 'tech', 'high-value'],
         customFields: {
@@ -413,7 +460,7 @@ const seedDatabase = async () => {
           budget: '$50,000'
         },
         isActive: true,
-        createdBy: employees[1].id, // HR Manager
+        createdBy: employees[0].id, // HR Manager
         createdAt: new Date(),
         updatedAt: new Date()
       },
@@ -429,7 +476,7 @@ const seedDatabase = async () => {
         priority: 'medium',
         estimatedValue: 25000.00,
         expectedCloseDate: new Date('2025-04-15'),
-        assignedTo: employees[3].id, // Jane Smith
+        assignedTo: employees[2].id, // Jane Smith
         description: 'Looking for attendance management system',
         tags: ['manufacturing', 'attendance'],
         customFields: {
@@ -440,7 +487,7 @@ const seedDatabase = async () => {
         lastContactDate: new Date(),
         nextFollowUpDate: new Date('2025-01-15'),
         isActive: true,
-        createdBy: employees[1].id, // HR Manager
+        createdBy: employees[0].id, // HR Manager
         createdAt: new Date(),
         updatedAt: new Date()
       }

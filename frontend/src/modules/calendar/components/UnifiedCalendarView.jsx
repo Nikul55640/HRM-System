@@ -417,7 +417,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredItems.map((item) => {
+                  {filteredItems.map((item, itemIndex) => {
                     const typeInfo = getEventTypeInfo(item.type);
                     const IconComponent = typeInfo.icon;
                     const displayDate = item.date || item.startDate;
@@ -425,7 +425,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
 
                     return (
                       <div
-                        key={item._id || item.id}
+                        key={`item-${itemIndex}-${item._id || item.id || item.title || item.name}-${item.type}`}
                         className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
                       >
                         <div className="flex items-center gap-3">
@@ -539,7 +539,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
 
               {/* Empty cells for days before month starts */}
               {Array.from({ length: startingDayOfWeek }).map((_, index) => (
-                <div key={`empty-${index}`} className="aspect-square" />
+                <div key={`empty-start-${index}`} className="aspect-square" />
               ))}
 
               {/* Calendar Days */}
@@ -552,7 +552,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
 
                 return (
                   <div
-                    key={day}
+                    key={`day-${currentDate.getFullYear()}-${currentDate.getMonth()}-${day}`}
                     onClick={() => {
                       const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
                       if (canManageCalendar) {
@@ -571,7 +571,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                     
                     {/* Events for this day */}
                     <div className="mt-1 space-y-1">
-                      {dayEvents.slice(0, window.innerWidth < 640 ? 1 : 2).map((event) => {
+                      {dayEvents.slice(0, window.innerWidth < 640 ? 1 : 2).map((event, eventIndex) => {
                         const EventIcon = event.type === 'holiday' ? PartyPopper : 
                                          event.type === 'leave' ? CalendarCheck : 
                                          event.type === 'birthday' ? Cake :
@@ -579,7 +579,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                         
                         return (
                           <div
-                            key={event._id || event.id}
+                            key={`event-${day}-${eventIndex}-${event._id || event.id || event.title}`}
                             className={`text-xs px-1 py-0.5 rounded border cursor-pointer hover:opacity-80 ${getEventColor(event.type)}`}
                             title={event.title || event.name}
                           >
@@ -593,7 +593,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                       
                       {/* Show "+X more" if there are more events */}
                       {dayEvents.length > (window.innerWidth < 640 ? 1 : 2) && (
-                        <div className="text-xs text-gray-500 px-1">
+                        <div key={`more-${day}`} className="text-xs text-gray-500 px-1">
                           +{dayEvents.length - (window.innerWidth < 640 ? 1 : 2)} more
                         </div>
                       )}
@@ -621,14 +621,14 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                   })}
                 </div>
                 <div className="space-y-1">
-                  {getEventsForDate(hoveredDay).map((event, idx) => {
+                  {getEventsForDate(hoveredDay).map((event, tooltipIndex) => {
                     const EventIcon = event.type === 'holiday' ? PartyPopper : 
                                      event.type === 'leave' ? CalendarCheck : 
                                      event.type === 'birthday' ? Cake :
                                      event.type === 'anniversary' ? Heart : FileText;
                     
                     return (
-                      <div key={idx} className="flex items-center gap-2">
+                      <div key={`tooltip-${hoveredDay}-${tooltipIndex}-${event._id || event.id || event.title}`} className="flex items-center gap-2">
                         <EventIcon className="w-4 h-4 flex-shrink-0" />
                         <span className="text-xs text-gray-700 truncate">
                           {event.title || event.name}

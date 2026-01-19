@@ -238,6 +238,9 @@ const useAttendanceSessionStore = create(
             activeSession: null,
             hasCompletedSessions: false,
             todayRecord: null,
+            status: 'not_marked',
+            canClockIn: true,
+            canClockOut: false,
           };
         }
 
@@ -280,10 +283,20 @@ const useAttendanceSessionStore = create(
           activeSession?.status === 'on_break' ||
           !!activeBreakSession;
 
+        // 🔥 NEW: Get current status from record
+        const status = todayRecord.status || 'incomplete';
+        
+        // 🔥 NEW: Determine button permissions based on status
+        const canClockIn = !['leave', 'holiday', 'absent', 'present'].includes(status) && !isClockedIn;
+        const canClockOut = isClockedIn && !['leave', 'holiday', 'absent'].includes(status);
+
         return {
           isClockedIn,
           isOnBreak,
           hasLegacyClockIn,
+          status, // 🔥 NEW: Expose status
+          canClockIn, // 🔥 NEW: Clock in permission
+          canClockOut, // 🔥 NEW: Clock out permission
           activeSession: activeSession || (todayRecord.clockIn && !todayRecord.clockOut ? {
             checkIn: todayRecord.clockIn,
             workLocation: todayRecord.location || 'office',

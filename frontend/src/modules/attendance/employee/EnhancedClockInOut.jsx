@@ -8,10 +8,22 @@ import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore
 import { attendanceDebugger } from '../../../utils/attendanceDebugger';
 import { formatIndianTime, formatIndianTimeString } from '../../../utils/indianFormatters';
 import useAuthStore from '../../../stores/useAuthStore';
+import attendanceService from '../../../services/attendanceService';
 
 const EnhancedClockInOut = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [buttonStates, setButtonStates] = useState({
+    clockIn: { enabled: false, reason: 'Loading...' },
+    clockOut: { enabled: false, reason: 'Loading...' },
+    startBreak: { enabled: false, reason: 'Loading...' },
+    endBreak: { enabled: false, reason: 'Loading...' },
+    currentStatus: 'loading',
+    hasClockIn: false,
+    hasClockOut: false,
+    isOnBreak: false,
+    workMode: 'office'
+  });
   
   // Use shared attendance context
   const {
@@ -25,10 +37,29 @@ const EnhancedClockInOut = () => {
     fetchTodayRecord,
   } = useAttendanceSessionStore();
 
-  // Initialize attendance data on mount
+  // 🚫 NEW: Fetch button states
+  const fetchButtonStates = async () => {
+    try {
+      const response = await attendanceService.getButtonStates();
+      setButtonStates(response.data);
+    } catch (error) {
+      console.error('Failed to fetch button states:', error);
+      // Keep default disabled states on error
+    }
+  };
+
+  // Initialize attendance data and button states on mount
   useEffect(() => {
     fetchTodayRecord(true);
+    fetchButtonStates();
   }, [fetchTodayRecord]);
+
+  // Refresh button states when attendance record changes
+  useEffect(() => {
+    if (todayRecord) {
+      fetchButtonStates();
+    }
+  }, [todayRecord?.clockIn, todayRecord?.clockOut, todayRecord?.status]);
 
   // Update clock every second
   useEffect(() => {
@@ -46,6 +77,7 @@ const EnhancedClockInOut = () => {
   const handleRefresh = async () => {
     try {
       await fetchTodayRecord();
+      await fetchButtonStates();
       toast.success('Attendance status refreshed');
     } catch (error) {
       toast.error('Failed to refresh status');
@@ -54,15 +86,16 @@ const EnhancedClockInOut = () => {
 
   const handleLocationConfirm = async (locationData) => {
     try {
-      // Check current status first
-      const { isClockedIn } = getAttendanceStatus();
-      
-      if (isClockedIn) {
-        toast.info("You are already clocked in for today");
+      // 🚫 Check button state before proceeding
+      if (!buttonStates.clockIn.enabled) {
+        toast.error(buttonStates.clockIn.reason || 'Cannot clock in at this time');
         setShowLocationModal(false);
         return;
       }
 
+      console.log('🔍 Complete location data received:', locationData);
+
+      // 🔥 ENHANCED: Send complete data including location and deviceInfo
       const result = await clockIn(locationData);
       
       if (result.success) {
@@ -84,11 +117,14 @@ const EnhancedClockInOut = () => {
             );
           }
         } else {
-          // Fallback message
-          toast.success('Clocked in successfully!');
+          // Fallback message with location info
+          const locationMsg = locationData.location ? ' with location data' : '';
+          toast.success(`Clocked in successfully${locationMsg}!`);
         }
         
         setShowLocationModal(false);
+        // Refresh button states
+        await fetchButtonStates();
       } else {
         // If already clocked in, just close modal and show info
         if (result.error?.includes('already clocked in')) {
@@ -96,21 +132,31 @@ const EnhancedClockInOut = () => {
           setShowLocationModal(false);
           // Force refresh the attendance status
           await fetchTodayRecord(true);
+          await fetchButtonStates();
         } else {
           toast.error(result.error || 'Failed to clock in');
         }
       }
     } catch (error) {
+      console.error('Clock-in error:', error);
       toast.error('Failed to clock in');
     }
   };
 
   const handleClockOut = async () => {
     try {
+      // 🚫 Check button state before proceeding
+      if (!buttonStates.clockOut.enabled) {
+        toast.error(buttonStates.clockOut.reason || 'Cannot clock out at this time');
+        return;
+      }
+
       const result = await clockOut();
       
       if (result.success) {
         toast.success('Clocked out successfully!');
+        // Refresh button states
+        await fetchButtonStates();
       } else {
         toast.error(result.error || 'Failed to clock out');
       }
@@ -121,6 +167,12 @@ const EnhancedClockInOut = () => {
 
   const handleStartBreak = async () => {
     try {
+      // 🚫 Check button state before proceeding
+      if (!buttonStates.startBreak.enabled) {
+        toast.error(buttonStates.startBreak.reason || 'Cannot start break at this time');
+        return;
+      }
+
       console.log('🔍 [DEBUG] Starting break...');
       console.log('🔍 [DEBUG] Current attendance status:', getAttendanceStatus());
       console.log('🔍 [DEBUG] Today record before break:', todayRecord);
@@ -134,6 +186,7 @@ const EnhancedClockInOut = () => {
         // Force refresh after a short delay
         setTimeout(async () => {
           await fetchTodayRecord(true);
+          await fetchButtonStates();
           const updatedStatus = getAttendanceStatus();
           console.log('🔍 [DEBUG] Updated status after break start:', {
             isOnBreak: updatedStatus.isOnBreak,
@@ -152,6 +205,12 @@ const EnhancedClockInOut = () => {
 
   const handleEndBreak = async () => {
     try {
+      // 🚫 Check button state before proceeding
+      if (!buttonStates.endBreak.enabled) {
+        toast.error(buttonStates.endBreak.reason || 'Cannot end break at this time');
+        return;
+      }
+
       console.log('🔍 [DEBUG] Ending break...');
       console.log('🔍 [DEBUG] Current attendance status:', getAttendanceStatus());
       console.log('🔍 [DEBUG] Today record before end break:', todayRecord);
@@ -165,6 +224,7 @@ const EnhancedClockInOut = () => {
         // Force refresh after a short delay
         setTimeout(async () => {
           await fetchTodayRecord(true);
+          await fetchButtonStates();
           console.log('🔍 [DEBUG] Today record after end break refresh:', useAttendanceSessionStore.getState().todayRecord);
         }, 1000);
       } else {
@@ -202,29 +262,33 @@ const EnhancedClockInOut = () => {
     return Math.max(0, Math.floor(diffMs / (1000 * 60)));
   };
 
-  const getLocationIcon = (location) => {
-    switch (location) {
+  const getLocationIcon = (workMode) => {
+    switch (workMode) {
       case 'office':
         return <Building2 className="h-4 w-4" />;
       case 'wfh':
         return <Home className="h-4 w-4" />;
-      case 'client_site':
+      case 'hybrid':
         return <Users className="h-4 w-4" />;
-      default:
+      case 'field':
         return <MapPin className="h-4 w-4" />;
+      default:
+        return <Building2 className="h-4 w-4" />;
     }
   };
 
-  const getLocationLabel = (location) => {
-    switch (location) {
+  const getLocationLabel = (workMode) => {
+    switch (workMode) {
       case 'office':
         return 'Office';
       case 'wfh':
         return 'Work From Home';
-      case 'client_site':
-        return 'Client Site';
+      case 'hybrid':
+        return 'Hybrid';
+      case 'field':
+        return 'Field Work';
       default:
-        return location;
+        return 'Office';
     }
   };
 
@@ -283,8 +347,8 @@ const EnhancedClockInOut = () => {
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Building2 className="h-4 w-4" />
-                    <span className="font-medium">Office</span>
+                    {getLocationIcon(todayRecord?.workMode || 'office')}
+                    <span className="font-medium">{getLocationLabel(todayRecord?.workMode || 'office')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span
@@ -430,35 +494,38 @@ const EnhancedClockInOut = () => {
 
             {/* Action Buttons */}
             <div className="flex flex-col gap-3">
-              {!isActive && (
-                <Button
-                  onClick={handleClockInClick}
-                  disabled={isLoading}
-                  className="w-full"
-                  size="lg"
-                >
-                  <LogIn className="mr-2 h-5 w-5" />
-                  {isLoading ? 'Processing...' : 'Clock In'}
-                </Button>
-              )}
+              {/* Clock In Button */}
+              <Button
+                onClick={handleClockInClick}
+                disabled={isLoading || !buttonStates.clockIn.enabled}
+                className="w-full"
+                size="lg"
+                title={!buttonStates.clockIn.enabled ? buttonStates.clockIn.reason : ''}
+              >
+                <LogIn className="mr-2 h-5 w-5" />
+                {isLoading ? 'Processing...' : 'Clock In'}
+              </Button>
 
-              {isActive && !isOnBreak && (
+              {/* Clock Out and Break Buttons */}
+              {buttonStates.hasClockIn && !buttonStates.hasClockOut && (
                 <>
                   <div className="grid grid-cols-2 gap-3">
                     <Button
                       onClick={handleStartBreak}
-                      disabled={isLoading}
+                      disabled={isLoading || !buttonStates.startBreak.enabled}
                       variant="outline"
                       size="lg"
+                      title={!buttonStates.startBreak.enabled ? buttonStates.startBreak.reason : ''}
                     >
                       <Coffee className="mr-2 h-4 w-4" />
                       Start Break
                     </Button>
                     <Button
                       onClick={handleClockOut}
-                      disabled={isLoading}
+                      disabled={isLoading || !buttonStates.clockOut.enabled}
                       variant="destructive"
                       size="lg"
+                      title={!buttonStates.clockOut.enabled ? buttonStates.clockOut.reason : ''}
                     >
                       <LogOut className="mr-2 h-4 w-4" />
                       Clock Out
@@ -467,17 +534,31 @@ const EnhancedClockInOut = () => {
                 </>
               )}
 
-              {isOnBreak && (
+              {/* End Break Button */}
+              {buttonStates.isOnBreak && (
                 <Button
                   onClick={handleEndBreak}
-                  disabled={isLoading}
+                  disabled={isLoading || !buttonStates.endBreak.enabled}
                   variant="default"
                   className="w-full"
                   size="lg"
+                  title={!buttonStates.endBreak.enabled ? buttonStates.endBreak.reason : ''}
                 >
                   <Coffee className="mr-2 h-5 w-5" />
                   {isLoading ? 'Ending Break...' : 'End Break'}
                 </Button>
+              )}
+
+              {/* Button State Debug Info (Development Only) */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
+                  <div className="font-medium mb-1">🚫 Button States:</div>
+                  <div>Clock In: {buttonStates.clockIn.enabled ? '✅' : '❌'} {buttonStates.clockIn.reason}</div>
+                  <div>Clock Out: {buttonStates.clockOut.enabled ? '✅' : '❌'} {buttonStates.clockOut.reason}</div>
+                  <div>Start Break: {buttonStates.startBreak.enabled ? '✅' : '❌'} {buttonStates.startBreak.reason}</div>
+                  <div>End Break: {buttonStates.endBreak.enabled ? '✅' : '❌'} {buttonStates.endBreak.reason}</div>
+                  <div>Status: {buttonStates.currentStatus} | Mode: {buttonStates.workMode}</div>
+                </div>
               )}
             </div>
 

@@ -31,13 +31,16 @@ const ProtectedRoute = ({ children, allowedRoles = [] }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (allowedRoles.length > 0 && !allowedRoles.includes(user?.role)) {
-    console.log('❌ [PROTECTED ROUTE] User role not allowed');
-    console.log('   Required roles:', allowedRoles);
-    console.log('   User role:', user?.role);
-    console.log('   Role type:', typeof user?.role);
-    console.log('   Exact match check:', allowedRoles.map(r => `"${r}" === "${user?.role}" = ${r === user?.role}`));
-    return <Navigate to="/unauthorized" replace />;
+  // Simple role check without normalization - use exact role matching
+  if (allowedRoles.length > 0) {
+    const userRole = user?.role;
+    
+    if (!allowedRoles.includes(userRole)) {
+      console.log('❌ [PROTECTED ROUTE] User role not allowed');
+      console.log('   Required roles:', allowedRoles);
+      console.log('   User role:', userRole);
+      return <Navigate to="/unauthorized" replace />;
+    }
   }
 
   console.log('✅ [PROTECTED ROUTE] Access granted');

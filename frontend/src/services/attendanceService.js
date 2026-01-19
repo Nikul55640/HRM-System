@@ -93,6 +93,35 @@ const attendanceService = {
     }
   },
 
+  /**
+   * 🚫 NEW: Get button states for attendance controls
+   * @returns {Promise<Object>} - Button states with enabled/disabled status and reasons
+   */
+  getButtonStates: async () => {
+    try {
+      console.log(' [ATTENDANCE] Fetching button states...');
+      const response = await api.get('/employee/attendance/button-states');
+      console.log(' [ATTENDANCE] Button states fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error(' [ATTENDANCE] Failed to get button states:', error);
+      // Return default disabled states on error
+      return {
+        data: {
+          clockIn: { enabled: false, reason: 'Unable to check status' },
+          clockOut: { enabled: false, reason: 'Unable to check status' },
+          startBreak: { enabled: false, reason: 'Unable to check status' },
+          endBreak: { enabled: false, reason: 'Unable to check status' },
+          currentStatus: 'unknown',
+          hasClockIn: false,
+          hasClockOut: false,
+          isOnBreak: false,
+          workMode: 'office'
+        }
+      };
+    }
+  },
+
   // ==================== Admin/HR Endpoints ====================
 
   /**

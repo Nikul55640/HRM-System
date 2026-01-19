@@ -5,6 +5,68 @@ import { Op } from 'sequelize';
 import { getLocalDateString } from '../utils/dateUtils.js';
 
 /**
+ * Send notification when employee is auto-marked as absent
+ */
+async function sendAbsentNotification(employee, dateString, reason) {
+  try {
+    const notificationService = (await import('../services/notificationService.js')).default;
+    
+    // Get user ID from employee
+    const employeeWithUser = await Employee.findByPk(employee.id, {
+      include: [{ model: User, as: 'user', attributes: ['id'] }]
+    });
+    
+    if (employeeWithUser?.user?.id) {
+      await notificationService.sendToUser(employeeWithUser.user.id, {
+        title: 'Attendance Marked as Absent',
+        message: `Your attendance for ${dateString} was marked as absent. Reason: ${reason}. Please submit a correction request if this is incorrect.`,
+        type: 'error',
+        category: 'attendance',
+        data: {
+          date: dateString,
+          reason: reason,
+          action: 'attendance_auto_absent'
+        }
+      });
+    }
+  } catch (error) {
+    logger.error(`Failed to send absent notification for employee ${employee.id}:`, error);
+    // Don't throw - notification failure shouldn't stop finalization
+  }
+}
+
+/**
+ * Send notification when employee needs correction
+ */
+async function sendCorrectionNotification(employee, dateString, reason) {
+  try {
+    const notificationService = (await import('../services/notificationService.js')).default;
+    
+    // Get user ID from employee
+    const employeeWithUser = await Employee.findByPk(employee.id, {
+      include: [{ model: User, as: 'user', attributes: ['id'] }]
+    });
+    
+    if (employeeWithUser?.user?.id) {
+      await notificationService.sendToUser(employeeWithUser.user.id, {
+        title: 'Attendance Correction Required',
+        message: `Your attendance for ${dateString} requires correction. Reason: ${reason}. Please submit a correction request.`,
+        type: 'warning',
+        category: 'attendance',
+        data: {
+          date: dateString,
+          reason: reason,
+          action: 'attendance_correction_required'
+        }
+      });
+    }
+  } catch (error) {
+    logger.error(`Failed to send correction notification for employee ${employee.id}:`, error);
+    // Don't throw - notification failure shouldn't stop finalization
+  }
+}
+
+/**
  * Send notification when employee is auto-marked as leave
  */
 async function sendLeaveNotification(employee, dateString, reason) {
@@ -113,7 +175,9 @@ export const finalizeDailyAttendance = async (date = new Date()) => {
       skipped: 0, // Employees whose shift is not finished yet
       present: 0,
       halfDay: 0,
+      absent: 0, // ✅ NEW: Track absent employees
       leave: 0,
+      pendingCorrection: 0, // ✅ NEW: Track pending corrections
       incomplete: 0,
       errors: 0
     };
@@ -187,48 +251,61 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
     return;
   }
 
-  // ❌ CASE 1: No attendance record at all → LEAVE (not absent)
+  // ❌ CASE 1: No attendance record at all → ABSENT (not leave)
   if (!record) {
     await AttendanceRecord.create({
       employeeId: employee.id,
       shiftId: shift?.id || null,
       date: dateString,
-      status: 'leave',
-      statusReason: 'No clock-in recorded (auto-marked at end of day)',
+      status: 'absent',
+      statusReason: 'Auto marked absent (no clock-in)',
       clockIn: null,
       clockOut: null,
       workHours: 0,
       totalWorkedMinutes: 0
     });
-    stats.leave++;
-    logger.debug(`Employee ${employee.id}: Marked as leave (no clock-in)`);
+    stats.absent = (stats.absent || 0) + 1;
+    logger.debug(`Employee ${employee.id}: Marked as absent (no clock-in)`);
     
     // Send notification
-    await sendLeaveNotification(employee, dateString, 'No clock-in recorded');
+    await sendAbsentNotification(employee, dateString, 'No clock-in recorded');
     return;
   }
 
-  // ⏰ CASE 2: Clocked in but never clocked out → Mark as LEAVE (per requirement)
+  // ⏰ CASE 2: Clocked in but never clocked out → PENDING CORRECTION
   if (record.clockIn && !record.clockOut) {
-    record.status = 'leave';
-    record.statusReason = 'Clock-out missing, attendance auto-marked as leave';
+    record.status = 'pending_correction';
+    record.correctionRequested = true;
+    record.statusReason = 'Missed clock-out - requires correction';
     await record.save();
-    stats.leave++;
-    logger.debug(`Employee ${employee.id}: Marked as leave (no clock-out)`);
+    
+    // Create correction request
+    const { AttendanceCorrectionRequest } = await import('../models/index.js');
+    await AttendanceCorrectionRequest.create({
+      employeeId: employee.id,
+      attendanceRecordId: record.id,
+      date: dateString,
+      issueType: 'missed_punch',
+      reason: 'Auto-detected missed clock-out',
+      status: 'pending'
+    });
+    
+    stats.pendingCorrection = (stats.pendingCorrection || 0) + 1;
+    logger.debug(`Employee ${employee.id}: Marked as pending correction (no clock-out)`);
     
     // Send notification
-    await sendLeaveNotification(employee, dateString, 'Clock-out missing');
+    await sendCorrectionNotification(employee, dateString, 'Clock-out missing');
     return;
   }
 
-  // ❌ CASE 3: No clock-in but has clock-out (data error) → LEAVE
+  // ❌ CASE 3: No clock-in but has clock-out (data error) → ABSENT
   if (!record.clockIn && record.clockOut) {
-    record.status = 'leave';
+    record.status = 'absent';
     record.statusReason = 'Invalid record: clock-out without clock-in';
     record.clockOut = null; // Clear invalid clock-out
     await record.save();
-    stats.leave++;
-    logger.debug(`Employee ${employee.id}: Marked as leave (invalid record)`);
+    stats.absent = (stats.absent || 0) + 1;
+    logger.debug(`Employee ${employee.id}: Marked as absent (invalid record)`);
     return;
   }
 
@@ -253,11 +330,11 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
       stats.halfDay++;
       logger.debug(`Employee ${employee.id}: Half day (${workedHours}h, ${record.halfDayType})`);
     } else {
-      // Less than half day → Leave/Absent
-      record.status = 'leave';
-      record.statusReason = `Insufficient working hours: ${workedHours.toFixed(2)}h (minimum ${halfDayHours}h required)`;
-      stats.leave++;
-      logger.debug(`Employee ${employee.id}: Leave (${workedHours}h)`);
+      // Less than half day → ABSENT (insufficient hours)
+      record.status = 'absent';
+      record.statusReason = `Insufficient hours: ${workedHours.toFixed(2)}/${halfDayHours} minimum required`;
+      stats.absent = (stats.absent || 0) + 1;
+      logger.debug(`Employee ${employee.id}: Absent (${workedHours}h)`);
     }
 
     await record.save();
@@ -297,8 +374,114 @@ export const manualFinalizeAttendance = async (dateString) => {
   return await finalizeDailyAttendance(date);
 };
 
+/**
+ * ✅ CORRECT: Check employees who haven't clocked in yet (informational only)
+ * This should NOT permanently mark absent - just warn/log
+ */
+export const checkAbsentEmployees = async (date = new Date()) => {
+  const dateString = getLocalDateString(date);
+  
+  logger.info(`Checking for employees who haven't clocked in yet for ${dateString}...`);
+  
+  try {
+    // Check if today is a holiday or weekend
+    const isHoliday = await Holiday.isHoliday(dateString);
+    const isWorkingDay = await WorkingRule.isWorkingDay(dateString);
+    
+    if (isHoliday || !isWorkingDay) {
+      logger.info(`${dateString} is a holiday or weekend. Skipping absent check.`);
+      return { 
+        success: true, 
+        message: 'Skipped - holiday or weekend',
+        data: [] 
+      };
+    }
+
+    // Get all active employees
+    const employees = await Employee.findAll({
+      where: { 
+        isActive: true,
+        status: 'Active'
+      },
+      include: [
+        { 
+          model: EmployeeShift, 
+          as: 'shiftAssignments',
+          where: {
+            isActive: true,
+            [Op.or]: [
+              { effectiveTo: null },
+              { effectiveTo: { [Op.gte]: dateString } }
+            ]
+          },
+          required: false,
+          include: [{ model: Shift, as: 'shift' }],
+          limit: 1,
+          order: [['effectiveFrom', 'DESC']]
+        }
+      ]
+    });
+
+    const results = [];
+
+    for (const employee of employees) {
+      // Skip if on approved leave
+      const isOnLeave = await isEmployeeOnApprovedLeave(employee.id, dateString);
+      if (isOnLeave) continue;
+
+      // Check if attendance record exists
+      const attendance = await AttendanceRecord.findOne({
+        where: { employeeId: employee.id, date: dateString }
+      });
+
+      if (!attendance) {
+        results.push({
+          employeeName: `${employee.firstName} ${employee.lastName}`,
+          employeeId: employee.employeeId,
+          action: 'NOT_CLOCKED_IN',
+          reason: 'No clock-in yet'
+        });
+      }
+    }
+
+    return {
+      success: true,
+      message: `Checked absent employees - ${results.length} haven't clocked in yet`,
+      data: results
+    };
+  } catch (error) {
+    logger.error('Error checking absent employees:', error);
+    return {
+      success: false,
+      message: 'Failed to check absent employees',
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Helper function to check if employee is on approved leave
+ */
+async function isEmployeeOnApprovedLeave(employeeId, dateString) {
+  try {
+    const { LeaveRequest } = await import('../models/index.js');
+    const leaveRequest = await LeaveRequest.findOne({
+      where: {
+        employeeId: employeeId,
+        status: 'approved',
+        startDate: { [Op.lte]: dateString },
+        endDate: { [Op.gte]: dateString }
+      }
+    });
+    return !!leaveRequest;
+  } catch (error) {
+    logger.error('Error checking leave status:', error);
+    return false;
+  }
+}
 export default {
   finalizeDailyAttendance,
   scheduleAttendanceFinalization,
-  manualFinalizeAttendance
+  manualFinalizeAttendance,
+  checkAbsentEmployees
 };

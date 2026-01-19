@@ -90,7 +90,7 @@ const configService = {
   // Generic config methods using system config endpoints
   getConfig: async (key) => {
     try {
-      const response = await api.get('/config/system');
+      const response = await api.get('/admin/config/system');
       
       // Look for the specific key in the system config
       const config = response.data?.data?.find(config => config.key === key);
@@ -113,7 +113,7 @@ const configService = {
   },
 
   updateConfig: async (key, value, description = '') => {
-    const response = await api.post('/config/system', {
+    const response = await api.put('/admin/config/system', {
       key,
       value,
       description
@@ -125,7 +125,7 @@ const configService = {
   getAttendanceSettings: async () => {
     try {
       // Use the existing system config endpoint
-      const response = await api.get('/config/system');
+      const response = await api.get('/admin/config/system');
       
       // Look for attendance_settings in the system config
       const attendanceConfig = response.data?.data?.find(config => config.key === 'attendance_settings');
@@ -177,7 +177,7 @@ const configService = {
 
   updateAttendanceSettings: async (settings) => {
     // Use the existing system config endpoint
-    const response = await api.post('/config/system', {
+    const response = await api.put('/admin/config/system', {
       key: 'attendance_settings',
       value: settings,
       description: 'Attendance system configuration settings'

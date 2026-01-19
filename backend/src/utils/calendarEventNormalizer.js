@@ -452,7 +452,7 @@ const getAttendanceColor = (status) => {
     'absent': '#ef4444',     // Red
     'late': '#f59e0b',       // Orange
     'half_day': '#6366f1',   // Indigo
-    'on_leave': '#8b5cf6'    // Purple
+    'leave': '#8b5cf6'       // Purple - ✅ FIXED: Use 'leave' instead of 'on_leave'
   };
   
   return colors[status] || '#6b7280'; // Gray for unknown status

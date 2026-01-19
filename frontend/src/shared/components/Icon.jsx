@@ -99,6 +99,8 @@ ShieldUser,
   GitBranch,
   FolderOpenIcon,
   Globe2,
+  Building,
+  Database,
 } from 'lucide-react';
 
 const iconMap = {
@@ -175,6 +177,7 @@ const iconMap = {
   TreePine,
   Palmtree,
   Wrench,
+  Building,
   Megaphone,
   Circle,
   BookOpen,
@@ -197,6 +200,7 @@ const iconMap = {
   Coffee,
   Play,
   ClipboardEdit,
+Database,
   GitBranch,
   Scale,
   Globe2

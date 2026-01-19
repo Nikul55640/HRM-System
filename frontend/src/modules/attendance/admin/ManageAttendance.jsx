@@ -12,9 +12,27 @@ import { Calendar } from '../../../shared/ui/calendar';
 import { cn } from '../../../lib/utils';
 import { formatDate } from '../../../lib/date-utils.js';
 import AttendanceForm from '../components/AttendanceForm';
+import AttendanceViewModal from './AttendanceViewModal'; // ✅ NEW: Import view modal
 import api from '../../../services/api';
 import { getEmployeeFullName, getEmployeeInitials } from '../../../utils/employeeDataMapper';
 import { mapAttendanceRecord, getStatusDisplay, getStatusColor, formatTime } from '../../../utils/attendanceDataMapper';
+
+/**
+ * ManageAttendance Component
+ * 
+ * Attendance Logic Summary:
+ * 1. Working Day: Clock-in/out required. No clock-in = ABSENT (not leave)
+ * 2. Holiday/Festival: No clock-in/out required. System skips finalization
+ * 3. Leave Day: Approved leave = No clock-in required, marked as LEAVE
+ * 4. Status Types:
+ *    - present: Full attendance with proper clock-in/out
+ *    - half_day: Partial attendance (less than full day hours)
+ *    - absent: No clock-in on working day OR insufficient hours
+ *    - leave: Approved leave request (protected status)
+ *    - incomplete: Pending finalization (temporary status)
+ *    - pending_correction: Missed clock-out, requires correction
+ *    - holiday: System-detected holiday (auto-status)
+ */
 
 const ManageAttendance = () => {
   const { 
@@ -43,6 +61,7 @@ const ManageAttendance = () => {
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false); // ✅ NEW: View modal state
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [showActionMenu, setShowActionMenu] = useState(null);
 
@@ -58,14 +77,13 @@ const ManageAttendance = () => {
       }
     } catch (error) {
       console.error('Error loading status options:', error);
-      // Fallback to hardcoded options
+      // Fallback to hardcoded options - aligned with backend status values
       setStatusOptions([
         { value: 'all', label: 'All Status' },
         { value: 'present', label: 'Present' },
-        { value: 'absent', label: 'Absent' },
-        { value: 'late', label: 'Late' },
-        { value: 'incomplete', label: 'Incomplete' }, // ✅ NEW: Incomplete status filter
-        { value: 'on-leave', label: 'On Leave' },
+        { value: 'leave', label: 'On Leave' }, // ✅ FIXED: Use 'leave' instead of 'on-leave'
+        { value: 'half_day', label: 'Half Day' }, // ✅ ADDED: Half day status
+        { value: 'incomplete', label: 'Incomplete' }, // ✅ Missing clock-out
         { value: 'holiday', label: 'Holiday' },
         { value: 'pending_correction', label: 'Pending Correction' },
       ]);
@@ -132,29 +150,55 @@ const ManageAttendance = () => {
 
   const handleApproveCorrection = async (recordId) => {
     try {
-      // For now, we'll just update the record status
-      await updateAttendanceRecord(recordId, {
-        correctionStatus: 'approved',
-        correctionNotes: 'Correction approved by admin'
+      // ✅ FIXED: Use correction request endpoint with correct path
+      const response = await api.put(`/admin/attendance-corrections/requests/${recordId}/approve`, {
+        adminNotes: 'Correction approved by admin'
       });
-      // Refresh the list
-      fetchAttendanceRecords({});
+      
+      if (response.data.success) {
+        // Refresh the list to show updated status
+        const params = {
+          page: safePagination.page || 1,
+          limit: safePagination.limit || 10,
+          search: searchQuery,
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          startDate: formatDate(dateRange.from),
+          endDate: formatDate(dateRange.to),
+        };
+        fetchAttendanceRecords(params);
+      } else {
+        alert('Failed to approve correction: ' + response.data.message);
+      }
     } catch (error) {
-      alert('Failed to approve correction');
+      console.error('Error approving correction:', error);
+      alert('Failed to approve correction: ' + (error.response?.data?.message || error.message));
     }
   };
 
   const handleRejectCorrection = async (recordId) => {
     try {
-      // For now, we'll just update the record status
-      await updateAttendanceRecord(recordId, {
-        correctionStatus: 'rejected',
-        correctionNotes: 'Correction rejected by admin'
+      // ✅ FIXED: Use correction request endpoint with correct path
+      const response = await api.put(`/admin/attendance-corrections/requests/${recordId}/reject`, {
+        adminNotes: 'Correction rejected by admin'
       });
-      // Refresh the list
-      fetchAttendanceRecords({});
+      
+      if (response.data.success) {
+        // Refresh the list to show updated status
+        const params = {
+          page: safePagination.page || 1,
+          limit: safePagination.limit || 10,
+          search: searchQuery,
+          status: statusFilter !== 'all' ? statusFilter : undefined,
+          startDate: formatDate(dateRange.from),
+          endDate: formatDate(dateRange.to),
+        };
+        fetchAttendanceRecords(params);
+      } else {
+        alert('Failed to reject correction: ' + response.data.message);
+      }
     } catch (error) {
-      alert('Failed to reject correction');
+      console.error('Error rejecting correction:', error);
+      alert('Failed to reject correction: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -303,7 +347,7 @@ const ManageAttendance = () => {
               <div className="text-lg font-bold">{value}</div>
               <p className="text-xs text-muted-foreground line-clamp-2">
                 {key === 'present' ? 'Employees present today' : ''}
-                {key === 'absent' ? 'Employees absent today' : ''}
+                {key === 'leave' ? 'Employees on leave today' : ''}
                 {key === 'late' ? 'Employees late today' : ''}
                 {key === 'onLeave' ? 'Employees on leave' : ''}
               </p>
@@ -339,7 +383,6 @@ const ManageAttendance = () => {
                   </TableRow>
                 ) : safeAttendance.length > 0 ? (
                   safeAttendance.map((record) => {
-                    const mappedRecord = mapAttendanceRecord(record);
                     return (
                       <TableRow key={record.id} className={record.status === 'incomplete' ? 'bg-orange-50' : record.isLate ? 'bg-red-50' : ''}>
                         <TableCell className="font-medium">
@@ -388,7 +431,7 @@ const ManageAttendance = () => {
                           )}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm">
-                          {mappedRecord.workingHours}
+                          {record.workHours ? `${record.workHours}h` : '--'}
                         </TableCell>
                         <TableCell>
                           <div className="relative">
@@ -403,6 +446,17 @@ const ManageAttendance = () => {
                             {showActionMenu === record.id && (
                               <div className="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                 <div className="py-1">
+                                  {/* ✅ NEW: View Details Action */}
+                                  <button
+                                    onClick={() => {
+                                      setSelectedRecord(record);
+                                      setShowActionMenu(null);
+                                      setShowViewModal(true);
+                                    }}
+                                    className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                                  >
+                                    View Details
+                                  </button>
                                   <button
                                     onClick={() => {
                                       setSelectedRecord(record);
@@ -528,6 +582,17 @@ const ManageAttendance = () => {
             } catch (error) {
               alert('Failed to save record');
             }
+          }}
+        />
+      )}
+
+      {/* ✅ NEW: View Modal */}
+      {showViewModal && (
+        <AttendanceViewModal
+          record={selectedRecord}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedRecord(null);
           }}
         />
       )}

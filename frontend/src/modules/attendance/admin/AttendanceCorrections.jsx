@@ -21,7 +21,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "../../../shared/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../shared/ui/tabs";
 import {
@@ -31,6 +30,7 @@ import {
   CheckCircle,
   Clock,
   Loader2,
+  ArrowRight,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "react-hot-toast";
@@ -264,44 +264,162 @@ const AttendanceCorrections = () => {
       {/* ACTION MODAL */}
       {selectedRequest && (
         <Dialog open onOpenChange={() => setSelectedRequest(null)}>
-          <DialogContent className="max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-base sm:text-lg">Process Correction Request</DialogTitle>
             </DialogHeader>
 
-            <div className="space-y-3 text-sm">
-              <div>
-                <strong>Employee:</strong>{" "}
-                {selectedRequest.employee?.firstName}{" "}
-                {selectedRequest.employee?.lastName}
+            <div className="space-y-4 text-sm">
+              {/* Employee Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <strong>Employee:</strong>{" "}
+                  {selectedRequest.employee?.firstName}{" "}
+                  {selectedRequest.employee?.lastName}
+                </div>
+                <div>
+                  <strong>Date:</strong>{" "}
+                  {format(parseISO(selectedRequest.date), "dd MMM yyyy")}
+                </div>
               </div>
-              <div>
-                <strong>Date:</strong>{" "}
-                {format(parseISO(selectedRequest.date), "dd MMM yyyy")}
+
+              {/* ✅ IMPROVEMENT: Original vs Requested Comparison */}
+              <div className="border rounded-lg p-4 bg-blue-50">
+                <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Attendance Comparison
+                </h4>
+                
+                <div className="space-y-3">
+                  {/* Clock In Comparison */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                    <div className="text-xs text-gray-600 font-medium">Clock In:</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm">
+                        <span className="text-gray-500">Original:</span>
+                        <div className="font-medium">
+                          {selectedRequest.originalClockIn 
+                            ? formatDateTime(selectedRequest.originalClockIn)
+                            : <span className="text-red-500">Missing</span>
+                          }
+                        </div>
+                      </div>
+                      <ArrowRight className="w-3 h-3 text-gray-400 hidden sm:block" />
+                      <div className="text-sm">
+                        <span className="text-gray-500">Requested:</span>
+                        <div className="font-medium text-blue-700">
+                          {selectedRequest.requestedClockIn 
+                            ? formatDateTime(selectedRequest.requestedClockIn)
+                            : <span className="text-gray-400">No change</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Clock Out Comparison */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                    <div className="text-xs text-gray-600 font-medium">Clock Out:</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm">
+                        <span className="text-gray-500">Original:</span>
+                        <div className="font-medium">
+                          {selectedRequest.originalClockOut 
+                            ? formatDateTime(selectedRequest.originalClockOut)
+                            : <span className="text-red-500">Missing</span>
+                          }
+                        </div>
+                      </div>
+                      <ArrowRight className="w-3 h-3 text-gray-400 hidden sm:block" />
+                      <div className="text-sm">
+                        <span className="text-gray-500">Requested:</span>
+                        <div className="font-medium text-blue-700">
+                          {selectedRequest.requestedClockOut 
+                            ? formatDateTime(selectedRequest.requestedClockOut)
+                            : <span className="text-gray-400">No change</span>
+                          }
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Break Minutes Comparison */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 items-center">
+                    <div className="text-xs text-gray-600 font-medium">Break Time:</div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm">
+                        <span className="text-gray-500">Original:</span>
+                        <div className="font-medium">
+                          {formatDuration(selectedRequest.originalBreakMinutes || 0)}
+                        </div>
+                      </div>
+                      <ArrowRight className="w-3 h-3 text-gray-400 hidden sm:block" />
+                      <div className="text-sm">
+                        <span className="text-gray-500">Requested:</span>
+                        <div className="font-medium text-blue-700">
+                          {formatDuration(selectedRequest.requestedBreakMinutes || 0)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Impact Summary */}
+                <div className="mt-3 pt-3 border-t border-blue-200">
+                  <div className="text-xs text-blue-700 font-medium">Impact Summary:</div>
+                  <div className="text-xs text-blue-600 mt-1">
+                    {(() => {
+                      const changes = [];
+                      if (selectedRequest.originalClockIn !== selectedRequest.requestedClockIn) {
+                        changes.push("Clock-in time");
+                      }
+                      if (selectedRequest.originalClockOut !== selectedRequest.requestedClockOut) {
+                        changes.push("Clock-out time");
+                      }
+                      if ((selectedRequest.originalBreakMinutes || 0) !== (selectedRequest.requestedBreakMinutes || 0)) {
+                        changes.push("Break duration");
+                      }
+                      return changes.length > 0 
+                        ? `Changes: ${changes.join(", ")}`
+                        : "No significant changes detected";
+                    })()}
+                  </div>
+                </div>
               </div>
+
+              {/* Employee Reason */}
               <div>
-                <strong>Reason:</strong> 
-                <div className="mt-1 p-2 bg-gray-50 rounded text-sm">
+                <strong>Employee's Reason:</strong> 
+                <div className="mt-1 p-3 bg-gray-50 rounded text-sm">
                   {selectedRequest.reason}
                 </div>
               </div>
 
-              <Textarea
-                placeholder="Admin notes (required for rejection)"
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                className="text-sm"
-                rows={3}
-              />
+              {/* Admin Notes */}
+              <div>
+                <label className="block font-medium mb-2">
+                  Admin Notes 
+                  <span className="text-red-500 text-xs ml-1">(required for rejection)</span>
+                </label>
+                <Textarea
+                  placeholder="Add your review notes, approval reason, or rejection explanation..."
+                  value={adminNotes}
+                  onChange={(e) => setAdminNotes(e.target.value)}
+                  className="text-sm"
+                  rows={3}
+                />
+              </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t">
                 <Button
                   className="flex-1 bg-green-600 hover:bg-green-700 order-2 sm:order-1"
                   onClick={() =>
                     handleAction(selectedRequest.id, "approve")
                   }
                 >
-                  Approve
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Approve Request
                 </Button>
                 <Button
                   className="flex-1 bg-red-600 hover:bg-red-700 order-1 sm:order-2"
@@ -309,7 +427,8 @@ const AttendanceCorrections = () => {
                     handleAction(selectedRequest.id, "reject")
                   }
                 >
-                  Reject
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Reject Request
                 </Button>
               </div>
             </div>

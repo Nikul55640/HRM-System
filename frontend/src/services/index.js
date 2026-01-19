@@ -20,6 +20,7 @@ export { default as calendarService } from "./calendarService";
 export { default as smartCalendarService } from "./smartCalendarService";
 export { default as calendarificService } from "./calendarificService";
 export { default as recentActivityService } from "./recentActivityService";
+export { default as birthdayService } from "./birthdayService";
 
 // Feature-specific services (8 Core Features)
 export { default as shiftService } from "./shiftService"; // Feature 6: Shift Management

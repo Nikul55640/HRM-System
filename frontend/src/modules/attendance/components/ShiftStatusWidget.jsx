@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
+import { Badge } from '../../../shared/ui/badge';
 import { 
   Clock, 
   AlertTriangle, 
@@ -8,7 +9,11 @@ import {
   Timer, 
   Coffee,
   Bell,
-  X
+  X,
+  Building2,
+  Home,
+  Users,
+  MapPin
 } from 'lucide-react';
 import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore';
 
@@ -25,6 +30,22 @@ const ShiftStatusWidget = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  // 🏢 NEW: Get work mode icon and label
+  const getWorkModeDisplay = (workMode) => {
+    switch (workMode) {
+      case 'office':
+        return { icon: Building2, label: 'Office', color: 'bg-blue-100 text-blue-700' };
+      case 'wfh':
+        return { icon: Home, label: 'Work From Home', color: 'bg-green-100 text-green-700' };
+      case 'hybrid':
+        return { icon: Users, label: 'Hybrid', color: 'bg-purple-100 text-purple-700' };
+      case 'field':
+        return { icon: MapPin, label: 'Field Work', color: 'bg-orange-100 text-orange-700' };
+      default:
+        return { icon: Building2, label: 'Office', color: 'bg-gray-100 text-gray-700' };
+    }
+  };
 
   
   // Generate notifications based on shift status
@@ -291,6 +312,21 @@ const ShiftStatusWidget = () => {
         <div className="font-medium text-gray-800">
           Worked: {Math.floor(shiftProgress.elapsed / 60)}h {shiftProgress.elapsed % 60}m
         </div>
+        {/* 🏢 NEW: Work Mode Display */}
+        {todayRecord.workMode && (
+          <div className="flex items-center justify-center gap-1 mt-2">
+            {(() => {
+              const workModeDisplay = getWorkModeDisplay(todayRecord.workMode);
+              const Icon = workModeDisplay.icon;
+              return (
+                <Badge className={`${workModeDisplay.color} border-0 text-xs`}>
+                  <Icon className="h-3 w-3 mr-1" />
+                  {workModeDisplay.label}
+                </Badge>
+              );
+            })()}
+          </div>
+        )}
       </div>
 
     </CardContent>
@@ -310,6 +346,21 @@ const ShiftStatusWidget = () => {
               <div className="mt-3 text-sm text-green-600">
                 {todayRecord.shift.shiftStartTime} – {todayRecord.shift.shiftEndTime}
               </div>
+              {/* 🏢 NEW: Work Mode Display for completed shift */}
+              {todayRecord.workMode && (
+                <div className="flex items-center justify-center gap-1 mt-2">
+                  {(() => {
+                    const workModeDisplay = getWorkModeDisplay(todayRecord.workMode);
+                    const Icon = workModeDisplay.icon;
+                    return (
+                      <Badge className={`${workModeDisplay.color} border-0 text-xs`}>
+                        <Icon className="h-3 w-3 mr-1" />
+                        {workModeDisplay.label}
+                      </Badge>
+                    );
+                  })()}
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

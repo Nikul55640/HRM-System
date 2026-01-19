@@ -72,7 +72,7 @@ export const mapAttendanceRecord = (record) => {
     // Additional computed fields
     isIncomplete: record.status === 'incomplete',
     isPresent: record.status === 'present',
-    isAbsent: record.status === 'absent',
+    isOnLeave: record.status === 'leave', // ✅ FIXED: Use 'leave' instead of 'absent'
     
     // Display helpers
     clockInTime: record.clockIn ? formatIndianTimeString(record.clockIn) : '--:--',
@@ -118,12 +118,10 @@ export const getStatusDisplay = (status, isLate, lateMinutes) => {
   switch (status) {
     case 'present':
       return 'Present';
-    case 'absent':
-      return 'Absent';
+    case 'leave': // ✅ FIXED: Use 'leave' instead of 'absent'
+      return 'On Leave';
     case 'incomplete':
       return 'Incomplete - Missing Clock-out';
-    case 'leave':
-      return 'On Leave';
     case 'half_day':
       return 'Half Day';
     case 'holiday':
@@ -142,10 +140,9 @@ export const getStatusColor = (status, isLate) => {
   
   const statusColors = {
     present: 'bg-green-100 text-green-800',
-    absent: 'bg-red-100 text-red-800',
+    leave: 'bg-blue-100 text-blue-800', // ✅ FIXED: Use 'leave' instead of 'absent'
     late: 'bg-yellow-100 text-yellow-800',
     incomplete: 'bg-orange-100 text-orange-800',
-    leave: 'bg-blue-100 text-blue-800',
     half_day: 'bg-purple-100 text-purple-800',
     holiday: 'bg-purple-100 text-purple-800',
     pending_correction: 'bg-gray-100 text-gray-800'

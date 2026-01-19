@@ -29,6 +29,16 @@ router.get('/daily',
 );
 
 /**
+ * GET /api/calendar/view/events
+ * Get unified calendar events (events, holidays, leaves, birthdays, anniversaries)
+ * Supports both date range (startDate/endDate) and month/year parameters
+ */
+router.get('/events',
+  checkPermission(MODULES.LEAVE.VIEW_CALENDAR),
+  calendarViewController.getEvents
+);
+
+/**
  * POST /api/calendar/view/apply-leave
  * Apply for leave directly from calendar
  */

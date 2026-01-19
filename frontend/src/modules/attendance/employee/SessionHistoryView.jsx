@@ -96,10 +96,12 @@ const SessionHistoryView = () => {
         return <Building2 className="h-4 w-4" />;
       case 'wfh':
         return <Home className="h-4 w-4" />;
-      case 'client_site':
+      case 'hybrid':
         return <Users className="h-4 w-4" />;
-      default:
+      case 'field':
         return <MapPin className="h-4 w-4" />;
+      default:
+        return <Building2 className="h-4 w-4" />;
     }
   };
 
@@ -109,8 +111,10 @@ const SessionHistoryView = () => {
         return 'Office';
       case 'wfh':
         return 'Work From Home';
-      case 'client_site':
-        return 'Client Site';
+      case 'hybrid':
+        return 'Hybrid';
+      case 'field':
+        return 'Field Work';
       default:
         return location;
     }
@@ -175,7 +179,8 @@ const SessionHistoryView = () => {
                   <SelectItem value="all">All Locations</SelectItem>
                   <SelectItem value="office">Office</SelectItem>
                   <SelectItem value="wfh">Work From Home</SelectItem>
-                  <SelectItem value="client_site">Client Site</SelectItem>
+                  <SelectItem value="hybrid">Hybrid</SelectItem>
+                  <SelectItem value="field">Field Work</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -235,8 +240,8 @@ const SessionHistoryView = () => {
                       <div className="bg-muted/50 rounded-md p-3 space-y-2">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4" />
-                            <span className="text-sm font-medium">Office</span>
+                            {getLocationIcon(record.workMode || 'office')}
+                            <span className="text-sm font-medium">{getLocationLabel(record.workMode || 'office')}</span>
                           </div>
                         </div>
 

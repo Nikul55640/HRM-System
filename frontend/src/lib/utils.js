@@ -18,7 +18,7 @@ export const statusMappings = {
   absent: { variant: 'absent', label: 'Absent' },
   late: { variant: 'late', label: 'Late' },
   'half-day': { variant: 'half-day', label: 'Half Day' },
-  'on-leave': { variant: 'on-leave', label: 'On Leave' },
+  'leave': { variant: 'leave', label: 'On Leave' }, // ✅ FIXED: Use 'leave' instead of 'on-leave'
   
   // User statuses
   active: { variant: 'active', label: 'Active' },
@@ -43,7 +43,7 @@ export const getStatusColor = (status) => {
     absent: 'red',
     late: 'orange',
     'half-day': 'blue',
-    'on-leave': 'purple',
+    'leave': 'purple', // ✅ FIXED: Use 'leave' instead of 'on-leave'
     active: 'green',
     inactive: 'gray',
     terminated: 'red'
