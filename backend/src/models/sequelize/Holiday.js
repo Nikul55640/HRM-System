@@ -159,6 +159,20 @@ const Holiday = sequelize.define('Holiday', {
 // Instance methods
 Holiday.prototype.toJSON = function() {
   const values = { ...this.get() };
+  
+  // Ensure date is always in YYYY-MM-DD format
+  if (values.date) {
+    if (values.date instanceof Date) {
+      values.date = getLocalDateString(values.date);
+    } else if (typeof values.date === 'string') {
+      // Clean up any corrupted date strings
+      const dateMatch = values.date.match(/(\d{4}-\d{2}-\d{2})/);
+      if (dateMatch) {
+        values.date = dateMatch[1];
+      }
+    }
+  }
+  
   return values;
 };
 

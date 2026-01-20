@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "react-toastify";
 import { useSearchParams } from "react-router-dom";
-import { smartCalendarService, calendarService } from "../../../services";
+import { smartCalendarService } from "../../../services";
 import {
   getEventTypeConfig,
   sortEventsByPriority,
@@ -57,6 +57,17 @@ const EmployeeCalendarPage = () => {
           const dayData = calendar[dateKey];
           const eventDate = dateKey; // Already in YYYY-MM-DD format
 
+          // 🔍 DEBUG: Log leave data structure
+          if (dayData.leave) {
+            console.log(`📋 Leave data for ${dateKey}:`, {
+              leave: dayData.leave,
+              hasEmployeeName: !!dayData.leave.employeeName,
+              employeeName: dayData.leave.employeeName,
+              leaveType: dayData.leave.leaveType,
+              employee: dayData.leave.employee
+            });
+          }
+
           // Add holiday if present and it's a working day (or show all holidays)
           if (dayData.holiday) {
             allEvents.push({
@@ -86,15 +97,41 @@ const EmployeeCalendarPage = () => {
             });
           }
 
-          // Add leave if present
+          // Add leave if present (single employee leave from day status)
           if (dayData.leave) {
-            allEvents.push({
+            const leaveEvent = {
               ...dayData.leave,
               eventType: "leave",
-              title:
-                dayData.leave.title || `Leave - ${dayData.leave.leaveType}`,
+              title: dayData.leave.employeeName
+                ? `${dayData.leave.employeeName} – ${dayData.leave.leaveType}`
+                : dayData.leave.title || `Leave - ${dayData.leave.leaveType}`,
+              employeeName: dayData.leave.employeeName,
               startDate: eventDate,
               color: dayData.leave.color || getEventTypeConfig("leave").color,
+            };
+            
+            // 🔍 DEBUG: Log the final leave event
+            console.log(`✅ Final leave event for ${dateKey}:`, leaveEvent);
+            allEvents.push(leaveEvent);
+          }
+
+          // Add multiple leaves if present (admin view - multiple employees)
+          if (dayData.leaves && Array.isArray(dayData.leaves)) {
+            dayData.leaves.forEach((leave) => {
+              const leaveEvent = {
+                ...leave,
+                eventType: "leave",
+                title: leave.employeeName
+                  ? `${leave.employeeName} – ${leave.leaveType}`
+                  : `Leave - ${leave.leaveType}`,
+                employeeName: leave.employeeName,
+                startDate: eventDate,
+                color: leave.color || getEventTypeConfig("leave").color,
+              };
+              
+              // 🔍 DEBUG: Log the final leave event
+              console.log(`✅ Final admin leave event for ${dateKey}:`, leaveEvent);
+              allEvents.push(leaveEvent);
             });
           }
 
@@ -206,6 +243,17 @@ const dayEvents = events.filter(event => {
   return event.startDate === dateStr;
 });
 
+    // 🔍 DEBUG: Log day events
+    console.log(`📅 Day clicked: ${dateStr}`);
+    console.log(`📊 Events for this day:`, dayEvents);
+    dayEvents.forEach((event, idx) => {
+      console.log(`  Event ${idx + 1}:`, {
+        type: event.eventType,
+        title: event.title,
+        employeeName: event.employeeName,
+        leaveType: event.leaveType
+      });
+    });
 
     setClickedDate(date);
     setSelectedDayEvents(dayEvents);

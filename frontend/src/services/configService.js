@@ -14,12 +14,12 @@ const configService = {
 
   // Custom fields
   getCustomFields: async () => {
-    const response = await api.get('/admin/config/custom-fields');
+    const response = await api.get('/config/custom-fields');
     return response.data;
   },
 
   setCustomEmployeeFields: async (fields) => {
-    const response = await api.put('/admin/config/custom-fields/employee', { fields });
+    const response = await api.put('/config/custom-fields', { fields });
     return response.data;
   },
 
@@ -90,7 +90,7 @@ const configService = {
   // Generic config methods using system config endpoints
   getConfig: async (key) => {
     try {
-      const response = await api.get('/admin/config/system');
+      const response = await api.get('/config');
       
       // Look for the specific key in the system config
       const config = response.data?.data?.find(config => config.key === key);
@@ -113,7 +113,7 @@ const configService = {
   },
 
   updateConfig: async (key, value, description = '') => {
-    const response = await api.put('/admin/config/system', {
+    const response = await api.put('/config', {
       key,
       value,
       description

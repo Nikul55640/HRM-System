@@ -8,8 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../shared/ui/card";
+import { EmptyState } from "../../../../shared/components";
 import employeeDashboardService from "../../../../services/employeeDashboardService";
 import birthdayService from "../../../../services/birthdayService";
+import employeeCalendarService from "../../../../services/employeeCalendarService"; // ✅ Use employee-safe calendar service
 import api from "../../../../services/api"; // ✅ Add for debugging
 import { useNotifications } from "../../../../services/useEmployeeSelfService";
 import { usePermissions } from "../../../../core/hooks";
@@ -39,9 +41,9 @@ import {
   Building2,
   CakeIcon,
 } from "lucide-react";
+import useAuthStore from "../../../../stores/useAuthStore";
 import { leaveService } from "../../../../services";
 import useAttendanceSessionStore from "../../../../stores/useAttendanceSessionStore";
-import { calendarService } from "../../../../services";
 import { isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, subWeeks, subMonths } from "date-fns";
 
 
@@ -91,58 +93,53 @@ const EmployeeDashboard = () => {
    fetchTodayRecord,
  } = useAttendanceSessionStore();
 
+  // ✅ PHASE 1 FIX: Single responsibility, no duplicates
   useEffect(() => {
-    const fetchAllData = async () => {
+    const fetchCriticalData = async () => {
       setLoading(true);
-      // Fetch critical data first
-      await Promise.all([
-        fetchDashboardData(),
-        fetchLeaveBalance(),
-        fetchAttendanceSummary(),
-        fetchTodayRecord(), // Fetch attendance data
-        fetchTeamData(), // Fetch team leave and WFH data
-        fetchUpcomingBirthdays(), // Fetch upcoming birthdays
-      ]);
-      // Fetch calendar events after main data loads (reduces initial load)
-      fetchCalendarEvents();
+      
+      try {
+        // Only critical data that dashboard MUST have
+        await Promise.all([
+          fetchDashboardData(),
+          fetchLeaveBalance(),
+          fetchAttendanceSummary(),
+          fetchTodayRecord(), // Single attendance initialization
+        ]);
+        
+        // Optional data - fail gracefully
+        try {
+          await Promise.all([
+            fetchTeamData(),
+            fetchUpcomingBirthdays(),
+          ]);
+        } catch (optionalError) {
+          console.warn('❌ [DASHBOARD] Optional data failed (non-critical):', optionalError);
+        }
+      } catch (criticalError) {
+        console.error('❌ [DASHBOARD] Critical data failed:', criticalError);
+      }
+      
       setLoading(false);
     };
 
-    // Initialize attendance store
-    const initializeStore = async () => {
-      await fetchTodayRecord(true); // Initialize attendance data
-    };
-
-    fetchAllData();
-    initializeStore();
+    fetchCriticalData();
     
-    // Update time every minute
+    // ✅ REDUCED TIMERS: Only essential ones
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 60000);
 
-    // Refresh attendance data every 30 seconds to keep it in sync
+    // ✅ ATTENDANCE: 60 sec instead of 30 sec
     const attendanceRefreshTimer = setInterval(() => {
-      fetchTodayRecord(true); // Silent refresh
-    }, 30000);
-
-    // Refresh team data every 5 minutes
-    const teamDataRefreshTimer = setInterval(() => {
-      fetchTeamData(true); // Silent refresh
-    }, 300000);
-
-    // Refresh birthdays every hour
-    const birthdaysRefreshTimer = setInterval(() => {
-      fetchUpcomingBirthdays(true); // Silent refresh
-    }, 3600000);
+      fetchTodayRecord(true);
+    }, 60000);
 
     return () => {
       clearInterval(timer);
       clearInterval(attendanceRefreshTimer);
-      clearInterval(teamDataRefreshTimer);
-      clearInterval(birthdaysRefreshTimer);
     };
-  }, [fetchTodayRecord]);
+  }, []); // ✅ NO DEPENDENCIES - run once only
 
   // Fetch notifications on component mount
   useEffect(() => {
@@ -160,9 +157,34 @@ const EmployeeDashboard = () => {
     loadNotifications();
   }, [getNotifications]);
 
-  // 🔧 DEBUG: Test API connectivity
+  // 🔧 DEBUG: Test API connectivity and role validation
   const testAPIConnectivity = async () => {
-    console.log('🔧 [DEBUG] Testing API connectivity...');
+    console.log('🔧 [DEBUG] Testing API connectivity and role validation...');
+    
+    // Debug current auth state
+    const { user, token, isAuthenticated } = useAuthStore.getState();
+    console.log('🔐 [DEBUG] Current auth state:', {
+      isAuthenticated,
+      hasUser: !!user,
+      userRole: user?.role,
+      userEmail: user?.email,
+      hasToken: !!token,
+      tokenPreview: token ? `${token.substring(0, 20)}...` : 'No token'
+    });
+    
+    // Check if user role matches allowed roles for dashboard (NORMALIZED)
+    const allowedRoles = ["Employee", "HR", "SuperAdmin", "EMPLOYEE", "HR_ADMIN", "HR_MANAGER", "SUPER_ADMIN"];
+    const userRole = user?.role?.toUpperCase(); // ✅ FIX: Normalize role
+    const roleMatches = allowedRoles.map(r => r.toUpperCase()).includes(userRole); // ✅ FIX: Normalize comparison
+    
+    console.log('🔐 [DEBUG] Role validation:', {
+      userRole,
+      allowedRoles,
+      roleMatches,
+      message: roleMatches ? 'Role is valid for dashboard access' : 'Role does NOT match allowed roles'
+    });
+    
+    // ❌ REMOVED: No forced logout from dashboard - route guard handles this
     
     try {
       // Test basic profile endpoint
@@ -176,22 +198,57 @@ const EmployeeDashboard = () => {
       const attendanceTest = await api.get(`/employee/attendance/summary/${year}/${month}`);
       console.log('✅ [DEBUG] Attendance API working:', attendanceTest.data);
       
-      // Test new company status endpoints
-      const leaveTest = await api.get('/employee/company/leave-today');
-      console.log('✅ [DEBUG] Leave API working:', leaveTest.data);
+      // Test new company status endpoints (SAFE)
+      try {
+        const leaveTest = await api.get('/employee/company/leave-today');
+        console.log('✅ [DEBUG] Leave API working:', leaveTest.data);
+      } catch {
+        console.warn('❌ [DEBUG] Leave API limited for employee');
+      }
       
-      const wfhTest = await api.get('/employee/company/wfh-today');
-      console.log('✅ [DEBUG] WFH API working:', wfhTest.data);
+      try {
+        const wfhTest = await api.get('/employee/company/wfh-today');
+        console.log('✅ [DEBUG] WFH API working:', wfhTest.data);
+      } catch {
+        console.warn('❌ [DEBUG] WFH API limited for employee');
+      }
       
       toast.success('All APIs are working correctly!');
     } catch (error) {
       console.error('❌ [DEBUG] API test failed:', error);
-      toast.error(`API test failed: ${error.message}`);
+      
+      if (error.response?.status === 401) {
+        toast.error('Authentication failed - please login again');
+        console.log('🔐 [DEBUG] Token appears to be invalid or expired');
+        
+        // Force logout on 401
+        const { logout } = useAuthStore.getState();
+        logout();
+        navigate('/login');
+      } else if (error.response?.status === 403) {
+        toast.error('Access denied - insufficient permissions');
+        console.log('🔐 [DEBUG] User role may not have required permissions');
+        console.log('🔐 [DEBUG] Error details:', error.response?.data);
+      } else {
+        toast.error(`API test failed: ${error.message}`);
+      }
     }
   };
 
   const fetchDashboardData = async () => {
     try {
+      console.log("📊 [DASHBOARD] Starting fetchDashboardData...");
+      
+      // Debug authentication state
+      const { user, token, isAuthenticated } = useAuthStore.getState();
+      console.log("� [DASHBOARD] Auth state:", {
+        isAuthenticated,
+        hasUser: !!user,
+        userRole: user?.role,
+        hasToken: !!token,
+        tokenLength: token?.length
+      });
+      
       const res = await employeeDashboardService.getDashboardData();
       if (process.env.NODE_ENV === 'development') {
         console.log("📊 [DASHBOARD] API Response:", res);
@@ -202,6 +259,16 @@ const EmployeeDashboard = () => {
         console.log("✅ [DASHBOARD] Real data loaded successfully");
       } else {
         console.warn('❌ [DASHBOARD] API returned error:', res.message);
+        
+        // Check if it's an authentication error
+        if (res.message?.includes('Authentication') || res.message?.includes('Unauthorized')) {
+          toast.error("Session expired. Please login again.");
+          // Force logout and redirect
+          const { logout } = useAuthStore.getState();
+          logout();
+          return;
+        }
+        
         toast.warn("Some dashboard data may be limited");
         // Only set fallback if absolutely necessary
         setDashboardData({
@@ -217,7 +284,9 @@ const EmployeeDashboard = () => {
       // Check if it's a network/server error vs authorization
       if (error.response?.status === 401) {
         toast.error("Session expired. Please login again.");
-        // Don't set fallback data for auth errors
+        // Force logout and redirect
+        const { logout } = useAuthStore.getState();
+        logout();
         return;
       } else if (error.response?.status === 403) {
         toast.error("Access denied. Contact administrator.");
@@ -242,12 +311,16 @@ const EmployeeDashboard = () => {
     try {
       console.log('🏢 [DASHBOARD] Fetching team data...');
       
-      // Fetch today's leave data using new secure endpoint
-      const leaveResponse = await employeeDashboardService.getTodayLeaveData();
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🏖️ [DASHBOARD] Leave response:', leaveResponse);
+      // ✅ PERMISSION CHECK: Only fetch if user has permission
+      if (!can.do(MODULES.COMPANY_STATUS?.VIEW)) {
+        console.log('🔐 [DASHBOARD] No permission for company status - skipping team data');
+        setTeamOnLeave([]);
+        setTeamWFH([]);
+        return;
       }
+      
+      // Fetch today's leave data using employee-safe endpoint
+      const leaveResponse = await employeeDashboardService.getTodayLeaveData();
       
       if (leaveResponse.success) {
         console.log('✅ [DASHBOARD] Leave data loaded:', leaveResponse.data?.length || 0, 'employees');
@@ -257,12 +330,8 @@ const EmployeeDashboard = () => {
         setTeamOnLeave([]);
       }
 
-      // Fetch today's WFH data using new secure endpoint
+      // Fetch today's WFH data using employee-safe endpoint
       const wfhResponse = await employeeDashboardService.getTodayWFHData();
-      
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🏠 [DASHBOARD] WFH response:', wfhResponse);
-      }
       
       if (wfhResponse.success) {
         console.log('✅ [DASHBOARD] WFH data loaded:', wfhResponse.data?.length || 0, 'employees');
@@ -273,7 +342,19 @@ const EmployeeDashboard = () => {
       }
     } catch (error) {
       console.error('❌ [DASHBOARD] Team data API error:', error);
-      // Fallback to empty arrays if API is not available
+      
+      // Handle specific error types
+      if (error.response?.status === 403) {
+        console.error('🔐 [DASHBOARD] 403 Forbidden - User does not have permission to view company status');
+      } else if (error.response?.status === 401) {
+        console.error('🔐 [DASHBOARD] 401 Unauthorized - Authentication issue');
+        const { logout } = useAuthStore.getState();
+        logout();
+        navigate('/login');
+        return;
+      }
+      
+      // Fallback to empty arrays
       setTeamOnLeave([]);
       setTeamWFH([]);
     } finally {
@@ -424,52 +505,158 @@ const EmployeeDashboard = () => {
         ? endOfWeek(calendarDate).toISOString().split('T')[0]
         : endOfMonth(calendarDate).toISOString().split('T')[0];
 
-      const response = await calendarService.getEventsByDateRange(startDate, endDate);
+      // ✅ FIX: Use employee-safe calendar endpoints
+      const allEvents = [];
       
-      if (response && response.success) {
-        const calendarData = response.data || {};
+      try {
+        // Try employee calendar endpoint first (safer)
+        const eventsResponse = await calendarService.getEventsByDateRange(startDate, endDate);
         
-        const allEvents = [
-          ...(calendarData.events || []).map(e => ({
-            ...e,
-            eventType: e.eventType || 'event',
-            color: e.color || '#3B82F6'
-          })),
-          ...(calendarData.holidays || []).map(h => ({
-            ...h,
-            eventType: 'holiday',
-            title: h.name || h.title,
-            startDate: h.date || h.startDate,
-            color: h.color || '#EF4444'
-          })),
-          ...(calendarData.leaves || []).map(l => ({
-            ...l,
-            eventType: 'leave',
-            title: l.title || `${l.employeeName} - ${l.leaveType}`,
-            color: l.color || '#F59E0B'
-          })),
-          ...(calendarData.birthdays || []).map(b => ({
-            ...b,
-            eventType: 'birthday',
-            title: b.title || `${b.employeeName}`,
-            startDate: b.date || b.startDate,
-            color: b.color || '#10B981'
-          })),
-          ...(calendarData.anniversaries || []).map(a => ({
-            ...a,
-            eventType: 'anniversary',
-            title: a.title || `${a.employeeName}`,
-            startDate: a.date || a.startDate,
-            color: a.color || '#8B5CF6'
-          }))
-        ];
-        
-        setCalendarEvents(allEvents);
-      } else {
-        setCalendarEvents([]);
+        if (eventsResponse && eventsResponse.success) {
+          const calendarData = eventsResponse.data || {};
+          
+          // Add regular events
+          if (calendarData.events) {
+            allEvents.push(...calendarData.events.map(e => ({
+              ...e,
+              eventType: e.eventType || 'event',
+              color: e.color || '#3B82F6',
+              startDate: e.startDate || e.date
+            })));
+          }
+          
+          // Add leaves
+          if (calendarData.leaves) {
+            allEvents.push(...calendarData.leaves.map(l => ({
+              ...l,
+              eventType: 'leave',
+              title: l.title || `${l.employeeName} - ${l.leaveType}`,
+              startDate: l.startDate || l.date,
+              color: l.color || '#F59E0B'
+            })));
+          }
+          
+          // Add birthdays
+          if (calendarData.birthdays) {
+            allEvents.push(...calendarData.birthdays.map(b => ({
+              ...b,
+              eventType: 'birthday',
+              title: b.title || `${b.employeeName}`,
+              startDate: b.date || b.startDate,
+              color: b.color || '#10B981'
+            })));
+          }
+          
+          // Add anniversaries
+          if (calendarData.anniversaries) {
+            allEvents.push(...calendarData.anniversaries.map(a => ({
+              ...a,
+              eventType: 'anniversary',
+              title: a.title || `${a.employeeName}`,
+              startDate: a.date || a.startDate,
+              color: a.color || '#8B5CF6'
+            })));
+          }
+          
+          // Add holidays from calendar events if available
+          if (calendarData.holidays) {
+            allEvents.push(...calendarData.holidays.map(h => ({
+              ...h,
+              eventType: 'holiday',
+              title: h.name || h.title,
+              startDate: h.date || h.startDate,
+              color: h.color || '#EF4444'
+            })));
+          }
+        }
+      } catch (calendarError) {
+        console.warn('❌ [DASHBOARD] Calendar events limited for employee:', calendarError);
+        // Don't break dashboard for calendar failures
       }
+
+      // Try to fetch holidays separately (employee-safe)
+      try {
+        const holidaysResponse = await calendarService.getHolidays(calendarDate.getFullYear());
+        
+        if (holidaysResponse && holidaysResponse.success) {
+          let holidayData = [];
+          
+          // Handle different response structures
+          if (holidaysResponse.data?.data?.holidays && Array.isArray(holidaysResponse.data.data.holidays)) {
+            holidayData = holidaysResponse.data.data.holidays;
+          } else if (holidaysResponse.data?.holidays && Array.isArray(holidaysResponse.data.holidays)) {
+            holidayData = holidaysResponse.data.holidays;
+          } else if (Array.isArray(holidaysResponse.data)) {
+            holidayData = holidaysResponse.data;
+          }
+          
+          console.log('🎉 [DASHBOARD] Processing holidays:', holidayData.length);
+          
+          // Filter holidays for the current date range and add them
+          const filteredHolidays = holidayData.filter(h => {
+            const holidayDate = h.date || h.startDate;
+            if (!holidayDate) return false;
+            
+            // Safe date comparison
+            try {
+              let holidayDateStr = holidayDate;
+              
+              // Handle different date formats
+              if (holidayDate instanceof Date) {
+                holidayDateStr = holidayDate.toISOString().split('T')[0];
+              } else if (typeof holidayDate === 'string') {
+                if (holidayDate.includes('T')) {
+                  holidayDateStr = holidayDate.split('T')[0];
+                } else if (/^\d{4}-\d{2}-\d{2}$/.test(holidayDate)) {
+                  holidayDateStr = holidayDate;
+                } else {
+                  const parsed = new Date(holidayDate);
+                  if (!isNaN(parsed.getTime())) {
+                    holidayDateStr = parsed.toISOString().split('T')[0];
+                  } else {
+                    return false;
+                  }
+                }
+              }
+              
+              return holidayDateStr >= startDate && holidayDateStr <= endDate;
+            } catch (error) {
+              console.warn('Date filtering error for holiday:', h.name, holidayDate, error);
+              return false;
+            }
+          });
+          
+          console.log('🎉 [DASHBOARD] Filtered holidays for date range:', filteredHolidays.length);
+          
+          // Add filtered holidays, avoiding duplicates
+          const existingHolidayNames = new Set(
+            allEvents.filter(e => e.eventType === 'holiday').map(e => e.title || e.name)
+          );
+          
+          filteredHolidays.forEach(h => {
+            const holidayName = h.name || h.title;
+            if (!existingHolidayNames.has(holidayName)) {
+              allEvents.push({
+                ...h,
+                eventType: 'holiday',
+                title: holidayName,
+                startDate: h.date || h.startDate,
+                color: h.color || '#EF4444'
+              });
+            }
+          });
+        }
+      } catch (holidayError) {
+        console.warn('❌ [DASHBOARD] Holidays limited for employee:', holidayError);
+        // Don't break dashboard for holiday failures
+      }
+      
+      console.log('📅 [DASHBOARD] Total calendar events:', allEvents.length);
+      console.log('🎉 [DASHBOARD] Holiday events:', allEvents.filter(e => e.eventType === 'holiday').length);
+      
+      setCalendarEvents(allEvents);
     } catch (error) {
-      console.error('Failed to fetch calendar events:', error);
+      console.error('❌ [DASHBOARD] Failed to fetch calendar events:', error);
       setCalendarEvents([]);
     }
   };
@@ -513,12 +700,24 @@ const EmployeeDashboard = () => {
     navigate(`/employee/calendar?date=${date.toISOString().split('T')[0]}`);
   };
 
-  // Fetch calendar events when view or date changes
+  // ✅ CALENDAR: Separate responsibility - only when calendar state changes
   useEffect(() => {
     fetchCalendarEvents();
   }, [calendarView, calendarDate]);
 
-  // Refresh all dashboard data
+  // Debug calendar events in development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development' && calendarEvents.length > 0) {
+      console.log('📅 [DASHBOARD] Calendar events updated:', calendarEvents.length);
+      const holidayEvents = calendarEvents.filter(e => e.eventType === 'holiday');
+      console.log('🎉 [DASHBOARD] Holiday events in calendar:', holidayEvents.length);
+      holidayEvents.forEach(h => {
+        console.log(`   - ${h.title}: ${h.startDate || h.date}`);
+      });
+    }
+  }, [calendarEvents]);
+
+  // ✅ SIMPLIFIED REFRESH: No duplicate calls
   const refreshDashboard = async () => {
     setLoading(true);
     try {
@@ -530,7 +729,7 @@ const EmployeeDashboard = () => {
         fetchTeamData(true),
         fetchUpcomingBirthdays(true),
         getNotifications({ limit: 5 }),
-        fetchCalendarEvents()
+        // ❌ REMOVED: fetchCalendarEvents() - handled by separate useEffect
       ]);
       toast.success('Dashboard refreshed successfully');
     } catch (error) {
@@ -916,188 +1115,163 @@ const EmployeeDashboard = () => {
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
           {/* 🟢 SECTION 3: TEAM ON LEAVE TODAY */}
           <div className="lg:col-span-1">
-            <Card className="bg-white shadow-sm rounded-xl border-0">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                  <Palmtree className="w-4 h-4 text-green-600" />
-                  <span className="hidden sm:inline">On Leave Today</span>
-                  <span className="sm:hidden">On Leave</span>
-                  {teamDataLoading && (
-                    <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin ml-2"></div>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
-                  {teamDataLoading && teamOnLeave.length === 0 ? (
-                    <div className="text-center py-4">
-                      <div className="w-6 h-6 border-2 border-green-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                      <p className="text-xs sm:text-sm text-gray-500">Loading leave data...</p>
-                    </div>
-                  ) : teamOnLeave.length > 0 ? (
-                    teamOnLeave.slice(0, 5).map((employee, index) => (
-                      <div key={employee.id || index} className="flex items-center gap-3">
-                        <div className="p-1.5 rounded-full bg-green-100 flex-shrink-0">
-                          <Palmtree className="w-3 h-3 text-green-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <div className="min-w-0 flex-1">
-                              <span className="font-medium text-gray-900 text-xs sm:text-sm truncate block">{employee.employeeName}</span>
-                              <p className="text-xs text-gray-500 mt-0.5 truncate">{employee.leaveType} Leave</p>
-                            </div>
-                            <span className="text-xs sm:text-sm text-gray-500 ml-2 flex-shrink-0">
-                              {employee.duration || 'Full Day'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-6 text-gray-500">
-                      <Palmtree className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                      <p className="text-xs sm:text-sm">No record found.</p>
-                      <p className="text-xs">Everyone is in office today</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          <Card className="bg-white rounded-xl border shadow-sm">
+            <CardHeader className="pb-2">
+             <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+               <Palmtree className="w-4 h-4 text-green-600" />
+                  <span>On Leave Today</span>
+    </CardTitle>
+  </CardHeader>
+
+  <CardContent className="pt-0 space-y-3">
+    {/* ✅ PERMISSION-AWARE EMPTY STATE */}
+    {!can.do(MODULES.COMPANY_STATUS?.VIEW) ? (
+      <EmptyState
+        icon={Palmtree}
+        title="Restricted Access"
+        description="No permission to view company leave status"
+      />
+    ) : teamOnLeave.length > 0 ? (
+      teamOnLeave.slice(0, 5).map((emp, i) => (
+        <div
+          key={emp.id || i}
+          className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50"
+        >
+          <div className="p-2 rounded-full bg-green-100">
+            <Palmtree className="w-3 h-3 text-green-600" />
+          </div>
+
+          <div className="flex-1">
+            <p className="font-medium text-sm text-gray-900 leading-tight">
+              {emp.employeeName}
+            </p>
+            <p className="text-xs text-gray-500">
+              {emp.leaveType} Leave
+            </p>
+          </div>
+
+          <span className="text-xs text-gray-600 whitespace-nowrap">
+            {emp.duration || 'Full Day'}
+          </span>
+        </div>
+      ))
+    ) : (
+      <EmptyState
+        icon={Palmtree}
+        title="No one on leave"
+        description="Everyone is working today"
+      />
+    )}
+  </CardContent>
+</Card>
+
           </div>
 
           {/* 🟢 SECTION 4: WORK FROM HOME TODAY */}
           <div className="lg:col-span-1">
-            <Card className="bg-white shadow-sm rounded-xl border-0">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                  <Home className="w-4 h-4 text-blue-600" />
-                  <span className="hidden sm:inline">Work From Home</span>
-                  <span className="sm:hidden">WFH</span>
-                  {teamDataLoading && (
-                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin ml-2"></div>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
-                  {teamDataLoading && teamWFH.length === 0 ? (
-                    <div className="text-center py-4">
-                      <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                      <p className="text-xs sm:text-sm text-gray-500">Loading WFH data...</p>
-                    </div>
-                  ) : teamWFH.length > 0 ? (
-                    teamWFH.slice(0, 5).map((employee, index) => (
-                      <div key={employee.id || index} className="flex items-center gap-3">
-                        <div className="p-1.5 rounded-full bg-blue-100 flex-shrink-0">
-                          <User className="w-3 h-3 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <div className="min-w-0 flex-1">
-                              <span className="font-medium text-gray-900 text-xs sm:text-sm truncate block">{employee.employeeName}</span>
-                              <p className="text-xs text-gray-500 mt-0.5 truncate">{employee.department || 'Remote'}</p>
-                            </div>
-                            <span className="text-xs sm:text-sm text-gray-500 ml-2 flex-shrink-0">
-                              {employee.status || 'WFH'}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-6 text-gray-500">
-                      <Home className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                      <p className="text-xs sm:text-sm">No record found.</p>
-                      <p className="text-xs">Everyone is in office today</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          <Card className="bg-white rounded-xl border shadow-sm">
+  <CardHeader className="pb-2">
+    <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+      <Home className="w-4 h-4 text-blue-600" />
+      <span>Work From Home</span>
+    </CardTitle>
+  </CardHeader>
+
+  <CardContent className="pt-0 space-y-3">
+    {/* ✅ PERMISSION-AWARE EMPTY STATE */}
+    {!can.do(MODULES.COMPANY_STATUS?.VIEW) ? (
+      <EmptyState
+        icon={Home}
+        title="Restricted Access"
+        description="No permission to view company WFH status"
+      />
+    ) : teamWFH.length > 0 ? (
+      teamWFH.slice(0, 5).map((emp, i) => (
+        <div
+          key={emp.id || i}
+          className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50"
+        >
+          <div className="p-2 rounded-full bg-blue-100">
+            <User className="w-3 h-3 text-blue-600" />
+          </div>
+
+          <div className="flex-1">
+            <p className="font-medium text-sm text-gray-900">
+              {emp.employeeName}
+            </p>
+            <p className="text-xs text-gray-500">
+              {emp.department || 'Remote'}
+            </p>
+          </div>
+
+          <span className="text-xs text-blue-600 font-medium">
+            WFH
+          </span>
+        </div>
+      ))
+    ) : (
+      <EmptyState
+        icon={Home}
+        title="No WFH today"
+        description="All employees are in office"
+      />
+    )}
+  </CardContent>
+</Card>
+
           </div>
 
           {/* Right Column - Birthdays */}
           <div className="lg:col-span-1">
-            <Card className="bg-white shadow-sm rounded-xl border-0">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-                  <Gift className="w-4 h-4 text-pink-600" />
-                  <span className="hidden sm:inline">Upcoming Birthdays</span>
-                  <span className="sm:hidden">Birthdays</span>
-                  {birthdaysLoading && (
-                    <div className="w-4 h-4 border-2 border-pink-600 border-t-transparent rounded-full animate-spin ml-2"></div>
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
-                  {birthdaysLoading && upcomingBirthdays.length === 0 ? (
-                    <div className="text-center py-4">
-                      <div className="w-6 h-6 border-2 border-pink-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-                      <p className="text-xs sm:text-sm text-gray-500">Loading birthdays...</p>
-                    </div>
-                  ) : upcomingBirthdays.length > 0 ? (
-                    upcomingBirthdays.slice(0, 5).map((birthday, index) => (
-                      <div key={birthday.id || index} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
-                        <div className="p-2 rounded-full bg-gray-500 flex-shrink-0">
-                          <User className="w-3 h-3 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex flex-col">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-gray-900 text-xs sm:text-sm truncate">
-                                {birthday.employeeName || birthday.title}
-                              </span>
-                              {birthday.isToday && (
-                                <span className="px-2 py-1 bg-pink-100 text-pink-800 text-xs rounded-full font-medium ml-2 flex-shrink-0">
-                                  Today!
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-between mt-1">
-                              <p className="text-xs text-gray-500 truncate">
-                                {birthday.employeeCode && `${birthday.employeeCode}`}
-                              </p>
-                              {/* Separated date and time display */}
-                              <div className="flex items-center gap-1 sm:gap-2 ml-2 flex-shrink-0">
-                                <span className="text-xs sm:text-sm text-gray-700 font-medium flex items-center justify-center bg-gray-100 px-1 sm:px-2 py-1 rounded">
-                                  <CakeIcon size={10} className="sm:w-3 sm:h-3"/> 
-                                  <span className="ml-1 hidden sm:inline">{birthday.formattedDate || format(new Date(birthday.date), 'dd MMM')}</span>
-                                  <span className="ml-1 sm:hidden">{birthday.formattedDate || format(new Date(birthday.date), 'dd')}</span>
-                                </span>
-                                <span className="text-xs sm:text-sm text-pink-600 font-medium bg-pink-50 px-1 sm:px-2 py-1 rounded">
-                                  {birthday.displayText || 'Soon'}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-6 text-gray-500">
-                      <Gift className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                      <p className="text-xs sm:text-sm">No upcoming birthdays</p>
-                      <p className="text-xs">No birthdays coming up</p>
-                    </div>
-                  )}
-                  
-                  {upcomingBirthdays.length > 5 && (
-                    <div className="text-center pt-2 border-t">
-                      <button 
-                        className="text-xs sm:text-sm text-pink-600 hover:text-pink-800 font-medium"
-                        onClick={() => navigate('/employee/calendar')}
-                      >
-                        View all birthdays →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+           <Card className="bg-white rounded-xl border shadow-sm">
+  <CardHeader className="pb-2">
+    <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
+      <Gift className="w-4 h-4 text-pink-600" />
+      <span>Upcoming Birthdays</span>
+    </CardTitle>
+  </CardHeader>
+
+  <CardContent className="pt-0 space-y-3">
+    {upcomingBirthdays.length > 0 ? (
+      upcomingBirthdays.slice(0, 5).map((b, i) => (
+        <div
+          key={b.id || i}
+          className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
+        >
+          <div className="p-2 rounded-full bg-pink-100">
+            <CakeIcon className="w-3 h-3 text-pink-600" />
+          </div>
+
+          <div className="flex-1">
+            <p className="font-medium text-sm text-gray-900">
+              {b.employeeName}
+            </p>
+            <p className="text-xs text-gray-500">
+              {format(new Date(b.date), 'dd MMM')}
+            </p>
+          </div>
+
+          {b.isToday && (
+            <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full">
+              Today 🎉
+            </span>
+          )}
+        </div>
+      ))
+    ) : (
+      <EmptyState
+        icon={Gift}
+        title="No upcoming birthdays"
+        description="Nothing to celebrate soon"
+      />
+    )}
+  </CardContent>
+</Card>
+
           </div>
         </div>
 
@@ -1280,9 +1454,40 @@ const EmployeeDashboard = () => {
                       {getMonthDays(calendarDate).map((day, i) => {
                         const isToday = day && isSameDay(day, new Date());
                         const isCurrentMonth = day && day.getMonth() === calendarDate.getMonth();
-                        const hasEvents = day && calendarEvents.some(event => 
-                          isSameDay(new Date(event.startDate), day)
-                        );
+                        
+                        // Safe event filtering with robust date comparison
+                        const hasEvents = day && calendarEvents.some(event => {
+                          const eventDate = event.startDate || event.date;
+                          if (!eventDate) return false;
+                          
+                          try {
+                            let eventDateStr = eventDate;
+                            
+                            // Handle different date formats
+                            if (eventDate instanceof Date) {
+                              eventDateStr = eventDate.toISOString().split('T')[0];
+                            } else if (typeof eventDate === 'string') {
+                              if (eventDate.includes('T')) {
+                                eventDateStr = eventDate.split('T')[0];
+                              } else if (/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+                                eventDateStr = eventDate;
+                              } else {
+                                const parsed = new Date(eventDate);
+                                if (!isNaN(parsed.getTime())) {
+                                  eventDateStr = parsed.toISOString().split('T')[0];
+                                } else {
+                                  return false;
+                                }
+                              }
+                            }
+                            
+                            const dayStr = day.toISOString().split('T')[0];
+                            return eventDateStr === dayStr;
+                          } catch (error) {
+                            console.warn('Date comparison error in calendar:', event.title, eventDate, error);
+                            return false;
+                          }
+                        });
                         
                         return (
                           <div
@@ -1307,9 +1512,40 @@ const EmployeeDashboard = () => {
                   <div className="space-y-1 sm:space-y-2">
                     {getWeekDays(calendarDate).map((day, i) => {
                       const isToday = isSameDay(day, new Date());
-                      const dayEvents = calendarEvents.filter(event => 
-                        isSameDay(new Date(event.startDate), day)
-                      );
+                      
+                      // Safe event filtering with robust date comparison
+                      const dayEvents = calendarEvents.filter(event => {
+                        const eventDate = event.startDate || event.date;
+                        if (!eventDate) return false;
+                        
+                        try {
+                          let eventDateStr = eventDate;
+                          
+                          // Handle different date formats
+                          if (eventDate instanceof Date) {
+                            eventDateStr = eventDate.toISOString().split('T')[0];
+                          } else if (typeof eventDate === 'string') {
+                            if (eventDate.includes('T')) {
+                              eventDateStr = eventDate.split('T')[0];
+                            } else if (/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+                              eventDateStr = eventDate;
+                            } else {
+                              const parsed = new Date(eventDate);
+                              if (!isNaN(parsed.getTime())) {
+                                eventDateStr = parsed.toISOString().split('T')[0];
+                              } else {
+                                return false;
+                              }
+                            }
+                          }
+                          
+                          const dayStr = day.toISOString().split('T')[0];
+                          return eventDateStr === dayStr;
+                        } catch (error) {
+                          console.warn('Date comparison error in week view:', event.title, eventDate, error);
+                          return false;
+                        }
+                      });
                       
                       return (
                         <div

@@ -115,9 +115,9 @@ const useLeaveStore = create(
             loading: false,
           }));
 
-          toast.success("Leave request approved successfully");
+          toast.success("Leave request has been approved");
         } catch (error) {
-          let message = "Failed to approve leave request";
+          let message = "Unable to approve leave request. Please try again.";
           
           if (error.response?.status === 400) {
             // Handle specific business logic errors
@@ -152,9 +152,9 @@ const useLeaveStore = create(
             loading: false,
           }));
 
-          toast.success("Leave request rejected successfully");
+          toast.success("Leave request has been rejected");
         } catch (error) {
-          let message = "Failed to reject leave request";
+          let message = "Unable to reject leave request. Please try again.";
           
           if (error.response?.status === 400) {
             // Handle specific business logic errors

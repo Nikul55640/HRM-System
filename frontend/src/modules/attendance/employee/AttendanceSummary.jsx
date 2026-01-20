@@ -267,7 +267,7 @@ const AttendanceSummary = ({ summary, period }) => {
       </div>
 
       {/* Detailed Analysis */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
@@ -362,7 +362,7 @@ const AttendanceSummary = ({ summary, period }) => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -281,7 +281,7 @@ const AttendancePage = () => {
 
               <TabsContent value="analytics" className="space-y-4 mt-4">
                 <AttendanceStatsWidget 
-                  summary={attendanceSummary} 
+                  todayRecord={Array.isArray(attendanceRecords) ? attendanceRecords.find(r => r.date === new Date().toISOString().split('T')[0]) : null} 
                 />
               </TabsContent>
             </Tabs>

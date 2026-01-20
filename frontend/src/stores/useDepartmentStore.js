@@ -125,7 +125,7 @@ const useDepartmentStore = create(
             loading: false
           }));
           
-          toast.success('Department created successfully');
+          toast.success('New department has been created');
           
           // Refresh hierarchy
           get().fetchDepartmentHierarchy();
@@ -157,7 +157,7 @@ const useDepartmentStore = create(
             loading: false
           }));
           
-          toast.success('Department updated successfully');
+          toast.success('Department information has been updated');
           
           // Refresh hierarchy
           get().fetchDepartmentHierarchy();
@@ -187,7 +187,7 @@ const useDepartmentStore = create(
             loading: false
           }));
           
-          toast.success('Department deleted successfully');
+          toast.success('Department has been removed');
           
           // Refresh hierarchy and list
           get().fetchDepartmentHierarchy();

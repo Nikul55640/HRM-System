@@ -142,11 +142,11 @@ const useEmployeeStore = create(
             loading: false,
           }));
 
-          toast.success("Employee created successfully");
+          toast.success('New employee has been added to the system');
           return response.data;
         } catch (error) {
           const errMsg =
-            error.response?.data?.message || "Failed to create employee";
+            error.response?.data?.message || "Unable to add employee. Please check all required fields.";
           set({ loading: false, error: errMsg });
           toast.error(errMsg);
           throw error;
@@ -174,11 +174,11 @@ const useEmployeeStore = create(
             loading: false,
           }));
 
-          toast.success("Employee updated successfully");
+          toast.success('Employee information has been updated');
           return response.data;
         } catch (error) {
           const errMsg =
-            error.response?.data?.message || "Failed to update employee";
+            error.response?.data?.message || "Unable to update employee information. Please try again.";
           set({ loading: false, error: errMsg });
           toast.error(errMsg);
           throw error;
@@ -199,10 +199,10 @@ const useEmployeeStore = create(
             loading: false,
           }));
 
-          toast.success("Employee deleted successfully");
+          toast.success('Employee has been removed from the system');
         } catch (error) {
           const errMsg =
-            error.response?.data?.message || "Failed to delete employee";
+            error.response?.data?.message || "Unable to remove employee. Please try again.";
           set({ loading: false, error: errMsg });
           toast.error(errMsg);
           throw error;

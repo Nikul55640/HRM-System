@@ -5,7 +5,6 @@ import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users, RefreshCw
 import { toast } from 'react-toastify';
 import LocationSelectionModal from './LocationSelectionModal';
 import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore';
-import { attendanceDebugger } from '../../../utils/attendanceDebugger';
 import { formatIndianTime, formatIndianTimeString } from '../../../utils/indianFormatters';
 import useAuthStore from '../../../stores/useAuthStore';
 import attendanceService from '../../../services/attendanceService';
@@ -319,17 +318,6 @@ const EnhancedClockInOut = () => {
             >
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
-            {process.env.NODE_ENV === 'development' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => attendanceDebugger.testBreakFlow()}
-                className="text-blue-600 hover:text-blue-700"
-                title="Test Break Flow"
-              >
-                <Bug className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -550,16 +538,7 @@ const EnhancedClockInOut = () => {
               )}
 
               {/* Button State Debug Info (Development Only) */}
-              {process.env.NODE_ENV === 'development' && (
-                <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded">
-                  <div className="font-medium mb-1">🚫 Button States:</div>
-                  <div>Clock In: {buttonStates.clockIn.enabled ? '✅' : '❌'} {buttonStates.clockIn.reason}</div>
-                  <div>Clock Out: {buttonStates.clockOut.enabled ? '✅' : '❌'} {buttonStates.clockOut.reason}</div>
-                  <div>Start Break: {buttonStates.startBreak.enabled ? '✅' : '❌'} {buttonStates.startBreak.reason}</div>
-                  <div>End Break: {buttonStates.endBreak.enabled ? '✅' : '❌'} {buttonStates.endBreak.reason}</div>
-                  <div>Status: {buttonStates.currentStatus} | Mode: {buttonStates.workMode}</div>
-                </div>
-              )}
+    
             </div>
 
             {/* Status Messages */}

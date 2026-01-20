@@ -23,6 +23,7 @@ const employeeDashboardService = {
         api.get('/employee/leave-balance'),
         api.get('/employee/leave-history'),
         birthdayService.getUpcomingYearlyBirthdays(5), // Get 5 upcoming birthdays from entire year
+        
       ]);
 
       // Debug: Log raw responses

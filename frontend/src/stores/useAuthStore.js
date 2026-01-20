@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { toast } from 'react-toastify';
-import api from '../services/api';
+import api, { setAuthTokenGetter } from '../services/api';
 
 const useAuthStore = create(
   devtools(
@@ -46,7 +46,7 @@ const useAuthStore = create(
             console.log('🔐 [AUTH STORE] Setting new auth state:', newState);
             set(newState);
             
-            toast.success(`Welcome back, ${user.firstName || user.email}!`);
+            toast.success(`Welcome back, ${user.firstName || user.email}! 👋`);
             console.log('🔐 [AUTH STORE] Login completed successfully');
             return response.data.data;
             
@@ -57,7 +57,7 @@ const useAuthStore = create(
               error: errorMessage,
               isAuthenticated: false
             });
-            toast.error(errorMessage);
+
             throw error;
           }
         },
@@ -91,7 +91,7 @@ const useAuthStore = create(
               isLoggingOut: false
             });
             
-            toast.info('You have been logged out');
+            toast.success('You have been logged out successfully');
           }
         },
         
@@ -130,11 +130,11 @@ const useAuthStore = create(
               loading: false
             });
             
-            toast.success('Profile updated successfully');
+            toast.success('Your profile has been updated successfully');
             return updatedUser;
             
           } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to update profile';
+            const errorMessage = error.response?.data?.message || 'Unable to update your profile. Please try again.';
             set({ loading: false, error: errorMessage });
             toast.error(errorMessage);
             throw error;
@@ -148,10 +148,10 @@ const useAuthStore = create(
             await api.put('/auth/change-password', passwordData);
             
             set({ loading: false });
-            toast.success('Password changed successfully');
+            toast.success('Your password has been changed successfully');
             
           } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to change password';
+            const errorMessage = error.response?.data?.message || 'Unable to change your password. Please check your current password.';
             set({ loading: false, error: errorMessage });
             toast.error(errorMessage);
             throw error;
@@ -165,10 +165,10 @@ const useAuthStore = create(
             await api.post('/auth/forgot-password', { email });
             
             set({ loading: false });
-            toast.success('Password reset email sent');
+            toast.success('Password reset email sent to your inbox');
             
           } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to send reset email';
+            const errorMessage = error.response?.data?.message || 'Unable to send reset email. Please check your email address.';
             set({ loading: false, error: errorMessage });
             toast.error(errorMessage);
             throw error;
@@ -182,10 +182,10 @@ const useAuthStore = create(
             await api.post('/auth/reset-password', { token, password });
             
             set({ loading: false });
-            toast.success('Password reset successfully');
+            toast.success('Your password has been reset successfully');
             
           } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to reset password';
+            const errorMessage = error.response?.data?.message || 'Unable to reset your password. Please try again.';
             set({ loading: false, error: errorMessage });
             toast.error(errorMessage);
             throw error;
@@ -248,6 +248,12 @@ const initializeAuth = () => {
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   }
 };
+
+// ✅ FIX: Set up token getter to avoid circular dependency
+setAuthTokenGetter(
+  () => useAuthStore.getState().token,
+  () => useAuthStore.getState()
+);
 
 // Call on app initialization
 initializeAuth();

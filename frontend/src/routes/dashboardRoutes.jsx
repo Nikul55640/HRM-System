@@ -11,7 +11,7 @@ export const dashboardRoutes = [
     label: "Dashboard",
     icon: "LayoutDashboard",
     group: "General",
-    roles: ["Employee", "HR", "SuperAdmin"],
+    roles: ["Employee", "HR", "SuperAdmin", "EMPLOYEE", "HR_ADMIN", "HR_MANAGER", "SUPER_ADMIN"],
     sidebar: true,
   },
 ];

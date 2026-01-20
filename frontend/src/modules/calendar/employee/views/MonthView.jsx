@@ -21,8 +21,36 @@ const MonthView = ({ date, events, onDateClick }) => {
   const getEventsForDate = (day) => {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return events.filter(event => {
-      const eventDate = new Date(event.startDate).toISOString().split('T')[0];
-      return eventDate === dateStr;
+      const eventDate = event.startDate || event.date;
+      if (!eventDate) return false;
+      
+      try {
+        let eventDateStr = eventDate;
+        
+        // Handle different date formats
+        if (eventDate instanceof Date) {
+          eventDateStr = eventDate.toISOString().split('T')[0];
+        } else if (typeof eventDate === 'string') {
+          if (eventDate.includes('T')) {
+            eventDateStr = eventDate.split('T')[0];
+          } else if (/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+            eventDateStr = eventDate;
+          } else {
+            const parsed = new Date(eventDate);
+            if (!isNaN(parsed.getTime())) {
+              eventDateStr = parsed.toISOString().split('T')[0];
+            } else {
+              console.warn('Unable to parse event date:', eventDate, 'for event:', event.title);
+              return false;
+            }
+          }
+        }
+        
+        return eventDateStr === dateStr;
+      } catch (error) {
+        console.warn('Date comparison error in MonthView:', event.title, eventDate, error);
+        return false;
+      }
     });
   };
 

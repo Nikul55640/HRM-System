@@ -94,12 +94,31 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
 
       // Handle holidays response - always use the dedicated holidays API
       if (holidaysRes.success && holidaysRes.data) {
+        // Debug logging for holiday data structure
+        console.log('🔍 Holiday Response Structure:', holidaysRes.data);
+        
         // The holidays API returns { success: true, data: { holidays: [...], pagination: {...} } }
         if (holidaysRes.data.data && holidaysRes.data.data.holidays && Array.isArray(holidaysRes.data.data.holidays)) {
-          setHolidays(holidaysRes.data.data.holidays);
+          const holidayData = holidaysRes.data.data.holidays;
+          console.log('📅 Processing holidays:', holidayData.length);
+          
+          // Debug each holiday
+          holidayData.forEach((holiday, index) => {
+            console.log(`Holiday ${index + 1}:`, {
+              name: holiday.name,
+              date: holiday.date,
+              dateType: typeof holiday.date,
+              rawHoliday: holiday
+            });
+          });
+          
+          setHolidays(holidayData);
         } else if (holidaysRes.data.holidays && Array.isArray(holidaysRes.data.holidays)) {
-          setHolidays(holidaysRes.data.holidays);
+          const holidayData = holidaysRes.data.holidays;
+          console.log('📅 Processing holidays (direct):', holidayData.length);
+          setHolidays(holidayData);
         } else if (Array.isArray(holidaysRes.data)) {
+          console.log('📅 Processing holidays (array):', holidaysRes.data.length);
           setHolidays(holidaysRes.data);
         } else {
           console.warn('Unexpected holidays response structure:', holidaysRes.data);
@@ -220,7 +239,43 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
     ];
     return allItems.filter(item => {
       const itemDate = item.date || item.startDate;
-      return itemDate && itemDate.startsWith(dateStr);
+      if (!itemDate) return false;
+      
+      // Safe date comparison - extract just the date part
+      try {
+        let itemDateStr = itemDate;
+        
+        // If it's a Date object, convert to string
+        if (itemDate instanceof Date) {
+          itemDateStr = itemDate.toISOString().split('T')[0];
+        }
+        // If it's a string with time info, extract just the date part
+        else if (typeof itemDate === 'string') {
+          // Handle ISO format with time (YYYY-MM-DDTHH:mm:ss)
+          if (itemDate.includes('T')) {
+            itemDateStr = itemDate.split('T')[0];
+          }
+          // Handle date-only format (YYYY-MM-DD)
+          else if (/^\d{4}-\d{2}-\d{2}$/.test(itemDate)) {
+            itemDateStr = itemDate;
+          }
+          // Handle other formats - try to parse and extract date
+          else {
+            const parsed = new Date(itemDate);
+            if (!isNaN(parsed.getTime())) {
+              itemDateStr = parsed.toISOString().split('T')[0];
+            } else {
+              console.warn('Unable to parse date:', itemDate, 'for item:', item.name || item.title);
+              return false;
+            }
+          }
+        }
+        
+        return itemDateStr === dateStr;
+      } catch (error) {
+        console.warn('Date comparison error for item:', item.name || item.title, 'date:', itemDate, error);
+        return false;
+      }
     });
   };
 
@@ -423,6 +478,50 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                     const displayDate = item.date || item.startDate;
                     const endDate = item.endDate;
 
+                    // Safe date formatting function
+                    const formatDateSafely = (dateStr) => {
+                      if (!dateStr) return '';
+                      try {
+                        // Handle different date formats
+                        if (typeof dateStr === 'string') {
+                          // If it's already in YYYY-MM-DD format, use it directly
+                          if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                            return format(parseISO(dateStr), 'MMM dd, yyyy');
+                          }
+                          // If it contains time info, extract just the date part
+                          if (dateStr.includes('T')) {
+                            return format(parseISO(dateStr.split('T')[0]), 'MMM dd, yyyy');
+                          }
+                          // If it looks like a corrupted date with time info, try to extract date
+                          const dateMatch = dateStr.match(/(\d{4}-\d{2}-\d{2})/);
+                          if (dateMatch) {
+                            return format(parseISO(dateMatch[1]), 'MMM dd, yyyy');
+                          }
+                          // Try to parse as ISO string
+                          return format(parseISO(dateStr), 'MMM dd, yyyy');
+                        }
+                        // If it's a Date object
+                        if (dateStr instanceof Date) {
+                          return format(dateStr, 'MMM dd, yyyy');
+                        }
+                        return dateStr;
+                      } catch (error) {
+                        console.warn('Date formatting error for:', dateStr, error);
+                        // If all else fails, try to extract just the date part from the string
+                        if (typeof dateStr === 'string') {
+                          const dateMatch = dateStr.match(/(\d{4}-\d{2}-\d{2})/);
+                          if (dateMatch) {
+                            try {
+                              return format(parseISO(dateMatch[1]), 'MMM dd, yyyy');
+                            } catch (e) {
+                              return dateMatch[1]; // Return raw date if formatting fails
+                            }
+                          }
+                        }
+                        return String(dateStr); // Return as string if all parsing fails
+                      }
+                    };
+
                     return (
                       <div
                         key={`item-${itemIndex}-${item._id || item.id || item.title || item.name}-${item.type}`}
@@ -438,9 +537,9 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                             </h3>
                             <div className="flex items-center gap-3 text-sm text-gray-500">
                               <span>
-                                {displayDate && format(parseISO(displayDate), 'MMM dd, yyyy')}
+                                {displayDate && formatDateSafely(displayDate)}
                                 {endDate && endDate !== displayDate && 
-                                  ` - ${format(parseISO(endDate), 'MMM dd, yyyy')}`
+                                  ` - ${formatDateSafely(endDate)}`
                                 }
                               </span>
                               <Badge variant="secondary" className={typeInfo.color}>

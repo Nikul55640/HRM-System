@@ -1,5 +1,4 @@
 import axios from "axios";
-import useAuthStore from "../stores/useAuthStore";
 import { logError } from "../core/utils/errorHandler";
 import { toast } from "react-toastify";
 
@@ -29,10 +28,20 @@ const shouldRetry = (error) => {
 // Helper function to delay retry
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+// ✅ FIX: Token getter to avoid circular dependency
+let getAuthToken = () => null;
+let getAuthStore = () => null;
+
+// Export function to set the auth token getter (called from auth store)
+export const setAuthTokenGetter = (tokenGetter, storeGetter) => {
+  getAuthToken = tokenGetter;
+  getAuthStore = storeGetter;
+};
+
 // Request interceptor to attach JWT token
 api.interceptors.request.use(
   (config) => {
-    const token = useAuthStore.getState().token;
+    const token = getAuthToken();
 
     console.log("📌 [REQUEST] URL:", config.url);
     console.log("📌 [REQUEST] BaseURL:", config.baseURL);
@@ -126,12 +135,13 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       isRefreshing = true;
 
-      // Try to refresh token using the auth store method
+      // ✅ FIX: Use getter function
       try {
-        const refreshSuccess = await useAuthStore.getState().refreshToken();
+        const authStore = getAuthStore();
+        const refreshSuccess = await authStore.refreshToken();
 
         if (refreshSuccess) {
-          const newToken = useAuthStore.getState().token;
+          const newToken = getAuthToken();
           processQueue(null, newToken);
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           return api(originalRequest);
@@ -145,7 +155,8 @@ api.interceptors.response.use(
         const now = Date.now();
         if (now - lastLogoutTime > LOGOUT_DEBOUNCE_MS) {
           lastLogoutTime = now;
-          useAuthStore.getState().logout();
+          const authStore = getAuthStore();
+          authStore.logout();
           // Redirect to login page
           if (window.location.pathname !== "/login") {
             window.location.href = "/login";
@@ -161,20 +172,27 @@ api.interceptors.response.use(
     // Handle 403 Forbidden
     if (error.response.status === 403) {
       const errorMsg = error.response?.data?.message || 'Access denied';
-      toast.error(errorMsg);
       
       // Don't redirect for certain pages/endpoints to allow proper error handling
       const currentPath = window.location.pathname;
+      const isEmployeePage = currentPath.includes('/employee/');
       const isSpecialPage = currentPath.includes('/bank-verification') || 
                            currentPath.includes('/admin/') ||
                            errorMsg.includes('Employee profile');
       
-      // Only redirect if it's a general forbidden error and not on special admin pages
-      if (!isSpecialPage && currentPath !== "/unauthorized") {
+      // ✅ FIX: Don't redirect for employee dashboard permission checks
+      const isPermissionCheck = originalRequest.url?.includes('/employee/company/') ||
+                               originalRequest.url?.includes('/employee/dashboard') ||
+                               isEmployeePage;
+      
+      // Only show toast and redirect for critical auth failures, not permission checks
+      if (!isPermissionCheck && !isSpecialPage && currentPath !== "/unauthorized") {
+        toast.error(errorMsg);
         console.log('🔄 Redirecting to unauthorized page due to 403 error');
         window.location.href = "/unauthorized";
       } else {
-        console.log('🚫 403 error on special page, not redirecting:', currentPath);
+        console.log('🚫 403 permission check - letting component handle gracefully:', originalRequest.url);
+        // Don't show toast for permission checks - let component handle it
       }
     }
 

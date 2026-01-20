@@ -6,6 +6,19 @@ import { X, Clock, MapPin, Calendar } from 'lucide-react';
 import { getEventClasses, renderEventIcon, getEventLabel } from '../../../core/utils/calendarEventTypes';
 
 const DayEventsDrawer = ({ date, events, onClose }) => {
+  // 🔍 DEBUG: Log drawer data
+  console.log(`🎯 DayEventsDrawer opened for:`, date);
+  console.log(`📋 Events received in drawer:`, events);
+  events.forEach((event, idx) => {
+    console.log(`  Event ${idx + 1}:`, {
+      type: event.eventType,
+      title: event.title,
+      employeeName: event.employeeName,
+      leaveType: event.leaveType,
+      fullEvent: event
+    });
+  });
+
   const formatTime = (dateStr) => {
     try {
       return new Date(dateStr).toLocaleTimeString('en-US', { 
@@ -58,9 +71,20 @@ const DayEventsDrawer = ({ date, events, onClose }) => {
                     {renderEventIcon(event.eventType, "h-5 w-5 sm:h-6 sm:w-6")}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 mb-1 break-words">
-                      {event.title}
-                    </div>
+                    {event.eventType === "leave" && event.employeeName ? (
+                      <div className="mb-1">
+                        <div className="font-semibold text-gray-900 break-words">
+                          {event.employeeName}
+                        </div>
+                        <div className="text-sm text-gray-600 break-words">
+                          {event.leaveType} Leave
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="font-medium text-gray-900 mb-1 break-words">
+                        {event.title}
+                      </div>
+                    )}
                     
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-500 mb-2">
                       <div className="flex items-center gap-1">

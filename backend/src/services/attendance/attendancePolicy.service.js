@@ -232,10 +232,30 @@ class AttendancePolicyService {
           [Op.gte]: checkDate
         }
       },
-      attributes: ['id', 'leaveType', 'startDate', 'endDate', 'reason', 'status']
+      attributes: ['id', 'leaveType', 'startDate', 'endDate', 'reason', 'status', 'employeeId'],
+      include: [{
+        association: 'employee',
+        attributes: ['id', 'firstName', 'lastName', 'employeeId'],
+        required: false
+      }],
+      raw: false
     });
     
-    return leave;
+    if (leave) {
+      // Format leave data with employee name
+      const leaveData = leave.toJSON ? leave.toJSON() : leave;
+      const employeeName = leaveData.employee 
+        ? `${leaveData.employee.firstName} ${leaveData.employee.lastName}`
+        : 'Unknown Employee';
+      
+      return {
+        ...leaveData,
+        employeeName,
+        leaveType: leaveData.leaveType
+      };
+    }
+    
+    return null;
   }
 }
 

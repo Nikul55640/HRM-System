@@ -44,16 +44,11 @@ export const getSmartMonthlyCalendar = async (req, res) => {
       getLeavesForMonth(startDate, endDate, req.user, targetEmployeeId)
     ]);
 
-    // Get birthdays and anniversaries if HR/Admin
-    let birthdays = [];
-    let anniversaries = [];
-    
-    if (isHROrAdmin) {
-      [birthdays, anniversaries] = await Promise.all([
-        getBirthdaysForMonth(currentMonth),
-        getAnniversariesForMonth(currentMonth)
-      ]);
-    }
+    // Get birthdays and anniversaries for ALL users (both admin and employees)
+    const [birthdays, anniversaries] = await Promise.all([
+      getBirthdaysForMonth(currentMonth),
+      getAnniversariesForMonth(currentMonth)
+    ]);
 
     // Build calendar data with smart day evaluation
     const calendarData = {};
@@ -77,6 +72,46 @@ export const getSmartMonthlyCalendar = async (req, res) => {
         )
       };
     });
+
+    // 🔧 FIX: Add global leaves for ALL users (both admin and employees)
+    if (leaves.length > 0) {
+      leaves.forEach(leave => {
+        // Process each day of the leave period
+        let currentDate = new Date(leave.startDate);
+        const endDate = new Date(leave.endDate);
+        
+        while (currentDate <= endDate) {
+          const dateKey = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+          
+          if (calendarData[dateKey]) {
+            // Initialize leaves array if it doesn't exist
+            if (!calendarData[dateKey].leaves) {
+              calendarData[dateKey].leaves = [];
+            }
+            
+            // Add leave with employee information
+            calendarData[dateKey].leaves.push({
+              id: leave.id,
+              employeeId: leave.employee?.id || leave.employeeId,
+              employeeName: leave.employee ? `${leave.employee.firstName} ${leave.employee.lastName}` : 'Unknown Employee',
+              employeeCode: leave.employee?.employeeId || '',
+              leaveType: leave.leaveType,
+              status: leave.status,
+              isHalfDay: leave.isHalfDay,
+              halfDayPeriod: leave.halfDayPeriod,
+              reason: leave.reason,
+              startDate: leave.startDate,
+              endDate: leave.endDate,
+              eventType: 'leave',
+              color: '#f97316' // Orange color for leaves
+            });
+          }
+          
+          // Move to next day
+          currentDate.setDate(currentDate.getDate() + 1);
+        }
+      });
+    }
 
     res.json({
       success: true,
@@ -322,11 +357,8 @@ async function getLeavesForMonth(startDate, endDate, user, employeeId) {
     status: 'approved'
   };
 
-  const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(user.role);
-  
-  if (!isHROrAdmin && employeeId) {
-    whereClause.employeeId = employeeId;
-  }
+  // 🔧 REMOVED: Employee filtering - now ALL users see ALL approved leaves
+  // No role-based filtering anymore
 
   return await LeaveRequest.findAll({
     where: whereClause,
