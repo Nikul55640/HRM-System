@@ -41,7 +41,14 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
   breakSessions: {
     type: DataTypes.JSON,
     defaultValue: [],
-    comment: 'Array of break sessions with breakIn and breakOut times'
+    comment: 'Array of break sessions with breakIn and breakOut times',
+    get() {
+      const raw = this.getDataValue('breakSessions');
+      return Array.isArray(raw) ? raw : [];
+    },
+    set(value) {
+      this.setDataValue('breakSessions', Array.isArray(value) ? value : []);
+    }
   },
   totalBreakMinutes: {
     type: DataTypes.INTEGER,
@@ -200,13 +207,20 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     {
       fields: ['correctionStatus'],
     },
+    // 🔥 CRITICAL FIX: Prevent multiple pending corrections for same employee/date
+    {
+      fields: ['employeeId', 'date'],
+      where: { status: 'pending_correction' },
+      unique: true,
+      name: 'unique_pending_correction_per_employee_date'
+    },
   ],
 });
 
 // Instance methods
-// 🚫 SMART BUTTON CONTROLS - PREVENT USER ERRORS
+//  SMART BUTTON CONTROLS - PREVENT USER ERRORS
 AttendanceRecord.prototype.canClockIn = function () {
-  // ❌ Cannot clock in if:
+  //  Cannot clock in if:
   // - On leave or holiday (protected statuses)
   // - Already clocked in
   // - Already marked absent/present for the day (day is closed)
@@ -350,6 +364,7 @@ AttendanceRecord.prototype.getCurrentBreakSession = function () {
 AttendanceRecord.prototype.calculateWorkingHours = function () {
   if (!this.clockIn || !this.clockOut) {
     this.workHours = 0;
+    this.totalWorkedMinutes = 0;
     return 0;
   }
 
@@ -357,8 +372,20 @@ AttendanceRecord.prototype.calculateWorkingHours = function () {
   const clockOutTime = new Date(this.clockOut);
   const totalMinutes = Math.floor((clockOutTime - clockInTime) / (1000 * 60));
 
-  // Subtract break time
-  const workingMinutes = Math.max(0, totalMinutes - this.totalBreakMinutes);
+  // 🔥 CRITICAL FIX: Recalculate break minutes from breakSessions instead of trusting totalBreakMinutes
+  const breakMinutes = (this.breakSessions || []).reduce((sum, session) => {
+    if (session.breakIn && session.breakOut) {
+      const breakDuration = Math.floor((new Date(session.breakOut) - new Date(session.breakIn)) / (1000 * 60));
+      return sum + breakDuration;
+    }
+    return sum;
+  }, 0);
+
+  // Update totalBreakMinutes to match calculated value
+  this.totalBreakMinutes = breakMinutes;
+
+  // Calculate actual working minutes (guard against negative values)
+  const workingMinutes = Math.max(0, totalMinutes - breakMinutes);
 
   this.totalWorkedMinutes = workingMinutes;
   this.workHours = Math.round((workingMinutes / 60) * 100) / 100;
@@ -394,27 +421,28 @@ AttendanceRecord.prototype.evaluateStatus = function (shift) {
   // ✅ RULE 3: Both clock-in and clock-out exist - calculate hours and determine status
   this.calculateWorkingHours();
 
-  const workedHours = this.workHours || 0;
-  const fullDayHours = shift?.fullDayHours || 8;
-  const halfDayHours = shift?.halfDayHours || 4;
+  // 🔥 CRITICAL FIX: Use minutes for logic, not decimal hours
+  const workedMinutes = this.totalWorkedMinutes || 0;
+  const fullDayMinutes = (shift?.fullDayHours || 8) * 60;
+  const halfDayMinutes = (shift?.halfDayHours || 4) * 60;
 
   // Full day worked
-  if (workedHours >= fullDayHours) {
+  if (workedMinutes >= fullDayMinutes) {
     this.status = 'present';
-    this.halfDayType = 'full_day';
-    this.statusReason = `Worked ${workedHours.toFixed(2)} hours`;
+    this.halfDayType = null; // 🔥 FIX: full_day shouldn't exist in halfDayType
+    this.statusReason = `Worked ${(workedMinutes / 60).toFixed(2)} hours`;
   } 
   // Half day worked
-  else if (workedHours >= halfDayHours) {
+  else if (workedMinutes >= halfDayMinutes) {
     this.status = 'half_day';
     this.halfDayType = this.determineHalfDayType(shift);
-    this.statusReason = `Worked ${workedHours.toFixed(2)} hours (half day)`;
+    this.statusReason = `Worked ${(workedMinutes / 60).toFixed(2)} hours (half day)`;
   } 
   // 🔑 CRITICAL FIX: Any work done = half_day (never absent if clocked in)
   else {
     this.status = 'half_day';
     this.halfDayType = this.determineHalfDayType(shift);
-    this.statusReason = `Worked ${workedHours.toFixed(2)} hours (below minimum)`;
+    this.statusReason = `Worked ${(workedMinutes / 60).toFixed(2)} hours (below minimum)`;
   }
 };
 
@@ -423,12 +451,20 @@ AttendanceRecord.prototype.determineHalfDayType = function (shift) {
   if (!this.clockIn || !shift) return 'first_half';
 
   const clockInTime = new Date(this.clockIn);
-  const today = this.date;
   
-  // Calculate shift midpoint
-  const shiftStartTime = new Date(`${today} ${shift.shiftStartTime}`);
-  const shiftEndTime = new Date(`${today} ${shift.shiftEndTime}`);
-  const shiftMidpoint = new Date((shiftStartTime.getTime() + shiftEndTime.getTime()) / 2);
+  // 🔥 CRITICAL FIX: Use proper timezone-aware date construction
+  // Create shift times using the same date as clock-in to avoid timezone issues
+  const shiftStart = new Date(clockInTime);
+  const shiftEnd = new Date(clockInTime);
+  
+  // Parse shift times properly
+  const [startHours, startMinutes, startSeconds] = shift.shiftStartTime.split(':').map(Number);
+  const [endHours, endMinutes, endSeconds] = shift.shiftEndTime.split(':').map(Number);
+  
+  shiftStart.setHours(startHours, startMinutes, startSeconds || 0, 0);
+  shiftEnd.setHours(endHours, endMinutes, endSeconds || 0, 0);
+  
+  const shiftMidpoint = new Date((shiftStart.getTime() + shiftEnd.getTime()) / 2);
 
   // If clocked in before midpoint, likely worked first half
   // If clocked in after midpoint, likely worked second half
@@ -511,7 +547,9 @@ AttendanceRecord.getMonthlySummary = async function (employeeId, year, month) {
     incompleteDays,
     totalBreakMinutes,
     totalWorkedMinutes,
-    averageWorkHours: records.length > 0 ? totalWorkHours / records.length : 0
+    averageWorkHours: records.length > 0 ? totalWorkHours / records.length : 0,
+    // 🔥 CRITICAL FIX: Flag that this includes live session data
+    includesLiveSession: incompleteDays > 0
   };
 };
 
@@ -644,12 +682,67 @@ AttendanceRecord.fixBadData = async function () {
 };
 
 AttendanceRecord.prototype.toCalendarEvent = function () {
+  // 🔥 CRITICAL FIX: Define color mapping inline instead of undefined function
+  const statusColors = {
+    'present': '#22c55e',      // Green
+    'absent': '#ef4444',       // Red
+    'leave': '#3b82f6',        // Blue
+    'half_day': '#f59e0b',     // Orange
+    'holiday': '#8b5cf6',      // Purple
+    'incomplete': '#6b7280',   // Gray
+    'pending_correction': '#f97316' // Orange-red
+  };
+
   return {
     title: this.status,
     start: this.date,
     allDay: true,
-    color: getColorByStatus(this.status)
+    color: statusColors[this.status] || '#6b7280'
   };
+};
+
+// 🔥 NEW: Explicit finalization method with shift data (replaces hook logic)
+AttendanceRecord.prototype.finalizeWithShift = function (shift) {
+  if (!shift) return;
+
+  // Calculate working hours and other metrics only when both clock-in and clock-out exist
+  if (this.clockIn && this.clockOut) {
+    this.calculateWorkingHours();
+
+    // 🔥 CRITICAL FIX: Use proper timezone-aware date construction for early exit calculation
+    const clockOutTime = new Date(this.clockOut);
+    
+    // Create shift end time using the same date as clock-out to avoid timezone issues
+    const shiftEnd = new Date(clockOutTime);
+    const [endHours, endMinutes, endSeconds] = shift.shiftEndTime.split(':').map(Number);
+    shiftEnd.setHours(endHours, endMinutes, endSeconds || 0, 0);
+    
+    const earlyThresholdMs = (shift.earlyDepartureThresholdMinutes || 0) * 60 * 1000;
+
+    if (clockOutTime < new Date(shiftEnd.getTime() - earlyThresholdMs)) {
+      this.earlyExitMinutes = Math.floor((shiftEnd - clockOutTime) / (1000 * 60));
+      this.isEarlyDeparture = true;
+    }
+
+    // Calculate overtime based on worked minutes
+    if (shift.overtimeEnabled) {
+      const workedMinutes = this.totalWorkedMinutes || 0;
+      const fullDayMinutes = (shift.fullDayHours || 8) * 60;
+      const overtimeThresholdMinutes = shift.overtimeThresholdMinutes || 0;
+      
+      // Only count overtime if worked more than full day + threshold
+      if (workedMinutes > (fullDayMinutes + overtimeThresholdMinutes)) {
+        this.overtimeMinutes = workedMinutes - fullDayMinutes;
+        this.overtimeHours = Math.round((this.overtimeMinutes / 60) * 100) / 100;
+      } else {
+        this.overtimeMinutes = 0;
+        this.overtimeHours = 0;
+      }
+    }
+  }
+
+  // Apply master rule engine for status evaluation
+  this.evaluateStatus(shift);
 };
 
 // Hooks for automatic calculations
@@ -659,40 +752,16 @@ AttendanceRecord.beforeSave(async (record) => {
     throw new Error('Invalid state: cannot mark absent when clock-in exists');
   }
 
-  // Only process if we have shift information
-  if (!record.shiftId) return;
-
-  const { Shift } = await import('./index.js');
-  const shift = await Shift.findByPk(record.shiftId);
-  if (!shift) return;
-
-  // Calculate working hours and other metrics only when both clock-in and clock-out exist
+  // 🔥 CRITICAL FIX: Remove DB query from hook - shift-based calculations should be done in service layer
+  // Only do basic validations and calculations that don't require external data
+  
+  // Calculate working hours if both times exist
   if (record.clockIn && record.clockOut) {
     record.calculateWorkingHours();
-
-    // Calculate early exit minutes
-    const today = record.date;
-    const shiftEndTime = new Date(`${today} ${shift.shiftEndTime}`);
-    const clockOutTime = new Date(record.clockOut);
-    const earlyThresholdMs = (shift.earlyDepartureThresholdMinutes || 0) * 60 * 1000;
-
-    if (clockOutTime < new Date(shiftEndTime.getTime() - earlyThresholdMs)) {
-      record.earlyExitMinutes = Math.floor((shiftEndTime - clockOutTime) / (1000 * 60));
-      record.isEarlyDeparture = true;
-    }
-
-    // Calculate overtime
-    if (shift.overtimeEnabled && clockOutTime > shiftEndTime) {
-      const overtimeThresholdMs = (shift.overtimeThresholdMinutes || 0) * 60 * 1000;
-      if (clockOutTime > new Date(shiftEndTime.getTime() + overtimeThresholdMs)) {
-        record.overtimeMinutes = Math.floor((clockOutTime - shiftEndTime) / (1000 * 60));
-        record.overtimeHours = Math.round((record.overtimeMinutes / 60) * 100) / 100;
-      }
-    }
   }
 
-  // 🧠 APPLY MASTER RULE ENGINE - SINGLE SOURCE OF TRUTH
-  record.evaluateStatus(shift);
+  // Note: Status evaluation, overtime, and early exit calculations should be done 
+  // in the service layer with explicit shift data to avoid N+1 queries and deadlocks
 });
 
 export default AttendanceRecord;

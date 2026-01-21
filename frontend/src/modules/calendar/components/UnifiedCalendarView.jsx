@@ -26,6 +26,7 @@ import {
 import { toast } from 'react-toastify';
 import { format, parseISO } from 'date-fns';
 import { calendarService } from '../../../services';
+import smartCalendarService from '../../../services/smartCalendarService';
 import EventModal from './EventModal';
 import { usePermissions } from '../../../core/hooks';
 import { MODULES } from '../../../core/utils/rolePermissions';
@@ -38,6 +39,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
   const [leaves, setLeaves] = useState([]);
   const [birthdays, setBirthdays] = useState([]);
   const [anniversaries, setAnniversaries] = useState([]);
+  const [smartCalendarData, setSmartCalendarData] = useState({}); // Smart calendar data with day statuses
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -61,6 +63,26 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
     try {
       setLoading(true);
       const year = viewMode === 'calendar' ? currentDate.getFullYear() : selectedYear;
+      const month = viewMode === 'calendar' ? currentDate.getMonth() + 1 : null;
+      
+      // Fetch smart calendar data for weekend/working day information
+      let smartCalendarResponse = null;
+      if (viewMode === 'calendar') {
+        try {
+          smartCalendarResponse = await smartCalendarService.getSmartMonthlyCalendar({
+            year,
+            month
+          });
+          
+          if (smartCalendarResponse.success && smartCalendarResponse.data) {
+            setSmartCalendarData(smartCalendarResponse.data.calendar || {});
+            console.log('📅 Smart Calendar Data:', smartCalendarResponse.data.calendar);
+          }
+        } catch (error) {
+          console.warn('Smart calendar API failed, falling back to regular calendar:', error);
+          setSmartCalendarData({});
+        }
+      }
       
       // Fetch holidays and events separately to ensure we get the data
       const [eventsRes, holidaysRes] = await Promise.all([
@@ -137,6 +159,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
       setLeaves([]);
       setBirthdays([]);
       setAnniversaries([]);
+      setSmartCalendarData({});
     } finally {
       setLoading(false);
     }
@@ -226,6 +249,78 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
     const startingDayOfWeek = firstDay.getDay();
 
     return { daysInMonth, startingDayOfWeek };
+  };
+
+  // Get day status from smart calendar data
+  const getDayStatus = (day) => {
+    const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const dayData = smartCalendarData[dateStr];
+    
+    if (dayData) {
+      return {
+        isWeekend: dayData.isWeekend || dayData.status === 'WEEKEND',
+        isWorkingDay: dayData.isWorkingDay || dayData.status === 'WORKING_DAY',
+        isHoliday: dayData.isHoliday || dayData.status === 'HOLIDAY',
+        status: dayData.status || 'WORKING_DAY'
+      };
+    }
+    
+    // Fallback to basic weekend detection if smart calendar data is not available
+    const dayOfWeek = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+    
+    return {
+      isWeekend,
+      isWorkingDay: !isWeekend,
+      isHoliday: false,
+      status: isWeekend ? 'WEEKEND' : 'WORKING_DAY'
+    };
+  };
+
+  // Get day styling classes based on day status
+  const getDayClasses = (day, isToday, dayEvents) => {
+    const dayStatus = getDayStatus(day);
+    const hasEvents = dayEvents.length > 0;
+    
+    let baseClasses = 'aspect-square border rounded-lg p-1 sm:p-2 hover:bg-gray-50 transition-colors relative';
+    
+    if (canManageCalendar) {
+      baseClasses += ' cursor-pointer';
+    } else {
+      baseClasses += ' cursor-default';
+    }
+    
+    // Priority order: Today > Holiday > Weekend > Working Day
+    if (isToday) {
+      baseClasses += ' border-blue-500 bg-blue-50';
+    } else if (dayStatus.isHoliday) {
+      baseClasses += ' border-red-300 bg-red-50';
+    } else if (dayStatus.isWeekend) {
+      baseClasses += ' border-gray-300 bg-gray-100';
+    } else {
+      baseClasses += ' border-gray-200 bg-white';
+    }
+    
+    return baseClasses;
+  };
+
+  // Get day number styling
+  const getDayNumberClasses = (day, isToday) => {
+    const dayStatus = getDayStatus(day);
+    
+    let classes = 'text-xs sm:text-sm font-medium';
+    
+    if (isToday) {
+      classes += ' text-blue-600';
+    } else if (dayStatus.isHoliday) {
+      classes += ' text-red-700';
+    } else if (dayStatus.isWeekend) {
+      classes += ' text-gray-500';
+    } else {
+      classes += ' text-gray-800';
+    }
+    
+    return classes;
   };
 
   const getEventsForDate = (day) => {
@@ -645,6 +740,7 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
               {Array.from({ length: daysInMonth }).map((_, index) => {
                 const day = index + 1;
                 const dayEvents = getEventsForDate(day);
+                const dayStatus = getDayStatus(day);
                 const isToday = new Date().getDate() === day && 
                                new Date().getMonth() === currentDate.getMonth() && 
                                new Date().getFullYear() === currentDate.getFullYear();
@@ -660,12 +756,17 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                     }}
                     onMouseEnter={(e) => handleMouseEnter(day, e)}
                     onMouseLeave={handleMouseLeave}
-                    className={`aspect-square border rounded-lg p-1 sm:p-2 hover:bg-gray-50 transition-colors relative ${
-                      canManageCalendar ? 'cursor-pointer' : 'cursor-default'
-                    } ${isToday ? 'border-blue-500 bg-blue-50' : 'border-gray-200'}`}
+                    className={getDayClasses(day, isToday, dayEvents)}
                   >
-                    <div className={`text-xs sm:text-sm font-medium ${isToday ? 'text-blue-600' : 'text-gray-800'}`}>
+                    <div className={getDayNumberClasses(day, isToday)}>
                       {day}
+                      {/* Day type indicator */}
+                      {dayStatus.isWeekend && !dayStatus.isHoliday && (
+                        <span className="ml-1 text-[10px] text-gray-400">W</span>
+                      )}
+                      {dayStatus.isHoliday && (
+                        <span className="ml-1 text-[10px] text-red-500">H</span>
+                      )}
                     </div>
                     
                     {/* Events for this day */}
@@ -719,6 +820,22 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
                     day: 'numeric'
                   })}
                 </div>
+                
+                {/* Day Status */}
+                <div className="mb-2">
+                  {(() => {
+                    const dayStatus = getDayStatus(hoveredDay);
+                    if (dayStatus.isHoliday) {
+                      return <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">Holiday</span>;
+                    } else if (dayStatus.isWeekend) {
+                      return <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Weekend</span>;
+                    } else {
+                      return <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">Working Day</span>;
+                    }
+                  })()}
+                </div>
+                
+                {/* Events */}
                 <div className="space-y-1">
                   {getEventsForDate(hoveredDay).map((event, tooltipIndex) => {
                     const EventIcon = event.type === 'holiday' ? PartyPopper : 
@@ -744,6 +861,10 @@ const UnifiedCalendarView = ({ viewMode = 'calendar', showManagementFeatures = t
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 sm:w-4 sm:h-4 bg-red-50 border border-red-200 rounded"></div>
                 <span className="text-gray-600">Holiday</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 sm:w-4 sm:h-4 bg-gray-100 border border-gray-300 rounded"></div>
+                <span className="text-gray-600">Weekend</span>
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 sm:w-4 sm:h-4 bg-blue-50 border border-blue-200 rounded"></div>

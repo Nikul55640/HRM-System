@@ -3,6 +3,7 @@ import { Op } from "sequelize";
 import logger from "../../utils/logger.js";
 import AttendancePolicyService from "../../services/attendance/attendancePolicy.service.js";
 import DateCalculationService from "../../services/core/dateCalculation.service.js";
+import CalendarDataFetcherService from "../../services/core/calendarDataFetcher.service.js";
 import {
   normalizeCompanyEvent,
   normalizeHoliday,

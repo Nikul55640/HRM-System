@@ -275,8 +275,13 @@ const calendarService = {
           }
         };
       } else {
+        // ✅ FIX: Request ALL holidays without pagination for calendar display
         const response = await api.get('/admin/holidays', {
-          params: year ? { year } : {}
+          params: { 
+            ...(year ? { year } : {}),
+            limit: 1000, // Request a large number to get all holidays
+            page: 1
+          }
         });
         return response.data;
       }
@@ -322,6 +327,7 @@ const calendarService = {
   // Get holidays for calendar - Employee Safe Version
   getHolidaysForCalendar: async (year) => {
     try {
+      // ✅ FIX: Use the same method as getHolidays to ensure consistency
       return await calendarService.getHolidays(year);
     } catch (error) {
       console.error('Error fetching holidays for calendar:', error);

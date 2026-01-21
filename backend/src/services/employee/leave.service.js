@@ -1,32 +1,33 @@
 import { LeaveRequest, LeaveBalance, Employee } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
+import LeaveCalculationService from '../core/leaveCalculation.service.js';
 
 const submitLeaveRequest = async (employeeId, leaveData) => {
   try {
     const { startDate, endDate, leaveType, reason, isHalfDay = false } = leaveData;
 
-    // Calculate days
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const days = isHalfDay ? 0.5 : Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+    // Calculate days using centralized service
+    const durationResult = await LeaveCalculationService.calculateLeaveDuration(
+      startDate, 
+      endDate, 
+      isHalfDay
+    );
+    const days = durationResult.totalDays;
 
-    // Check leave balance
-    const currentYear = new Date().getFullYear();
-    const leaveBalances = await getLeaveBalance(employeeId, currentYear);
+    // Check leave balance using centralized service
+    const balanceValidation = await LeaveCalculationService.validateLeaveBalance(
+      employeeId,
+      leaveType,
+      days
+    );
 
-    if (leaveBalances && leaveBalances.length > 0) {
-      const typeBalance = leaveBalances.find(balance => 
-        balance.type.toLowerCase() === leaveType.toLowerCase()
-      );
-      
-      if (typeBalance && typeBalance.available < days) {
-        throw {
-          code: 'INSUFFICIENT_BALANCE',
-          message: `Insufficient ${leaveType} leave balance. Available: ${typeBalance.available}, Requested: ${days}`,
-          statusCode: 400
-        };
-      }
+    if (!balanceValidation.isValid) {
+      throw {
+        code: 'INSUFFICIENT_BALANCE',
+        message: balanceValidation.reason,
+        statusCode: 400
+      };
     }
 
     const leaveRequest = await LeaveRequest.create({

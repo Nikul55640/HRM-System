@@ -7,6 +7,7 @@ import { LeaveRequest, LeaveBalance, Employee, User, AuditLog } from '../../mode
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
 import { ROLES } from '../../config/rolePermissions.js';
+import LeaveCalculationService from '../core/leaveCalculation.service.js';
 
 class LeaveRequestService {
     /**
@@ -31,59 +32,33 @@ class LeaveRequestService {
                 halfDayPeriod = null
             } = leaveRequestData;
 
-            // Calculate total days
-            const start = new Date(startDate);
-            const end = new Date(endDate);
-            const totalDays = isHalfDay ? 0.5 : Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            // Calculate total days using centralized service
+            const durationResult = await LeaveCalculationService.calculateLeaveDuration(
+                startDate, 
+                endDate, 
+                isHalfDay
+            );
+            const totalDays = durationResult.totalDays;
 
-            // Check if employee has sufficient leave balance
-            const currentYear = new Date().getFullYear();
-            const leaveBalance = await LeaveBalance.findOne({
-                where: {
-                    employeeId: user.employee?.id,
-                    leaveType,
-                    year: currentYear
-                }
-            });
+            // Validate leave balance using centralized service
+            const balanceValidation = await LeaveCalculationService.validateLeaveBalance(
+                user.employee?.id,
+                leaveType,
+                totalDays
+            );
 
-            if (!leaveBalance) {
-                throw { message: `No leave balance found for ${leaveType} leave`, statusCode: 400 };
+            if (!balanceValidation.isValid) {
+                throw { message: balanceValidation.reason, statusCode: 400 };
             }
 
-            if (leaveBalance.remaining < totalDays) {
-                throw {
-                    message: `Insufficient leave balance. Available: ${leaveBalance.remaining} days, Requested: ${totalDays} days`,
-                    statusCode: 400
-                };
-            }
+            // Check for overlapping leave requests using centralized service
+            const overlapCheck = await LeaveCalculationService.checkLeaveOverlap(
+                user.employee?.id,
+                startDate,
+                endDate
+            );
 
-            // Check for overlapping leave requests
-            const overlappingRequest = await LeaveRequest.findOne({
-                where: {
-                    employeeId: user.employee?.id,
-                    status: { [Op.in]: ['pending', 'approved'] },
-                    [Op.or]: [
-                        {
-                            startDate: {
-                                [Op.between]: [startDate, endDate]
-                            }
-                        },
-                        {
-                            endDate: {
-                                [Op.between]: [startDate, endDate]
-                            }
-                        },
-                        {
-                            [Op.and]: [
-                                { startDate: { [Op.lte]: startDate } },
-                                { endDate: { [Op.gte]: endDate } }
-                            ]
-                        }
-                    ]
-                }
-            });
-
-            if (overlappingRequest) {
+            if (overlapCheck.hasOverlap) {
                 throw { message: 'You already have a leave request for overlapping dates', statusCode: 400 };
             }
 

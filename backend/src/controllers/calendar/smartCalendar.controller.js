@@ -1,6 +1,7 @@
 
 import AttendancePolicyService from '../../services/attendance/attendancePolicy.service.js';
 import DateCalculationService from '../../services/core/dateCalculation.service.js';
+import CalendarDataFetcherService from '../../services/core/calendarDataFetcher.service.js';
 import { CompanyEvent, Holiday, LeaveRequest, Employee, WorkingRule } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
@@ -37,18 +38,15 @@ export const getSmartMonthlyCalendar = async (req, res) => {
       console.log(`  Day ${index + 1}: ${day.date} = dayOfWeek: ${day.dayOfWeek} (${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][day.dayOfWeek]}), status: ${day.status}`);
     });
 
-    // Get all events for the month
-    const [holidays, events, leaves] = await Promise.all([
-      Holiday.getHolidaysInRange(startDate, endDate),
-      getEventsForMonth(startDate, endDate, req.user, departmentId),
-      getLeavesForMonth(startDate, endDate, req.user, targetEmployeeId)
-    ]);
+    // Get all events for the month using centralized data fetcher
+    const fetchedCalendarData = await CalendarDataFetcherService.fetchAllCalendarData(
+      startDate, 
+      endDate, 
+      req.user, 
+      { departmentId, employeeId: targetEmployeeId }
+    );
 
-    // Get birthdays and anniversaries for ALL users (both admin and employees)
-    const [birthdays, anniversaries] = await Promise.all([
-      getBirthdaysForMonth(currentMonth),
-      getAnniversariesForMonth(currentMonth)
-    ]);
+    const { holidays, events, leaves, birthdays, anniversaries } = fetchedCalendarData;
 
     // Build calendar data with smart day evaluation
     const calendarData = {};
@@ -61,6 +59,10 @@ export const getSmartMonthlyCalendar = async (req, res) => {
       
       calendarData[dateKey] = {
         ...dayStatus,
+        // Add boolean flags for frontend compatibility
+        isWeekend: dayStatus.status === 'WEEKEND',
+        isWorkingDay: dayStatus.status === 'WORKING_DAY',
+        isHoliday: dayStatus.status === 'HOLIDAY',
         events: dayEvents,
         holiday: dayStatus.holiday || null,
         leave: dayStatus.leave || null,

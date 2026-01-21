@@ -150,7 +150,12 @@ class SmartCalendarService {
   async getRecurringHolidays() {
     try {
       const response = await api.get('/admin/holidays', {
-        params: { type: 'RECURRING' }
+        // ✅ FIX: Request all recurring holidays without pagination
+        params: { 
+          type: 'RECURRING',
+          limit: 1000,
+          page: 1
+        }
       });
       return response.data;
     } catch (error) {
@@ -161,7 +166,12 @@ class SmartCalendarService {
 
   async getOneTimeHolidays(year = null) {
     try {
-      const params = { type: 'ONE_TIME' };
+      const params = { 
+        type: 'ONE_TIME',
+        // ✅ FIX: Request all one-time holidays without pagination
+        limit: 1000,
+        page: 1
+      };
       if (year) params.year = year;
       
       const response = await api.get('/admin/holidays', { params });

@@ -235,7 +235,8 @@ export const finalizeDailyAttendance = async (date = new Date()) => {
       leave: 0,
       pendingCorrection: 0, // ✅ NEW: Track pending corrections
       incomplete: 0,
-      errors: 0
+      errors: 0,
+      lateRecalculated: 0 // 🔥 NEW: Track late status recalculations
     };
 
     for (const employee of employees) {
@@ -383,40 +384,43 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
 
     // ✅ CASE 4: Has both clock-in and clock-out → Calculate final status
     if (record.clockIn && record.clockOut) {
-      // Recalculate working hours
-      record.calculateWorkingHours();
-
-      const workedHours = record.workHours || 0;
-      // ✅ NEW: Use shift-specific hour thresholds instead of hardcoded values
-      const fullDayHours = shift.fullDayHours || 8;
-      const halfDayHours = shift.halfDayHours || 4;
-
-      // Determine final status based on worked hours
-      if (workedHours >= fullDayHours) {
-        record.status = 'present';
-        record.halfDayType = 'full_day';
-        record.statusReason = `Worked ${workedHours.toFixed(2)} hours`;
-        stats.present++;
-        logger.debug(`✅ Employee ${employee.id}: PRESENT (${workedHours}h)`);
-      } else if (workedHours >= halfDayHours) {
-        record.status = 'half_day';
-        record.halfDayType = 'first_half';
-        record.statusReason = `Worked ${workedHours.toFixed(2)} hours (half day)`;
-        stats.halfDay++;
-        logger.debug(`⏱️ Employee ${employee.id}: HALF DAY (${workedHours}h)`);
-      } else if (workedHours > 0) {
-        // Any work done = half_day (never absent if clocked in)
-        record.status = 'half_day';
-        record.halfDayType = 'first_half';
-        record.statusReason = `Worked ${workedHours.toFixed(2)} hours (below minimum)`;
-        stats.halfDay++;
-        logger.debug(`⏱️ Employee ${employee.id}: HALF DAY (${workedHours}h - below minimum)`);
-      } else {
-        // Zero hours worked but clocked in/out = data error
-        record.status = 'half_day';
-        record.statusReason = 'Clocked in/out but no hours recorded';
-        stats.halfDay++;
-        logger.warn(`⚠️ Employee ${employee.id}: HALF DAY (0 hours - data error)`);
+      // 🔥 CRITICAL FIX: Use model's finalization method instead of duplicating logic
+      record.finalizeWithShift(shift);
+      
+      // 🔥 NEW: Recalculate late status at finalization (BEST PRACTICE)
+      // This ensures late status is correct even if clock-in calculation was wrong
+      try {
+        const AttendanceCalculationService = (await import('../services/core/attendanceCalculation.service.js')).default;
+        const lateCalculation = AttendanceCalculationService.calculateLateStatus(
+          new Date(record.clockIn), 
+          shift
+        );
+        
+        // Update late status if it changed
+        if (record.lateMinutes !== lateCalculation.lateMinutes || record.isLate !== lateCalculation.isLate) {
+          const oldLateMinutes = record.lateMinutes;
+          record.lateMinutes = lateCalculation.lateMinutes;
+          record.isLate = lateCalculation.isLate;
+          
+          logger.debug(`🔧 Employee ${employee.id}: Late status recalculated - ${oldLateMinutes} → ${lateCalculation.lateMinutes} minutes`);
+          stats.lateRecalculated++;
+        }
+      } catch (lateCalcError) {
+        logger.error(`Error recalculating late status for employee ${employee.id}:`, lateCalcError);
+      }
+      
+      // Update stats based on final status
+      switch (record.status) {
+        case 'present':
+          stats.present++;
+          logger.debug(`✅ Employee ${employee.id}: PRESENT (${record.workHours}h)`);
+          break;
+        case 'half_day':
+          stats.halfDay++;
+          logger.debug(`⏱️ Employee ${employee.id}: HALF DAY (${record.workHours}h)`);
+          break;
+        default:
+          logger.debug(`📊 Employee ${employee.id}: ${record.status.toUpperCase()}`);
       }
 
       await record.save();

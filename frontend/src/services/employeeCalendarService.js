@@ -1,8 +1,10 @@
 import api from './api';
 
 /**
- * Employee Calendar Service
- * Uses employee-specific endpoints to avoid 403 errors
+ * Enhanced Employee Calendar Service
+ * ✅ Shows ALL company events (birthdays, anniversaries, holidays, leaves)
+ * ✅ Employee-safe (no sensitive data exposed)
+ * ✅ Uses employee-specific endpoints to avoid 403 errors
  */
 const employeeCalendarService = {
   // Get daily calendar data for a specific date
@@ -18,13 +20,79 @@ const employeeCalendarService = {
     }
   },
 
-  // Get monthly calendar data
+  // Get monthly calendar data (Enhanced with Smart Calendar)
   getMonthlyCalendar: async (year, month) => {
     try {
+      console.log(`📅 [EMPLOYEE CALENDAR SERVICE] Fetching calendar for ${year}-${month}`);
+      
+      // First try to get smart calendar data for weekend detection
+      let smartCalendarData = null;
+      try {
+        console.log('📅 [EMPLOYEE CALENDAR SERVICE] Attempting to fetch smart calendar data...');
+        const smartResponse = await api.get('/calendar/smart/monthly', {
+          params: { year, month }
+        });
+        if (smartResponse.data.success) {
+          smartCalendarData = smartResponse.data.data.calendar;
+          console.log('✅ [EMPLOYEE CALENDAR SERVICE] Smart calendar data loaded:', Object.keys(smartCalendarData).length, 'days');
+        }
+      } catch (smartError) {
+        console.warn('⚠️ [EMPLOYEE CALENDAR SERVICE] Smart calendar not available, will add fallback weekend detection:', smartError.message);
+      }
+
+      // Get regular employee calendar data
+      console.log('📅 [EMPLOYEE CALENDAR SERVICE] Fetching employee calendar data...');
       const response = await api.get('/employee/calendar/monthly', {
         params: { year, month }
       });
+      
+      if (response.data.success) {
+        const employeeCalendar = response.data.calendar;
+        console.log('✅ [EMPLOYEE CALENDAR SERVICE] Employee calendar data loaded:', Object.keys(employeeCalendar).length, 'days');
+        
+        // Enhance employee calendar data with weekend information
+        Object.keys(employeeCalendar).forEach(dayKey => {
+          const dayData = employeeCalendar[dayKey];
+          if (dayData && dayData.date) {
+            // Try to get weekend info from smart calendar first
+            if (smartCalendarData && smartCalendarData[dayData.date]) {
+              const smartDayData = smartCalendarData[dayData.date];
+              dayData.isWeekend = smartDayData.isWeekend;
+              dayData.isWorkingDay = smartDayData.isWorkingDay;
+              dayData.isHoliday = smartDayData.isHoliday;
+              dayData.status = smartDayData.status;
+              dayData.dayOfWeek = smartDayData.dayOfWeek;
+              console.log(`📅 [EMPLOYEE CALENDAR SERVICE] Enhanced day ${dayKey} with smart calendar data: ${dayData.status}`);
+            } else {
+              // Fallback: Add basic weekend detection
+              const dayDate = new Date(dayData.date);
+              const dayOfWeek = dayDate.getDay();
+              const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
+              
+              dayData.isWeekend = isWeekend;
+              dayData.isWorkingDay = !isWeekend;
+              dayData.isHoliday = false;
+              dayData.status = isWeekend ? 'WEEKEND' : 'WORKING_DAY';
+              dayData.dayOfWeek = dayOfWeek;
+              console.log(`📅 [EMPLOYEE CALENDAR SERVICE] Added fallback weekend detection for day ${dayKey}: ${dayData.status}`);
+            }
+          }
+        });
+        
+        return {
+          ...response.data,
+          calendar: employeeCalendar
+        };
+      }
+      
       return response.data;
+      console.log(
+  '📅 Monthly calendar birthdays:',
+  Object.values(monthlyData.calendar)
+    .flatMap(d => d.birthdays || []).length
+);
+
+   
     } catch (error) {
       console.error('Error fetching monthly calendar:', error);
       return { success: false, calendar: {} };
@@ -54,65 +122,78 @@ const employeeCalendarService = {
             
             // Only include days within the requested range
             if (dayDate >= start && dayDate <= end) {
-              // Add holiday events
-              if (day.holiday) {
-                events.push({
-                  ...day.holiday,
-                  eventType: 'holiday',
-                  title: day.holiday.name || day.holiday.title,
-                  startDate: day.date,
-                  date: day.date,
-                  color: '#EF4444'
+              // ✅ Add ALL holiday events
+              if (day.holidays && day.holidays.length > 0) {
+                day.holidays.forEach(holiday => {
+                  events.push({
+                    ...holiday,
+                    eventType: 'holiday',
+                    title: holiday.name,
+                    startDate: day.date,
+                    date: day.date,
+                    color: holiday.color || '#EF4444'
+                  });
                 });
               }
 
-              // Add birthday events
-              if (day.birthday) {
-                events.push({
-                  ...day.birthday,
-                  eventType: 'birthday',
-                  title: day.birthday.title,
-                  startDate: day.date,
-                  date: day.date,
-                  color: '#10B981'
+              // ✅ Add ALL birthday events
+              if (day.birthdays && day.birthdays.length > 0) {
+                day.birthdays.forEach(birthday => {
+                  events.push({
+                    ...birthday,
+                    eventType: 'birthday',
+                    title: birthday.title || `${birthday.employeeName}'s Birthday`,
+                    employeeName: birthday.employeeName,
+                    startDate: day.date,
+                    date: day.date,
+                    color: birthday.color || '#10B981'
+                  });
                 });
               }
 
-              // Add anniversary events
-              if (day.anniversary) {
-                events.push({
-                  ...day.anniversary,
-                  eventType: 'anniversary',
-                  title: day.anniversary.title,
-                  startDate: day.date,
-                  date: day.date,
-                  color: '#8B5CF6'
+              // ✅ Add ALL anniversary events
+              if (day.anniversaries && day.anniversaries.length > 0) {
+                day.anniversaries.forEach(anniversary => {
+                  events.push({
+                    ...anniversary,
+                    eventType: 'anniversary',
+                    title: anniversary.title || `${anniversary.employeeName}'s Work Anniversary`,
+                    employeeName: anniversary.employeeName,
+                    startDate: day.date,
+                    date: day.date,
+                    color: anniversary.color || '#8B5CF6',
+                    years: anniversary.years
+                  });
                 });
               }
 
-              // Add leave events
-              if (day.leave) {
-                events.push({
-                  ...day.leave,
-                  eventType: 'leave',
-                  title: `${day.leave.leaveType} Leave`,
-                  employeeName: 'You',
-                  startDate: day.date,
-                  date: day.date,
-                  color: '#F59E0B'
+              // ✅ Add ALL leave events (company-wide)
+              if (day.leaves && day.leaves.length > 0) {
+                day.leaves.forEach(leave => {
+                  events.push({
+                    ...leave,
+                    eventType: 'leave',
+                    title: `${leave.employeeName} - ${leave.leaveType}`,
+                    employeeName: leave.employeeName,
+                    leaveType: leave.leaveType,
+                    startDate: day.date,
+                    date: day.date,
+                    color: leave.color || '#F59E0B',
+                    duration: leave.duration
+                  });
                 });
               }
 
-              // Add other company events
+              // ✅ Add other company events
               if (day.events && day.events.length > 0) {
                 day.events.forEach(event => {
                   events.push({
                     ...event,
                     eventType: 'event',
-                    title: event.title || event.name,
+                    title: event.title,
                     startDate: day.date,
                     date: day.date,
-                    color: '#3B82F6'
+                    color: event.color || '#3B82F6'
                   });
                 });
               }
@@ -123,6 +204,25 @@ const employeeCalendarService = {
         // Move to next month
         current = new Date(current.getFullYear(), current.getMonth() + 1, 1);
       }
+
+      // Sort events by date and priority
+      events.sort((a, b) => {
+        const dateCompare = new Date(a.startDate) - new Date(b.startDate);
+        if (dateCompare !== 0) return dateCompare;
+        
+        // Priority order: holidays > leaves > birthdays > anniversaries > events
+        const priority = { holiday: 1, leave: 2, birthday: 3, anniversary: 4, event: 5 };
+        return (priority[a.eventType] || 5) - (priority[b.eventType] || 5);
+      });
+
+      console.log('📅 [EMPLOYEE CALENDAR] Enhanced events loaded:', {
+        total: events.length,
+        holidays: events.filter(e => e.eventType === 'holiday').length,
+        leaves: events.filter(e => e.eventType === 'leave').length,
+        birthdays: events.filter(e => e.eventType === 'birthday').length,
+        anniversaries: events.filter(e => e.eventType === 'anniversary').length,
+        events: events.filter(e => e.eventType === 'event').length
+      });
 
       return {
         success: true,
@@ -153,12 +253,14 @@ const employeeCalendarService = {
           
           if (monthlyData.success && monthlyData.calendar) {
             Object.values(monthlyData.calendar).forEach(day => {
-              if (day.holiday) {
-                holidays.push({
-                  ...day.holiday,
-                  date: day.date,
-                  name: day.holiday.name || day.holiday.title,
-                  type: 'holiday'
+              if (day.holidays && day.holidays.length > 0) {
+                day.holidays.forEach(holiday => {
+                  holidays.push({
+                    ...holiday,
+                    date: day.date,
+                    name: holiday.name,
+                    type: 'holiday'
+                  });
                 });
               }
             });
@@ -209,6 +311,150 @@ const employeeCalendarService = {
       return { success: false, data: [] };
     } catch (error) {
       console.error('Error fetching upcoming events:', error);
+      return { success: false, data: [] };
+    }
+  },
+
+  // ✅ ENHANCED: Get upcoming birthdays (next 6 months to ensure we show multiple birthdays)
+  getUpcomingBirthdays: async (limit = 10) => {
+    try {
+      const now = new Date();
+      const sixMonthsLater = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate());
+      
+      console.log('🎂 [CALENDAR SERVICE] Fetching upcoming birthdays (next 6 months)...');
+      
+      const birthdays = [];
+      
+      // Fetch 6 months to ensure we get multiple birthdays
+      const monthsToFetch = [];
+      for (let i = 0; i < 6; i++) {
+        const targetDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        monthsToFetch.push({
+          year: targetDate.getFullYear(),
+          month: targetDate.getMonth() + 1
+        });
+      }
+      
+      
+      console.log('🎂 [CALENDAR SERVICE] Fetching months:', monthsToFetch);
+      
+      for (const { year, month } of monthsToFetch) {
+        try {
+          const monthlyData = await employeeCalendarService.getMonthlyCalendar(year, month);
+          
+          if (monthlyData.success && monthlyData.calendar) {
+            Object.values(monthlyData.calendar).forEach(day => {
+              if (day.birthdays && day.birthdays.length > 0) {
+                day.birthdays.forEach(birthday => {
+                  const birthdayDate = new Date(day.date);
+                  // Only include future birthdays (including today)
+                  if (birthdayDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+                    birthdays.push({
+                      ...birthday,
+                      date: day.date,
+                      employeeName: birthday.employeeName,
+                      title: birthday.title,
+                      department: birthday.department || birthday.departmentName || null
+                    });
+                  }
+                });
+              }
+            });
+          }
+        } catch (monthError) {
+          console.warn(`Failed to fetch birthdays for ${year}-${month}:`, monthError);
+        }
+      }
+      
+      // Sort by date and limit results
+      const sortedBirthdays = birthdays
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .slice(0, limit);
+
+      console.log('🎂 [CALENDAR SERVICE] Found birthdays:', sortedBirthdays.length);
+      sortedBirthdays.forEach(b => {
+        console.log(`   - ${b.employeeName}: ${b.date}`);
+      });
+
+      return {
+        success: true,
+        data: sortedBirthdays
+      };
+    } catch (error) {
+      console.error('Error fetching upcoming birthdays:', error);
+      return { success: false, data: [] };
+    }
+  },
+
+  // ✅ DEPRECATED: Keep for backward compatibility but mark as deprecated
+  getAllBirthdays: async (year) => {
+    console.warn('⚠️ getAllBirthdays is deprecated and makes 12 API calls. Use getUpcomingBirthdays instead.');
+    // For backward compatibility, just return current month
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const targetYear = year || now.getFullYear();
+    
+    try {
+      const monthlyData = await employeeCalendarService.getMonthlyCalendar(targetYear, currentMonth);
+      
+      if (monthlyData.success && monthlyData.calendar) {
+        const birthdays = [];
+        Object.values(monthlyData.calendar).forEach(day => {
+          if (day.birthdays && day.birthdays.length > 0) {
+            day.birthdays.forEach(birthday => {
+              birthdays.push({
+                ...birthday,
+                date: day.date,
+                employeeName: birthday.employeeName,
+                title: birthday.title
+              });
+            });
+          }
+        });
+        
+        return { success: true, data: birthdays };
+      }
+      
+      return { success: false, data: [] };
+    } catch (error) {
+      console.error('Error fetching birthdays:', error);
+      return { success: false, data: [] };
+    }
+  },
+
+  // ✅ DEPRECATED: Keep for backward compatibility but mark as deprecated  
+  getAllAnniversaries: async (year) => {
+    console.warn('⚠️ getAllAnniversaries is deprecated and makes 12 API calls. Use getUpcomingAnniversaries instead.');
+    // For backward compatibility, just return current month
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const targetYear = year || now.getFullYear();
+    
+    try {
+      const monthlyData = await employeeCalendarService.getMonthlyCalendar(targetYear, currentMonth);
+      
+      if (monthlyData.success && monthlyData.calendar) {
+        const anniversaries = [];
+        Object.values(monthlyData.calendar).forEach(day => {
+          if (day.anniversaries && day.anniversaries.length > 0) {
+            day.anniversaries.forEach(anniversary => {
+              anniversaries.push({
+                ...anniversary,
+                date: day.date,
+                employeeName: anniversary.employeeName,
+                title: anniversary.title,
+                years: anniversary.years
+              });
+            });
+          }
+        });
+        
+        return { success: true, data: anniversaries };
+      }
+      
+      return { success: false, data: [] };
+    } catch (error) {
+      console.error('Error fetching anniversaries:', error);
       return { success: false, data: [] };
     }
   }

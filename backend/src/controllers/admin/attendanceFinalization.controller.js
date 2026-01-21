@@ -77,17 +77,27 @@ export const getEmployeeFinalizationStatus = async (req, res) => {
     let shiftFinished = false;
     if (shift) {
       const now = new Date();
-      const shiftEndTime = new Date(`${dateString} ${shift.shiftEndTime}`);
-      const shiftStartTime = new Date(`${dateString} ${shift.shiftStartTime}`);
+      
+      // 🔥 CRITICAL FIX: Use proper timezone-aware date construction
+      // Create shift times using current date to avoid timezone issues
+      const shiftEnd = new Date(now);
+      const shiftStart = new Date(now);
+      
+      // Parse shift times properly
+      const [startHours, startMinutes, startSeconds] = shift.shiftStartTime.split(':').map(Number);
+      const [endHours, endMinutes, endSeconds] = shift.shiftEndTime.split(':').map(Number);
+      
+      shiftStart.setHours(startHours, startMinutes, startSeconds || 0, 0);
+      shiftEnd.setHours(endHours, endMinutes, endSeconds || 0, 0);
       
       // Handle night shifts
-      if (shiftEndTime < shiftStartTime) {
-        shiftEndTime.setDate(shiftEndTime.getDate() + 1);
+      if (shiftEnd < shiftStart) {
+        shiftEnd.setDate(shiftEnd.getDate() + 1);
       }
       
       // Add grace period
       const gracePeriodMs = 15 * 60 * 1000;
-      const finalizationTime = new Date(shiftEndTime.getTime() + gracePeriodMs);
+      const finalizationTime = new Date(shiftEnd.getTime() + gracePeriodMs);
       
       shiftFinished = now >= finalizationTime;
     }

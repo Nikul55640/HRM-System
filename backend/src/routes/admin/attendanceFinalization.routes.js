@@ -7,7 +7,7 @@ const router = express.Router();
 
 // All routes require authentication and admin/hr role
 router.use(authenticate);
-router.use(requireRoles(['admin', 'hr']));
+router.use(requireRoles(['SuperAdmin', 'admin', 'hr']));
 
 /**
  * @route   POST /api/admin/attendance-finalization/trigger

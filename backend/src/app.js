@@ -29,7 +29,7 @@ import employeeSelfServiceRoutes from "./routes/employee/index.js";
 import adminLeaveRoutes from "./routes/admin/leaveRequest.routes.js";
 import adminHolidayRoutes from "./routes/admin/holiday.routes.js";
 import adminDashboardRoutes from "./routes/admin/adminDashboard.routes.js";
-import adminAttendanceRoutes from "./routes/admin/attendance.routes.js";
+import adminAttendanceRoutes from "./routes/admin/adminAttendance.routes.js";
 import attendanceCorrectionRoutes from "./routes/admin/attendanceCorrection.routes.js";
 import leadRoutes from "./routes/admin/lead.routes.js";
 import shiftRoutes from "./routes/admin/shift.routes.js";
@@ -108,8 +108,10 @@ app.use(compression());
 // ===================================================
 // STATIC FILES
 // ===================================================
-app.use('/uploads', (req, res, next) => {
-  logger.info(`Static file request: ${req.path}`);
+app.use('/uploads', (req, _res, next) => {
+  if (process.env.NODE_ENV !== "production") {
+    logger.info(`Static file request: ${req.path}`);
+  }
   next();
 }, express.static(path.join(process.cwd(), 'uploads')));
 

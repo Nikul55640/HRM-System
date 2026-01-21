@@ -8,6 +8,7 @@ import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
 import { ROLES } from '../../config/rolePermissions.js';
 import { getLocalDateString } from '../../utils/dateUtils.js';
+import AttendanceCalculationService from '../core/attendanceCalculation.service.js';
 
 class AttendanceService {
     /**
@@ -18,6 +19,8 @@ class AttendanceService {
      * @returns {Promise<Object>} Clock in result
      */
     async clockIn(clockInData, user, metadata = {}) {
+        const transaction = await AttendanceRecord.sequelize.transaction();
+        
         try {
             if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 400 };
@@ -30,7 +33,8 @@ class AttendanceService {
                 where: {
                     employeeId: user.employee?.id,
                     date: today
-                }
+                },
+                transaction
             });
 
             // 🚫 APPLY ENHANCED BUTTON CONTROL RULES
@@ -73,8 +77,7 @@ class AttendanceService {
             // Extract work mode from request
             const workMode = clockInData.workMode || 'office';
             
-            // 🔍 LOG: Verify data is being received
-            console.log('🔍 Clock-in data verification:', {
+            logger.debug('Clock-in data verification:', {
                 workMode,
                 hasLocation: !!clockInData.location,
                 locationData: clockInData.location ? {
@@ -87,17 +90,25 @@ class AttendanceService {
             
             // Create or update attendance record
             if (!attendanceRecord) {
-                attendanceRecord = await AttendanceRecord.create({
-                    employeeId: user.employee?.id,
-                    shiftId: assignedShift?.id || null,
-                    date: today,
-                    clockIn: clockInTime,
-                    workMode: workMode,
-                    location: clockInData.location || null,
-                    deviceInfo: clockInData.deviceInfo || null,
-                    status: 'incomplete', // ✅ Start as incomplete, will be evaluated on clock-out
-                    createdBy: user.id
-                });
+                try {
+                    attendanceRecord = await AttendanceRecord.create({
+                        employeeId: user.employee?.id,
+                        shiftId: assignedShift?.id || null,
+                        date: today,
+                        clockIn: clockInTime,
+                        workMode: workMode,
+                        location: clockInData.location || null,
+                        deviceInfo: clockInData.deviceInfo || null,
+                        status: 'incomplete', // ✅ Start as incomplete, will be evaluated on clock-out
+                        createdBy: user.id
+                    }, { transaction });
+                } catch (createError) {
+                    // Handle unique constraint violation
+                    if (createError.name === 'SequelizeUniqueConstraintError') {
+                        throw { message: 'Already clocked in today', statusCode: 400 };
+                    }
+                    throw createError;
+                }
             } else {
                 await attendanceRecord.update({
                     clockIn: clockInTime,
@@ -106,67 +117,25 @@ class AttendanceService {
                     deviceInfo: clockInData.deviceInfo || null,
                     status: 'incomplete', // ✅ Start as incomplete
                     updatedBy: user.id
-                });
+                }, { transaction });
             }
 
-            // Calculate late status at clock-in
+            // Calculate late status at clock-in using centralized service
             if (assignedShift) {
-                const today = getLocalDateString(clockInTime);
-                const shiftStartTime = new Date(`${today} ${assignedShift.shiftStartTime}`);
-                const gracePeriodMs = (assignedShift.gracePeriodMinutes || 0) * 60 * 1000;
-                const lateThreshold = new Date(shiftStartTime.getTime() + gracePeriodMs);
-
-                let lateMinutes = 0;
-                let isLate = false;
-
-                if (clockInTime > lateThreshold) {
-                    lateMinutes = Math.floor((clockInTime - shiftStartTime) / (1000 * 60));
-                    isLate = true;
-                }
-
-                // Update late status immediately
+                const lateCalculation = AttendanceCalculationService.calculateLateStatus(clockInTime, assignedShift);
+                
+                // Update late status immediately (CRITICAL: Use transaction)
                 await attendanceRecord.update({
-                    lateMinutes: lateMinutes,
-                    isLate: isLate,
+                    lateMinutes: lateCalculation.lateMinutes,
+                    isLate: lateCalculation.isLate,
                     updatedBy: user.id
-                });
-
-                // Send late notification if applicable
-                if (isLate) {
-                    try {
-                        const notificationService = (await import('../notificationService.js')).default;
-                        const employee = await Employee.findByPk(user.employee?.id, {
-                            include: [{
-                                model: User,
-                                as: 'user',
-                                attributes: ['id']
-                            }]
-                        });
-                        if (employee) {
-                            attendanceRecord.employee = employee;
-                            await notificationService.notifyLateClockIn(attendanceRecord);
-                        }
-                    } catch (notificationError) {
-                        logger.error('Failed to send late clock-in notification:', notificationError);
-                    }
-                }
+                }, { transaction });
             }
 
             // Reload to get updated data
-            await attendanceRecord.reload();
+            await attendanceRecord.reload({ transaction });
 
-            // Log clock in action
-            await AuditLog.logAction({
-                userId: user.id,
-                action: 'attendance_clock_in',
-                module: 'attendance',
-                targetType: 'AttendanceRecord',
-                targetId: attendanceRecord.id,
-                description: `Clocked in at ${clockInTime.toLocaleTimeString()} (${workMode})${attendanceRecord.isLate ? ` - Late by ${attendanceRecord.lateMinutes} minutes` : ''}`,
-                ipAddress: metadata.ipAddress,
-                userAgent: metadata.userAgent,
-                severity: 'low'
-            });
+            await transaction.commit();
 
             const clockInResponse = {
                 ...attendanceRecord.toJSON(),
@@ -193,6 +162,7 @@ class AttendanceService {
                     `Clocked in successfully (${workMode}). You are on time!`
             };
         } catch (error) {
+            await transaction.rollback();
             logger.error('Error in clock in:', error);
             return {
                 success: false,
@@ -298,6 +268,8 @@ class AttendanceService {
      * @returns {Promise<Object>} Break start result
      */
     async startBreak(user, metadata = {}) {
+        const transaction = await AttendanceRecord.sequelize.transaction();
+        
         try {
             if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
@@ -310,29 +282,18 @@ class AttendanceService {
                 where: {
                     employeeId: user.employee?.id,
                     date: today
-                }
+                },
+                transaction
             });
 
             if (!attendanceRecord || !attendanceRecord.canStartBreak()) {
                 throw { message: "Cannot start break. Either not clocked in or already on break", statusCode: 400 };
             }
+            
             const breakInTime = new Date();
-            let breakSessions = attendanceRecord.breakSessions || [];
-            
-            // Ensure breakSessions is an array (sometimes JSON fields can be strings)
-            if (typeof breakSessions === 'string') {
-                try {
-                    breakSessions = JSON.parse(breakSessions);
-                } catch (e) {
-                    breakSessions = [];
-                }
-            }
-            
-            if (!Array.isArray(breakSessions)) {
-                breakSessions = [];
-            }
+            let breakSessions = AttendanceCalculationService.normalizeBreakSessions(attendanceRecord.breakSessions);
 
-            console.log('🔍 [BACKEND] Before adding break session:', {
+            logger.debug('Before adding break session:', {
                 currentBreakSessions: breakSessions,
                 breakSessionsLength: breakSessions.length
             });
@@ -345,69 +306,10 @@ class AttendanceService {
             
             breakSessions.push(newBreakSession);
 
-            console.log('🔍 [BACKEND] After adding break session:', {
-                updatedBreakSessions: breakSessions,
-                breakSessionsLength: breakSessions.length,
-                newSession: newBreakSession
-            });
-
-            // 🔥 FIX: Use direct SQL update to ensure JSON field is properly updated
-            try {
-                const [affectedRows] = await attendanceRecord.sequelize.query(
-                    `UPDATE attendance_records 
-                     SET breakSessions = :breakSessions, 
-                         updatedBy = :updatedBy, 
-                         updatedAt = NOW()
-                     WHERE id = :recordId`,
-                    {
-                        replacements: {
-                            breakSessions: JSON.stringify(breakSessions),
-                            updatedBy: user.id,
-                            recordId: attendanceRecord.id
-                        }
-                    }
-                );
-
-                console.log('🔍 [BACKEND] Direct SQL update result:', affectedRows);
-
-                // Reload the record to get the updated data
-                await attendanceRecord.reload();
-
-                console.log('🔍 [BACKEND] After reload:', {
-                    reloadedBreakSessions: attendanceRecord.breakSessions,
-                    reloadedLength: attendanceRecord.breakSessions?.length,
-                    reloadedIsArray: Array.isArray(attendanceRecord.breakSessions)
-                });
-
-            } catch (sqlError) {
-                console.error('🔍 [BACKEND] SQL update failed, trying Sequelize method:', sqlError);
-                
-                // 🔥 FIX: Try a more direct Sequelize approach
-                try {
-                    // Mark the field as changed to force update
-                    attendanceRecord.changed('breakSessions', true);
-                    attendanceRecord.breakSessions = breakSessions;
-                    attendanceRecord.updatedBy = user.id;
-                    
-                    const saveResult = await attendanceRecord.save({
-                        fields: ['breakSessions', 'updatedBy']
-                    });
-                    
-                    console.log('🔍 [BACKEND] Sequelize save result:', saveResult ? 'success' : 'failed');
-                    
-                    // Force reload to verify
-                    await attendanceRecord.reload();
-                    
-                    console.log('🔍 [BACKEND] After Sequelize save and reload:', {
-                        breakSessions: attendanceRecord.breakSessions,
-                        length: attendanceRecord.breakSessions?.length
-                    });
-                    
-                } catch (sequelizeError) {
-                    console.error('🔍 [BACKEND] Sequelize fallback also failed:', sequelizeError);
-                    throw sequelizeError;
-                }
-            }
+            // ✅ FIXED: Use proper Sequelize update with transaction
+            attendanceRecord.breakSessions = breakSessions;
+            attendanceRecord.updatedBy = user.id;
+            await attendanceRecord.save({ transaction });
 
             // Log break start action
             await AuditLog.logAction({
@@ -422,12 +324,15 @@ class AttendanceService {
                 severity: 'low'
             });
 
+            await transaction.commit();
+
             return {
                 success: true,
                 data: attendanceRecord,
                 message: 'Break started successfully'
             };
         } catch (error) {
+            await transaction.rollback();
             logger.error('Error starting break:', error);
             return {
                 success: false,
@@ -444,6 +349,8 @@ class AttendanceService {
      * @returns {Promise<Object>} Break end result
      */
     async endBreak(user, metadata = {}) {
+        const transaction = await AttendanceRecord.sequelize.transaction();
+        
         try {
             if (!user.employee?.id) {
                 throw { message: "No employee profile linked to this user", statusCode: 404 };
@@ -456,7 +363,8 @@ class AttendanceService {
                 where: {
                     employeeId: user.employee?.id,
                     date: today
-                }
+                },
+                transaction
             });
 
             if (!attendanceRecord || !attendanceRecord.canEndBreak()) {
@@ -464,93 +372,22 @@ class AttendanceService {
             }
 
             const breakOutTime = new Date();
-            let breakSessions = attendanceRecord.breakSessions || [];
-            
-            // Ensure breakSessions is an array
-            if (typeof breakSessions === 'string') {
-                try {
-                    breakSessions = JSON.parse(breakSessions);
-                } catch (e) {
-                    breakSessions = [];
-                }
-            }
-            
-            if (!Array.isArray(breakSessions)) {
-                breakSessions = [];
-            }
-            
-            // Create a copy to avoid mutation issues
-            breakSessions = [...breakSessions];
+            let breakSessions = AttendanceCalculationService.normalizeBreakSessions(attendanceRecord.breakSessions);
             
             const activeBreakIndex = breakSessions.findIndex(session => session.breakIn && !session.breakOut);
 
-            console.log('🔍 [BACKEND] End break - before update:', {
-                breakSessions: breakSessions,
-                activeBreakIndex: activeBreakIndex,
-                breakSessionsLength: breakSessions.length
-            });
-
-            if (activeBreakIndex !== -1) {
-                breakSessions[activeBreakIndex].breakOut = breakOutTime;
-
-                // Calculate break duration
-                const breakInTime = new Date(breakSessions[activeBreakIndex].breakIn);
-                const breakDuration = Math.floor((breakOutTime - breakInTime) / (1000 * 60)); // in minutes
-                breakSessions[activeBreakIndex].duration = breakDuration;
-
-                // Update total break minutes
-                const totalBreakMinutes = breakSessions.reduce((total, session) => {
-                    return total + (session.duration || 0);
-                }, 0);
-
-                console.log('🔍 [BACKEND] End break - calculated values:', {
-                    breakDuration: breakDuration,
-                    totalBreakMinutes: totalBreakMinutes,
-                    updatedSession: breakSessions[activeBreakIndex]
-                });
-
-                // 🔥 FIX: Use direct SQL update for endBreak as well
-                try {
-                    const [affectedRows] = await attendanceRecord.sequelize.query(
-                        `UPDATE attendance_records 
-                         SET breakSessions = :breakSessions, 
-                             totalBreakMinutes = :totalBreakMinutes,
-                             updatedBy = :updatedBy, 
-                             updatedAt = NOW()
-                         WHERE id = :recordId`,
-                        {
-                            replacements: {
-                                breakSessions: JSON.stringify(breakSessions),
-                                totalBreakMinutes: totalBreakMinutes,
-                                updatedBy: user.id,
-                                recordId: attendanceRecord.id
-                            }
-                        }
-                    );
-
-                    console.log('🔍 [BACKEND] End break - SQL update result:', affectedRows);
-
-                    // Reload the record to get the updated data
-                    await attendanceRecord.reload();
-
-                    console.log('🔍 [BACKEND] End break - after reload:', {
-                        reloadedBreakSessions: attendanceRecord.breakSessions,
-                        reloadedTotalBreakMinutes: attendanceRecord.totalBreakMinutes,
-                        reloadedLength: attendanceRecord.breakSessions?.length
-                    });
-
-                } catch (sqlError) {
-                    console.error('🔍 [BACKEND] End break SQL update failed, trying Sequelize:', sqlError);
-                    
-                    // Fallback to Sequelize method
-                    attendanceRecord.breakSessions = breakSessions;
-                    attendanceRecord.totalBreakMinutes = totalBreakMinutes;
-                    attendanceRecord.updatedBy = user.id;
-                    await attendanceRecord.save();
-                    
-                    console.log('🔍 [BACKEND] End break Sequelize fallback completed');
-                }
+            if (activeBreakIndex === -1) {
+                throw { message: "No active break session found", statusCode: 400 };
             }
+
+            // End the active break session
+            breakSessions[activeBreakIndex].breakOut = breakOutTime;
+            breakSessions[activeBreakIndex].duration = AttendanceCalculationService.calculateBreakDuration(breakSessions[activeBreakIndex]);
+
+            // ✅ FIXED: Use proper Sequelize update with transaction
+            attendanceRecord.breakSessions = breakSessions;
+            attendanceRecord.updatedBy = user.id;
+            await attendanceRecord.save({ transaction });
 
             // Log break end action
             await AuditLog.logAction({
@@ -559,18 +396,21 @@ class AttendanceService {
                 module: 'attendance',
                 targetType: 'AttendanceRecord',
                 targetId: attendanceRecord.id,
-                description: `Ended break at ${breakOutTime.toLocaleTimeString()}`,
+                description: `Ended break at ${breakOutTime.toLocaleTimeString()} (Duration: ${breakSessions[activeBreakIndex].duration} minutes)`,
                 ipAddress: metadata.ipAddress,
                 userAgent: metadata.userAgent,
                 severity: 'low'
             });
 
+            await transaction.commit();
+
             return {
                 success: true,
                 data: attendanceRecord,
-                message: 'Break ended successfully'
+                message: `Break ended successfully. Duration: ${breakSessions[activeBreakIndex].duration} minutes`
             };
         } catch (error) {
+            await transaction.rollback();
             logger.error('Error ending break:', error);
             return {
                 success: false,
@@ -610,7 +450,7 @@ class AttendanceService {
 
             // Debug logging
             if (attendanceRecord) {
-                console.log('🔍 [BACKEND] Raw attendance record:', {
+                logger.debug('Raw attendance record:', {
                     id: attendanceRecord.id,
                     breakSessions: attendanceRecord.breakSessions,
                     breakSessionsType: typeof attendanceRecord.breakSessions,

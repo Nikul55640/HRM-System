@@ -93,29 +93,35 @@ const EmployeeDashboard = () => {
    fetchTodayRecord,
  } = useAttendanceSessionStore();
 
-  // ✅ PHASE 1 FIX: Single responsibility, no duplicates
+  // ✅ OPTIMIZED: Single responsibility, minimal API calls
   useEffect(() => {
     const fetchCriticalData = async () => {
       setLoading(true);
       
       try {
-        // Only critical data that dashboard MUST have
-        await Promise.all([
+        console.log('📊 [DASHBOARD] Starting optimized data fetch...');
+        
+        // ✅ PHASE 1: Critical data only (parallel execution)
+        const criticalPromises = [
           fetchDashboardData(),
           fetchLeaveBalance(),
           fetchAttendanceSummary(),
           fetchTodayRecord(), // Single attendance initialization
-        ]);
+        ];
         
-        // Optional data - fail gracefully
-        try {
-          await Promise.all([
-            fetchTeamData(),
-            fetchUpcomingBirthdays(),
-          ]);
-        } catch (optionalError) {
+        await Promise.allSettled(criticalPromises);
+        
+        // ✅ PHASE 2: Optional data (parallel execution, fail gracefully)
+        const optionalPromises = [
+          fetchTeamData(),
+          fetchUpcomingBirthdays(), // ✅ Now enhanced - 6 months instead of 2
+        ];
+        
+        // Don't wait for optional data to complete
+        Promise.allSettled(optionalPromises).catch(optionalError => {
           console.warn('❌ [DASHBOARD] Optional data failed (non-critical):', optionalError);
-        }
+        });
+        
       } catch (criticalError) {
         console.error('❌ [DASHBOARD] Critical data failed:', criticalError);
       }
@@ -128,12 +134,12 @@ const EmployeeDashboard = () => {
     // ✅ REDUCED TIMERS: Only essential ones
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000);
+    }, 60000); // Update every minute
 
-    // ✅ ATTENDANCE: 60 sec instead of 30 sec
+    // ✅ ATTENDANCE: Reduced frequency
     const attendanceRefreshTimer = setInterval(() => {
       fetchTodayRecord(true);
-    }, 60000);
+    }, 120000); // Every 2 minutes instead of 1 minute
 
     return () => {
       clearInterval(timer);
@@ -312,7 +318,7 @@ const EmployeeDashboard = () => {
       console.log('🏢 [DASHBOARD] Fetching team data...');
       
       // ✅ PERMISSION CHECK: Only fetch if user has permission
-      if (!can.do(MODULES.COMPANY_STATUS?.VIEW)) {
+      if (!can.do(MODULES.ATTENDANCE?.VIEW_COMPANY_STATUS)) {
         console.log('🔐 [DASHBOARD] No permission for company status - skipping team data');
         setTeamOnLeave([]);
         setTeamWFH([]);
@@ -362,29 +368,78 @@ const EmployeeDashboard = () => {
     }
   };
 
-  // Fetch upcoming birthdays from entire year (not just current month)
+  // ✅ ENHANCED: Fetch upcoming birthdays (next 6 months to ensure we show multiple birthdays)
   const fetchUpcomingBirthdays = async (silent = false) => {
     if (!silent) setBirthdaysLoading(true);
     
     try {
-      const response = await birthdayService.getUpcomingYearlyBirthdays(5); // Get 5 upcoming birthdays from entire year
+      console.log('🎂 [DASHBOARD] Fetching upcoming birthdays (enhanced - next 6 months)...');
       
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ [DASHBOARD] Birthdays API response:', response);
-      }
+      // ✅ Use enhanced service that fetches 6 months instead of 2
+      // Request more birthdays to show all available ones
+      const response = await employeeCalendarService.getUpcomingBirthdays(10);
       
       if (response.success) {
-        const birthdays = response.data || [];
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ [DASHBOARD] Birthdays count:', birthdays.length);
-        }
-        setUpcomingBirthdays(birthdays);
+        const allBirthdays = response.data || [];
+        
+        console.log('🎂 [DASHBOARD] Raw birthdays from service:', allBirthdays.length);
+        
+        // ✅ FIX: Proper timezone handling for birthdays
+        const today = new Date();
+        const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        
+        const upcomingBirthdays = allBirthdays
+          .map(birthday => {
+            // ✅ FIX: Parse birthday date properly to avoid timezone issues
+            let birthdayDate;
+            if (birthday.date) {
+              // Handle YYYY-MM-DD format properly
+              const dateStr = birthday.date.includes('T') ? birthday.date.split('T')[0] : birthday.date;
+              const [year, month, day] = dateStr.split('-').map(Number);
+              birthdayDate = new Date(year, month - 1, day); // month is 0-indexed
+            } else {
+              console.warn('🎂 [DASHBOARD] Birthday missing date:', birthday);
+              return null; // Skip invalid dates
+            }
+            
+            const thisYear = todayLocal.getFullYear();
+            const birthdayThisYear = new Date(thisYear, birthdayDate.getMonth(), birthdayDate.getDate());
+            
+            // If birthday has passed this year, show next year's birthday
+            if (birthdayThisYear < todayLocal) {
+              birthdayThisYear.setFullYear(thisYear + 1);
+            }
+            
+            const daysUntil = Math.ceil((birthdayThisYear - todayLocal) / (1000 * 60 * 60 * 24));
+            const isToday = birthdayThisYear.toDateString() === todayLocal.toDateString();
+            
+            console.log(`🎂 [DASHBOARD] Processing birthday: ${birthday.employeeName} - ${birthday.date} -> ${birthdayThisYear.toDateString()} (${daysUntil} days)`);
+            
+            return {
+              ...birthday,
+              nextBirthdayDate: birthdayThisYear,
+              daysUntil: daysUntil,
+              isToday: isToday,
+              // Add department info if available
+              department: birthday.department || birthday.departmentName || null
+            };
+          })
+          .filter(birthday => birthday !== null) // Remove invalid dates
+          .sort((a, b) => a.nextBirthdayDate - b.nextBirthdayDate)
+          .slice(0, 10); // Get next 10 birthdays instead of 5
+        
+        console.log('✅ [DASHBOARD] Enhanced birthdays processed:', upcomingBirthdays.length);
+        upcomingBirthdays.forEach(b => {
+          console.log(`   - ${b.employeeName}: ${b.nextBirthdayDate.toDateString()} (${b.daysUntil} days)`);
+        });
+        
+        setUpcomingBirthdays(upcomingBirthdays);
       } else {
-        console.warn('Birthdays API returned error:', response.message);
+        console.warn('❌ [DASHBOARD] Enhanced birthdays API error:', response.message);
         setUpcomingBirthdays([]);
       }
     } catch (error) {
-      console.error('Birthdays API error:', error);
+      console.error('❌ [DASHBOARD] Enhanced birthdays API error:', error);
       // Fallback to empty array if API is not available
       setUpcomingBirthdays([]);
     } finally {
@@ -494,7 +549,7 @@ const EmployeeDashboard = () => {
     }
   };
 
-  // Calendar helper functions
+  // ✅ OPTIMIZED: Calendar helper functions - only fetch what's needed
   const fetchCalendarEvents = async () => {
     try {
       const startDate = calendarView === CALENDAR_VIEW.WEEK 
@@ -505,158 +560,41 @@ const EmployeeDashboard = () => {
         ? endOfWeek(calendarDate).toISOString().split('T')[0]
         : endOfMonth(calendarDate).toISOString().split('T')[0];
 
-      // ✅ FIX: Use employee-safe calendar endpoints
-      const allEvents = [];
-      
-      try {
-        // Try employee calendar endpoint first (safer)
-        const eventsResponse = await calendarService.getEventsByDateRange(startDate, endDate);
-        
-        if (eventsResponse && eventsResponse.success) {
-          const calendarData = eventsResponse.data || {};
-          
-          // Add regular events
-          if (calendarData.events) {
-            allEvents.push(...calendarData.events.map(e => ({
-              ...e,
-              eventType: e.eventType || 'event',
-              color: e.color || '#3B82F6',
-              startDate: e.startDate || e.date
-            })));
-          }
-          
-          // Add leaves
-          if (calendarData.leaves) {
-            allEvents.push(...calendarData.leaves.map(l => ({
-              ...l,
-              eventType: 'leave',
-              title: l.title || `${l.employeeName} - ${l.leaveType}`,
-              startDate: l.startDate || l.date,
-              color: l.color || '#F59E0B'
-            })));
-          }
-          
-          // Add birthdays
-          if (calendarData.birthdays) {
-            allEvents.push(...calendarData.birthdays.map(b => ({
-              ...b,
-              eventType: 'birthday',
-              title: b.title || `${b.employeeName}`,
-              startDate: b.date || b.startDate,
-              color: b.color || '#10B981'
-            })));
-          }
-          
-          // Add anniversaries
-          if (calendarData.anniversaries) {
-            allEvents.push(...calendarData.anniversaries.map(a => ({
-              ...a,
-              eventType: 'anniversary',
-              title: a.title || `${a.employeeName}`,
-              startDate: a.date || a.startDate,
-              color: a.color || '#8B5CF6'
-            })));
-          }
-          
-          // Add holidays from calendar events if available
-          if (calendarData.holidays) {
-            allEvents.push(...calendarData.holidays.map(h => ({
-              ...h,
-              eventType: 'holiday',
-              title: h.name || h.title,
-              startDate: h.date || h.startDate,
-              color: h.color || '#EF4444'
-            })));
-          }
-        }
-      } catch (calendarError) {
-        console.warn('❌ [DASHBOARD] Calendar events limited for employee:', calendarError);
-        // Don't break dashboard for calendar failures
-      }
+      console.log('📅 [DASHBOARD] Fetching optimized calendar events:', { 
+        view: calendarView, 
+        startDate, 
+        endDate,
+        range: calendarView === CALENDAR_VIEW.WEEK ? '7 days' : '~30 days'
+      });
 
-      // Try to fetch holidays separately (employee-safe)
-      try {
-        const holidaysResponse = await calendarService.getHolidays(calendarDate.getFullYear());
+      // ✅ Use optimized employee calendar service - only fetch needed date range
+      const eventsResponse = await employeeCalendarService.getEventsByDateRange(startDate, endDate);
+      
+      if (eventsResponse && eventsResponse.success) {
+        const allEvents = eventsResponse.data.events || [];
         
-        if (holidaysResponse && holidaysResponse.success) {
-          let holidayData = [];
-          
-          // Handle different response structures
-          if (holidaysResponse.data?.data?.holidays && Array.isArray(holidaysResponse.data.data.holidays)) {
-            holidayData = holidaysResponse.data.data.holidays;
-          } else if (holidaysResponse.data?.holidays && Array.isArray(holidaysResponse.data.holidays)) {
-            holidayData = holidaysResponse.data.holidays;
-          } else if (Array.isArray(holidaysResponse.data)) {
-            holidayData = holidaysResponse.data;
-          }
-          
-          console.log('🎉 [DASHBOARD] Processing holidays:', holidayData.length);
-          
-          // Filter holidays for the current date range and add them
-          const filteredHolidays = holidayData.filter(h => {
-            const holidayDate = h.date || h.startDate;
-            if (!holidayDate) return false;
-            
-            // Safe date comparison
-            try {
-              let holidayDateStr = holidayDate;
-              
-              // Handle different date formats
-              if (holidayDate instanceof Date) {
-                holidayDateStr = holidayDate.toISOString().split('T')[0];
-              } else if (typeof holidayDate === 'string') {
-                if (holidayDate.includes('T')) {
-                  holidayDateStr = holidayDate.split('T')[0];
-                } else if (/^\d{4}-\d{2}-\d{2}$/.test(holidayDate)) {
-                  holidayDateStr = holidayDate;
-                } else {
-                  const parsed = new Date(holidayDate);
-                  if (!isNaN(parsed.getTime())) {
-                    holidayDateStr = parsed.toISOString().split('T')[0];
-                  } else {
-                    return false;
-                  }
-                }
-              }
-              
-              return holidayDateStr >= startDate && holidayDateStr <= endDate;
-            } catch (error) {
-              console.warn('Date filtering error for holiday:', h.name, holidayDate, error);
-              return false;
-            }
-          });
-          
-          console.log('🎉 [DASHBOARD] Filtered holidays for date range:', filteredHolidays.length);
-          
-          // Add filtered holidays, avoiding duplicates
-          const existingHolidayNames = new Set(
-            allEvents.filter(e => e.eventType === 'holiday').map(e => e.title || e.name)
-          );
-          
-          filteredHolidays.forEach(h => {
-            const holidayName = h.name || h.title;
-            if (!existingHolidayNames.has(holidayName)) {
-              allEvents.push({
-                ...h,
-                eventType: 'holiday',
-                title: holidayName,
-                startDate: h.date || h.startDate,
-                color: h.color || '#EF4444'
-              });
-            }
-          });
-        }
-      } catch (holidayError) {
-        console.warn('❌ [DASHBOARD] Holidays limited for employee:', holidayError);
-        // Don't break dashboard for holiday failures
+        console.log('✅ [DASHBOARD] Optimized calendar events loaded:', {
+          total: allEvents.length,
+          holidays: allEvents.filter(e => e.eventType === 'holiday').length,
+          leaves: allEvents.filter(e => e.eventType === 'leave').length,
+          birthdays: allEvents.filter(e => e.eventType === 'birthday').length,
+          anniversaries: allEvents.filter(e => e.eventType === 'anniversary').length,
+          events: allEvents.filter(e => e.eventType === 'event').length
+        });
+        
+        setCalendarEvents(allEvents);
+      } else {
+        console.warn('❌ [DASHBOARD] Calendar events failed:', eventsResponse);
+        setCalendarEvents([]);
       }
-      
-      console.log('📅 [DASHBOARD] Total calendar events:', allEvents.length);
-      console.log('🎉 [DASHBOARD] Holiday events:', allEvents.filter(e => e.eventType === 'holiday').length);
-      
-      setCalendarEvents(allEvents);
     } catch (error) {
       console.error('❌ [DASHBOARD] Failed to fetch calendar events:', error);
+      
+      // Handle 403 errors gracefully for employees
+      if (error.response?.status === 403) {
+        console.warn('❌ [DASHBOARD] Limited calendar access for employee');
+      }
+      
       setCalendarEvents([]);
     }
   };
@@ -717,23 +655,37 @@ const EmployeeDashboard = () => {
     }
   }, [calendarEvents]);
 
-  // ✅ SIMPLIFIED REFRESH: No duplicate calls
+  // ✅ OPTIMIZED REFRESH: Reduced API calls, smarter loading
   const refreshDashboard = async () => {
     setLoading(true);
     try {
-      await Promise.all([
+      console.log('🔄 [DASHBOARD] Starting optimized refresh...');
+      
+      // ✅ PHASE 1: Essential data only
+      const essentialPromises = [
         fetchDashboardData(),
-        fetchLeaveBalance(),
         fetchAttendanceSummary(),
         fetchTodayRecord(true),
-        fetchTeamData(true),
-        fetchUpcomingBirthdays(true),
         getNotifications({ limit: 5 }),
-        // ❌ REMOVED: fetchCalendarEvents() - handled by separate useEffect
-      ]);
+      ];
+      
+      await Promise.allSettled(essentialPromises);
+      
+      // ✅ PHASE 2: Optional data (don't wait for completion)
+      const optionalPromises = [
+        fetchLeaveBalance(),
+        fetchTeamData(true),
+        fetchUpcomingBirthdays(true), // ✅ Now enhanced - 6 months
+      ];
+      
+      // Don't block UI for optional data
+      Promise.allSettled(optionalPromises).catch(error => {
+        console.warn('❌ [DASHBOARD] Optional refresh data failed:', error);
+      });
+      
       toast.success('Dashboard refreshed successfully');
     } catch (error) {
-      console.error('Error refreshing dashboard:', error);
+      console.error('❌ [DASHBOARD] Refresh failed:', error);
       toast.error('Failed to refresh some data');
     } finally {
       setLoading(false);
@@ -906,7 +858,7 @@ const EmployeeDashboard = () => {
               <div className="space-y-2 sm:space-y-3">
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900">
                   Hello, {fullName || "Employee"}
-                  <span className="ml-2 text-yellow-500">👋</span>
+                  <User className="ml-2 w-5 h-5 text-blue-500 inline" />
                 </h1>
                 <p className="text-xs sm:text-sm text-gray-500">
                   Employee ID: {dashboardData.employeeId || "EMP-1023"}
@@ -954,7 +906,8 @@ const EmployeeDashboard = () => {
                       className="px-2 sm:px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium hover:bg-yellow-200 transition-colors"
                       title="Test API connectivity"
                     >
-                      🔧 <span className="hidden sm:inline">Test APIs</span>
+                      <Activity className="w-4 h-4 text-yellow-600" />
+                      <span className="hidden sm:inline">Test APIs</span>
                     </button>
                   )}
                   
@@ -1003,7 +956,8 @@ const EmployeeDashboard = () => {
                   </button>
                   {status === 'pending_correction' && (
                     <p className="text-xs text-orange-600 mt-1">
-                      ⚠ Attendance needs correction approval
+                      <AlertCircle className="w-4 h-4 text-orange-500" />
+                      Attendance needs correction approval
                     </p>
                   )}
                   <div className="flex flex-col items-center gap-1 text-xs text-gray-500">
@@ -1014,9 +968,9 @@ const EmployeeDashboard = () => {
                         onChange={(e) => setWorkMode(e.target.value)}
                         className="text-xs border rounded px-2 py-1 bg-white"
                       >
-                        <option value="office"><Building2/>Office</option>
-                        <option value="wfh"><Home/>Work From Home</option>
-                        <option value="field"><Car/> Field Work</option>
+                        <option value="office">Office</option>
+                        <option value="wfh">Work From Home</option>
+                        <option value="field">Field Work</option>
                       </select>
                     )}
                     {isClockedIn && (
@@ -1113,6 +1067,7 @@ const EmployeeDashboard = () => {
             }
             onClick={() => navigate("/employee/bank-details")}
           />
+
         </div>
 
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1124,12 +1079,12 @@ const EmployeeDashboard = () => {
              <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
                <Palmtree className="w-4 h-4 text-green-600" />
                   <span>On Leave Today</span>
-    </CardTitle>
-  </CardHeader>
+             </CardTitle>
+            </CardHeader>
 
-  <CardContent className="pt-0 space-y-3">
+            <CardContent className="pt-0 space-y-3">
     {/* ✅ PERMISSION-AWARE EMPTY STATE */}
-    {!can.do(MODULES.COMPANY_STATUS?.VIEW) ? (
+    {!can.do(MODULES.ATTENDANCE?.VIEW_COMPANY_STATUS) ? (
       <EmptyState
         icon={Palmtree}
         title="Restricted Access"
@@ -1183,7 +1138,7 @@ const EmployeeDashboard = () => {
 
   <CardContent className="pt-0 space-y-3">
     {/* ✅ PERMISSION-AWARE EMPTY STATE */}
-    {!can.do(MODULES.COMPANY_STATUS?.VIEW) ? (
+    {!can.do(MODULES.ATTENDANCE?.VIEW_COMPANY_STATUS) ? (
       <EmptyState
         icon={Home}
         title="Restricted Access"
@@ -1229,45 +1184,122 @@ const EmployeeDashboard = () => {
           <div className="lg:col-span-1">
            <Card className="bg-white rounded-xl border shadow-sm">
   <CardHeader className="pb-2">
-    <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-      <Gift className="w-4 h-4 text-pink-600" />
-      <span>Upcoming Birthdays</span>
+    <CardTitle className="flex items-center justify-between text-sm sm:text-base">
+      <div className="flex items-center gap-2">
+        <Gift className="w-4 h-4 text-pink-600" />
+        <span>Upcoming Birthdays</span>
+      </div>
+      {upcomingBirthdays.length > 0 && (
+        <span className="text-xs bg-pink-100 text-pink-700 px-2 py-1 rounded-full">
+          {upcomingBirthdays.length} upcoming
+        </span>
+      )}
     </CardTitle>
   </CardHeader>
 
-  <CardContent className="pt-0 space-y-3">
+  <CardContent className="pt-0">
     {upcomingBirthdays.length > 0 ? (
-      upcomingBirthdays.slice(0, 5).map((b, i) => (
-        <div
-          key={b.id || i}
-          className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50"
-        >
-          <div className="p-2 rounded-full bg-pink-100">
-            <CakeIcon className="w-3 h-3 text-pink-600" />
-          </div>
+      <div className="space-y-2 max-h-64 overflow-y-auto">
+        {upcomingBirthdays.map((b, i) => (
+          <div
+            key={b.id || i}
+            className={`flex items-start gap-3 p-2 sm:p-3 rounded-lg transition-colors ${
+              b.isToday 
+                ? 'bg-pink-50 border border-pink-200 shadow-sm' 
+                : 'hover:bg-gray-50'
+            }`}
+          >
+            <div className={`p-1.5 sm:p-2 rounded-full flex-shrink-0 ${
+              b.isToday ? 'bg-pink-200' : 'bg-pink-100'
+            }`}>
+              <CakeIcon className={`w-3 h-3 sm:w-4 sm:h-4 ${
+                b.isToday ? 'text-pink-700' : 'text-pink-600'
+              }`} />
+            </div>
 
-          <div className="flex-1">
-            <p className="font-medium text-sm text-gray-900">
-              {b.employeeName}
-            </p>
-            <p className="text-xs text-gray-500">
-              {format(new Date(b.date), 'dd MMM')}
-            </p>
-          </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-1">
+                <div className="flex-1 min-w-0">
+                  <p className={`font-medium text-sm leading-tight truncate ${
+                    b.isToday ? 'text-pink-900' : 'text-gray-900'
+                  }`}>
+                    {b.employeeName || 'Unknown Employee'}
+                  </p>
+                  
+                  {/* Birth Date Display */}
+                  <div className="flex flex-col gap-0.5 mt-1">
+                    <p className="text-xs text-gray-600">
+                      {b.isToday ? (
+                        <span className="font-medium text-pink-700 flex items-center gap-1">
+                          <Gift className="w-3 h-3" />
+                          Today is their birthday!
+                        </span>
+                      ) : (
+                        `${b.daysUntil} day${b.daysUntil !== 1 ? 's' : ''} away`
+                      )}
+                    </p>
+                    
+                    {/* Show actual birth date */}
+                    {b.nextBirthdayDate && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {format(b.nextBirthdayDate, 'MMM dd, yyyy')}
+                      </p>
+                    )}
+                    
+                    {/* Show department if available */}
+                    {b.department && (
+                      <p className="text-xs text-gray-400 truncate">
+                        {b.department}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-          {b.isToday && (
-            <span className="text-xs bg-pink-100 text-pink-700 px-2 py-0.5 rounded-full">
-              Today 🎉
-            </span>
-          )}
-        </div>
-      ))
+                {/* Status Badge */}
+                <div className="flex-shrink-0 mt-1 sm:mt-0">
+                  {b.isToday ? (
+                    <span className="inline-flex items-center gap-1 text-xs bg-pink-200 text-pink-800 px-2 py-1 rounded-full font-medium">
+                      <CakeIcon className="w-3 h-3" />
+                      Today
+                    </span>
+                  ) : b.daysUntil <= 7 ? (
+                    <span className="inline-flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
+                      This Week
+                    </span>
+                  ) : b.daysUntil <= 30 ? (
+                    <span className="inline-flex items-center gap-1 text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                      This Month
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                      {Math.ceil(b.daysUntil / 30)} month{Math.ceil(b.daysUntil / 30) !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     ) : (
       <EmptyState
         icon={Gift}
         title="No upcoming birthdays"
         description="Nothing to celebrate soon"
       />
+    )}
+    
+    {/* Show more button if there are many birthdays */}
+    {upcomingBirthdays.length > 5 && (
+      <div className="mt-3 pt-2 border-t border-gray-100">
+        <button 
+          className="w-full text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors"
+          onClick={() => navigate('/employee/calendar')}
+        >
+          View all birthdays in calendar →
+        </button>
+      </div>
     )}
   </CardContent>
 </Card>
@@ -1283,7 +1315,7 @@ const EmployeeDashboard = () => {
                 <CardTitle className="text-sm sm:text-base">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 gap-3">
                   <QuickActionButton
                     icon={<FileText className="w-5 h-5 sm:w-6 sm:h-6" />}
                     label="Apply Leave"
@@ -1303,6 +1335,16 @@ const EmployeeDashboard = () => {
                     icon={<User className="w-5 h-5 sm:w-6 sm:h-6" />}
                     label="My Profile"
                     onClick={() => navigate("/employee/profile")}
+                  />
+                  <QuickActionButton
+                    icon={<Calendar className="w-5 h-5 sm:w-6 sm:h-6" />}
+                    label="Calendar"
+                    onClick={() => navigate("/employee/calendar")}
+                  />
+                  <QuickActionButton
+                    icon={<Clock className="w-5 h-5 sm:w-6 sm:h-6" />}
+                    label="Attendance"
+                    onClick={() => navigate("/employee/attendance")}
                   />
                   {/* Only show leads if user has permission */}
                   {can.do(MODULES.LEAD.VIEW) && (
@@ -1336,48 +1378,49 @@ const EmployeeDashboard = () => {
                       <AlertCircle className="w-5 h-5 text-red-500 mx-auto mb-2" />
                       <p className="text-xs sm:text-sm text-red-600">Failed to load notifications</p>
                     </div>
-                  ) : notifications && notifications.length > 0 ? (
-                    <>
-                      {notifications.slice(0, 5).map((notification, index) => (
-                        <div 
-                          key={notification.id || index} 
-                          className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
-                            notification.read ? 'bg-gray-50' : 'bg-blue-50 border border-blue-200'
-                          }`}
-                          onClick={() => !notification.read && markAsRead(notification.id)}
-                        >
-                          <div className="mt-0.5 flex-shrink-0">
-                            {getNotificationIcon(notification.type)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <span className={`text-xs sm:text-sm block ${notification.read ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>
-                              {notification.message || notification.title}
-                            </span>
-                            {notification.createdAt && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                {format(new Date(notification.createdAt), 'MMM dd, hh:mm a')}
-                              </p>
-                            )}
-                          </div>
-                          {!notification.read && (
+                  ) : (() => {
+                    // Filter out read notifications - only show unread ones
+                    const unreadNotifications = notifications?.filter(n => !n.read) || [];
+                    
+                    return unreadNotifications.length > 0 ? (
+                      <>
+                        {unreadNotifications.slice(0, 5).map((notification, index) => (
+                          <div 
+                            key={notification.id || index} 
+                            className="flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-colors bg-blue-50 border border-blue-200 hover:bg-blue-100"
+                            onClick={() => markAsRead(notification.id)}
+                          >
+                            <div className="mt-0.5 flex-shrink-0">
+                              {getNotificationIcon(notification.type)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <span className="text-xs sm:text-sm block text-gray-900 font-medium">
+                                {notification.message || notification.title}
+                              </span>
+                              {notification.createdAt && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {format(new Date(notification.createdAt), 'MMM dd, hh:mm a')}
+                                </p>
+                              )}
+                            </div>
                             <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                          )}
-                        </div>
-                      ))}
-                      <button 
-                        className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
-                        onClick={() => navigate('/notifications')}
-                      >
-                        View all →
-                      </button>
-                    </>
-                  ) : (
-                    <div className="text-center py-6 text-gray-500">
-                      <Bell className="w-6 h-6 mx-auto mb-2 text-gray-400" />
-                      <p className="text-xs sm:text-sm">No notifications</p>
-                      <p className="text-xs">You're all caught up!</p>
-                    </div>
-                  )}
+                          </div>
+                        ))}
+                        <button 
+                          className="text-xs sm:text-sm text-blue-600 hover:text-blue-800 font-medium"
+                          onClick={() => navigate('/notifications')}
+                        >
+                          View all notifications →
+                        </button>
+                      </>
+                    ) : (
+                      <div className="text-center py-6 text-gray-500">
+                        <CheckCircle className="w-6 h-6 mx-auto mb-2 text-green-400" />
+                        <p className="text-xs sm:text-sm">No new notifications</p>
+                        <p className="text-xs">You're all caught up!</p>
+                      </div>
+                    );
+                  })()}
                 </div>
               </CardContent>
             </Card>
@@ -1455,34 +1498,34 @@ const EmployeeDashboard = () => {
                         const isToday = day && isSameDay(day, new Date());
                         const isCurrentMonth = day && day.getMonth() === calendarDate.getMonth();
                         
-                        // Safe event filtering with robust date comparison
+                        // ✅ FIX: Robust date comparison for calendar events
                         const hasEvents = day && calendarEvents.some(event => {
                           const eventDate = event.startDate || event.date;
                           if (!eventDate) return false;
                           
                           try {
-                            let eventDateStr = eventDate;
+                            // ✅ FIX: Proper date comparison without timezone issues
+                            let eventDateObj;
                             
-                            // Handle different date formats
                             if (eventDate instanceof Date) {
-                              eventDateStr = eventDate.toISOString().split('T')[0];
+                              eventDateObj = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
                             } else if (typeof eventDate === 'string') {
                               if (eventDate.includes('T')) {
-                                eventDateStr = eventDate.split('T')[0];
+                                const dateStr = eventDate.split('T')[0];
+                                const [year, month, dayNum] = dateStr.split('-').map(Number);
+                                eventDateObj = new Date(year, month - 1, dayNum);
                               } else if (/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
-                                eventDateStr = eventDate;
+                                const [year, month, dayNum] = eventDate.split('-').map(Number);
+                                eventDateObj = new Date(year, month - 1, dayNum);
                               } else {
-                                const parsed = new Date(eventDate);
-                                if (!isNaN(parsed.getTime())) {
-                                  eventDateStr = parsed.toISOString().split('T')[0];
-                                } else {
-                                  return false;
-                                }
+                                return false;
                               }
+                            } else {
+                              return false;
                             }
                             
-                            const dayStr = day.toISOString().split('T')[0];
-                            return eventDateStr === dayStr;
+                            const dayObj = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+                            return eventDateObj.getTime() === dayObj.getTime();
                           } catch (error) {
                             console.warn('Date comparison error in calendar:', event.title, eventDate, error);
                             return false;
@@ -1513,34 +1556,34 @@ const EmployeeDashboard = () => {
                     {getWeekDays(calendarDate).map((day, i) => {
                       const isToday = isSameDay(day, new Date());
                       
-                      // Safe event filtering with robust date comparison
+                      // ✅ FIX: Robust date comparison for week view
                       const dayEvents = calendarEvents.filter(event => {
                         const eventDate = event.startDate || event.date;
                         if (!eventDate) return false;
                         
                         try {
-                          let eventDateStr = eventDate;
+                          // ✅ FIX: Proper date comparison without timezone issues
+                          let eventDateObj;
                           
-                          // Handle different date formats
                           if (eventDate instanceof Date) {
-                            eventDateStr = eventDate.toISOString().split('T')[0];
+                            eventDateObj = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
                           } else if (typeof eventDate === 'string') {
                             if (eventDate.includes('T')) {
-                              eventDateStr = eventDate.split('T')[0];
+                              const dateStr = eventDate.split('T')[0];
+                              const [year, month, dayNum] = dateStr.split('-').map(Number);
+                              eventDateObj = new Date(year, month - 1, dayNum);
                             } else if (/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
-                              eventDateStr = eventDate;
+                              const [year, month, dayNum] = eventDate.split('-').map(Number);
+                              eventDateObj = new Date(year, month - 1, dayNum);
                             } else {
-                              const parsed = new Date(eventDate);
-                              if (!isNaN(parsed.getTime())) {
-                                eventDateStr = parsed.toISOString().split('T')[0];
-                              } else {
-                                return false;
-                              }
+                              return false;
                             }
+                          } else {
+                            return false;
                           }
                           
-                          const dayStr = day.toISOString().split('T')[0];
-                          return eventDateStr === dayStr;
+                          const dayObj = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+                          return eventDateObj.getTime() === dayObj.getTime();
                         } catch (error) {
                           console.warn('Date comparison error in week view:', event.title, eventDate, error);
                           return false;
