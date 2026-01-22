@@ -10,6 +10,7 @@ import { getLocalDateString } from '../utils/dateUtils.js';
  */
 async function getEmployeeShiftForDate(employeeId, dateString) {
   try {
+    // First, get the employee shift assignment
     const employeeShift = await EmployeeShift.findOne({
       where: {
         employeeId: employeeId,
@@ -19,22 +20,25 @@ async function getEmployeeShiftForDate(employeeId, dateString) {
           { endDate: null },
           { endDate: { [Op.gte]: dateString } }
         ]
-      },
-      include: [
-        {
-          model: Shift,
-          attributes: [
-            'shiftStartTime',
-            'shiftEndTime',
-            'fullDayHours',
-            'halfDayHours',
-            'gracePeriodMinutes'
-          ]
-        }
+      }
+    });
+
+    if (!employeeShift) {
+      return null;
+    }
+
+    // Then, get the shift details separately
+    const shift = await Shift.findByPk(employeeShift.shiftId, {
+      attributes: [
+        'shiftStartTime',
+        'shiftEndTime',
+        'fullDayHours',
+        'halfDayHours',
+        'gracePeriodMinutes'
       ]
     });
 
-    return employeeShift?.Shift || null;
+    return shift;
   } catch (error) {
     logger.error(`Error fetching shift for employee ${employeeId}:`, error);
     return null;
@@ -385,7 +389,7 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
     // ✅ CASE 4: Has both clock-in and clock-out → Calculate final status
     if (record.clockIn && record.clockOut) {
       // 🔥 CRITICAL FIX: Use model's finalization method instead of duplicating logic
-      record.finalizeWithShift(shift);
+      await record.finalizeWithShift(shift);
       
       // 🔥 NEW: Recalculate late status at finalization (BEST PRACTICE)
       // This ensures late status is correct even if clock-in calculation was wrong
@@ -393,7 +397,8 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
         const AttendanceCalculationService = (await import('../services/core/attendanceCalculation.service.js')).default;
         const lateCalculation = AttendanceCalculationService.calculateLateStatus(
           new Date(record.clockIn), 
-          shift
+          shift,
+          record.date // Use the attendance date from the record
         );
         
         // Update late status if it changed

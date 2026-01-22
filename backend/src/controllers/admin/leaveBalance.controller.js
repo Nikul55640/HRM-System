@@ -168,7 +168,7 @@ const leaveBalanceController = {
   assignSingleEmployeeQuota: async (req, res) => {
     try {
       const { employeeId } = req.params;
-      const { year, leaveBalances } = req.body;
+      const { year, leaveBalances, isAddition, reason } = req.body;
       const metadata = {
         ipAddress: req.ip,
         userAgent: req.headers["user-agent"],
@@ -178,6 +178,71 @@ const leaveBalanceController = {
         return sendResponse(res, false, "Leave balances array is required", null, 400);
       }
 
+      // Handle addition to existing balance
+      if (isAddition) {
+        const results = [];
+        
+        for (const { leaveType, allocated } of leaveBalances) {
+          // Find existing balance
+          const existingBalance = await LeaveBalance.findOne({
+            where: {
+              employeeId,
+              year: year || new Date().getFullYear(),
+              leaveType
+            }
+          });
+
+          if (existingBalance) {
+            // Add to existing balance
+            const oldAllocated = existingBalance.allocated;
+            existingBalance.allocated += allocated;
+            existingBalance.remaining = existingBalance.allocated + existingBalance.carryForward - existingBalance.used - existingBalance.pending;
+            existingBalance.updatedBy = req.user.id;
+            
+            await existingBalance.save();
+
+            // Log the adjustment
+            await AuditLog.logAction({
+              userId: req.user.id,
+              action: 'leave_balance_add',
+              module: 'leave',
+              targetType: 'LeaveBalance',
+              targetId: existingBalance.id,
+              oldValues: { allocated: oldAllocated },
+              newValues: { allocated: existingBalance.allocated },
+              description: `Added ${allocated} days to ${leaveType} leave balance for employee ${employeeId}. ${reason || 'Manual addition'}`,
+              ipAddress: metadata.ipAddress,
+              userAgent: metadata.userAgent,
+              severity: 'medium'
+            });
+
+            results.push(existingBalance);
+          } else {
+            // Create new balance if doesn't exist
+            const newBalance = await LeaveBalance.create({
+              employeeId,
+              year: year || new Date().getFullYear(),
+              leaveType,
+              allocated,
+              carryForward: 0,
+              used: 0,
+              pending: 0,
+              remaining: allocated,
+              createdBy: req.user.id
+            });
+
+            results.push(newBalance);
+          }
+        }
+
+        return sendResponse(res, true, "Leave balance updated successfully", {
+          successful: results,
+          totalProcessed: leaveBalances.length,
+          successCount: results.length
+        });
+      }
+
+      // Original assignment logic for new assignments
       const assignments = [{
         employeeId,
         year: year || new Date().getFullYear(),

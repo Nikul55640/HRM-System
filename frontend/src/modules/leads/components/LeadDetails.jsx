@@ -47,6 +47,15 @@ const LeadDetails = ({ leadId }) => {
   }, [fetchLeadDetails]);
 
   const getStatusBadge = (status) => {
+    if (!status) {
+      return (
+        <Badge className="bg-gray-100 text-gray-800 flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          UNKNOWN
+        </Badge>
+      );
+    }
+
     const statusConfig = {
       new: { color: 'bg-blue-100 text-blue-800', icon: AlertCircle },
       contacted: { color: 'bg-yellow-100 text-yellow-800', icon: Phone },
@@ -63,12 +72,20 @@ const LeadDetails = ({ leadId }) => {
     return (
       <Badge className={`${config.color} flex items-center gap-1`}>
         <Icon className="w-3 h-3" />
-        {status.replace('_', ' ').toUpperCase()}
+        {(status || '').replace('_', ' ').toUpperCase()}
       </Badge>
     );
   };
 
   const getPriorityBadge = (priority) => {
+    if (!priority) {
+      return (
+        <Badge className="bg-gray-100 text-gray-800">
+          NORMAL
+        </Badge>
+      );
+    }
+
     const priorityConfig = {
       low: 'bg-gray-100 text-gray-800',
       medium: 'bg-blue-100 text-blue-800',
@@ -78,7 +95,7 @@ const LeadDetails = ({ leadId }) => {
 
     return (
       <Badge className={priorityConfig[priority] || 'bg-gray-100 text-gray-800'}>
-        {priority.toUpperCase()}
+        {(priority || '').toUpperCase()}
       </Badge>
     );
   };
@@ -97,6 +114,15 @@ const LeadDetails = ({ leadId }) => {
   };
 
   const getActivityStatusBadge = (status) => {
+    if (!status) {
+      return (
+        <Badge className="bg-gray-100 text-gray-800 flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          PENDING
+        </Badge>
+      );
+    }
+
     const statusConfig = {
       pending: { color: 'bg-yellow-100 text-yellow-800', icon: Clock },
       completed: { color: 'bg-green-100 text-green-800', icon: CheckCircle },
@@ -109,7 +135,7 @@ const LeadDetails = ({ leadId }) => {
     return (
       <Badge className={`${config.color} flex items-center gap-1`}>
         <Icon className="w-3 h-3" />
-        {status.toUpperCase()}
+        {(status || '').toUpperCase()}
       </Badge>
     );
   };
@@ -208,7 +234,7 @@ const LeadDetails = ({ leadId }) => {
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
             <div>
               <p className="text-xs text-gray-600">Source</p>
-              <p className="font-medium capitalize">{lead.source.replace('_', ' ')}</p>
+              <p className="font-medium capitalize">{lead.source ? (lead.source || '').replace('_', ' ') : 'N/A'}</p>
             </div>
             <div>
               <p className="text-xs text-gray-600">Position</p>
@@ -326,7 +352,7 @@ const LeadDetails = ({ leadId }) => {
                         <div className="flex items-center gap-2">
                           <MessageSquare className="w-4 h-4 text-gray-400" />
                           <Badge variant="outline" className="capitalize text-xs">
-                            {note.type.replace('_', ' ')}
+                            {note.type ? note.type.replace('_', ' ') : 'note'}
                           </Badge>
                         </div>
                         <div className="text-xs text-gray-500">

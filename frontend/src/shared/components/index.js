@@ -8,3 +8,5 @@ export { default as Icon } from './Icon';
 export { default as SkeletonLoader } from './SkeletonLoader';
 export { default as  ScopeIndicator } from './ScopeIndicator';
 export { default as ApprovalStatusBadge } from './ApprovalStatusBadge';
+export { default as DetailModal } from './DetailModal';
+export { default as QuickPreview } from './QuickPreview';

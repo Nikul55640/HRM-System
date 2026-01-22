@@ -14,11 +14,12 @@ import {
   SelectValue,
 } from "../../../shared/ui/select";
 
-import { LayoutGrid, List, Plus, Users } from "lucide-react";
+import { LayoutGrid, List, Plus, Users, Eye, Edit } from "lucide-react";
 import {
   LoadingSpinner,
   Pagination,
   ScopeIndicator,
+  QuickPreview,
 } from "../../../shared/components";
 
 import EmployeeCard from "../components/EmployeeCard";
@@ -55,6 +56,8 @@ const EmployeeList = () => {
   const [viewMode, setViewMode] = useState("card");
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showQuickPreview, setShowQuickPreview] = useState(false);
+  const [previewEmployee, setPreviewEmployee] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");

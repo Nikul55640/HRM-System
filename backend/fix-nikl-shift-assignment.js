@@ -69,7 +69,8 @@ async function fixNiklShiftAssignment() {
                 // Recalculate with new shift
                 const lateCalculation = AttendanceCalculationService.calculateLateStatus(
                     new Date(record.clockIn),
-                    dayShift
+                    dayShift,
+                    record.date // Use the attendance date from the record
                 );
 
                 // Update the record

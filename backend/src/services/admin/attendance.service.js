@@ -3,7 +3,7 @@
  * Handles all business logic for attendance management with break and late tracking
  */
 
-import { AttendanceRecord, Employee, Shift, EmployeeShift, User, AuditLog, Holiday } from '../../models/index.js';
+import { AttendanceRecord, Employee, Shift, EmployeeShift, AuditLog } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
 import { ROLES } from '../../config/rolePermissions.js';
@@ -37,15 +37,7 @@ class AttendanceService {
                 transaction
             });
 
-            // 🚫 APPLY ENHANCED BUTTON CONTROL RULES
-            if (attendanceRecord) {
-                const canClockIn = attendanceRecord.canClockIn();
-                if (!canClockIn.allowed) {
-                    throw { message: canClockIn.reason, statusCode: 400 };
-                }
-            }
-
-            // Get employee's assigned shift
+            // Get employee's assigned shift first (needed for button control)
             let assignedShift = null;
             try {
                 const employee = await Employee.findByPk(user.employee?.id, {
@@ -70,6 +62,14 @@ class AttendanceService {
             // Fallback to default shift if no specific assignment
             if (!assignedShift) {
                 assignedShift = await Shift.findOne({ where: { isDefault: true } });
+            }
+
+            // 🚫 APPLY ENHANCED BUTTON CONTROL RULES
+            if (attendanceRecord) {
+                const canClockIn = attendanceRecord.canClockIn(assignedShift);
+                if (!canClockIn.allowed) {
+                    throw { message: canClockIn.reason, statusCode: 400 };
+                }
             }
 
             const clockInTime = new Date();
@@ -122,7 +122,7 @@ class AttendanceService {
 
             // Calculate late status at clock-in using centralized service
             if (assignedShift) {
-                const lateCalculation = AttendanceCalculationService.calculateLateStatus(clockInTime, assignedShift);
+                const lateCalculation = AttendanceCalculationService.calculateLateStatus(clockInTime, assignedShift, today);
                 
                 // Update late status immediately (CRITICAL: Use transaction)
                 await attendanceRecord.update({
@@ -211,8 +211,18 @@ class AttendanceService {
 
             const clockOutTime = new Date();
 
+            // 🔧 CRITICAL FIX: Calculate work hours using AttendanceCalculationService
+            const { workMinutes, breakMinutes } = AttendanceCalculationService.calculateWorkHours(
+                attendanceRecord.clockIn,
+                clockOutTime,
+                attendanceRecord.breakSessions
+            );
+
             await attendanceRecord.update({
                 clockOut: clockOutTime,
+                totalWorkedMinutes: workMinutes,
+                totalBreakMinutes: breakMinutes,
+                workHours: Math.round((workMinutes / 60) * 100) / 100,
                 updatedBy: user.id
             });
 
@@ -249,7 +259,7 @@ class AttendanceService {
             return {
                 success: true,
                 data: clockOutResponse,
-                message: `Clocked out successfully. Status: ${attendanceRecord.status}, Hours worked: ${attendanceRecord.workHours}`
+                message: 'Clocked out successfully. Attendance will be finalized shortly.'
             };
         } catch (error) {
             logger.error('Error in clock out:', error);
@@ -504,8 +514,32 @@ class AttendanceService {
                 });
             }
 
-            // Get button states using the new enhanced methods
-            const canClockIn = attendanceRecord.canClockIn();
+            // 🕐 NEW: Get employee's shift for today to check shift end time
+            let shift = null;
+            try {
+                const employeeShift = await EmployeeShift.findOne({
+                    where: {
+                        employeeId: user.employee.id,
+                        isActive: true,
+                        effectiveDate: { [Op.lte]: today },
+                        [Op.or]: [
+                            { endDate: null },
+                            { endDate: { [Op.gte]: today } }
+                        ]
+                    }
+                });
+
+                if (employeeShift) {
+                    shift = await Shift.findByPk(employeeShift.shiftId, {
+                        attributes: ['shiftStartTime', 'shiftEndTime', 'fullDayHours', 'halfDayHours']
+                    });
+                }
+            } catch (shiftError) {
+                logger.warn('Could not fetch shift data for button states:', shiftError.message);
+            }
+
+            // Get button states using the new enhanced methods with shift data
+            const canClockIn = attendanceRecord.canClockIn(shift);
             const canClockOut = attendanceRecord.canClockOut();
             const canStartBreak = attendanceRecord.canStartBreak();
             const canEndBreak = attendanceRecord.canEndBreak();
@@ -532,7 +566,12 @@ class AttendanceService {
                 hasClockIn: !!attendanceRecord.clockIn,
                 hasClockOut: !!attendanceRecord.clockOut,
                 isOnBreak: !!attendanceRecord.getCurrentBreakSession?.(),
-                workMode: attendanceRecord.workMode || 'office'
+                workMode: attendanceRecord.workMode || 'office',
+                // 🕐 NEW: Include shift info for frontend
+                shiftInfo: shift ? {
+                    startTime: shift.shiftStartTime,
+                    endTime: shift.shiftEndTime
+                } : null
             };
 
             return {
@@ -866,10 +905,19 @@ class AttendanceService {
 
                 await attendanceRecord.update(updateData);
 
-                // Recalculate working hours if times were changed
+                // 🔧 CRITICAL FIX: Recalculate working hours using AttendanceCalculationService
                 if (correctionData.clockIn || correctionData.clockOut) {
-                    attendanceRecord.calculateWorkingHours();
-                    await attendanceRecord.save();
+                    const { workMinutes, breakMinutes } = AttendanceCalculationService.calculateWorkHours(
+                        attendanceRecord.clockIn,
+                        attendanceRecord.clockOut,
+                        attendanceRecord.breakSessions
+                    );
+
+                    await attendanceRecord.update({
+                        totalWorkedMinutes: workMinutes,
+                        totalBreakMinutes: breakMinutes,
+                        workHours: Math.round((workMinutes / 60) * 100) / 100
+                    });
                 }
             } else if (action === 'reject') {
                 await attendanceRecord.update({

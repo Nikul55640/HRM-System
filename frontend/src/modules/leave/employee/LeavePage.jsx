@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
-import { LoadingSpinner, EmptyState } from "../../../shared/components";
+import { LoadingSpinner, EmptyState, DetailModal } from "../../../shared/components";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
 import { Button } from "../../../shared/ui/button";
 import { HRMStatusBadge } from "../../../shared/ui/HRMStatusBadge";
@@ -19,6 +19,7 @@ import {
   FileText,
   User,
   MapPin,
+  Eye,
 } from "lucide-react";
 import employeeSelfService from "../../../services/employeeSelfService";
 import leaveService from "../../../services/leaveService";
@@ -33,6 +34,8 @@ const LeavePage = () => {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [cancellingId, setCancellingId] = useState(null);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Use the custom hook for leave balance
   const { 
@@ -82,6 +85,11 @@ const LeavePage = () => {
     } catch (error) {
       toast.error(error.message || "Failed to submit leave request");
     }
+  };
+
+  const handleViewDetails = (request) => {
+    setSelectedRequest(request);
+    setShowDetailModal(true);
   };
 
   const handleCancelRequest = async (requestId, event) => {
@@ -260,6 +268,17 @@ const LeavePage = () => {
                             {getStatusIcon(request.status)}
                             {request.status}
                           </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewDetails(request);
+                            }}
+                            className="px-2 py-1 text-xs text-blue-600 hover:text-blue-700 hover:bg-blue-50 border border-blue-200 rounded-md transition-colors flex items-center gap-1"
+                            title="View details"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span className="hidden sm:inline">View</span>
+                          </button>
                           {request.status === 'pending' && (
                             <button
                               onClick={(e) => handleCancelRequest(request._id || request.id, e)}
@@ -354,6 +373,90 @@ const LeavePage = () => {
           onClose={() => setShowModal(false)}
           onSubmit={handleApplyLeave}
           leaveBalance={leaveBalance}
+        />
+      )}
+
+      {/* Leave Details Modal */}
+      {showDetailModal && selectedRequest && (
+        <DetailModal
+          open={showDetailModal}
+          onClose={() => {
+            setShowDetailModal(false);
+            setSelectedRequest(null);
+          }}
+          title="Leave Request Details"
+          data={selectedRequest}
+          sections={[
+            {
+              label: 'Leave Information',
+              fields: [
+                { key: 'leaveType', label: 'Leave Type', icon: 'description' },
+                { key: 'status', label: 'Status', type: 'status' },
+                { key: 'duration', label: 'Duration (Days)', type: 'number', icon: 'time' },
+                { key: 'halfDayType', label: 'Half Day Type', icon: 'time' }
+              ]
+            },
+            {
+              label: 'Dates & Timeline',
+              fields: [
+                { key: 'startDate', label: 'Start Date', type: 'date', icon: 'date' },
+                { key: 'endDate', label: 'End Date', type: 'date', icon: 'date' },
+                { key: 'createdAt', label: 'Applied Date', type: 'date', icon: 'date' },
+                { key: 'appliedDate', label: 'Applied Date (Alt)', type: 'date', icon: 'date' }
+              ]
+            },
+            {
+              label: 'Details & Reason',
+              fields: [
+                { key: 'reason', label: 'Leave Reason', type: 'longtext', fullWidth: true },
+                { key: 'emergencyContact', label: 'Emergency Contact', icon: 'user' },
+                { key: 'workHandover', label: 'Work Handover', type: 'longtext', fullWidth: true }
+              ]
+            },
+            ...(selectedRequest.status === 'approved' || selectedRequest.approvedBy ? [{
+              label: 'Approval Information',
+              fields: [
+                { key: 'approvedBy', label: 'Approved By', icon: 'user' },
+                { key: 'approvedDate', label: 'Approved Date', type: 'date', icon: 'date' },
+                { key: 'approverComments', label: 'Approver Comments', type: 'longtext', fullWidth: true }
+              ]
+            }] : []),
+            ...(selectedRequest.status === 'rejected' || selectedRequest.rejectionReason ? [{
+              label: 'Rejection Information',
+              fields: [
+                { key: 'rejectionReason', label: 'Rejection Reason', type: 'longtext', fullWidth: true },
+                { key: 'rejectedBy', label: 'Rejected By', icon: 'user' },
+                { key: 'rejectedDate', label: 'Rejected Date', type: 'date', icon: 'date' }
+              ]
+            }] : []),
+            ...(selectedRequest.status === 'cancelled' || selectedRequest.cancellationReason ? [{
+              label: 'Cancellation Information',
+              fields: [
+                { key: 'cancellationReason', label: 'Cancellation Reason', type: 'longtext', fullWidth: true },
+                { key: 'cancelledBy', label: 'Cancelled By', icon: 'user' },
+                { key: 'cancelledDate', label: 'Cancelled Date', type: 'date', icon: 'date' }
+              ]
+            }] : [])
+          ]}
+          actions={[
+            ...(selectedRequest.status === 'pending' ? [{
+              label: 'Cancel Request',
+              icon: X,
+              onClick: () => {
+                setShowDetailModal(false);
+                handleCancelRequest(selectedRequest._id || selectedRequest.id, { stopPropagation: () => {} });
+              },
+              variant: 'destructive'
+            }] : []),
+            {
+              label: 'Close',
+              onClick: () => {
+                setShowDetailModal(false);
+                setSelectedRequest(null);
+              },
+              variant: 'outline'
+            }
+          ]}
         />
       )}
     </div>

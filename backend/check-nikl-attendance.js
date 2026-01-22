@@ -95,7 +95,8 @@ async function checkNiklAttendance() {
             if (record.clockIn && shift) {
                 const recalculated = AttendanceCalculationService.calculateLateStatus(
                     new Date(record.clockIn),
-                    shift
+                    shift,
+                    record.date // Use the attendance date from the record
                 );
 
                 if (Math.abs(record.lateMinutes - recalculated.lateMinutes) > 5) {

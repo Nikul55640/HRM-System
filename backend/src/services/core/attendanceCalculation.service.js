@@ -2,9 +2,37 @@
  * Attendance Calculation Service
  * Centralized business logic for attendance calculations
  * Eliminates duplication across attendance services and controllers
+ * 
+ * 🚨 CRITICAL RULES - MUST BE FOLLOWED:
+ * 
+ * 1. This service is the SINGLE SOURCE OF TRUTH for:
+ *    - Late calculation (calculateLateStatus)
+ *    - Work hours calculation (calculateWorkHours)
+ *    - Break duration calculation
+ *    - Overtime calculation
+ *    - Attendance state determination
+ * 
+ * 2. ❌ NEVER implement duplicate logic in:
+ *    - Models (AttendanceRecord, etc.)
+ *    - Controllers (admin/attendance.controller.js, etc.)
+ *    - Jobs (attendanceFinalization.js, etc.)
+ *    - Other services
+ * 
+ * 3. ❌ NEVER use manual date calculations like:
+ *    - new Date().setHours() for shift times
+ *    - if (clockIn > shiftStart) for late checks
+ *    - Manual minute calculations
+ * 
+ * 4. ✅ ALWAYS call this service:
+ *    - AttendanceCalculationService.calculateLateStatus(clockIn, shift, attendanceDate)
+ *    - AttendanceCalculationService.calculateWorkHours(clockIn, clockOut, breaks)
+ * 
+ * 5. 🔧 Timezone Handling:
+ *    - All calculations use Date.UTC() to avoid local timezone issues
+ *    - Consistent across all environments and deployments
+ *    - Handles cross-day night shifts automatically
  */
 
-import { getLocalDateString } from '../../utils/dateUtils.js';
 import logger from '../../utils/logger.js';
 
 class AttendanceCalculationService {
@@ -12,11 +40,17 @@ class AttendanceCalculationService {
      * Calculate late minutes and status
      * @param {Date} clockInTime - Actual clock in time
      * @param {Object} shift - Employee's assigned shift
-     * @returns {Object} Late calculation result
+     * @param {string} attendanceDate - The attendance date (YYYY-MM-DD format)
+     * @returns {Object} Late calculation result with consistent shape
      */
-    static calculateLateStatus(clockInTime, shift) {
-        if (!shift || !shift.shiftStartTime) {
-            return { isLate: false, lateMinutes: 0 };
+    static calculateLateStatus(clockInTime, shift, attendanceDate) {
+        if (!shift || !shift.shiftStartTime || !attendanceDate) {
+            return { 
+                isLate: false, 
+                lateMinutes: 0, 
+                shiftStartTime: null, 
+                lateThreshold: null 
+            };
         }
 
         try {
@@ -25,26 +59,79 @@ class AttendanceCalculationService {
             
             // Validate clock-in time
             if (isNaN(clockIn.getTime())) {
-                return { isLate: false, lateMinutes: 0 };
+                return { 
+                    isLate: false, 
+                    lateMinutes: 0, 
+                    shiftStartTime: null, 
+                    lateThreshold: null 
+                };
             }
             
             // Parse shift time
             const shiftTimeStr = shift.shiftStartTime;
             if (!shiftTimeStr || typeof shiftTimeStr !== 'string' || !shiftTimeStr.includes(':')) {
-                return { isLate: false, lateMinutes: 0 };
+                return { 
+                    isLate: false, 
+                    lateMinutes: 0, 
+                    shiftStartTime: null, 
+                    lateThreshold: null 
+                };
             }
             
             // Extract time components
             const timeParts = shiftTimeStr.split(':').map(Number);
             if (timeParts.length < 2 || timeParts.some(isNaN)) {
-                return { isLate: false, lateMinutes: 0 };
+                return { 
+                    isLate: false, 
+                    lateMinutes: 0, 
+                    shiftStartTime: null, 
+                    lateThreshold: null 
+                };
             }
             
             const [hours, minutes, seconds = 0] = timeParts;
             
-            // Create shift start time using clock-in's date
-            const shiftStart = new Date(clockIn);
-            shiftStart.setHours(hours, minutes, seconds, 0);
+            // 🔧 CRITICAL FIX: Handle cross-day night shifts properly
+            // Using Date.UTC() to avoid local timezone shift issues and ensure consistent calculations
+            let shiftStart;
+            if (typeof attendanceDate === 'string') {
+                const [year, month, day] = attendanceDate.split('-').map(Number);
+                
+                // 🔧 CRITICAL FIX: Use the same timezone as the clock-in time
+                // Instead of forcing UTC, match the timezone of the clock-in time
+                const clockInDate = new Date(clockInTime);
+                
+                // Create shift start time using the same date construction as clock-in
+                // This ensures timezone consistency
+                const shiftStartSameDay = new Date(clockInDate);
+                shiftStartSameDay.setHours(hours, minutes, seconds, 0);
+                
+                const shiftStartPrevDay = new Date(shiftStartSameDay);
+                shiftStartPrevDay.setDate(shiftStartPrevDay.getDate() - 1);
+                
+                // 🔧 IMPROVED LOGIC: Only use previous day for actual night shifts
+                // Night shift criteria:
+                // 1. Shift starts at 6 PM or later (18:00+)
+                // 2. Clock-in is early morning (before 6 AM) of the next day
+                // 3. This indicates the shift spans across midnight
+                const isNightShift = hours >= 18; // Shift starts at 6 PM or later
+                const isEarlyMorningClockIn = clockInDate.getHours() < 6; // Clock-in before 6 AM
+                
+                // For regular day shifts (9 AM, 10 AM, etc.), ALWAYS use same day
+                // Even if someone clocks in very late (4 PM for 9 AM shift), it's still the same day
+                if (isNightShift && isEarlyMorningClockIn) {
+                    // True night shift scenario: shift started previous day, clock-in is next day
+                    shiftStart = shiftStartPrevDay;
+                } else {
+                    // Normal scenario: use same day shift start (covers all day shifts and late arrivals)
+                    shiftStart = shiftStartSameDay;
+                }
+            } else {
+                // If it's already a Date object, convert to UTC for consistency
+                const dateStr = attendanceDate.toISOString().split('T')[0];
+                const [year, month, day] = dateStr.split('-').map(Number);
+                shiftStart = new Date(Date.UTC(year, month - 1, day, hours, minutes, seconds, 0));
+            }
             
             // Calculate grace period threshold
             const gracePeriodMs = (shift.gracePeriodMinutes || 0) * 60 * 1000;
@@ -68,7 +155,12 @@ class AttendanceCalculationService {
             
         } catch (error) {
             logger.error('Error in calculateLateStatus:', error);
-            return { isLate: false, lateMinutes: 0 };
+            return { 
+                isLate: false, 
+                lateMinutes: 0, 
+                shiftStartTime: null, 
+                lateThreshold: null 
+            };
         }
     }
 

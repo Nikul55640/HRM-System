@@ -46,7 +46,7 @@ testCases.forEach((testCase, index) => {
     console.log(`Constructed date string: "${constructedDateString}"`);
     
     // Test current implementation
-    const result = AttendanceCalculationService.calculateLateStatus(testCase.clockInTime, testCase.shift);
+    const result = AttendanceCalculationService.calculateLateStatus(testCase.clockInTime, testCase.shift, '2026-01-21');
     console.log(`\n🔍 Result:`);
     console.log(`Is Late: ${result.isLate}`);
     console.log(`Late Minutes: ${result.lateMinutes}`);

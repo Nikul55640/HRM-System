@@ -13,7 +13,7 @@ class HolidayService {
      */
     async getHolidays(filters = {}, pagination = {}) {
         try {
-            const { page = 1, limit = 10, search, type, year, isActive } = { ...filters, ...pagination };
+            const { page = 1, limit = 100, search, type, year, isActive } = { ...filters, ...pagination };
             const offset = (page - 1) * limit;
 
             const whereClause = {};
@@ -267,11 +267,35 @@ class HolidayService {
                 };
             }
 
-            if (type === 'RECURRING' && !recurringDate) {
+            if (type === 'RECURRING' && (!recurringDate || recurringDate.trim() === '')) {
                 return {
                     success: false,
-                    message: 'Recurring holidays must have a recurring date in MM-DD format'
+                    message: 'Recurring holidays must have a recurring date in MM-DD format',
+                    error: `Received recurringDate: "${recurringDate}" for RECURRING holiday. Please provide a date in MM-DD format (e.g., 01-15, 12-25).`
                 };
+            }
+
+            // Additional validation for recurring date format
+            if (type === 'RECURRING' && recurringDate) {
+                const recurringDateRegex = /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
+                if (!recurringDateRegex.test(recurringDate)) {
+                    return {
+                        success: false,
+                        message: 'Recurring date must be in MM-DD format (e.g., 01-15, 12-25)',
+                        error: `Invalid format: "${recurringDate}". Expected MM-DD format.`
+                    };
+                }
+
+                // Validate that it's a real date
+                const [month, day] = recurringDate.split('-').map(Number);
+                const testDate = new Date(2024, month - 1, day);
+                if (testDate.getMonth() !== month - 1 || testDate.getDate() !== day) {
+                    return {
+                        success: false,
+                        message: 'Invalid recurring date. Please check the month and day values.',
+                        error: `Date validation failed for: "${recurringDate}"`
+                    };
+                }
             }
 
             // Check if another holiday with same name exists for the same period

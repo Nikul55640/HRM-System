@@ -51,7 +51,7 @@ testCases.forEach((testCase, index) => {
     console.log(`Shift start: ${testCase.shift.shiftStartTime}`);
     console.log(`Grace period: ${testCase.shift.gracePeriodMinutes} minutes`);
     
-    const result = AttendanceCalculationService.calculateLateStatus(testCase.clockIn, testCase.shift);
+    const result = AttendanceCalculationService.calculateLateStatus(testCase.clockIn, testCase.shift, '2026-01-21');
     
     console.log(`\n🔍 Result:`);
     console.log(`  Is Late: ${result.isLate}`);
@@ -122,7 +122,7 @@ const edgeCases = [
 edgeCases.forEach((edgeCase, index) => {
     console.log(`\nEdge Case ${index + 1}: ${edgeCase.name}`);
     try {
-        const result = AttendanceCalculationService.calculateLateStatus(edgeCase.clockIn, edgeCase.shift);
+        const result = AttendanceCalculationService.calculateLateStatus(edgeCase.clockIn, edgeCase.shift, '2026-01-21');
         console.log(`  Result: ${result.isLate ? 'Late' : 'On Time'} - ${result.lateMinutes} minutes`);
         console.log(`  ✅ Handled gracefully`);
     } catch (error) {

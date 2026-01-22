@@ -105,6 +105,21 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
       setIsSubmitting(true);
       setValidationErrors({});
       
+      // Additional client-side validation before submission
+      if (values.holidayType === 'RECURRING' && (!values.recurringDate || values.recurringDate.trim() === '')) {
+        setValidationErrors({ recurringDate: 'Recurring date is required for recurring holidays' });
+        setIsSubmitting(false);
+        toast.error('Please provide a recurring date in MM-DD format for recurring holidays');
+        return;
+      }
+      
+      if (values.holidayType === 'ONE_TIME' && !values.date) {
+        setValidationErrors({ date: 'Date is required for one-time holidays' });
+        setIsSubmitting(false);
+        toast.error('Please select a date for one-time holidays');
+        return;
+      }
+      
       const payload = {
         name: values.name.trim(),
         type: values.holidayType,
@@ -121,7 +136,7 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
         payload.date = values.date?.toISOString().split('T')[0]; // YYYY-MM-DD format
         payload.recurringDate = null;
       } else {
-        payload.recurringDate = values.recurringDate;
+        payload.recurringDate = values.recurringDate.trim();
         payload.date = null;
       }
 
@@ -344,7 +359,15 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
             <select
               name="holidayType"
               value={formik.values.holidayType}
-              onChange={formik.handleChange}
+              onChange={(e) => {
+                formik.handleChange(e);
+                // Clear the opposite field when switching types
+                if (e.target.value === 'ONE_TIME') {
+                  formik.setFieldValue('recurringDate', '');
+                } else {
+                  formik.setFieldValue('date', null);
+                }
+              }}
               onBlur={formik.handleBlur}
               disabled={isSubmitting}
               className={`w-full h-10 border rounded-md px-3 py-2 text-sm bg-white transition-colors ${

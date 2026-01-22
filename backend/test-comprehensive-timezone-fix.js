@@ -71,7 +71,7 @@ testScenarios.forEach((scenario, index) => {
     console.log(`   Clock-in: ${scenario.clockIn.toLocaleString()}`);
     console.log(`   Shift: ${scenario.shift.shiftStartTime} (Grace: ${scenario.shift.gracePeriodMinutes}min)`);
     
-    const result = AttendanceCalculationService.calculateLateStatus(scenario.clockIn, scenario.shift);
+    const result = AttendanceCalculationService.calculateLateStatus(scenario.clockIn, scenario.shift, '2026-01-21');
     
     const isCorrect = (
         result.isLate === scenario.expected.isLate &&
@@ -171,7 +171,7 @@ let edgeCasesPassed = 0;
 edgeCases.forEach((edgeCase, index) => {
     console.log(`\nEdge Case ${index + 1}: ${edgeCase.name}`);
     try {
-        const result = AttendanceCalculationService.calculateLateStatus(edgeCase.clockIn, edgeCase.shift);
+        const result = AttendanceCalculationService.calculateLateStatus(edgeCase.clockIn, edgeCase.shift, '2026-01-21');
         console.log(`  Result: ${result.isLate ? 'Late' : 'On Time'} - ${result.lateMinutes} minutes`);
         console.log(`  ✅ Handled gracefully`);
         edgeCasesPassed++;

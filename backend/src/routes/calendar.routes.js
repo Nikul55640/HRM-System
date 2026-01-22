@@ -21,6 +21,24 @@ router.get('/events',authenticate, calendarViewController.getEvents);
 router.get('/upcoming', authenticate, calendarViewController.getUpcomingEvents);
 
 // =========================================================
+// STATISTICS ROUTES (Admin/HR only)
+// =========================================================
+
+// Get calendar events statistics
+router.get('/events/statistics', 
+  authenticate, 
+  authorize(["SuperAdmin", "HR", "HR_Manager"]), 
+  calendarViewController.getEventsStatistics
+);
+
+// Get holidays statistics
+router.get('/holidays/statistics', 
+  authenticate, 
+  authorize(["SuperAdmin", "HR", "HR_Manager"]), 
+  calendarViewController.getHolidaysStatistics
+);
+
+// =========================================================
 // ADMIN/HR ONLY ROUTES
 // =========================================================
 

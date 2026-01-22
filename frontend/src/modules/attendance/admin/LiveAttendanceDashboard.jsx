@@ -20,6 +20,16 @@ import {
   Timer,
   Loader2,
   Award,
+  Pause,
+  Play,
+  CheckCircle,
+  XCircle,
+  Activity,
+  FlaskConical,
+  RotateCcw,
+  TrendingUp,
+  Zap,
+  Target
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import api from '../../../services/api';
@@ -206,10 +216,20 @@ const LiveAttendanceDashboard = () => {
             key="auto-refresh"
             variant="outline"
             size="sm"
+            icon={autoRefresh ? Pause : Play}
             onClick={() => setAutoRefresh(!autoRefresh)}
+            className="hidden sm:flex"
           >
-            {autoRefresh ? '⏸️ Pause' : '▶️ Resume'} Auto-Refresh
+            {autoRefresh ? 'Pause' : 'Resume'} Auto-Refresh
           </ActionButton>,
+          <ActionButton
+            key="auto-refresh-mobile"
+            variant="outline"
+            size="sm"
+            icon={autoRefresh ? Pause : Play}
+            onClick={() => setAutoRefresh(!autoRefresh)}
+            className="sm:hidden"
+          />,
           <ActionButton
             key="refresh"
             variant="outline"
@@ -217,31 +237,44 @@ const LiveAttendanceDashboard = () => {
             icon={RefreshCw}
             onClick={handleRefresh}
             loading={loading}
+            className="hidden sm:flex"
           >
             Refresh
-          </ActionButton>
+          </ActionButton>,
+          <ActionButton
+            key="refresh-mobile"
+            variant="outline"
+            size="sm"
+            icon={RefreshCw}
+            onClick={handleRefresh}
+            loading={loading}
+            className="sm:hidden"
+          />
         ]}
       />
 
       {/* Enhanced Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <StatsCard
           title="Total Active"
           value={summary.totalActive || 0}
           icon={Users}
           color="blue"
+          className="min-w-0"
         />
         <StatsCard
           title="Working"
           value={summary.working || 0}
           icon={Clock}
           color="green"
+          className="min-w-0"
         />
         <StatsCard
           title="On Break"
           value={summary.onBreak || 0}
           icon={Coffee}
           color="yellow"
+          className="min-w-0"
         />
         <StatsCard
           title="Late Today"
@@ -249,19 +282,22 @@ const LiveAttendanceDashboard = () => {
           subtitle={summary.late > 0 ? "Requires attention" : ""}
           icon={AlertTriangle}
           color="red"
+          className="min-w-0"
         />
         <StatsCard
           title="In Overtime"
           value={summary.overtime || 0}
           icon={Timer}
           color="purple"
+          className="min-w-0"
         />
         <StatsCard
           title="Incomplete"
           value={summary.incomplete || 0}
           subtitle={summary.incomplete > 0 ? "Missing clock-out" : ""}
-          icon={AlertTriangle}
+          icon={XCircle}
           color="orange"
+          className="min-w-0"
         />
       </div>
 
@@ -295,7 +331,7 @@ const LiveAttendanceDashboard = () => {
       />
 
       {/* Employee Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
         {loading && liveData.length === 0 ? (
           <div className="col-span-full">
             <EmptyState
@@ -312,17 +348,18 @@ const LiveAttendanceDashboard = () => {
               description="No employees are currently clocked in"
               action={
                 process.env.NODE_ENV !== 'production' && (
-                  <div className="space-y-2">
+                  <div className="space-y-2 text-center">
                     <p className="text-sm text-gray-400">
                       Development Mode: You can create test data to see the dashboard in action
                     </p>
                     <ActionButton
                       variant="outline"
                       size="sm"
+                      icon={FlaskConical}
                       onClick={handleCreateTestData}
                       loading={loading}
                     >
-                      🧪 Create Test Attendance Data
+                      Create Test Attendance Data
                     </ActionButton>
                   </div>
                 )
@@ -349,22 +386,40 @@ const LiveAttendanceDashboard = () => {
                       status={employee.currentSession?.status === 'on_break' ? 'warning' : 'success'}
                       size="sm"
                     >
-                      {employee.currentSession?.status === 'on_break' ? '☕ Break' : '🟢 Active'}
+                      {employee.currentSession?.status === 'on_break' ? (
+                        <div className="flex items-center gap-1">
+                          <Coffee className="w-3 h-3" />
+                          <span className="hidden sm:inline">Break</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <Activity className="w-3 h-3" />
+                          <span className="hidden sm:inline">Active</span>
+                        </div>
+                      )}
                     </StatusBadge>
                     {employee.isLate && (
                       <StatusBadge status="error" size="sm">
-                        <AlertTriangle className="w-3 h-3 mr-1" />
-                        LATE ({employee.lateMinutes}m)
+                        <div className="flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" />
+                          <span>LATE ({employee.lateMinutes}m)</span>
+                        </div>
                       </StatusBadge>
                     )}
                     {inOvertime && (
                       <StatusBadge status="info" size="sm">
-                        ⏱️ OT ({formatDuration(overtimeMinutes)})
+                        <div className="flex items-center gap-1">
+                          <Timer className="w-3 h-3" />
+                          <span>OT ({formatDuration(overtimeMinutes)})</span>
+                        </div>
                       </StatusBadge>
                     )}
                     {employee.status === 'incomplete' && (
                       <StatusBadge status="warning" size="sm">
-                        🔄 INCOMPLETE
+                        <div className="flex items-center gap-1">
+                          <RotateCcw className="w-3 h-3" />
+                          <span>INCOMPLETE</span>
+                        </div>
                       </StatusBadge>
                     )}
                   </div>
@@ -373,23 +428,28 @@ const LiveAttendanceDashboard = () => {
                 <div className="space-y-3">
                   {/* Shift Info */}
                   {employee.shift && (
-                    <div className="text-sm text-gray-600">
-                      <strong>Shift:</strong> {employee.shift.shiftName} ({employee.shift.shiftStartTime} - {employee.shift.shiftEndTime})
+                    <div className="text-sm text-gray-600 break-words">
+                      <strong>Shift:</strong> {employee.shift.shiftName} 
+                      <span className="block sm:inline sm:ml-1">
+                        ({employee.shift.shiftStartTime} - {employee.shift.shiftEndTime})
+                      </span>
                     </div>
                   )}
 
                   {/* Location */}
-                  <div className="flex items-center gap-2 text-sm">
+                  <div className="flex items-center gap-2 text-sm min-w-0">
                     {getLocationIcon(employee.currentSession?.workLocation)}
-                    <span>{getLocationLabel(employee.currentSession?.workLocation)}</span>
+                    <span className="truncate">{getLocationLabel(employee.currentSession?.workLocation)}</span>
                     {employee.currentSession?.locationDetails && (
-                      <span className="text-gray-500">• {employee.currentSession.locationDetails}</span>
+                      <span className="text-gray-500 truncate hidden sm:inline">
+                        • {employee.currentSession.locationDetails}
+                      </span>
                     )}
                   </div>
 
                   {/* Time Info */}
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-sm">
+                    <div className="min-w-0">
                       <div className="text-gray-500 text-xs">Clock In</div>
                       <div className="font-medium">
                         {formatTimeDisplay(employee.currentSession?.checkInTime)}
@@ -405,7 +465,7 @@ const LiveAttendanceDashboard = () => {
                         </div>
                       )}
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-gray-500 text-xs">Worked</div>
                       <div className="font-medium">
                         {formatDurationDisplay(employee.currentSession?.totalWorkedMinutes || 0)}
@@ -440,7 +500,10 @@ const LiveAttendanceDashboard = () => {
                   {employee.currentSession?.currentBreak && (
                     <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-orange-700">On break since</span>
+                        <div className="flex items-center gap-2 text-orange-700">
+                          <Coffee className="h-4 w-4" />
+                          <span>On break since</span>
+                        </div>
                         <span className="font-medium">
                           {formatTimeDisplay(employee.currentSession.currentBreak.startTime)}
                         </span>
@@ -463,18 +526,24 @@ const LiveAttendanceDashboard = () => {
 
                   {/* Performance Indicators */}
                   <div className="flex items-center justify-between text-sm pt-2 border-t">
-                    <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap min-w-0">
                       {performanceIndicators.onTime && (
                         <span className="text-green-600 flex items-center gap-1">
-                          <Award className="h-3 w-3" />
-                          On Time
+                          <CheckCircle className="h-3 w-3" />
+                          <span className="hidden sm:inline">On Time</span>
                         </span>
                       )}
                       {performanceIndicators.productive && (
-                        <span className="text-blue-600">🟢 Productive</span>
+                        <span className="text-blue-600 flex items-center gap-1">
+                          <TrendingUp className="h-3 w-3" />
+                          <span className="hidden sm:inline">Productive</span>
+                        </span>
                       )}
                       {performanceIndicators.overtime && (
-                        <span className="text-purple-600">⏱️ Overtime</span>
+                        <span className="text-purple-600 flex items-center gap-1">
+                          <Zap className="h-3 w-3" />
+                          <span className="hidden sm:inline">Overtime</span>
+                        </span>
                       )}
                     </div>
                   </div>
@@ -487,22 +556,26 @@ const LiveAttendanceDashboard = () => {
 
       {/* Last Updated */}
       {!loading && liveData.length > 0 && (
-        <div className="text-center text-xs sm:text-sm text-muted-foreground">
-          Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Never'}
-          {serverTime && (
-            <span className="hidden sm:inline"> • Server time: {serverTime.toLocaleTimeString()}</span>
-          )}
-          {autoRefresh && (
-            <>
-              <span className="hidden sm:inline"> • Auto-refreshing every 30 seconds</span>
-              <div className="sm:hidden mt-1">Auto-refreshing every 30s</div>
-            </>
-          )}
-          {!autoRefresh && (
-            <div className="mt-1 text-amber-600">
-              ⏸️ Auto-refresh paused (tab was hidden)
-            </div>
-          )}
+        <div className="text-center text-xs sm:text-sm text-muted-foreground px-4">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+            <span>Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : 'Never'}</span>
+            {serverTime && (
+              <span className="hidden sm:inline">• Server time: {serverTime.toLocaleTimeString()}</span>
+            )}
+          </div>
+          <div className="mt-1 flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2">
+            {autoRefresh ? (
+              <div className="flex items-center gap-1 text-green-600">
+                <Activity className="h-3 w-3" />
+                <span>Auto-refreshing every 30 seconds</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1 text-amber-600">
+                <Pause className="h-3 w-3" />
+                <span>Auto-refresh paused (tab was hidden)</span>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -8,7 +8,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../shared/ui/card";
-import { EmptyState } from "../../../../shared/components";
+import { EmptyState, DetailModal } from "../../../../shared/components";
+import { Button } from "../../../../shared/ui/button";
 import employeeDashboardService from "../../../../services/employeeDashboardService";
 import birthdayService from "../../../../services/birthdayService";
 import employeeCalendarService from "../../../../services/employeeCalendarService"; // ✅ Use employee-safe calendar service
@@ -40,6 +41,8 @@ import {
   Car,
   Building2,
   CakeIcon,
+  Eye,
+  Edit,
 } from "lucide-react";
 import useAuthStore from "../../../../stores/useAuthStore";
 import { leaveService } from "../../../../services";
@@ -49,8 +52,9 @@ import { isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, a
 
 // Constants for calendar views
 const CALENDAR_VIEW = {
-  WEEK: 'week',
-  MONTH: 'month'
+  WEEK: 'week', 
+  MONTH: 'month',
+  LIST: 'list' 
 };
 
 const EmployeeDashboard = () => {
@@ -66,6 +70,8 @@ const EmployeeDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [workMode, setWorkMode] = useState('office'); // ✅ NEW: Work mode state
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileData, setProfileData] = useState(null);
   
   // Calendar state
   const [calendarView, setCalendarView] = useState(CALENDAR_VIEW.MONTH);
@@ -629,6 +635,7 @@ const EmployeeDashboard = () => {
     if (calendarView === CALENDAR_VIEW.WEEK) {
       setCalendarDate(prev => direction === 'next' ? addWeeks(prev, 1) : subWeeks(prev, 1));
     } else {
+      // For both MONTH and LIST views, navigate by month
       setCalendarDate(prev => direction === 'next' ? addMonths(prev, 1) : subMonths(prev, 1));
     }
   };
@@ -817,6 +824,57 @@ const EmployeeDashboard = () => {
     );
   }
 
+  const handleViewProfile = async () => {
+    try {
+      setShowProfileModal(true);
+      
+      // Get current user data from auth store
+      const { user } = useAuthStore.getState();
+      
+      // Combine dashboard data with user data for comprehensive profile view
+      const combinedProfileData = {
+        // Personal Information
+        firstName: dashboardData?.personalInfo?.firstName || user?.firstName,
+        lastName: dashboardData?.personalInfo?.lastName || user?.lastName,
+        email: dashboardData?.contactInfo?.email || user?.email,
+        phone: dashboardData?.contactInfo?.phoneNumber || dashboardData?.contactInfo?.phone,
+        profilePhoto: dashboardData?.personalInfo?.profilePhoto,
+        dateOfBirth: dashboardData?.personalInfo?.dateOfBirth,
+        gender: dashboardData?.personalInfo?.gender,
+        
+        // Job Information
+        employeeId: dashboardData?.jobInfo?.employeeId || user?.employeeId,
+        designation: dashboardData?.jobInfo?.designation,
+        department: dashboardData?.jobInfo?.department,
+        joiningDate: dashboardData?.jobInfo?.joiningDate,
+        employmentType: dashboardData?.jobInfo?.employmentType,
+        workLocation: dashboardData?.jobInfo?.workLocation,
+        reportingManager: dashboardData?.jobInfo?.reportingManager,
+        
+        // Contact Information
+        address: dashboardData?.contactInfo?.address,
+        emergencyContact: dashboardData?.contactInfo?.emergencyContact,
+        
+        // Bank Information
+        bankName: dashboardData?.bankInfo?.bankName,
+        accountNumber: dashboardData?.bankInfo?.accountNumber,
+        ifscCode: dashboardData?.bankInfo?.ifscCode,
+        
+        // System Information
+        role: user?.role,
+        status: dashboardData?.status || 'Active',
+        lastLogin: user?.lastLogin,
+        createdAt: dashboardData?.createdAt,
+        updatedAt: dashboardData?.updatedAt
+      };
+      
+      setProfileData(combinedProfileData);
+    } catch (error) {
+      console.error('Error loading profile data:', error);
+      toast.error('Failed to load profile information');
+    }
+  };
+
   // Get attendance status from context
   const { isClockedIn, status, canClockIn, canClockOut } = getAttendanceStatus();
   const fullName = `${dashboardData?.personalInfo?.firstName || ""} ${
@@ -992,7 +1050,7 @@ const EmployeeDashboard = () => {
         </Card>
 
         {/* 🟢 SECTION 2: STAT CARDS */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           <StatCard
             title={
               <div className="flex items-center gap-2">
@@ -1027,29 +1085,7 @@ const EmployeeDashboard = () => {
             onClick={() => navigate("/employee/leave")}
           />
           
-          <StatCard
-            title={
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-orange-600" />
-                <span className="text-sm sm:text-base">This Month</span>
-              </div>
-            }
-            content={
-              <div className="space-y-2">
-                <div className="text-xs sm:text-sm">Worked: <span className="font-bold">{attendanceStats.workedHours} hrs</span></div>
-                <div className="text-xs sm:text-sm">Required: <span className="font-bold">{attendanceStats.requiredHours} hrs</span></div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-500 h-2 rounded-full transition-all duration-300" 
-                    style={{width: `${Math.min(workProgress, 100)}%`}}
-                  ></div>
-                </div>
-                <div className="text-xs text-gray-500">{workProgress}% completed</div>
-              </div>
-            }
-            onClick={() => navigate("/employee/attendance")}
-          />
-          
+
           <StatCard
             title={
               <div className="flex items-center gap-2">
@@ -1169,7 +1205,7 @@ const EmployeeDashboard = () => {
         </div>
       ))
     ) : (
-      <EmptyState
+      <EmptyState class
         icon={Home}
         title="No WFH today"
         description="All employees are in office"
@@ -1337,6 +1373,11 @@ const EmployeeDashboard = () => {
                     onClick={() => navigate("/employee/profile")}
                   />
                   <QuickActionButton
+                    icon={<Eye className="w-5 h-5 sm:w-6 sm:h-6" />}
+                    label="View Details"
+                    onClick={handleViewProfile}
+                  />
+                  <QuickActionButton
                     icon={<Calendar className="w-5 h-5 sm:w-6 sm:h-6" />}
                     label="Calendar"
                     onClick={() => navigate("/employee/calendar")}
@@ -1459,6 +1500,17 @@ const EmployeeDashboard = () => {
                       <span className="hidden sm:inline">Month</span>
                       <span className="sm:hidden">M</span>
                     </button>
+                    <button
+                      onClick={() => setCalendarView(CALENDAR_VIEW.LIST)}
+                      className={`px-2 py-1 text-xs rounded transition-colors ${
+                        calendarView === CALENDAR_VIEW.LIST 
+                          ? 'bg-blue-500 text-white' 
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      <span className="hidden sm:inline">List</span>
+                      <span className="sm:hidden">L</span>
+                    </button>
                   </div>
                 </div>
                 <div className="flex items-center justify-between mt-2">
@@ -1471,6 +1523,8 @@ const EmployeeDashboard = () => {
                   <h3 className="font-medium text-gray-900 text-xs sm:text-sm text-center">
                     {calendarView === CALENDAR_VIEW.WEEK 
                       ? `${format(getWeekStart(calendarDate), "MMM dd")}`
+                      : calendarView === CALENDAR_VIEW.LIST
+                      ? `${format(calendarDate, "MMM yyyy")} - Events`
                       : format(calendarDate, "MMM yyyy")
                     }
                   </h3>
@@ -1551,7 +1605,7 @@ const EmployeeDashboard = () => {
                       })}
                     </div>
                   </>
-                ) : (
+                ) : calendarView === CALENDAR_VIEW.WEEK ? (
                   <div className="space-y-1 sm:space-y-2">
                     {getWeekDays(calendarDate).map((day, i) => {
                       const isToday = isSameDay(day, new Date());
@@ -1647,6 +1701,126 @@ const EmployeeDashboard = () => {
                       );
                     })}
                   </div>
+                ) : (
+                  // ✅ LIST VIEW - Agenda Style (matches your screenshot)
+                  <div className="space-y-4">
+                    {(() => {
+                      // Group events by date
+                      const groupedEvents = calendarEvents.reduce((acc, event) => {
+                        const eventDate = event.startDate || event.date;
+                        if (!eventDate) return acc;
+                        
+                        let dateKey;
+                        try {
+                          if (eventDate instanceof Date) {
+                            dateKey = eventDate.toISOString().split('T')[0];
+                          } else if (typeof eventDate === 'string') {
+                            if (eventDate.includes('T')) {
+                              dateKey = eventDate.split('T')[0];
+                            } else if (/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) {
+                              dateKey = eventDate;
+                            } else {
+                              return acc;
+                            }
+                          } else {
+                            return acc;
+                          }
+                        } catch (error) {
+                          console.warn('Date parsing error in list view:', eventDate, error);
+                          return acc;
+                        }
+                        
+                        if (!acc[dateKey]) acc[dateKey] = [];
+                        acc[dateKey].push(event);
+                        return acc;
+                      }, {});
+
+                      // Sort dates
+                      const sortedDates = Object.keys(groupedEvents).sort();
+                      
+                      if (sortedDates.length === 0) {
+                        return (
+                          <div className="text-center py-8 text-gray-500">
+                            <Calendar className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                            <p className="text-sm">No events to display</p>
+                            <p className="text-xs">Events will appear here when available</p>
+                          </div>
+                        );
+                      }
+
+                      return sortedDates.map(dateKey => {
+                        const events = groupedEvents[dateKey];
+                        const date = new Date(dateKey + 'T00:00:00');
+                        const isToday = isSameDay(date, new Date());
+                        
+                        return (
+                          <div key={dateKey} className="space-y-2">
+                            {/* Date Header */}
+                            <div className={`flex items-center justify-between text-sm font-semibold pb-1 border-b ${
+                              isToday ? 'text-blue-600 border-blue-200' : 'text-gray-700 border-gray-200'
+                            }`}>
+                              <span className="flex items-center gap-2">
+                                {format(date, 'EEEE')}
+                                {isToday && (
+                                  <span className="text-xs bg-blue-500 text-white px-2 py-0.5 rounded-full">
+                                    Today
+                                  </span>
+                                )}
+                              </span>
+                              <span className="text-xs sm:text-sm text-gray-500">
+                                {format(date, 'MMM dd, yyyy')}
+                              </span>
+                            </div>
+                            
+                            {/* Events */}
+                            <div className="space-y-1">
+                              {events.map((event, i) => (
+                                <div
+                                  key={i}
+                                  className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer ${
+                                    event.type === 'holiday' ? 'bg-red-50 hover:bg-red-100 border border-red-200' :
+                                    event.type === 'leave' ? 'bg-yellow-50 hover:bg-yellow-100 border border-yellow-200' :
+                                    event.type === 'birthday' ? 'bg-pink-50 hover:bg-pink-100 border border-pink-200' :
+                                    'bg-green-50 hover:bg-green-100 border border-green-200'
+                                  }`}
+                                  onClick={() => handleCalendarDateClick(date)}
+                                >
+                                  <span className={`text-xs font-medium px-2 py-1 rounded ${
+                                    event.type === 'holiday' ? 'bg-red-100 text-red-700' :
+                                    event.type === 'leave' ? 'bg-yellow-100 text-yellow-700' :
+                                    event.type === 'birthday' ? 'bg-pink-100 text-pink-700' :
+                                    'bg-green-100 text-green-700'
+                                  }`}>
+                                    {event.allDay || event.type === 'holiday' || event.type === 'leave' || event.type === 'birthday' 
+                                      ? 'all-day' 
+                                      : event.time || '12:00 AM'
+                                    }
+                                  </span>
+                                  <span className={`font-medium text-sm flex-1 ${
+                                    event.type === 'holiday' ? 'text-red-800' :
+                                    event.type === 'leave' ? 'text-yellow-800' :
+                                    event.type === 'birthday' ? 'text-pink-800' :
+                                    'text-green-800'
+                                  }`}>
+                                    {event.title}
+                                  </span>
+                                  {event.type === 'birthday' && (
+                                    <CakeIcon className="w-4 h-4 text-pink-600" />
+                                  )}
+                                  {event.type === 'holiday' && (
+                                    <Calendar className="w-4 h-4 text-red-600" />
+                                  )}
+                                  {event.type === 'leave' && (
+                                    <Palmtree className="w-4 h-4 text-yellow-600" />
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
                 )}
                 
                 <div className="mt-3 space-y-1 text-xs">
@@ -1676,6 +1850,88 @@ const EmployeeDashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* Profile Details Modal */}
+      {showProfileModal && profileData && (
+        <DetailModal
+          open={showProfileModal}
+          onClose={() => {
+            setShowProfileModal(false);
+            setProfileData(null);
+          }}
+          title="My Profile Details"
+          data={profileData}
+          sections={[
+            {
+              label: 'Personal Information',
+              fields: [
+                { key: 'firstName', label: 'First Name', icon: 'user' },
+                { key: 'lastName', label: 'Last Name', icon: 'user' },
+                { key: 'email', label: 'Email Address', type: 'email', icon: 'user' },
+                { key: 'phone', label: 'Phone Number', type: 'phone', icon: 'user' },
+                { key: 'dateOfBirth', label: 'Date of Birth', type: 'date', icon: 'date' },
+                { key: 'gender', label: 'Gender', icon: 'user' }
+              ]
+            },
+            {
+              label: 'Job Information',
+              fields: [
+                { key: 'employeeId', label: 'Employee ID', icon: 'description' },
+                { key: 'designation', label: 'Designation', icon: 'description' },
+                { key: 'department', label: 'Department', icon: 'department' },
+                { key: 'joiningDate', label: 'Joining Date', type: 'date', icon: 'date' },
+                { key: 'employmentType', label: 'Employment Type', icon: 'description' },
+                { key: 'workLocation', label: 'Work Location', icon: 'location' },
+                { key: 'reportingManager', label: 'Reporting Manager', icon: 'user' }
+              ]
+            },
+            {
+              label: 'Contact Information',
+              fields: [
+                { key: 'address', label: 'Address', type: 'longtext', fullWidth: true, icon: 'location' },
+                { key: 'emergencyContact', label: 'Emergency Contact', icon: 'user' }
+              ]
+            },
+            {
+              label: 'Bank Information',
+              fields: [
+                { key: 'bankName', label: 'Bank Name', icon: 'description' },
+                { key: 'accountNumber', label: 'Account Number', icon: 'description' },
+                { key: 'ifscCode', label: 'IFSC Code', icon: 'description' }
+              ]
+            },
+            {
+              label: 'System Information',
+              fields: [
+                { key: 'role', label: 'Role', type: 'badge', badgeClass: 'bg-blue-100 text-blue-800' },
+                { key: 'status', label: 'Status', type: 'status' },
+                { key: 'lastLogin', label: 'Last Login', type: 'date', icon: 'date' },
+                { key: 'createdAt', label: 'Account Created', type: 'date', icon: 'date' },
+                { key: 'updatedAt', label: 'Last Updated', type: 'date', icon: 'date' }
+              ]
+            }
+          ]}
+          actions={[
+            {
+              label: 'Edit Profile',
+              icon: Edit,
+              onClick: () => {
+                setShowProfileModal(false);
+                navigate('/employee/profile');
+              },
+              variant: 'default'
+            },
+            {
+              label: 'Close',
+              onClick: () => {
+                setShowProfileModal(false);
+                setProfileData(null);
+              },
+              variant: 'outline'
+            }
+          ]}
+        />
+      )}
     </div>
   );
 };

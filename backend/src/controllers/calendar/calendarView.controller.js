@@ -869,5 +869,233 @@ export default {
   },
   syncEmployeeEvents: async (req, res) => {
     res.status(501).json({ success: false, message: "Not implemented" });
+  },
+
+  /**
+   * Get Calendar Events Statistics
+   * Returns statistics about calendar events for dashboard
+   */
+  getEventsStatistics: async (req, res) => {
+    try {
+      const { year, month } = req.query;
+      const currentYear = year ? parseInt(year) : new Date().getFullYear();
+      const currentMonth = month ? parseInt(month) : new Date().getMonth() + 1;
+
+      // Calculate date ranges
+      const yearStart = new Date(currentYear, 0, 1);
+      const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+      const monthStart = new Date(currentYear, currentMonth - 1, 1);
+      const monthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
+
+      const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(req.user.role);
+
+      // Base filters for events
+      let eventFilters = {
+        status: 'scheduled',
+        eventType: { [Op.ne]: 'holiday' }
+      };
+
+      // Apply role-based filtering
+      if (!isHROrAdmin) {
+        eventFilters[Op.or] = [
+          { isPublic: true },
+          { createdBy: req.user.id },
+          { organizer: req.user.id }
+        ];
+      }
+
+      // Get total events for the year
+      const totalEventsCount = await CompanyEvent.count({
+        where: {
+          ...eventFilters,
+          ...buildEventDateRangeFilter(yearStart, yearEnd)
+        }
+      });
+
+      // Get events for this month
+      const thisMonthEventsCount = await CompanyEvent.count({
+        where: {
+          ...eventFilters,
+          ...buildEventDateRangeFilter(monthStart, monthEnd)
+        }
+      });
+
+      // Get total attendees (sum of all event attendees)
+      const eventsWithAttendees = await CompanyEvent.findAll({
+        where: {
+          ...eventFilters,
+          ...buildEventDateRangeFilter(yearStart, yearEnd)
+        },
+        attributes: ['id', 'attendees']
+      });
+
+      let totalAttendees = 0;
+      eventsWithAttendees.forEach(event => {
+        if (event.attendees && Array.isArray(event.attendees)) {
+          totalAttendees += event.attendees.length;
+        }
+      });
+
+      // Get events by type breakdown
+      const eventsByType = await CompanyEvent.findAll({
+        where: {
+          ...eventFilters,
+          ...buildEventDateRangeFilter(yearStart, yearEnd)
+        },
+        attributes: ['eventType'],
+        group: ['eventType'],
+        raw: true
+      });
+
+      const eventTypeBreakdown = {};
+      for (const event of eventsByType) {
+        const count = await CompanyEvent.count({
+          where: {
+            ...eventFilters,
+            eventType: event.eventType,
+            ...buildEventDateRangeFilter(yearStart, yearEnd)
+          }
+        });
+        eventTypeBreakdown[event.eventType] = count;
+      }
+
+      res.json({
+        success: true,
+        data: {
+          totalEvents: totalEventsCount,
+          thisMonth: thisMonthEventsCount,
+          totalAttendees: totalAttendees,
+          eventsByType: eventTypeBreakdown,
+          year: currentYear,
+          month: currentMonth
+        }
+      });
+
+    } catch (error) {
+      logger.error("Error fetching events statistics:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching events statistics",
+        error: error.message
+      });
+    }
+  },
+
+  /**
+   * Get Calendar Holidays Statistics
+   * Returns statistics about holidays for dashboard
+   */
+  getHolidaysStatistics: async (req, res) => {
+    try {
+      const { year } = req.query;
+      const currentYear = year ? parseInt(year) : new Date().getFullYear();
+
+      // Calculate date range for the year
+      const yearStart = new Date(currentYear, 0, 1);
+      const yearEnd = new Date(currentYear, 11, 31, 23, 59, 59, 999);
+
+      // Get total holidays for the year
+      const totalHolidays = await Holiday.count({
+        where: {
+          date: {
+            [Op.gte]: yearStart,
+            [Op.lte]: yearEnd
+          },
+          isActive: true
+        }
+      });
+
+      // Get holidays by type
+      const holidaysByType = await Holiday.findAll({
+        where: {
+          date: {
+            [Op.gte]: yearStart,
+            [Op.lte]: yearEnd
+          },
+          isActive: true
+        },
+        attributes: ['type'],
+        group: ['type'],
+        raw: true
+      });
+
+      const holidayTypeBreakdown = {};
+      for (const holiday of holidaysByType) {
+        const count = await Holiday.count({
+          where: {
+            type: holiday.type,
+            date: {
+              [Op.gte]: yearStart,
+              [Op.lte]: yearEnd
+            },
+            isActive: true
+          }
+        });
+        holidayTypeBreakdown[holiday.type] = count;
+      }
+
+      // Get holidays by category
+      const holidaysByCategory = await Holiday.findAll({
+        where: {
+          date: {
+            [Op.gte]: yearStart,
+            [Op.lte]: yearEnd
+          },
+          isActive: true
+        },
+        attributes: ['category'],
+        group: ['category'],
+        raw: true
+      });
+
+      const holidayCategoryBreakdown = {};
+      for (const holiday of holidaysByCategory) {
+        const count = await Holiday.count({
+          where: {
+            category: holiday.category,
+            date: {
+              [Op.gte]: yearStart,
+              [Op.lte]: yearEnd
+            },
+            isActive: true
+          }
+        });
+        holidayCategoryBreakdown[holiday.category] = count;
+      }
+
+      // Get paid vs unpaid holidays
+      const paidHolidays = await Holiday.count({
+        where: {
+          date: {
+            [Op.gte]: yearStart,
+            [Op.lte]: yearEnd
+          },
+          isActive: true,
+          isPaid: true
+        }
+      });
+
+      const unpaidHolidays = totalHolidays - paidHolidays;
+
+      res.json({
+        success: true,
+        data: {
+          totalHolidays: totalHolidays,
+          holidaysByType: holidayTypeBreakdown,
+          holidaysByCategory: holidayCategoryBreakdown,
+          paidHolidays: paidHolidays,
+          unpaidHolidays: unpaidHolidays,
+          year: currentYear
+        }
+      });
+
+    } catch (error) {
+      logger.error("Error fetching holidays statistics:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error fetching holidays statistics",
+        error: error.message
+      });
+    }
   }
 };

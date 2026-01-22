@@ -61,7 +61,7 @@ const SmartCalendarManagement = () => {
         smartCalendarService.getWorkingRules(),
         smartCalendarService.getSmartMonthlyCalendar(),
         // Use regular holiday API instead of recurring-specific one for now
-        api.get('/admin/holidays')
+        api.get('/admin/holidays', { params: { limit: 100 } }) // Request 100 holidays instead of default 10
       ]);
 
       console.log('📋 API Results:', results.map((result, index) => ({

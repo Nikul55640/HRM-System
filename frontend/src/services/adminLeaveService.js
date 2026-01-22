@@ -198,25 +198,24 @@ const adminLeaveService = {
   },
 
   /**
-   * Update leave balance for an employee
+   * Update leave balance for an employee (Add to existing balance)
    * @param {string} employeeId - Employee ID
    * @param {Object} data - Updated leave balance data
    * @returns {Promise} Response with update result
    */
   updateLeaveBalance: async (employeeId, data) => {
     try {
-      // Find the leave balance ID first
-      const balancesResponse = await api.get(`/admin/leave-balances/employee/${employeeId}`, {
-        params: { year: data.year || new Date().getFullYear() }
-      });
-      
-      const balance = balancesResponse.data.data.find(b => b.leaveType === data.leaveType);
-      if (!balance) {
-        throw new Error('Leave balance not found');
-      }
-
-      const response = await api.patch(`/admin/leave-balances/${balance.id}/adjust`, {
-        adjustment: data.adjustment,
+      // For adding to existing balance, we'll use the assign endpoint
+      // The backend should handle adding to existing balance if it exists
+      const response = await api.post(`/admin/leave-balances/employee/${employeeId}/assign`, {
+        year: data.year || new Date().getFullYear(),
+        leaveBalances: [
+          {
+            leaveType: data.leaveType,
+            allocated: data.adjustment // This should be added to existing balance
+          }
+        ],
+        isAddition: true, // Flag to indicate this is an addition, not replacement
         reason: data.reason || 'Manual adjustment'
       });
       return response.data;

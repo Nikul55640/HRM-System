@@ -6,9 +6,10 @@ import { Input } from "../../../../shared/ui/input";
 import { Textarea } from "../../../../shared/ui/textarea";
 import { Switch } from "../../../../shared/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../../../shared/ui/dialog";
-import { Icon, LoadingSpinner } from "../../../../shared/components";
+import { Icon, LoadingSpinner, DetailModal } from "../../../../shared/components";
 import { useToast } from "../../../../core/hooks/use-toast";
 import api from "../../../../services/api";
+import { Eye } from "lucide-react";
 
 import { formatIndianCurrency } from '../../../../utils/indianFormatters';
 
@@ -16,6 +17,8 @@ const DepartmentsPage = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingDepartment, setViewingDepartment] = useState(null);
   const [editingDepartment, setEditingDepartment] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -187,6 +190,11 @@ const DepartmentsPage = () => {
       budget: ""
     });
     setEditingDepartment(null);
+  };
+
+  const handleViewDepartment = (department) => {
+    setViewingDepartment(department);
+    setShowViewModal(true);
   };
 
   // Filter departments for hierarchy display
@@ -411,6 +419,15 @@ const DepartmentsPage = () => {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => handleViewDepartment(parentDept)}
+                      className="h-8 w-8 p-0"
+                      title="View Details"
+                    >
+                      <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => handleEdit(parentDept)}
                       className="h-8 w-8 p-0"
                     >
@@ -495,6 +512,15 @@ const DepartmentsPage = () => {
                               <Button
                                 size="sm"
                                 variant="outline"
+                                onClick={() => handleViewDepartment(childDept)}
+                                className="h-7 w-7 p-0"
+                                title="View Details"
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
                                 onClick={() => handleEdit(childDept)}
                                 className="h-7 w-7 p-0"
                               >
@@ -563,6 +589,15 @@ const DepartmentsPage = () => {
                           <Button
                             size="sm"
                             variant="outline"
+                            onClick={() => handleViewDepartment(dept)}
+                            className="h-8 w-8 p-0"
+                            title="View Details"
+                          >
+                            <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
                             onClick={() => handleEdit(dept)}
                             className="h-8 w-8 p-0"
                           >
@@ -595,6 +630,74 @@ const DepartmentsPage = () => {
           </Card>
         )}
       </div>
+
+      {/* View Details Modal */}
+      {showViewModal && viewingDepartment && (
+        <DetailModal
+          open={showViewModal}
+          onClose={() => {
+            setShowViewModal(false);
+            setViewingDepartment(null);
+          }}
+          title="Department Details"
+          data={viewingDepartment}
+          sections={[
+            {
+              label: 'Basic Information',
+              fields: [
+                { key: 'name', label: 'Department Name', icon: 'department' },
+                { key: 'code', label: 'Department Code', icon: 'description' },
+                { key: 'isActive', label: 'Status', type: 'status' },
+                { key: 'employeeCount', label: 'Employee Count', icon: 'user', type: 'number' }
+              ]
+            },
+            {
+              label: 'Details',
+              fields: [
+                { key: 'description', label: 'Description', type: 'longtext', fullWidth: true },
+                { key: 'location', label: 'Location', icon: 'location' },
+                { key: 'budget', label: 'Budget', type: 'currency' },
+                { key: 'createdAt', label: 'Created Date', type: 'date', icon: 'date' },
+                { key: 'updatedAt', label: 'Last Updated', type: 'date', icon: 'date' }
+              ]
+            },
+            {
+              label: 'Hierarchy & Management',
+              fields: [
+                { key: 'parentDepartment.name', label: 'Parent Department', icon: 'department' },
+                { key: 'manager.name', label: 'Department Manager', icon: 'user' },
+                { key: 'manager.email', label: 'Manager Email', type: 'email', icon: 'user' },
+                { key: 'managerId', label: 'Manager ID', icon: 'user' }
+              ]
+            },
+            ...(viewingDepartment.childDepartments && viewingDepartment.childDepartments.length > 0 ? [{
+              label: 'Child Departments',
+              fields: [
+                { key: 'childDepartments', label: 'Sub-departments', type: 'list', fullWidth: true }
+              ]
+            }] : [])
+          ]}
+          actions={[
+            {
+              label: 'Edit',
+              icon: Icon,
+              onClick: () => {
+                handleEdit(viewingDepartment);
+                setShowViewModal(false);
+              },
+              variant: 'default'
+            },
+            {
+              label: 'Close',
+              onClick: () => {
+                setShowViewModal(false);
+                setViewingDepartment(null);
+              },
+              variant: 'outline'
+            }
+          ]}
+        />
+      )}
     </div>
   );
 };

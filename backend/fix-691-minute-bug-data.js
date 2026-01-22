@@ -108,7 +108,8 @@ async function fixBadAttendanceData() {
                 // Recalculate late status using the fixed service
                 const lateCalculation = AttendanceCalculationService.calculateLateStatus(
                     new Date(record.clockIn), 
-                    shift
+                    shift,
+                    record.date // Use the attendance date from the record
                 );
 
                 // Update the record with correct values

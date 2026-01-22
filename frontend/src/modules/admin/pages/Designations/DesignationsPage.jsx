@@ -14,10 +14,12 @@ import {
   Briefcase,
   Users,
   Building2,
-  AlertCircle
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import employeeManagementService from '../../../../services/employeeManagementService';
+import { DetailModal } from '../../../../shared/components';
 
 const DesignationsPage = () => {
   const [designations, setDesignations] = useState([]);
@@ -25,6 +27,8 @@ const DesignationsPage = () => {
   const [loading, setLoading] = useState(false);
   const [selectedDesignation, setSelectedDesignation] = useState(null);
   const [showForm, setShowForm] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingDesignation, setViewingDesignation] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [formData, setFormData] = useState({
@@ -178,6 +182,11 @@ const DesignationsPage = () => {
     } catch (error) {
       console.error('Error updating designation status:', error);
     }
+  };
+
+  const handleViewDesignation = (designation) => {
+    setViewingDesignation(designation);
+    setShowViewModal(true);
   };
 
   const filteredDesignations = designations.filter(designation => {
@@ -360,6 +369,15 @@ const DesignationsPage = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
+                        onClick={() => handleViewDesignation(designation)}
+                        className="h-7 w-7 p-0"
+                        title="View Details"
+                      >
+                        <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
                         onClick={() => handleToggleStatus(designation)}
                         className={`h-7 w-7 p-0 ${designation.isActive ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}`}
                       >
@@ -486,6 +504,67 @@ const DesignationsPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* View Details Modal */}
+      {showViewModal && viewingDesignation && (
+        <DetailModal
+          open={showViewModal}
+          onClose={() => {
+            setShowViewModal(false);
+            setViewingDesignation(null);
+          }}
+          title="Designation Details"
+          data={viewingDesignation}
+          sections={[
+            {
+              label: 'Basic Information',
+              fields: [
+                { key: 'title', label: 'Designation Title', icon: 'description' },
+                { key: 'level', label: 'Level', type: 'badge', badgeClass: 'bg-blue-100 text-blue-800' },
+                { key: 'isActive', label: 'Status', type: 'status' },
+                { key: 'employeeCount', label: 'Employee Count', icon: 'user', type: 'number' }
+              ]
+            },
+            {
+              label: 'Department & Hierarchy',
+              fields: [
+                { key: 'department.name', label: 'Department', icon: 'department' },
+                { key: 'department.code', label: 'Department Code', icon: 'department' },
+                { key: 'reportsTo', label: 'Reports To', icon: 'user' },
+                { key: 'salaryRange', label: 'Salary Range', type: 'currency' }
+              ]
+            },
+            {
+              label: 'Details & Dates',
+              fields: [
+                { key: 'description', label: 'Description', type: 'longtext', fullWidth: true },
+                { key: 'responsibilities', label: 'Key Responsibilities', type: 'list', fullWidth: true },
+                { key: 'createdAt', label: 'Created Date', type: 'date', icon: 'date' },
+                { key: 'updatedAt', label: 'Last Updated', type: 'date', icon: 'date' }
+              ]
+            }
+          ]}
+          actions={[
+            {
+              label: 'Edit',
+              icon: Edit,
+              onClick: () => {
+                handleEditDesignation(viewingDesignation);
+                setShowViewModal(false);
+              },
+              variant: 'default'
+            },
+            {
+              label: 'Close',
+              onClick: () => {
+                setShowViewModal(false);
+                setViewingDesignation(null);
+              },
+              variant: 'outline'
+            }
+          ]}
+        />
+      )}
     </div>
   );
 };

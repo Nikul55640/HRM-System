@@ -5,295 +5,368 @@ This document outlines the complete structure of the HRM System frontend source 
 
 ```
 frontend/src/
-├── App.jsx                         # Main application component
-├── App.zustand.js                  # Zustand store configuration
-├── main.jsx                        # Application entry point
+├── App.jsx                         # Main application component (90 lines)
+├── App.zustand.js                  # Zustand store configuration (192 lines)
+├── main.jsx                        # Application entry point (14 lines)
 ├── index.css                       # Global styles
 ├── components/                     # Global components
-│   └── NotificationBell.jsx       # Global notification component
+│   ├── NotificationBell.jsx       # Global notification component (303 lines)
+│   └── ViewTestComponent.jsx      # View test component (198 lines)
 ├── core/                          # Core application infrastructure
 │   ├── guards/                    # Route protection and access control
-│   │   ├── index.js
-│   │   ├── PermissionGate.jsx     # Permission-based component rendering
-│   │   ├── ProtectedRoute.jsx     # Route-level protection
-│   │   └── RoleGate.jsx           # Role-based component rendering
+│   │   ├── index.js (3 lines)
+│   │   ├── PermissionGate.jsx     # Permission-based component rendering (56 lines)
+│   │   ├── ProtectedRoute.jsx     # Route-level protection (50 lines)
+│   │   └── RoleGate.jsx           # Role-based component rendering (36 lines)
 │   ├── hooks/                     # Core custom hooks
-│   │   ├── index.js
-│   │   ├── use-toast.js           # Toast notification hook
-│   │   ├── useAuth.js             # Authentication hook
-│   │   └── usePermissions.js      # Permission checking hook
+│   │   ├── index.js (3 lines)
+│   │   ├── use-toast.js           # Toast notification hook (155 lines)
+│   │   ├── useAuth.js             # Authentication hook (71 lines)
+│   │   └── usePermissions.js      # Permission checking hook (94 lines)
 │   ├── layout/                    # Application layout components
-│   │   ├── index.js
-│   │   ├── Footer.jsx             # Application footer
-│   │   ├── Header.jsx             # Application header
-│   │   ├── MainLayout.jsx         # Main layout wrapper
-│   │   └── Sidebar.jsx            # Navigation sidebar
+│   │   ├── index.js (6 lines)
+│   │   ├── Footer.jsx             # Application footer (15 lines)
+│   │   ├── Header.jsx             # Application header (259 lines)
+│   │   ├── MainLayout.jsx         # Main layout wrapper (48 lines)
+│   │   └── Sidebar.jsx            # Navigation sidebar (654 lines)
 │   └── utils/                     # Core utility functions
-│       ├── calendarEventTypes.js  # Calendar event type definitions
-│       ├── errorHandler.js        # Global error handling
-│       └── rolePermissions.js     # Role permission utilities
+│       ├── calendarEventTypes.js  # Calendar event type definitions (204 lines)
+│       ├── errorHandler.js        # Global error handling (179 lines)
+│       └── rolePermissions.js     # Role permission utilities (391 lines)
 ├── Debug/                         # Debug utilities (empty)
 ├── hooks/                         # Application-specific hooks
-│   └── useNotifications.js        # Notification management hook
+│   └── useNotifications.js        # Notification management hook (114 lines)
 ├── lib/                           # Third-party library configurations
-│   ├── date-utils.js              # Date manipulation utilities
-│   └── utils.js                   # General utility functions
+│   ├── date-utils.js              # Date manipulation utilities (161 lines)
+│   └── utils.js                   # General utility functions (137 lines)
 ├── modules/                       # Feature-based modules
 │   ├── admin/                     # Admin module
 │   │   └── pages/                 # Admin pages
 │   │       ├── Announcements/
+│   │       │   └── AnnouncementsPage.jsx (373 lines)
 │   │       ├── Auditlogs/
+│   │       │   └── AuditLogsPage.jsx (595 lines)
 │   │       ├── BankVerification/
+│   │       │   └── BankVerificationPage.jsx (456 lines)
 │   │       ├── Dashboard/
+│   │       │   └── AdminDashboard.jsx (320 lines)
 │   │       ├── Departments/
+│   │       │   └── DepartmentsPage.jsx (705 lines)
 │   │       ├── Designations/
+│   │       │   └── DesignationsPage.jsx (572 lines)
 │   │       └── Settings/
+│   │           └── AdminSettingsPage.jsx (913 lines)
 │   ├── attendance/                # Attendance management module
-│   │   ├── index.js
+│   │   ├── index.js (18 lines)
 │   │   ├── admin/                 # Admin attendance features
-│   │   │   ├── AttendanceCorrections.jsx
-│   │   │   ├── LiveAttendanceDashboard.jsx
-│   │   │   ├── ManageAttendance.jsx
-│   │   │   └── AttendanceViewModal.jsx
+│   │   │   ├── AttendanceCorrections.jsx (521 lines)
+│   │   │   ├── LiveAttendanceDashboard.jsx (512 lines)
+│   │   │   ├── ManageAttendance.jsx (603 lines)
+│   │   │   └── AttendanceViewModal.jsx (287 lines)
 │   │   ├── components/            # Shared attendance components
-│   │   │   ├── AttendanceForm.jsx
-│   │   │   └── ShiftStatusWidget.jsx
+│   │   │   ├── AttendanceForm.jsx (416 lines)
+│   │   │   └── ShiftStatusWidget.jsx (373 lines)
 │   │   └── employee/              # Employee attendance features
-│   │       ├── AttendancePage.jsx
-│   │       ├── AttendanceSummary.jsx
-│   │       ├── AttendanceCorrectionRequests.jsx
-│   │       └── EnhancedClockInOut.jsx
+│   │       ├── AttendancePage.jsx (295 lines)
+│   │       ├── AttendanceSummary.jsx (395 lines)
+│   │       ├── AttendanceCorrectionRequests.jsx (411 lines)
+│   │       ├── AttendanceStatsWidget.jsx (77 lines)
+│   │       ├── EnhancedClockInOut.jsx (747 lines)
+│   │       ├── LocationSelectionModal.jsx (337 lines)
+│   │       └── SessionHistoryView.jsx (318 lines)
 │   ├── auth/                      # Authentication module
-│   │   ├── index.js
+│   │   ├── index.js (3 lines)
 │   │   └── pages/
-│   │       ├── Login.jsx
-│   │       └── ForgotPassword.jsx
+│   │       ├── AdminLogin.jsx (199 lines)
+│   │       ├── Login.jsx (199 lines)
+│   │       └── ForgotPassword.jsx (119 lines)
 │   ├── calendar/                  # Calendar management module
-│   │   ├── index.js
+│   │   ├── index.js (10 lines)
 │   │   ├── README.md
 │   │   ├── admin/                 # Admin calendar features
-│   │   │   ├── CalendarManagement.jsx
-│   │   │   ├── CalendarificManagement.jsx
-│   │   │   ├── SmartCalendarManagement.jsx
-│   │   │   ├── WorkingRuleForm.jsx
-│   │   │   └── components/
-│   │   │       ├── ApiStatusCard.jsx
-│   │   │       └── HolidayTypeSelector.jsx
+│   │   │   ├── CalendarManagement.jsx (280 lines)
+│   │   │   ├── CalendarificManagement.jsx (742 lines)
+│   │   │   ├── SmartCalendarManagement.jsx (958 lines)
+│   │   │   ├── WorkingRuleForm.jsx (254 lines)
+│   │   │   ├── HolidayForm.jsx (0 lines)
+│   │   │   ├── components/
+│   │   │   │   ├── ApiStatusCard.jsx (115 lines)
+│   │   │   │   ├── CountryYearSelector.jsx (53 lines)
+│   │   │   │   ├── HolidayPreviewList.jsx (60 lines)
+│   │   │   │   └── HolidayTypeSelector.jsx (112 lines)
+│   │   │   └── constants/
+│   │   │       └── holidayTypes.js (35 lines)
 │   │   ├── components/            # Shared calendar components
-│   │   │   └── UnifiedCalendarView.jsx
+│   │   │   ├── CalendarCell.jsx (297 lines)
+│   │   │   ├── CalendarFilters.jsx (194 lines)
+│   │   │   ├── CalendarGrid.jsx (144 lines)
+│   │   │   ├── CalendarSidebar.jsx (307 lines)
+│   │   │   ├── DayDetailModal.jsx (23 lines)
+│   │   │   ├── EventModal.jsx (287 lines)
+│   │   │   └── UnifiedCalendarView.jsx (915 lines)
 │   │   ├── employee/              # Employee calendar features
-│   │   │   ├── EmployeeCalendarPage.jsx
-│   │   │   ├── EmployeeCalendarView.jsx
+│   │   │   ├── DayEventsDrawer.jsx (130 lines)
+│   │   │   ├── EmployeeCalendarPage.jsx (257 lines)
+│   │   │   ├── EmployeeCalendarToolbar.jsx (132 lines)
+│   │   │   ├── EmployeeCalendarView.jsx (57 lines)
 │   │   │   └── views/
-│   │   │       ├── MonthView.jsx
-│   │   │       ├── WeekView.jsx
-│   │   │       └── TodayView.jsx
+│   │   │       ├── MonthView.jsx (403 lines)
+│   │   │       ├── WeekView.jsx (411 lines)
+│   │   │       └── TodayView.jsx (186 lines)
 │   │   ├── pages/                 # Calendar pages
-│   │   │   └── CalendarView.jsx
+│   │   │   └── CalendarView.jsx (20 lines)
 │   │   └── stores/                # Calendar state management
 │   ├── employee/                  # Employee self-service module
-│   │   ├── index.js
+│   │   ├── index.js (12 lines)
 │   │   ├── pages/                 # Employee pages
 │   │   │   ├── Dashboard/
-│   │   │   │   ├── Dashboard.jsx
-│   │   │   │   └── EmployeeDashboard.jsx
-│   │   │   ├── LeadsPage.jsx
-│   │   │   └── ShiftsPage.jsx
+│   │   │   │   ├── Dashboard.jsx (27 lines)
+│   │   │   │   └── EmployeeDashboard.jsx (1981 lines)
+│   │   │   ├── LeadsPage.jsx (476 lines)
+│   │   │   └── ShiftsPage.jsx (276 lines)
 │   │   ├── profile/               # Employee profile management
-│   │   │   └── ProfilePage.jsx
+│   │   │   └── ProfilePage.jsx (341 lines)
 │   │   └── settings/              # Employee settings
+│   │       ├── index.js (19 lines)
 │   │       ├── components/
-│   │       │   ├── ContactInfoForm.jsx
-│   │       │   └── ProfilePhotoUploader.jsx
+│   │       │   ├── ContactInfoForm.jsx (235 lines)
+│   │       │   ├── EmergencyContactForm.jsx (222 lines)
+│   │       │   ├── PasswordChangeForm.jsx (226 lines)
+│   │       │   ├── PersonalInfoForm.jsx (241 lines)
+│   │       │   └── ProfilePhotoUploader.jsx (251 lines)
 │   │       ├── pages/
-│   │       │   └── EmployeeSettings.jsx
+│   │       │   ├── EmergencyContacts.jsx (397 lines)
+│   │       │   ├── EmployeeSettings.jsx (197 lines)
+│   │       │   ├── ProfileSettings.jsx (150 lines)
+│   │       │   └── SecuritySettings.jsx (80 lines)
 │   │       ├── schemas/
-│   │       │   └── password.schema.js
+│   │       │   ├── emergencyContact.schema.js (34 lines)
+│   │       │   ├── password.schema.js (19 lines)
+│   │       │   └── profile.schema.js (83 lines)
 │   │       └── services/
-│   │           └── employeeSettingsService.js
+│   │           └── employeeSettingsService.js (115 lines)
 │   ├── employees/                 # Employee management module
-│   │   ├── index.js
+│   │   ├── index.js (25 lines)
 │   │   ├── components/            # Employee management components
-│   │   │   └── OverviewTab.jsx
+│   │   │   ├── ActivityTab.jsx (273 lines)
+│   │   │   ├── EmployeeCard.jsx (126 lines)
+│   │   │   ├── EmployeeTable.jsx (128 lines)
+│   │   │   └── OverviewTab.jsx (118 lines)
 │   │   ├── form-steps/            # Multi-step employee forms
-│   │   │   └── SystemAccessStep.jsx
+│   │   │   ├── ContactInfoStep.jsx (235 lines)
+│   │   │   ├── JobDetailsStep.jsx (226 lines)
+│   │   │   ├── PersonalInfoStep.jsx (136 lines)
+│   │   │   └── SystemAccessStep.jsx (124 lines)
 │   │   ├── pages/                 # Employee management pages
-│   │   │   ├── EmployeeList.jsx
-│   │   │   └── EmployeeProfile.jsx
+│   │   │   ├── EmployeeForm.jsx (561 lines)
+│   │   │   ├── EmployeeList.jsx (399 lines)
+│   │   │   ├── EmployeeProfile.jsx (281 lines)
+│   │   │   └── NoEmployeeProfile.jsx (191 lines)
 │   │   └── services/              # Employee management services
+│   │       └── employeeService.js (176 lines)
 │   ├── ess/                       # Employee Self-Service module
 │   │   ├── bank/                  # Bank details management
-│   │   │   └── BankDetailsPage.jsx
+│   │   │   └── BankDetailsPage.jsx (293 lines)
 │   │   ├── utils/                 # ESS utilities
+│   │   │   └── essHelpers.js (281 lines)
 │   │   └── validation/            # ESS validation schemas
+│   │       └── essValidation.js (116 lines)
 │   ├── help/                      # Help and support module
-│   │   └── HelpPage.jsx
+│   │   └── HelpPage.jsx (430 lines)
 │   ├── leads/                     # Lead management module
-│   │   ├── index.js
+│   │   ├── index.js (5 lines)
 │   │   ├── components/
-│   │   │   └── ActivityForm.jsx
+│   │   │   ├── ActivityForm.jsx (218 lines)
+│   │   │   ├── LeadDetails.jsx (408 lines)
+│   │   │   ├── LeadForm.jsx (380 lines)
+│   │   │   └── NoteForm.jsx (103 lines)
 │   │   └── pages/
-│   │       └── LeadManagement.jsx
+│   │       └── LeadManagement.jsx (483 lines)
 │   ├── leave/                     # Leave management module
-│   │   ├── index.js
+│   │   ├── index.js (18 lines)
 │   │   ├── Admin/                 # Admin leave features
-│   │   │   ├── LeaveBalancesPage.jsx
-│   │   │   └── LeaveBalanceRolloverPage.jsx
+│   │   │   ├── index.js (3 lines)
+│   │   │   ├── LeaveBalancesPage.jsx (527 lines)
+│   │   │   ├── LeaveBalanceRolloverPage.jsx (312 lines)
+│   │   │   └── LeaveBalancesPage.test.jsx (130 lines)
 │   │   ├── components/            # Shared leave components
-│   │   │   ├── LeaveBalanceCards.jsx
-│   │   │   └── LeaveHistoryTable.jsx
+│   │   │   ├── LeaveApplicationForm.jsx (181 lines)
+│   │   │   ├── LeaveBalanceCards.jsx (212 lines)
+│   │   │   ├── LeaveBalanceWidget.jsx (234 lines)
+│   │   │   └── LeaveHistoryTable.jsx (228 lines)
 │   │   ├── employee/              # Employee leave features
+│   │   │   ├── LeaveBalanceCard.jsx (128 lines)
+│   │   │   ├── LeavePage.jsx (466 lines)
+│   │   │   └── LeaveRequestModal.jsx (343 lines)
 │   │   ├── hooks/                 # Leave-specific hooks
+│   │   │   └── useLeaveBalance.js (134 lines)
 │   │   └── hr/                    # HR leave features
+│   │       └── LeaveManagement.jsx (457 lines)
 │   ├── notifications/             # Notification module
 │   │   └── pages/
-│   │       └── NotificationsPage.jsx
+│   │       └── NotificationsPage.jsx (398 lines)
 │   ├── organization/              # Organization management module
-│   │   ├── index.js
+│   │   ├── index.js (4 lines)
 │   │   ├── admin/                 # Admin organization features
-│   │   │   └── CustomFieldsSection.jsx
+│   │   │   ├── CustomFieldsSection.jsx (346 lines)
+│   │   │   ├── SystemConfig.jsx (79 lines)
+│   │   │   └── UserManagement.jsx (297 lines)
 │   │   ├── components/            # Organization components
-│   │   │   └── HolidayModal.jsx
+│   │   │   ├── DepartmentModal.jsx (238 lines)
+│   │   │   ├── DepartmentSection.jsx (149 lines)
+│   │   │   ├── DepartmentTable.jsx (94 lines)
+│   │   │   ├── DesignationModal.jsx (154 lines)
+│   │   │   ├── DesignationTable.jsx (105 lines)
+│   │   │   ├── DocumentList.jsx (136 lines)
+│   │   │   ├── DocumentUpload.jsx (189 lines)
+│   │   │   ├── HolidayModal.jsx (689 lines)
+│   │   │   ├── HolidayTable.jsx (126 lines)
+│   │   │   ├── PolicyModal.jsx (308 lines)
+│   │   │   └── PolicyTable.jsx (147 lines)
 │   │   └── pages/                 # Organization pages
+│   │       ├── CompanyDocumentsPage.jsx (77 lines)
+│   │       └── PolicyPage.jsx (91 lines)
 │   └── Shift/                     # Shift management module
 │       └── admin/                 # Admin shift features
-│           ├── AssignShiftForm.jsx
-│           ├── ShiftDetails.jsx
-│           ├── ShiftForm.jsx
-│           └── ShiftManagement.jsx
+│           ├── AssignShiftForm.jsx (267 lines)
+│           ├── ShiftDetails.jsx (280 lines)
+│           ├── ShiftForm.jsx (501 lines)
+│           └── ShiftManagement.jsx (410 lines)
 ├── pages/                         # Global pages
-│   ├── NotFound.jsx               # 404 error page
-│   └── Unauthorized.jsx           # 403 error page
+│   ├── NotFound.jsx               # 404 error page (45 lines)
+│   └── Unauthorized.jsx           # 403 error page (45 lines)
 ├── routes/                        # Application routing
-│   ├── index.js                   # Route configuration
-│   ├── routeConfig.js             # Route definitions
-│   ├── adminRoutes.jsx            # Admin routes
-│   ├── applyRoutes.jsx            # Application routes
-│   ├── calendarRoutes.jsx         # Calendar routes
-│   ├── dashboardRoutes.jsx        # Dashboard routes
-│   ├── essRoutes.jsx              # ESS routes
-│   ├── generalRoutes.jsx          # General routes
-│   └── organizationRoutes.jsx     # Organization routes
+│   ├── index.js                   # Route configuration (27 lines)
+│   ├── routeConfig.js             # Route definitions (42 lines)
+│   ├── adminRoutes.jsx            # Admin routes (106 lines)
+│   ├── applyRoutes.jsx            # Application routes (18 lines)
+│   ├── calendarRoutes.jsx         # Calendar routes (9 lines)
+│   ├── dashboardRoutes.jsx        # Dashboard routes (17 lines)
+│   ├── essRoutes.jsx              # ESS routes (79 lines)
+│   ├── generalRoutes.jsx          # General routes (16 lines)
+│   └── organizationRoutes.jsx     # Organization routes (16 lines)
 ├── services/                      # API service layer
-│   ├── index.js                   # Service exports
+│   ├── index.js                   # Service exports (29 lines)
 │   ├── README.md                  # Service documentation
-│   ├── api.js                     # Base API configuration
-│   ├── adminDashboardService.js   # Admin dashboard API
-│   ├── adminLeaveService.js       # Admin leave API
-│   ├── announcementService.js     # Announcement API
-│   ├── attendanceService.js       # Attendance API
-│   ├── auditLogService.js         # Audit log API
-│   ├── authService.js             # Authentication API
-│   ├── birthdayService.js         # Birthday API
-│   ├── calendarificService.js     # Calendarific integration
-│   ├── calendarService.js         # Calendar API
-│   ├── calendarViewService.js     # Calendar view API
-│   ├── configService.js           # Configuration API
-│   ├── dashboardService.js        # Dashboard API
-│   ├── departmentService.js       # Department API
-│   ├── employeeCalendarService.js # Employee calendar API
-│   ├── employeeDashboardService.js # Employee dashboard API
-│   ├── employeeManagementService.js # Employee management API
-│   ├── employeeSelfService.js     # Employee self-service API
-│   ├── employeeService.js         # Employee API
-│   ├── helpSupportService.js      # Help support API
-│   ├── hrmApiService.js           # HRM API
-│   ├── leaveService.js            # Leave API
-│   ├── leaveTypeService.js        # Leave type API
-│   ├── managerService.js          # Manager API
-│   ├── notificationService.js     # Notification API
-│   ├── payrollService.js          # Payroll API
-│   ├── recentActivityService.js   # Recent activity API
-│   ├── shiftService.js            # Shift API
-│   ├── smartCalendarService.js    # Smart calendar API
-│   ├── useEmployeeSelfService.js  # ESS hook service
-│   └── userService.js             # User API
+│   ├── api.js                     # Base API configuration (241 lines)
+│   ├── adminDashboardService.js   # Admin dashboard API (168 lines)
+│   ├── adminLeaveService.js       # Admin leave API (415 lines)
+│   ├── announcementService.js     # Announcement API (114 lines)
+│   ├── attendanceService.js       # Attendance API (264 lines)
+│   ├── auditLogService.js         # Audit log API (95 lines)
+│   ├── authService.js             # Authentication API (57 lines)
+│   ├── birthdayService.js         # Birthday API (403 lines)
+│   ├── calendarificService.js     # Calendarific integration (330 lines)
+│   ├── calendarService.js         # Calendar API (354 lines)
+│   ├── calendarViewService.js     # Calendar view API (85 lines)
+│   ├── configService.js           # Configuration API (217 lines)
+│   ├── dashboardService.js        # Dashboard API (89 lines)
+│   ├── departmentService.js       # Department API (82 lines)
+│   ├── employeeCalendarService.js # Employee calendar API (463 lines)
+│   ├── employeeDashboardService.js # Employee dashboard API (315 lines)
+│   ├── employeeManagementService.js # Employee management API (189 lines)
+│   ├── employeeSelfService.js     # Employee self-service API (299 lines)
+│   ├── employeeService.js         # Employee API (61 lines)
+│   ├── helpSupportService.js      # Help support API (57 lines)
+│   ├── hrmApiService.js           # HRM API (228 lines)
+│   ├── leaveService.js            # Leave API (158 lines)
+│   ├── leaveTypeService.js        # Leave type API (44 lines)
+│   ├── managerService.js          # Manager API (180 lines)
+│   ├── notificationService.js     # Notification API (345 lines)
+│   ├── payrollService.js          # Payroll API (91 lines)
+│   ├── recentActivityService.js   # Recent activity API (237 lines)
+│   ├── shiftService.js            # Shift API (160 lines)
+│   ├── smartCalendarService.js    # Smart calendar API (319 lines)
+│   ├── useEmployeeSelfService.js  # ESS hook service (611 lines)
+│   └── userService.js             # User API (114 lines)
 ├── shared/                        # Shared components and utilities
 │   ├── components/                # Reusable components
-│   │   ├── index.js
-│   │   ├── ApprovalStatusBadge.jsx
-│   │   ├── AttendanceStatusBadge.jsx
-│   │   ├── EmptyState.jsx
-│   │   ├── ErrorBoundary.jsx
-│   │   ├── Icon.jsx
-│   │   ├── LoadingSpinner.jsx
-│   │   ├── NotificationManager.jsx
-│   │   ├── Pagination.jsx
-│   │   ├── ScopeIndicator.jsx
-│   │   └── SkeletonLoader.jsx
+│   │   ├── index.js (12 lines)
+│   │   ├── ApprovalStatusBadge.jsx (29 lines)
+│   │   ├── AttendanceStatusBadge.jsx (66 lines)
+│   │   ├── DetailModal.jsx (236 lines)
+│   │   ├── EmptyState.jsx (37 lines)
+│   │   ├── ErrorBoundary.jsx (72 lines)
+│   │   ├── Icon.jsx (226 lines)
+│   │   ├── LoadingSpinner.jsx (25 lines)
+│   │   ├── NotificationManager.jsx (81 lines)
+│   │   ├── Pagination.jsx (131 lines)
+│   │   ├── QuickPreview.jsx (140 lines)
+│   │   ├── ScopeIndicator.jsx (36 lines)
+│   │   └── SkeletonLoader.jsx (115 lines)
 │   └── ui/                        # UI component library
-│       ├── index.js
-│       ├── ActionButton.jsx
-│       ├── alert-dialog.jsx
-│       ├── alert.jsx
-│       ├── avatar.jsx
-│       ├── badge.jsx
-│       ├── button.jsx
-│       ├── calendar.jsx
-│       ├── card.jsx
-│       ├── checkbox.jsx
-│       ├── DataCard.jsx
-│       ├── DeleteConfirmModal.jsx
-│       ├── DetailModal.jsx
-│       ├── dialog.jsx
-│       ├── dropdown-menu.jsx
-│       ├── EmptyState.jsx
-│       ├── FilterBar.jsx
-│       ├── form.jsx
-│       ├── hover-card.jsx
-│       ├── HRMCard.jsx
-│       ├── HRMStatusBadge.jsx
-│       ├── input.jsx
-│       ├── label.jsx
-│       ├── menubar.jsx
-│       ├── modal.jsx
-│       ├── native-select.jsx
-│       ├── navigation-menu.jsx
-│       ├── PageHeader.jsx
-│       ├── popover.jsx
-│       ├── progress.jsx
-│       ├── radio-group.jsx
-│       ├── radio.jsx
-│       ├── RequestDetailModal.jsx
-│       ├── responsive-table.jsx
-│       ├── scroll-area.jsx
-│       ├── select.jsx
-│       ├── separator.jsx
-│       ├── sheet.jsx
-│       ├── skeleton.jsx
-│       ├── StatsCard.jsx
-│       ├── StatusBadge.jsx
-│       ├── switch.jsx
-│       ├── table.jsx
-│       ├── tabs.jsx
-│       ├── textarea.jsx
-│       ├── toast.jsx
-│       ├── toaster.jsx
-│       ├── tooltip.jsx
-│       └── UserModal.jsx
+│       ├── index.js (29 lines)
+│       ├── ActionButton.jsx (58 lines)
+│       ├── alert-dialog.jsx (100 lines)
+│       ├── alert.jsx (42 lines)
+│       ├── avatar.jsx (33 lines)
+│       ├── badge.jsx (55 lines)
+│       ├── button.jsx (47 lines)
+│       ├── calendar.jsx (62 lines)
+│       ├── card.jsx (50 lines)
+│       ├── checkbox.jsx (31 lines)
+│       ├── DataCard.jsx (57 lines)
+│       ├── DeleteConfirmModal.jsx (161 lines)
+│       ├── DetailModal.jsx (81 lines)
+│       ├── dialog.jsx (96 lines)
+│       ├── dropdown-menu.jsx (158 lines)
+│       ├── EmptyState.jsx (42 lines)
+│       ├── FilterBar.jsx (75 lines)
+│       ├── form.jsx (138 lines)
+│       ├── hover-card.jsx (26 lines)
+│       ├── HRMCard.jsx (178 lines)
+│       ├── HRMStatusBadge.jsx (31 lines)
+│       ├── input.jsx (19 lines)
+│       ├── label.jsx (16 lines)
+│       ├── menubar.jsx (199 lines)
+│       ├── modal.jsx (82 lines)
+│       ├── native-select.jsx (29 lines)
+│       ├── navigation-menu.jsx (105 lines)
+│       ├── PageHeader.jsx (64 lines)
+│       ├── popover.jsx (26 lines)
+│       ├── progress.jsx (57 lines)
+│       ├── radio-group.jsx (30 lines)
+│       ├── radio.jsx (34 lines)
+│       ├── RequestDetailModal.jsx (230 lines)
+│       ├── responsive-table.jsx (207 lines)
+│       ├── scroll-area.jsx (41 lines)
+│       ├── select.jsx (167 lines)
+│       ├── separator.jsx (24 lines)
+│       ├── sheet.jsx (110 lines)
+│       ├── skeleton.jsx (11 lines)
+│       ├── StatsCard.jsx (83 lines)
+│       ├── StatusBadge.jsx (63 lines)
+│       ├── switch.jsx (32 lines)
+│       ├── table.jsx (89 lines)
+│       ├── tabs.jsx (74 lines)
+│       ├── textarea.jsx (18 lines)
+│       ├── toast.jsx (83 lines)
+│       ├── toaster.jsx (33 lines)
+│       ├── tooltip.jsx (46 lines)
+│       └── UserModal.jsx (267 lines)
 ├── stores/                        # State management (Zustand)
-│   ├── index.js                   # Store exports
-│   ├── setupStores.js             # Store configuration
-│   ├── storeInitializer.js        # Store initialization
-│   ├── useAttendanceSessionStore.js # Attendance session state
-│   ├── useAttendanceStore.js      # Attendance state
-│   ├── useAuthStore.js            # Authentication state
-│   ├── useCalendarStore.js        # Calendar state
-│   ├── useDepartmentStore.js      # Department state
-│   ├── useEmployeeStore.js        # Employee state
-│   ├── useLeaveStore.js           # Leave state
-│   ├── useNotificationStore.js    # Notification state
-│   ├── useOrganizationStore.js    # Organization state
-│   └── useUIStore.js              # UI state
+│   ├── index.js                   # Store exports (11 lines)
+│   ├── setupStores.js             # Store configuration (36 lines)
+│   ├── storeInitializer.js        # Store initialization (77 lines)
+│   ├── useAttendanceSessionStore.js # Attendance session state (334 lines)
+│   ├── useAttendanceStore.js      # Attendance state (369 lines)
+│   ├── useAuthStore.js            # Authentication state (261 lines)
+│   ├── useCalendarStore.js        # Calendar state (283 lines)
+│   ├── useDepartmentStore.js      # Department state (319 lines)
+│   ├── useEmployeeStore.js        # Employee state (256 lines)
+│   ├── useLeaveStore.js           # Leave state (217 lines)
+│   ├── useNotificationStore.js    # Notification state (110 lines)
+│   ├── useOrganizationStore.js    # Organization state (271 lines)
+│   └── useUIStore.js              # UI state (95 lines)
 ├── styles/                        # Global styles
 │   └── responsive.css             # Responsive design styles
 └── utils/                         # Utility functions
-    ├── attendanceCalculations.js  # Attendance calculations
-    ├── attendanceDataMapper.js    # Attendance data mapping
-    ├── attendanceStatus.js        # Attendance status utilities
-    ├── employeeDataMapper.js      # Employee data mapping
-    ├── indianFormatters.js        # Indian locale formatters
-    └── locationDeviceCapture.js   # Location/device capture
+    ├── attendanceCalculations.js  # Attendance calculations (209 lines)
+    ├── attendanceDataMapper.js    # Attendance data mapping (164 lines)
+    ├── attendanceStatus.js        # Attendance status utilities (204 lines)
+    ├── employeeDataMapper.js      # Employee data mapping (130 lines)
+    ├── indianFormatters.js        # Indian locale formatters (238 lines)
+    └── locationDeviceCapture.js   # Location/device capture (232 lines)
 ```
 
 ## Key Architecture Patterns

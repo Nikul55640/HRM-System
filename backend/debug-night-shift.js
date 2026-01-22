@@ -44,7 +44,8 @@ if (clockIn > lateThreshold) {
 console.log('');
 
 // Test with the service
-const result = AttendanceCalculationService.calculateLateStatus(clockIn, shift);
+const attendanceDate = '2026-01-21'; // Add attendance date
+const result = AttendanceCalculationService.calculateLateStatus(clockIn, shift, attendanceDate);
 console.log('Service Result:');
 console.log(`Is Late: ${result.isLate}`);
 console.log(`Late Minutes: ${result.lateMinutes}`);

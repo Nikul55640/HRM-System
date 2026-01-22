@@ -40,7 +40,7 @@ testScenarios.forEach((scenario, index) => {
     console.log(`Shift start: ${scenario.shift.shiftStartTime}`);
     
     // Test the calculation
-    const result = AttendanceCalculationService.calculateLateStatus(scenario.clockIn, scenario.shift);
+    const result = AttendanceCalculationService.calculateLateStatus(scenario.clockIn, scenario.shift, '2026-01-21');
     
     console.log(`Result: ${result.isLate ? 'LATE' : 'ON TIME'} - ${result.lateMinutes} minutes`);
     
@@ -68,7 +68,7 @@ console.log('\n🔍 Testing Specific Edge Cases for 691-Minute Bug:\n');
 try {
     const clockIn = new Date('2026-01-21T12:31:00');
     const badShiftTime = null; // What if shift time is null?
-    const result = AttendanceCalculationService.calculateLateStatus(clockIn, { shiftStartTime: badShiftTime });
+    const result = AttendanceCalculationService.calculateLateStatus(clockIn, { shiftStartTime: badShiftTime }, '2026-01-21');
     console.log('Null shift time test:', result);
 } catch (error) {
     console.log('Null shift time error:', error.message);

@@ -1,18 +1,20 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/card';
 import { Button } from '../../../../shared/ui/button';
-import { Plus, Edit, Trash2, Megaphone } from 'lucide-react';
+import { Plus, Edit, Trash2, Megaphone, Eye } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { formatIndianDate } from '../../../../utils/indianFormatters';
 import { PermissionGate } from '../../../../core/guards';
 import { MODULES } from '../../../../core/utils/rolePermissions';
-import { LoadingSpinner } from '../../../../shared/components';
+import { LoadingSpinner, DetailModal } from '../../../../shared/components';
 import useAuth from '../../../../core/hooks/useAuth';
 
 const AnnouncementsPage = () => {
   const [announcements, setAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [viewingAnnouncement, setViewingAnnouncement] = useState(null);
   const [editingAnnouncement, setEditingAnnouncement] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
@@ -120,6 +122,11 @@ const AnnouncementsPage = () => {
     setEditingAnnouncement(null);
   };
 
+  const handleViewAnnouncement = (announcement) => {
+    setViewingAnnouncement(announcement);
+    setShowViewModal(true);
+  };
+
   const getPriorityColor = (priority) => {
     switch (priority) {
       case 'high':
@@ -179,7 +186,7 @@ const AnnouncementsPage = () => {
                         {announcement.priority}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-600 mb-2">{announcement.content}</p>
+                    <p className="text-sm text-gray-600 mb-2 line-clamp-2">{announcement.content}</p>
                     <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span>By {announcement.author}</span>
                       <span>•</span>
@@ -187,6 +194,14 @@ const AnnouncementsPage = () => {
                     </div>
                   </div>
                   <div className="flex gap-1 ml-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleViewAnnouncement(announcement)}
+                      title="View Details"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
                     <PermissionGate permission={MODULES.ANNOUNCEMENT?.EDIT}>
                       <Button
                         variant="ghost"
@@ -295,6 +310,61 @@ const AnnouncementsPage = () => {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* View Details Modal */}
+      {showViewModal && viewingAnnouncement && (
+        <DetailModal
+          open={showViewModal}
+          onClose={() => {
+            setShowViewModal(false);
+            setViewingAnnouncement(null);
+          }}
+          title="Announcement Details"
+          data={viewingAnnouncement}
+          sections={[
+            {
+              label: 'Basic Information',
+              fields: [
+                { key: 'title', label: 'Title', icon: 'description' },
+                { key: 'priority', label: 'Priority', type: 'status' },
+                { key: 'author', label: 'Author', icon: 'user' },
+                { key: 'createdAt', label: 'Created Date', type: 'date', icon: 'date' }
+              ]
+            },
+            {
+              label: 'Content',
+              fields: [
+                { key: 'content', label: 'Full Content', type: 'longtext', fullWidth: true }
+              ]
+            }
+          ]}
+          actions={[
+            {
+              label: 'Edit',
+              icon: Edit,
+              onClick: () => {
+                setEditingAnnouncement(viewingAnnouncement);
+                setFormData({
+                  title: viewingAnnouncement.title,
+                  content: viewingAnnouncement.content,
+                  priority: viewingAnnouncement.priority,
+                });
+                setShowViewModal(false);
+                setShowModal(true);
+              },
+              variant: 'default'
+            },
+            {
+              label: 'Close',
+              onClick: () => {
+                setShowViewModal(false);
+                setViewingAnnouncement(null);
+              },
+              variant: 'outline'
+            }
+          ]}
+        />
       )}
     </div>
   );

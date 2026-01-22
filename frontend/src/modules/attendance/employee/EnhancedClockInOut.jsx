@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
-import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users, RefreshCw, Bug, AlertTriangle, Zap, AlarmClockMinus } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users, RefreshCw, Bug, AlertTriangle, Zap, AlarmClockMinus, CheckCircle, Circle, Timer, Briefcase, Clock3, ClockAlert } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LocationSelectionModal from './LocationSelectionModal';
 import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore';
 import { formatIndianTime, formatIndianTimeString } from '../../../utils/indianFormatters';
-import useAuthStore from '../../../stores/useAuthStore';
 import attendanceService from '../../../services/attendanceService';
 
 const EnhancedClockInOut = () => {
@@ -104,14 +103,12 @@ const EnhancedClockInOut = () => {
         if (clockInSummary) {
           if (clockInSummary.isLate) {
             toast.warning(
-              `⏰ Clocked in at ${clockInSummary.clockInTime} - Late by ${clockInSummary.lateMinutes} minutes\n` +
-              `Shift started at ${clockInSummary.shiftStartTime}`,
+              `Late arrival recorded! Clocked in at ${clockInSummary.clockInTime} - Late by ${clockInSummary.lateMinutes} minutes. Shift started at ${clockInSummary.shiftStartTime}`,
               { autoClose: 5000 }
             );
           } else {
             toast.success(
-              `✅ Clocked in at ${clockInSummary.clockInTime} - On time!\n` +
-              `Shift started at ${clockInSummary.shiftStartTime}`,
+              `On time! Clocked in at ${clockInSummary.clockInTime}. Shift started at ${clockInSummary.shiftStartTime}`,
               { autoClose: 3000 }
             );
           }
@@ -340,18 +337,29 @@ const EnhancedClockInOut = () => {
                   </div>
                   <div className="flex items-center gap-2">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
                         isOnBreak
                           ? 'bg-orange-100 text-orange-700'
                           : 'bg-green-100 text-green-700'
                       }`}
                     >
-                      {isOnBreak ? '☕ On Break' : '🟢 Active'}
+                      {isOnBreak ? (
+                        <>
+                          <Coffee className="h-3 w-3" />
+                          On Break
+                        </>
+                      ) : (
+                        <>
+                          <Circle className="h-3 w-3 fill-current" />
+                          Active
+                        </>
+                      )}
                     </span>
                     {/* Late Status */}
                     {todayRecord?.isLate && (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700">
-                        <AlarmClockMinus /> Late ({todayRecord.lateMinutes}m)
+                      <span className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-red-100 text-red-700">
+                        <AlarmClockMinus className="h-3 w-3" />
+                        Late ({todayRecord.lateMinutes}m)
                       </span>
                     )}
                   </div>
@@ -460,7 +468,10 @@ const EnhancedClockInOut = () => {
                               <span>
                                 {breakSession.breakOut ? 
                                   formatDuration(breakSession.duration || 0) : 
-                                  '🟠 Active'
+                                  <span className="flex items-center gap-1 text-orange-600">
+                                    <Circle className="h-3 w-3 fill-current" />
+                                    Active
+                                  </span>
                                 }
                               </span>
                             </div>
@@ -475,8 +486,9 @@ const EnhancedClockInOut = () => {
 
             {/* Completed Sessions Today */}
             {todayRecord?.status === 'present' && todayRecord?.clockOut && (
-              <div className="text-sm text-muted-foreground text-center">
-                ✓ Work session completed for today
+              <div className="text-sm text-muted-foreground text-center flex items-center justify-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-600" />
+                Work session completed for today
               </div>
             )}
 
@@ -560,7 +572,7 @@ const EnhancedClockInOut = () => {
               {/* Shift-based warnings */}
               {todayRecord?.shift && !isActive && !todayRecord?.clockOut && (
                 <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2 text-center flex items-center justify-center gap-1">
-                  <AlertTriangle className="w-4 h-4" />
+                  <ClockAlert className="w-4 h-4" />
                   You haven't clocked in yet. Your shift started at {todayRecord.shift.shiftStartTime}
                 </div>
               )}
@@ -573,16 +585,18 @@ const EnhancedClockInOut = () => {
                 const isAfterShiftEnd = now > shiftEndTime;
                 
                 return isAfterShiftEnd && (
-                  <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded p-2 text-center">
-                    ⏰ Your shift ended at {todayRecord.shift.shiftEndTime}. Don't forget to clock out!
+                  <div className="text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded p-2 text-center flex items-center justify-center gap-1">
+                    <Clock3 className="w-4 h-4" />
+                    Your shift ended at {todayRecord.shift.shiftEndTime}. Don't forget to clock out!
                   </div>
                 );
               })()}
 
               {/* Overtime indication */}
               {todayRecord?.overtimeHours > 0 && (
-                <div className="text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded p-2 text-center">
-                  💼 Overtime: {todayRecord.overtimeHours} hours
+                <div className="text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded p-2 text-center flex items-center justify-center gap-1">
+                  <Briefcase className="w-4 h-4" />
+                  Overtime: {todayRecord.overtimeHours} hours
                 </div>
               )}
 
@@ -597,8 +611,9 @@ const EnhancedClockInOut = () => {
                 if (isInOvertime) {
                   const overtimeMinutes = Math.floor((now - shiftEndTime) / (1000 * 60));
                   return (
-                    <div className="text-sm text-purple-600 bg-purple-50 border border-purple-200 rounded p-2 text-center">
-                      ⏰ Currently in overtime: {Math.floor(overtimeMinutes / 60)}h {overtimeMinutes % 60}m
+                    <div className="text-sm text-purple-600 bg-purple-50 border border-purple-200 rounded p-2 text-center flex items-center justify-center gap-1">
+                      <Timer className="w-4 h-4" />
+                      Currently in overtime: {Math.floor(overtimeMinutes / 60)}h {overtimeMinutes % 60}m
                     </div>
                   );
                 } else if (isNearOvertimeThreshold) {

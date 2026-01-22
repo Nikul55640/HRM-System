@@ -101,6 +101,9 @@ ShieldUser,
   Globe2,
   Building,
   Database,
+  LayoutGrid,
+  Plane,
+  List,
 } from 'lucide-react';
 
 const iconMap = {
@@ -156,6 +159,9 @@ const iconMap = {
   ExternalLink,
   Mail,
   Phone,
+  LayoutGrid,
+  Plane,
+  List,
   MapPin,
   User,
   Lock,
