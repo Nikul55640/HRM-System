@@ -237,7 +237,7 @@ const LeaveRequestModal = ({ open, onClose, onSubmit, leaveBalance }) => {
                   onValueChange={(value) => setValue('halfDayPeriod', value)}
                 >
                   <SelectTrigger className="w-48">
-                    <SelectValue />
+                    <SelectValue placeholder="Select period" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="morning">Morning (First Half)</SelectItem>

@@ -2,22 +2,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "../../../../shared/ui/card";
-import { EmptyState, DetailModal } from "../../../../shared/components";
-import { Button } from "../../../../shared/ui/button";
-import employeeDashboardService from "../../../../services/employeeDashboardService";
-import birthdayService from "../../../../services/birthdayService";
-import employeeCalendarService from "../../../../services/employeeCalendarService"; // ✅ Use employee-safe calendar service
-import api from "../../../../services/api"; // ✅ Add for debugging
+import PropTypes from "prop-types";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../../shared/ui/card";
+import { DetailModal, EmptyState } from "../../../../shared/components";
 import { useNotifications } from "../../../../services/useEmployeeSelfService";
 import { usePermissions } from "../../../../core/hooks";
 import { MODULES } from "../../../../core/utils/rolePermissions";
-import PropTypes from "prop-types";
 import { format } from "date-fns";
 import {
   Clock,
@@ -45,9 +35,16 @@ import {
   Edit,
 } from "lucide-react";
 import useAuthStore from "../../../../stores/useAuthStore";
-import { leaveService } from "../../../../services";
 import useAttendanceSessionStore from "../../../../stores/useAttendanceSessionStore";
 import { isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, subWeeks, subMonths } from "date-fns";
+
+// Custom Hooks
+import { useDashboardData } from "./hooks/useDashboardData";
+import { useDashboardTeam } from "./hooks/useDashboardTeam";
+
+// Services
+import employeeCalendarService from "../../../../services/employeeCalendarService";
+import api from "../../../../services/api";
 
 
 // Constants for calendar views
@@ -59,17 +56,27 @@ const CALENDAR_VIEW = {
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate();
-  const [dashboardData, setDashboardData] = useState(null);
-  const [leaveBalance, setLeaveBalance] = useState(null);
-  const [attendanceSummary, setAttendanceSummary] = useState(null);
-  const [teamOnLeave, setTeamOnLeave] = useState([]);
-  const [teamWFH, setTeamWFH] = useState([]);
-  const [teamDataLoading, setTeamDataLoading] = useState(false);
-  const [upcomingBirthdays, setUpcomingBirthdays] = useState([]);
-  const [birthdaysLoading, setBirthdaysLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
+  
+  // Use custom hooks for data management
+  const { 
+    dashboardData, 
+    leaveBalance, 
+    attendanceSummary, 
+    loading, 
+    refreshDashboard 
+  } = useDashboardData();
+  
+  const { 
+    teamOnLeave, 
+    teamWFH, 
+    upcomingBirthdays, 
+    teamDataLoading, 
+    birthdaysLoading 
+  } = useDashboardTeam();
+
+  // Local state for UI
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [workMode, setWorkMode] = useState('office'); // ✅ NEW: Work mode state
+  const [workMode, setWorkMode] = useState('office');
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [profileData, setProfileData] = useState(null);
   
@@ -78,86 +85,34 @@ const EmployeeDashboard = () => {
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [calendarEvents, setCalendarEvents] = useState([]);
 
-  // Use notifications hook for live data
-  const {
-    notifications,
-    loading: notificationsLoading,
-    error: notificationsError,
-    getNotifications,
-    markAsRead,
-  } = useNotifications();
-
-  // Use permissions hook
+  // Use hooks
+  const { notifications, loading: notificationsLoading, error: notificationsError, getNotifications, markAsRead } = useNotifications();
   const { can } = usePermissions();
+  const { isLoading, clockIn, clockOut, getAttendanceStatus, fetchTodayRecord } = useAttendanceSessionStore();
 
-  // Use shared attendance context
- const {
-   isLoading,
-   clockIn,
-   clockOut,
-   getAttendanceStatus,
-   fetchTodayRecord,
- } = useAttendanceSessionStore();
-
-  // ✅ OPTIMIZED: Single responsibility, minimal API calls
+  // ✅ SIMPLIFIED: Only essential timers and calendar logic
   useEffect(() => {
-    const fetchCriticalData = async () => {
-      setLoading(true);
-      
-      try {
-        console.log('📊 [DASHBOARD] Starting optimized data fetch...');
-        
-        // ✅ PHASE 1: Critical data only (parallel execution)
-        const criticalPromises = [
-          fetchDashboardData(),
-          fetchLeaveBalance(),
-          fetchAttendanceSummary(),
-          fetchTodayRecord(), // Single attendance initialization
-        ];
-        
-        await Promise.allSettled(criticalPromises);
-        
-        // ✅ PHASE 2: Optional data (parallel execution, fail gracefully)
-        const optionalPromises = [
-          fetchTeamData(),
-          fetchUpcomingBirthdays(), // ✅ Now enhanced - 6 months instead of 2
-        ];
-        
-        // Don't wait for optional data to complete
-        Promise.allSettled(optionalPromises).catch(optionalError => {
-          console.warn('❌ [DASHBOARD] Optional data failed (non-critical):', optionalError);
-        });
-        
-      } catch (criticalError) {
-        console.error('❌ [DASHBOARD] Critical data failed:', criticalError);
-      }
-      
-      setLoading(false);
-    };
-
-    fetchCriticalData();
-    
-    // ✅ REDUCED TIMERS: Only essential ones
+    // Update time every minute
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Update every minute
+    }, 60000);
 
-    // ✅ ATTENDANCE: Reduced frequency
+    // Refresh attendance every 2 minutes
     const attendanceRefreshTimer = setInterval(() => {
       fetchTodayRecord(true);
-    }, 120000); // Every 2 minutes instead of 1 minute
+    }, 120000);
 
     return () => {
       clearInterval(timer);
       clearInterval(attendanceRefreshTimer);
     };
-  }, []); // ✅ NO DEPENDENCIES - run once only
+  }, []);
 
   // Fetch notifications on component mount
   useEffect(() => {
     const loadNotifications = async () => {
       try {
-        const result = await getNotifications({ limit: 5 }); // Get latest 5 notifications
+        const result = await getNotifications({ limit: 5 });
         if (process.env.NODE_ENV === 'development') {
           console.log('✅ [DASHBOARD] Notifications loaded:', result?.length || 0);
         }
@@ -196,8 +151,6 @@ const EmployeeDashboard = () => {
       message: roleMatches ? 'Role is valid for dashboard access' : 'Role does NOT match allowed roles'
     });
     
-    // ❌ REMOVED: No forced logout from dashboard - route guard handles this
-    
     try {
       // Test basic profile endpoint
       const profileTest = await api.get('/employee/profile');
@@ -209,21 +162,6 @@ const EmployeeDashboard = () => {
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const attendanceTest = await api.get(`/employee/attendance/summary/${year}/${month}`);
       console.log('✅ [DEBUG] Attendance API working:', attendanceTest.data);
-      
-      // Test new company status endpoints (SAFE)
-      try {
-        const leaveTest = await api.get('/employee/company/leave-today');
-        console.log('✅ [DEBUG] Leave API working:', leaveTest.data);
-      } catch {
-        console.warn('❌ [DEBUG] Leave API limited for employee');
-      }
-      
-      try {
-        const wfhTest = await api.get('/employee/company/wfh-today');
-        console.log('✅ [DEBUG] WFH API working:', wfhTest.data);
-      } catch {
-        console.warn('❌ [DEBUG] WFH API limited for employee');
-      }
       
       toast.success('All APIs are working correctly!');
     } catch (error) {
@@ -244,314 +182,6 @@ const EmployeeDashboard = () => {
       } else {
         toast.error(`API test failed: ${error.message}`);
       }
-    }
-  };
-
-  const fetchDashboardData = async () => {
-    try {
-      console.log("📊 [DASHBOARD] Starting fetchDashboardData...");
-      
-      // Debug authentication state
-      const { user, token, isAuthenticated } = useAuthStore.getState();
-      console.log("� [DASHBOARD] Auth state:", {
-        isAuthenticated,
-        hasUser: !!user,
-        userRole: user?.role,
-        hasToken: !!token,
-        tokenLength: token?.length
-      });
-      
-      const res = await employeeDashboardService.getDashboardData();
-      if (process.env.NODE_ENV === 'development') {
-        console.log("📊 [DASHBOARD] API Response:", res);
-      }
-      
-      if (res.success && res.data) {
-        setDashboardData(res.data);
-        console.log("✅ [DASHBOARD] Real data loaded successfully");
-      } else {
-        console.warn('❌ [DASHBOARD] API returned error:', res.message);
-        
-        // Check if it's an authentication error
-        if (res.message?.includes('Authentication') || res.message?.includes('Unauthorized')) {
-          toast.error("Session expired. Please login again.");
-          // Force logout and redirect
-          const { logout } = useAuthStore.getState();
-          logout();
-          return;
-        }
-        
-        toast.warn("Some dashboard data may be limited");
-        // Only set fallback if absolutely necessary
-        setDashboardData({
-          personalInfo: { firstName: "Employee", lastName: "" },
-          employeeId: "EMP-001",
-          jobInfo: { jobTitle: "Employee" },
-          stats: { attendanceRate: 0, leaveRequests: 0 }
-        });
-      }
-    } catch (error) {
-      console.error('❌ [DASHBOARD] API error:', error);
-      
-      // Check if it's a network/server error vs authorization
-      if (error.response?.status === 401) {
-        toast.error("Session expired. Please login again.");
-        // Force logout and redirect
-        const { logout } = useAuthStore.getState();
-        logout();
-        return;
-      } else if (error.response?.status === 403) {
-        toast.error("Access denied. Contact administrator.");
-        return;
-      }
-      
-      toast.error("Failed to load dashboard data");
-      // Only set minimal fallback for network errors
-      setDashboardData({
-        personalInfo: { firstName: "Employee", lastName: "" },
-        employeeId: "EMP-001",
-        jobInfo: { jobTitle: "Employee" },
-        stats: { attendanceRate: 0, leaveRequests: 0 }
-      });
-    }
-  };
-
-  // Fetch team data (on leave and work from home)
-  const fetchTeamData = async (silent = false) => {
-    if (!silent) setTeamDataLoading(true);
-    
-    try {
-      console.log('🏢 [DASHBOARD] Fetching team data...');
-      
-      // ✅ PERMISSION CHECK: Only fetch if user has permission
-      if (!can.do(MODULES.ATTENDANCE?.VIEW_COMPANY_STATUS)) {
-        console.log('🔐 [DASHBOARD] No permission for company status - skipping team data');
-        setTeamOnLeave([]);
-        setTeamWFH([]);
-        return;
-      }
-      
-      // Fetch today's leave data using employee-safe endpoint
-      const leaveResponse = await employeeDashboardService.getTodayLeaveData();
-      
-      if (leaveResponse.success) {
-        console.log('✅ [DASHBOARD] Leave data loaded:', leaveResponse.data?.length || 0, 'employees');
-        setTeamOnLeave(leaveResponse.data || []);
-      } else {
-        console.warn('❌ [DASHBOARD] Leave data failed:', leaveResponse.message);
-        setTeamOnLeave([]);
-      }
-
-      // Fetch today's WFH data using employee-safe endpoint
-      const wfhResponse = await employeeDashboardService.getTodayWFHData();
-      
-      if (wfhResponse.success) {
-        console.log('✅ [DASHBOARD] WFH data loaded:', wfhResponse.data?.length || 0, 'employees');
-        setTeamWFH(wfhResponse.data || []);
-      } else {
-        console.warn('❌ [DASHBOARD] WFH data failed:', wfhResponse.message);
-        setTeamWFH([]);
-      }
-    } catch (error) {
-      console.error('❌ [DASHBOARD] Team data API error:', error);
-      
-      // Handle specific error types
-      if (error.response?.status === 403) {
-        console.error('🔐 [DASHBOARD] 403 Forbidden - User does not have permission to view company status');
-      } else if (error.response?.status === 401) {
-        console.error('🔐 [DASHBOARD] 401 Unauthorized - Authentication issue');
-        const { logout } = useAuthStore.getState();
-        logout();
-        navigate('/login');
-        return;
-      }
-      
-      // Fallback to empty arrays
-      setTeamOnLeave([]);
-      setTeamWFH([]);
-    } finally {
-      if (!silent) setTeamDataLoading(false);
-    }
-  };
-
-  // ✅ ENHANCED: Fetch upcoming birthdays (next 6 months to ensure we show multiple birthdays)
-  const fetchUpcomingBirthdays = async (silent = false) => {
-    if (!silent) setBirthdaysLoading(true);
-    
-    try {
-      console.log('🎂 [DASHBOARD] Fetching upcoming birthdays (enhanced - next 6 months)...');
-      
-      // ✅ Use enhanced service that fetches 6 months instead of 2
-      // Request more birthdays to show all available ones
-      const response = await employeeCalendarService.getUpcomingBirthdays(10);
-      
-      if (response.success) {
-        const allBirthdays = response.data || [];
-        
-        console.log('🎂 [DASHBOARD] Raw birthdays from service:', allBirthdays.length);
-        
-        // ✅ FIX: Proper timezone handling for birthdays
-        const today = new Date();
-        const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        
-        const upcomingBirthdays = allBirthdays
-          .map(birthday => {
-            // ✅ FIX: Parse birthday date properly to avoid timezone issues
-            let birthdayDate;
-            if (birthday.date) {
-              // Handle YYYY-MM-DD format properly
-              const dateStr = birthday.date.includes('T') ? birthday.date.split('T')[0] : birthday.date;
-              const [year, month, day] = dateStr.split('-').map(Number);
-              birthdayDate = new Date(year, month - 1, day); // month is 0-indexed
-            } else {
-              console.warn('🎂 [DASHBOARD] Birthday missing date:', birthday);
-              return null; // Skip invalid dates
-            }
-            
-            const thisYear = todayLocal.getFullYear();
-            const birthdayThisYear = new Date(thisYear, birthdayDate.getMonth(), birthdayDate.getDate());
-            
-            // If birthday has passed this year, show next year's birthday
-            if (birthdayThisYear < todayLocal) {
-              birthdayThisYear.setFullYear(thisYear + 1);
-            }
-            
-            const daysUntil = Math.ceil((birthdayThisYear - todayLocal) / (1000 * 60 * 60 * 24));
-            const isToday = birthdayThisYear.toDateString() === todayLocal.toDateString();
-            
-            console.log(`🎂 [DASHBOARD] Processing birthday: ${birthday.employeeName} - ${birthday.date} -> ${birthdayThisYear.toDateString()} (${daysUntil} days)`);
-            
-            return {
-              ...birthday,
-              nextBirthdayDate: birthdayThisYear,
-              daysUntil: daysUntil,
-              isToday: isToday,
-              // Add department info if available
-              department: birthday.department || birthday.departmentName || null
-            };
-          })
-          .filter(birthday => birthday !== null) // Remove invalid dates
-          .sort((a, b) => a.nextBirthdayDate - b.nextBirthdayDate)
-          .slice(0, 10); // Get next 10 birthdays instead of 5
-        
-        console.log('✅ [DASHBOARD] Enhanced birthdays processed:', upcomingBirthdays.length);
-        upcomingBirthdays.forEach(b => {
-          console.log(`   - ${b.employeeName}: ${b.nextBirthdayDate.toDateString()} (${b.daysUntil} days)`);
-        });
-        
-        setUpcomingBirthdays(upcomingBirthdays);
-      } else {
-        console.warn('❌ [DASHBOARD] Enhanced birthdays API error:', response.message);
-        setUpcomingBirthdays([]);
-      }
-    } catch (error) {
-      console.error('❌ [DASHBOARD] Enhanced birthdays API error:', error);
-      // Fallback to empty array if API is not available
-      setUpcomingBirthdays([]);
-    } finally {
-      if (!silent) setBirthdaysLoading(false);
-    }
-  };
-
-  const fetchLeaveBalance = async () => {
-    try {
-      const res = await leaveService.getMyLeaveBalance();
-      if (res.success) {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('✅ [DASHBOARD] Leave balance API response:', res.data);
-        }
-        
-        // Transform leaveTypes array to flat structure for easier access
-        const transformedData = {};
-        if (res.data?.leaveTypes && Array.isArray(res.data.leaveTypes)) {
-          res.data.leaveTypes.forEach(leaveType => {
-            const typeKey = leaveType.type.toLowerCase();
-            transformedData[typeKey] = {
-              remaining: leaveType.remaining,
-              allocated: leaveType.allocated,
-              used: leaveType.used,
-              pending: leaveType.pending,
-              available: leaveType.available,
-              carryForward: leaveType.carryForward
-            };
-          });
-        }
-        
-        setLeaveBalance(transformedData);
-      } else {
-        console.warn('Leave balance API returned error:', res.message);
-        // Set empty data instead of fallback
-        setLeaveBalance({
-          casual: { remaining: 0, allocated: 0, used: 0 },
-          sick: { remaining: 0, allocated: 0, used: 0 },
-          annual: { remaining: 0, allocated: 0, used: 0 }
-        });
-      }
-    } catch (error) {
-      console.error('Leave balance API error:', error);
-      // Set empty data instead of fallback
-      setLeaveBalance({
-        casual: { remaining: 0, allocated: 0, used: 0 },
-        sick: { remaining: 0, allocated: 0, used: 0 },
-        annual: { remaining: 0, allocated: 0, used: 0 }
-      });
-    }
-  };
-
-  const fetchAttendanceSummary = async () => {
-    try {
-      const res = await employeeDashboardService.getAttendanceSummary();
-      if (process.env.NODE_ENV === 'development') {
-        console.log('📈 [DASHBOARD] Attendance summary raw response:', res);
-      }
-      
-      if (res.success && res.data) {
-        console.log('✅ [DASHBOARD] Attendance summary data:', res.data);
-        
-        // Calculate required hours based on working days in current month
-        const now = new Date();
-        const workingDaysInMonth = 22; // Standard working days
-        const standardHoursPerDay = 8;
-        const requiredHours = workingDaysInMonth * standardHoursPerDay; // 176 hours
-        
-        // Normalize attendance summary after API call
-        const normalizedData = {
-          presentDays: res.data.presentDays ?? res.data.present ?? 0,
-          absentDays: res.data.absentDays ?? res.data.absent ?? 0, // ✅ Add absent days
-          leaveDays: res.data.leaveDays ?? res.data.leave ?? 0, // ✅ Backend uses leaveDays
-          lateDays: res.data.lateDays ?? res.data.late ?? 0,
-          totalHours: Math.round(res.data.totalWorkHours ?? res.data.totalHours ?? res.data.workedHours ?? 0),
-          requiredHours: res.data.requiredHours ?? requiredHours,
-          totalDays: res.data.totalDays ?? res.data.totalWorkingDays ?? workingDaysInMonth // ✅ Add total days
-        };
-        
-        console.log('✅ [DASHBOARD] Normalized attendance data:', normalizedData);
-        setAttendanceSummary(normalizedData);
-      } else {
-        console.warn('❌ [DASHBOARD] Attendance summary API error:', res.message);
-        // Set empty data instead of fallback
-        setAttendanceSummary({
-          presentDays: 0,
-          absentDays: 0,
-          leaveDays: 0,
-          lateDays: 0,
-          totalHours: 0,
-          requiredHours: 176,
-          totalDays: 22
-        });
-      }
-    } catch (error) {
-      console.error('❌ [DASHBOARD] Attendance summary API error:', error);
-      // Set empty data instead of fallback
-      setAttendanceSummary({
-        presentDays: 0,
-        absentDays: 0,
-        leaveDays: 0,
-        lateDays: 0,
-        totalHours: 0,
-        requiredHours: 176,
-        totalDays: 22
-      });
     }
   };
 
@@ -661,43 +291,6 @@ const EmployeeDashboard = () => {
       });
     }
   }, [calendarEvents]);
-
-  // ✅ OPTIMIZED REFRESH: Reduced API calls, smarter loading
-  const refreshDashboard = async () => {
-    setLoading(true);
-    try {
-      console.log('🔄 [DASHBOARD] Starting optimized refresh...');
-      
-      // ✅ PHASE 1: Essential data only
-      const essentialPromises = [
-        fetchDashboardData(),
-        fetchAttendanceSummary(),
-        fetchTodayRecord(true),
-        getNotifications({ limit: 5 }),
-      ];
-      
-      await Promise.allSettled(essentialPromises);
-      
-      // ✅ PHASE 2: Optional data (don't wait for completion)
-      const optionalPromises = [
-        fetchLeaveBalance(),
-        fetchTeamData(true),
-        fetchUpcomingBirthdays(true), // ✅ Now enhanced - 6 months
-      ];
-      
-      // Don't block UI for optional data
-      Promise.allSettled(optionalPromises).catch(error => {
-        console.warn('❌ [DASHBOARD] Optional refresh data failed:', error);
-      });
-      
-      toast.success('Dashboard refreshed successfully');
-    } catch (error) {
-      console.error('❌ [DASHBOARD] Refresh failed:', error);
-      toast.error('Failed to refresh some data');
-    } finally {
-      setLoading(false);
-    }
-  };
   // Helper function to get notification icon based on type
   const getNotificationIcon = (type) => {
     switch (type?.toLowerCase()) {
@@ -1205,7 +798,7 @@ const EmployeeDashboard = () => {
         </div>
       ))
     ) : (
-      <EmptyState class
+      <EmptyState
         icon={Home}
         title="No WFH today"
         description="All employees are in office"

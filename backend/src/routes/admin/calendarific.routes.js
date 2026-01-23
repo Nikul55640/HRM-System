@@ -13,7 +13,15 @@ import {
   syncHolidays,
   getSyncStatus,
   getHolidayStats,
-  bulkSyncHolidays
+  bulkSyncHolidays,
+  getAvailableFilters,
+  previewHolidaysWithFilters,
+  syncHolidaysWithFilters,
+  getFestivalHolidays,
+  getNationalHolidays,
+  applyCompanyPolicy,
+  getApiUsageStats,
+  syncWithTemplate
 } from '../../controllers/admin/calendarific.controller.js';
 import { authenticateToken } from '../../middleware/auth.middleware.js';
 import { requireRoles } from '../../middleware/requireRoles.js';
@@ -158,4 +166,187 @@ router.get('/stats', [
     .withMessage('Year must be between 2020 and 2030')
 ], getHolidayStats);
 
+// ===== NEW SELECTIVE FILTERING ENDPOINTS =====
+
+/**
+ * @route GET /api/admin/calendarific/filters
+ * @desc Get available filter options and company policy templates
+ * @access HR, HR_Manager, SuperAdmin
+ */
+router.get('/filters', getAvailableFilters);
+
+/**
+ * @route POST /api/admin/calendarific/preview-filtered
+ * @desc Preview holidays with advanced filters
+ * @access HR, HR_Manager, SuperAdmin
+ */
+router.post('/preview-filtered', [
+  body('country')
+    .optional()
+    .isLength({ min: 2, max: 2 })
+    .withMessage('Country code must be 2 characters (ISO 3166-1 alpha-2)'),
+  body('year')
+    .optional()
+    .isInt({ min: 2020, max: 2030 })
+    .withMessage('Year must be between 2020 and 2030'),
+  body('holidayTypes')
+    .optional()
+    .matches(/^(national|local|religious|observance)(,(national|local|religious|observance))*$/)
+    .withMessage('holidayTypes must be comma-separated list of: national, local, religious, observance'),
+  body('festivalsOnly')
+    .optional()
+    .isBoolean()
+    .withMessage('festivalsOnly must be a boolean'),
+  body('nationalOnly')
+    .optional()
+    .isBoolean()
+    .withMessage('nationalOnly must be a boolean'),
+  body('excludeObservances')
+    .optional()
+    .isBoolean()
+    .withMessage('excludeObservances must be a boolean'),
+  body('paidOnly')
+    .optional()
+    .isBoolean()
+    .withMessage('paidOnly must be a boolean'),
+  body('maxHolidays')
+    .optional()
+    .isInt({ min: 1, max: 50 })
+    .withMessage('maxHolidays must be between 1 and 50')
+], previewHolidaysWithFilters);
+
+/**
+ * @route POST /api/admin/calendarific/sync-filtered
+ * @desc Sync holidays with advanced filters
+ * @access HR, HR_Manager, SuperAdmin
+ */
+router.post('/sync-filtered', [
+  body('country')
+    .optional()
+    .isLength({ min: 2, max: 2 })
+    .withMessage('Country code must be 2 characters (ISO 3166-1 alpha-2)'),
+  body('year')
+    .optional()
+    .isInt({ min: 2020, max: 2030 })
+    .withMessage('Year must be between 2020 and 2030'),
+  body('overwriteExisting')
+    .optional()
+    .isBoolean()
+    .withMessage('overwriteExisting must be a boolean'),
+  body('dryRun')
+    .optional()
+    .isBoolean()
+    .withMessage('dryRun must be a boolean'),
+  body('holidayTypes')
+    .optional()
+    .matches(/^(national|local|religious|observance)(,(national|local|religious|observance))*$/)
+    .withMessage('holidayTypes must be comma-separated list of: national, local, religious, observance'),
+  body('festivalsOnly')
+    .optional()
+    .isBoolean()
+    .withMessage('festivalsOnly must be a boolean'),
+  body('nationalOnly')
+    .optional()
+    .isBoolean()
+    .withMessage('nationalOnly must be a boolean'),
+  body('excludeObservances')
+    .optional()
+    .isBoolean()
+    .withMessage('excludeObservances must be a boolean'),
+  body('paidOnly')
+    .optional()
+    .isBoolean()
+    .withMessage('paidOnly must be a boolean'),
+  body('maxHolidays')
+    .optional()
+    .isInt({ min: 1, max: 50 })
+    .withMessage('maxHolidays must be between 1 and 50')
+], syncHolidaysWithFilters);
+
+/**
+ * @route GET /api/admin/calendarific/festivals
+ * @desc Get festival holidays only
+ * @access HR, HR_Manager, SuperAdmin
+ */
+router.get('/festivals', [
+  query('country')
+    .optional()
+    .isLength({ min: 2, max: 2 })
+    .withMessage('Country code must be 2 characters (ISO 3166-1 alpha-2)'),
+  query('year')
+    .optional()
+    .isInt({ min: 2020, max: 2030 })
+    .withMessage('Year must be between 2020 and 2030'),
+  query('holidayTypes')
+    .optional()
+    .matches(/^(national|local|religious|observance)(,(national|local|religious|observance))*$/)
+    .withMessage('holidayTypes must be comma-separated list of: national, local, religious, observance')
+], getFestivalHolidays);
+
+/**
+ * @route GET /api/admin/calendarific/national
+ * @desc Get national holidays only
+ * @access HR, HR_Manager, SuperAdmin
+ */
+router.get('/national', [
+  query('country')
+    .optional()
+    .isLength({ min: 2, max: 2 })
+    .withMessage('Country code must be 2 characters (ISO 3166-1 alpha-2)'),
+  query('year')
+    .optional()
+    .isInt({ min: 2020, max: 2030 })
+    .withMessage('Year must be between 2020 and 2030')
+], getNationalHolidays);
+
+/**
+ * @route GET /api/admin/calendarific/api-usage
+ * @desc Get API usage statistics and cache status
+ * @access HR, HR_Manager, SuperAdmin
+ */
+router.get('/api-usage', getApiUsageStats);
+
+/**
+ * @route POST /api/admin/calendarific/apply-policy
+ * @desc Apply company policy template for holiday selection
+ * @access HR, HR_Manager, SuperAdmin
+ */
+router.post('/apply-policy', [
+  body('country')
+    .optional()
+    .isLength({ min: 2, max: 2 })
+    .withMessage('Country code must be 2 characters (ISO 3166-1 alpha-2)'),
+  body('year')
+    .optional()
+    .isInt({ min: 2020, max: 2030 })
+    .withMessage('Year must be between 2020 and 2030'),
+  body('policyTemplate')
+    .notEmpty()
+    .isIn(['TECH_STARTUP', 'TRADITIONAL_CORPORATE', 'GOVERNMENT_OFFICE', 'MANUFACTURING'])
+    .withMessage('policyTemplate must be one of: TECH_STARTUP, TRADITIONAL_CORPORATE, GOVERNMENT_OFFICE, MANUFACTURING'),
+  body('dryRun')
+    .optional()
+    .isBoolean()
+    .withMessage('dryRun must be a boolean')
+], applyCompanyPolicy);
+
 export default router;
+/**
+ * @route POST /api/admin/calendarific/sync-with-template/:templateId
+ * @desc Sync holidays using a holiday selection template
+ * @access HR, HR_Manager, SuperAdmin
+ */
+router.post('/sync-with-template/:templateId', [
+  body('year')
+    .optional()
+    .isInt({ min: 2020, max: 2030 })
+    .withMessage('Year must be between 2020 and 2030'),
+  body('overwriteExisting')
+    .optional()
+    .isBoolean()
+    .withMessage('overwriteExisting must be a boolean'),
+  body('dryRun')
+    .optional()
+    .isBoolean()
+    .withMessage('dryRun must be a boolean')
+], syncWithTemplate);

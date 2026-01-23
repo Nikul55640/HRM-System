@@ -20,6 +20,8 @@ export { default as calendarService } from "./calendarService";
 export { default as smartCalendarService } from "./smartCalendarService";
 export { default as employeeCalendarService } from "./employeeCalendarService";
 export { default as calendarificService } from "./calendarificService";
+export { default as holidayTemplateService } from "./holidayTemplateService";
+export { default as selectiveHolidayService } from "./selectiveHolidayService";
 export { default as recentActivityService } from "./recentActivityService";
 export { default as birthdayService } from "./birthdayService";
 

@@ -153,7 +153,7 @@ const EventModal = ({ open, event, selectedDate, onClose, onSuccess }) => {
             <Label htmlFor="type">Event Type</Label>
             <Select value={formData.type} onValueChange={(value) => handleInputChange('type', value)}>
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select event type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="meeting">Meeting</SelectItem>

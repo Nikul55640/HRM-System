@@ -5,6 +5,7 @@ import departmentService from "../../../services/departmentService";
 import { LoadingSpinner } from "../../../shared/components";
 import UserModal from "../../../shared/ui/UserModal";
 import { Search, Plus, Edit2 } from "lucide-react";
+import { mapBackendToFrontend } from "../../../utils/roleMapper";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -98,17 +99,19 @@ const UserManagement = () => {
   const filteredUsers = users.filter(
     (u) =>
       u.email?.toLowerCase().includes(search.toLowerCase()) ||
-      u.role?.toLowerCase().includes(search.toLowerCase())
+      mapBackendToFrontend(u.role)?.toLowerCase().includes(search.toLowerCase())
   );
 
   const roleBadge = (role) => {
+    // Map backend role to frontend role first
+    const frontendRole = mapBackendToFrontend(role);
+    
     const map = {
-      SuperAdmin: "bg-purple-100 text-purple-700",
-      "HR": "bg-green-100 text-green-700",
-      "HR_Manager": "bg-blue-100 text-blue-700",
+      Admin: "bg-purple-100 text-purple-700",
+      HR: "bg-green-100 text-green-700",
       Employee: "bg-gray-100 text-gray-700",
     };
-    return map[role] || "bg-gray-100 text-gray-700";
+    return map[frontendRole] || "bg-gray-100 text-gray-700";
   };
 
   if (loading) {
@@ -157,7 +160,7 @@ const UserManagement = () => {
                 <p className="text-sm font-medium text-gray-900 truncate">{user.email}</p>
                 <div className="flex items-center gap-2 mt-1">
                   <span className={`px-2 py-1 rounded-full text-xs ${roleBadge(user.role)}`}>
-                    {user.role}
+                    {mapBackendToFrontend(user.role)}
                   </span>
                   <button
                     onClick={() => handleToggleActive(user)}
@@ -227,7 +230,7 @@ const UserManagement = () => {
 
                   <td className="px-6 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs ${roleBadge(user.role)}`}>
-                      {user.role}
+                      {mapBackendToFrontend(user.role)}
                     </span>
                   </td>
 

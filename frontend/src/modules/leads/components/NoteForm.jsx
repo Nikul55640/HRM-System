@@ -50,7 +50,7 @@ const NoteForm = ({ leadId, onSuccess, onCancel }) => {
               onValueChange={(value) => handleInputChange('type', value)}
             >
               <SelectTrigger>
-                <SelectValue />
+                <SelectValue placeholder="Select note type" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="general">General</SelectItem>

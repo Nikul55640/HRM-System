@@ -232,11 +232,12 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
             <div>
               <label className="block text-sm font-medium mb-2">Source</label>
               <Select 
+                key={formData.source}
                 value={formData.source}
                 onValueChange={(value) => handleInputChange('source', value)}
               >
                 <SelectTrigger className="h-10">
-                  <SelectValue />
+                  <SelectValue placeholder="Select source" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="website">Website</SelectItem>
@@ -252,11 +253,12 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
             <div>
               <label className="block text-sm font-medium mb-2">Status</label>
               <Select 
+                key={formData.status}
                 value={formData.status}
                 onValueChange={(value) => handleInputChange('status', value)}
               >
                 <SelectTrigger className="h-10">
-                  <SelectValue />
+                  <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="new">New</SelectItem>
@@ -272,11 +274,12 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
             <div>
               <label className="block text-sm font-medium mb-2">Priority</label>
               <Select 
+                key={formData.priority}
                 value={formData.priority}
                 onValueChange={(value) => handleInputChange('priority', value)}
               >
                 <SelectTrigger className="h-10">
-                  <SelectValue />
+                  <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Low</SelectItem>
@@ -318,6 +321,7 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
           <div>
             <label className="block text-sm font-medium mb-2">Assign To</label>
             <Select 
+              key={formData.assignedTo}
               value={formData.assignedTo}
               onValueChange={(value) => handleInputChange('assignedTo', value)}
             >

@@ -436,9 +436,9 @@ const LeaveBalancesPage = () => {
                                     }}
                                   />
                                 </div>
-                                <div className="text-xs text-gray-500">
+                                {/* <div className="text-xs text-gray-500">
                                   {Math.round(getProgressPercentage(leave.data.used, leave.data.allocated))}% used
-                                </div>
+                                </div> */}
                               </div>
                             ) : (
                               <div className="text-gray-400 text-sm">
@@ -674,7 +674,7 @@ const LeaveBalancesPage = () => {
                 }
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select leave type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="casual">Casual Leave</SelectItem>

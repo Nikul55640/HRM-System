@@ -1,23 +1,36 @@
-import React, { useState, useContext, createContext, useEffect, useRef } from 'react';
+/**
+ * Select Component
+ * Reusable select dropdown component
+ */
+
+import React, { useState, useRef, useEffect } from 'react';
+import { ChevronDown, Check } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
-// Create context for Select state
-const SelectContext = createContext();
-
-const Select = ({ children, value, onValueChange, defaultValue, ...props }) => {
+const Select = ({ value, onValueChange, children, disabled }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedValue, setSelectedValue] = useState(value || defaultValue || '');
   const selectRef = useRef(null);
 
-  const handleValueChange = (newValue) => {
-    setSelectedValue(newValue);
-    setIsOpen(false);
-    if (onValueChange) {
-      onValueChange(newValue);
-    }
+  // Find the selected item's text
+  const getSelectedText = () => {
+    let selectedText = '';
+    
+    const findSelectedInChildren = (children) => {
+      React.Children.forEach(children, (child) => {
+        if (child?.type === SelectContent) {
+          React.Children.forEach(child.props.children, (item) => {
+            if (item?.type === SelectItem && item.props.value === value) {
+              selectedText = item.props.children;
+            }
+          });
+        }
+      });
+    };
+    
+    findSelectedInChildren(children);
+    return selectedText;
   };
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (selectRef.current && !selectRef.current.contains(event.target)) {
@@ -25,143 +38,112 @@ const Select = ({ children, value, onValueChange, defaultValue, ...props }) => {
       }
     };
 
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isOpen]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
-    <SelectContext.Provider value={{
-      isOpen,
-      setIsOpen,
-      selectedValue: value !== undefined ? value : selectedValue,
-      onValueChange: handleValueChange
-    }}>
-      <div ref={selectRef} className="relative" {...props}>
-        {children}
-      </div>
-    </SelectContext.Provider>
+    <div className="relative" ref={selectRef}>
+      {React.Children.map(children, (child) => {
+        if (child.type === SelectTrigger) {
+          return React.cloneElement(child, {
+            isOpen,
+            onClick: () => !disabled && setIsOpen(!isOpen),
+            disabled,
+            selectedText: getSelectedText()
+          });
+        }
+        if (child.type === SelectContent) {
+          return React.cloneElement(child, {
+            isOpen,
+            value,
+            onValueChange: (newValue) => {
+              onValueChange?.(newValue);
+              setIsOpen(false);
+            }
+          });
+        }
+        return child;
+      })}
+    </div>
   );
 };
-Select.displayName = "Select";
 
-const SelectTrigger = React.forwardRef(({ className, children, ...props }, ref) => {
-  const context = useContext(SelectContext);
-  
-  if (!context) {
-    throw new Error('SelectTrigger must be used within a Select component');
-  }
-
-  const { isOpen, setIsOpen } = context;
-
+const SelectTrigger = ({ children, className, isOpen, onClick, disabled, selectedText, ...props }) => {
   return (
     <button
-      ref={ref}
       type="button"
       className={cn(
-        "flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        'flex h-10 w-full items-center justify-between rounded-md border border-gray-300 bg-white px-3 py-2 text-sm ring-offset-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
         className
       )}
-      onClick={() => setIsOpen(!isOpen)}
+      onClick={onClick}
+      disabled={disabled}
       {...props}
     >
-      {children}
-      <svg
-        className={cn("h-4 w-4 opacity-50 transition-transform", isOpen && "rotate-180")}
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-      </svg>
+      {React.Children.map(children, (child) => {
+        if (child.type === SelectValue) {
+          return React.cloneElement(child, { selectedText });
+        }
+        return child;
+      })}
+      <ChevronDown className={cn('h-4 w-4 opacity-50 transition-transform', isOpen && 'rotate-180')} />
     </button>
   );
-});
-SelectTrigger.displayName = "SelectTrigger";
+};
 
-const SelectContent = React.forwardRef(({ className, children, ...props }, ref) => {
-  const context = useContext(SelectContext);
-  
-  if (!context) {
-    throw new Error('SelectContent must be used within a Select component');
-  }
+const SelectValue = ({ placeholder, children, selectedText }) => {
+  return (
+    <span className="block truncate">
+      {selectedText || children || <span className="text-gray-500">{placeholder}</span>}
+    </span>
+  );
+};
 
-  const { isOpen } = context;
-
+const SelectContent = ({ children, className, isOpen, value, onValueChange, ...props }) => {
   if (!isOpen) return null;
 
   return (
     <div
-      ref={ref}
       className={cn(
-        "absolute top-full left-0 z-50 w-full min-w-[8rem] overflow-hidden rounded-md border bg-white text-gray-900 shadow-md mt-1",
+        'absolute top-full z-50 mt-1 w-full rounded-md border border-gray-200 bg-white py-1 shadow-lg',
         className
       )}
       {...props}
     >
-      {children}
+      {React.Children.map(children, (child) => {
+        if (child.type === SelectItem) {
+          return React.cloneElement(child, {
+            isSelected: value === child.props.value,
+            onSelect: () => onValueChange?.(child.props.value)
+          });
+        }
+        return child;
+      })}
     </div>
   );
-});
-SelectContent.displayName = "SelectContent";
+};
 
-const SelectItem = React.forwardRef(({ className, children, value, ...props }, ref) => {
-  const context = useContext(SelectContext);
-  
-  if (!context) {
-    throw new Error('SelectItem must be used within a Select component');
-  }
-
-  const { selectedValue, onValueChange } = context;
-  const isSelected = selectedValue === value;
-
+const SelectItem = ({ value, children, className, isSelected, onSelect, ...props }) => {
   return (
-    <div
-      ref={ref}
+    <button
+      type="button"
       className={cn(
-        "relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-3 pr-2 text-sm outline-none hover:bg-gray-100 focus:bg-gray-100",
-        isSelected && "bg-gray-100 font-medium",
+        'relative flex w-full cursor-pointer select-none items-center rounded-sm py-1.5 pl-8 pr-2 text-sm outline-none hover:bg-gray-100 focus:bg-gray-100',
+        isSelected && 'bg-gray-100',
         className
       )}
-      onClick={() => onValueChange(value)}
+      onClick={onSelect}
       {...props}
     >
-      {children}
       {isSelected && (
-        <svg
-          className="ml-auto h-4 w-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
+        <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
+          <Check className="h-4 w-4" />
+        </span>
       )}
-    </div>
+      {children}
+    </button>
   );
-});
-SelectItem.displayName = "SelectItem";
+};
 
-const SelectValue = React.forwardRef(({ className, placeholder, ...props }, ref) => {
-  const context = useContext(SelectContext);
-  
-  if (!context) {
-    throw new Error('SelectValue must be used within a Select component');
-  }
-
-  const { selectedValue } = context;
-
-  return (
-    <span 
-      ref={ref} 
-      className={cn("block truncate", className)} 
-      {...props}
-    >
-      {selectedValue || placeholder}
-    </span>
-  );
-});
-SelectValue.displayName = "SelectValue";
-
-export { Select, SelectTrigger, SelectContent, SelectItem, SelectValue };
+export { Select, SelectTrigger, SelectValue, SelectContent, SelectItem };

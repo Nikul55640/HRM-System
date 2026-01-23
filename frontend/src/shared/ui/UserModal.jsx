@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { LoadingSpinner } from '../components';
+import { Eye, EyeOff } from 'lucide-react';
+import { mapBackendToFrontend, mapFrontendToBackend, requiresDepartmentAssignment } from '../../utils/roleMapper';
 
 const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
   const [formData, setFormData] = useState({
@@ -10,19 +12,20 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
   });
 
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     if (user) {
       setFormData({
         email: user.email || '',
         password: '', // Don't populate password for edit
-        role: user.role || 'Employee',
-        assignedDepartments: user.assignedDepartments?.map(d => d._id || d) || [],
+        role: mapBackendToFrontend(user.role) || 'Employee',
+        assignedDepartments: user.assignedDepartments?.map(d => d.id || d) || [],
       });
     }
   }, [user]);
 
-  const roles = ['SuperAdmin', 'HR', 'Employee'];
+  const roles = ['Admin', 'HR', 'Employee'];
 
   const validateForm = () => {
     const newErrors = {};
@@ -43,7 +46,7 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
       newErrors.role = 'Role is required';
     }
 
-    if (formData.role === 'HR' && formData.assignedDepartments.length === 0) {
+    if (requiresDepartmentAssignment(formData.role) && formData.assignedDepartments.length === 0) {
       newErrors.assignedDepartments = 'HR users must have at least one assigned department';
     }
 
@@ -61,13 +64,16 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
     try {
       const submitData = { ...formData };
 
+      // Convert frontend role to backend role
+      submitData.role = mapFrontendToBackend(submitData.role);
+
       // Remove password if empty (for updates)
       if (!submitData.password) {
         delete submitData.password;
       }
 
       // Remove assignedDepartments if not HR
-      if (submitData.role !== 'HR') {
+      if (!requiresDepartmentAssignment(formData.role)) {
         submitData.assignedDepartments = [];
       }
 
@@ -162,17 +168,31 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
                 Password {!user && <span className="text-red-500">*</span>}
                 {user && <span className="text-gray-500 text-xs ml-1">(leave blank to keep current)</span>}
               </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={isSubmitting}
-                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                placeholder="••••••••"
-              />
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  disabled={isSubmitting}
+                  className={`w-full px-3 py-2 pr-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.password ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                  placeholder="••••••••"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
+                  disabled={isSubmitting}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
               {errors.password && (
                 <p className="mt-1 text-sm text-red-600">{errors.password}</p>
               )}
@@ -207,26 +227,29 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
             </div>
 
             {/* Department Assignment (only for HR) */}
-            {formData.role === 'HR' && (
+            {requiresDepartmentAssignment(formData.role) && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Assigned Departments <span className="text-red-500">*</span>
                 </label>
-                <div className="border border-gray-300 rounded-lg p-2 max-h-48 overflow-y-auto">
+                <div className="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto">
                   {departments.length === 0 ? (
                     <p className="text-sm text-gray-500">No departments available</p>
                   ) : (
                     <div className="space-y-2">
                       {departments.map(dept => (
-                        <label key={dept._id} className="flex items-center space-x-2 cursor-pointer">
+                        <label key={dept.id} className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 p-2 rounded">
                           <input
                             type="checkbox"
-                            checked={formData.assignedDepartments.includes(dept._id)}
-                            onChange={() => handleDepartmentToggle(dept._id)}
+                            checked={formData.assignedDepartments.includes(dept.id)}
+                            onChange={() => handleDepartmentToggle(dept.id)}
                             disabled={isSubmitting}
                             className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                           />
-                          <span className="text-sm text-gray-700">{dept.name}</span>
+                          <div className="flex-1">
+                            <span className="text-sm font-medium text-gray-700">{dept.name}</span>
+                            <span className="text-xs text-gray-500 ml-2">({dept.code})</span>
+                          </div>
                         </label>
                       ))}
                     </div>
@@ -235,6 +258,9 @@ const UserModal = ({ user, departments, onSubmit, onClose, isSubmitting }) => {
                 {errors.assignedDepartments && (
                   <p className="mt-1 text-sm text-red-600">{errors.assignedDepartments}</p>
                 )}
+                <p className="mt-1 text-xs text-gray-500">
+                  Select departments this HR user can manage
+                </p>
               </div>
             )}
           </div>

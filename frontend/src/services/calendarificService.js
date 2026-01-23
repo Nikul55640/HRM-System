@@ -325,6 +325,28 @@ class CalendarificService {
       errors
     };
   }
+
+  /**
+   * Sync holidays using a holiday selection template
+   */
+  async syncWithTemplate(templateId, data = {}) {
+    try {
+      const {
+        year = new Date().getFullYear(),
+        overwriteExisting = false,
+        dryRun = false
+      } = data;
+
+      const response = await api.post(`/admin/calendarific/sync-with-template/${templateId}`, {
+        year,
+        overwriteExisting,
+        dryRun
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  }
 }
 
 export default new CalendarificService();

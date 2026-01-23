@@ -25,13 +25,14 @@ const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
     fetchEmployees();
     if (activity) {
       setFormData({
-        type: activity.type || 'call',
+        type: activity.type?.toLowerCase() || 'call',
+
         subject: activity.subject || '',
         description: activity.description || '',
-        status: activity.status || 'pending',
-        priority: activity.priority || 'medium',
+        status: activity.status?.toLowerCase() || 'pending',
+        priority: activity.priority?.toLowerCase() || 'medium',
         scheduledDate: activity.scheduledDate ? activity.scheduledDate.split('T')[0] + 'T' + activity.scheduledDate.split('T')[1].substring(0, 5) : '',
-        assignedTo: activity.assignedTo || '',
+        assignedTo: activity.assignedTo ? activity.assignedTo.toString() : '',
         duration: activity.duration || ''
       });
     }
@@ -93,11 +94,12 @@ const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
             <div>
               <label className="block text-sm font-medium mb-1">Type *</label>
               <Select 
+                key={formData.type}
                 value={formData.type}
                 onValueChange={(value) => handleInputChange('type', value)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select activity type" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="call">Call</SelectItem>
@@ -111,11 +113,12 @@ const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
             <div>
               <label className="block text-sm font-medium mb-1">Status</label>
               <Select 
+                key={formData.status}
                 value={formData.status}
                 onValueChange={(value) => handleInputChange('status', value)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
@@ -148,11 +151,12 @@ const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
             <div>
               <label className="block text-sm font-medium mb-1">Priority</label>
               <Select 
+                key={formData.priority}
                 value={formData.priority}
                 onValueChange={(value) => handleInputChange('priority', value)}
               >
                 <SelectTrigger>
-                  <SelectValue />
+                  <SelectValue placeholder="Select priority" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="low">Low</SelectItem>
@@ -184,6 +188,7 @@ const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
           <div>
             <label className="block text-sm font-medium mb-1">Assign To</label>
             <Select 
+              key={formData.assignedTo}
               value={formData.assignedTo}
               onValueChange={(value) => handleInputChange('assignedTo', value)}
             >

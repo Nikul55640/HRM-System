@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '../../../shared/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../shared/ui/tabs';
 import { toast } from 'react-toastify';
 import calendarificService from '../../../services/calendarificService';
+import holidayTemplateService from '../../../services/holidayTemplateService';
 import { 
   Calendar, 
   Download, 
@@ -17,7 +18,9 @@ import {
   Globe2,
   BarChart3,
   Eye,
-  RotateCcw
+  RotateCcw,
+  CheckSquare,
+  Info
 } from 'lucide-react';
 
 import { formatIndianDateTime } from '../../../utils/indianFormatters';
@@ -28,6 +31,8 @@ import ApiStatusCard from './components/ApiStatusCard';
 import CountryYearSelector from './components/CountryYearSelector';
 import HolidayTypeSelector from './components/HolidayTypeSelector';
 import HolidayPreviewList from './components/HolidayPreviewList';
+import HolidaySelectionList from './components/HolidaySelectionList';
+import HolidayTemplateManagement from './HolidayTemplateManagement';
 
 const CalendarificManagement = () => {
   
@@ -52,6 +57,52 @@ const CalendarificManagement = () => {
   const [overwriteExisting, setOverwriteExisting] = useState(false);
   const [bulkStartYear, setBulkStartYear] = useState(new Date().getFullYear());
   const [bulkEndYear, setBulkEndYear] = useState(new Date().getFullYear() + 1);
+
+  // Holiday selection states
+  const [selectedHolidays, setSelectedHolidays] = useState([]);
+  const [showSelectionMode, setShowSelectionMode] = useState(false);
+  
+  // Tab control state
+  const [activeTab, setActiveTab] = useState('sync');
+
+  // Debug active tab changes
+  useEffect(() => {
+    console.log('🎯 [TAB STATE] Active tab changed to:', activeTab);
+  }, [activeTab]);
+
+  // Handle holiday selection change
+  const handleHolidaySelectionChange = (selection, templateData = null) => {
+    setSelectedHolidays(selection);
+    
+    if (templateData) {
+      // Create template from selection
+      handleCreateTemplateFromSelection(templateData);
+    }
+  };
+
+  // Create template from holiday selection
+  const handleCreateTemplateFromSelection = async (templateData) => {
+    try {
+      const fullTemplateData = {
+        ...templateData,
+        country: selectedCountry,
+        holidayTypes: selectedTypes,
+        selectedHolidays: selectedHolidays
+      };
+
+      const result = await holidayTemplateService.createTemplateFromSelection(fullTemplateData);
+      
+      if (result.success) {
+        toast.success(`Template "${templateData.name}" created successfully!`);
+        setSelectedHolidays([]);
+        setShowSelectionMode(false);
+      } else {
+        toast.error(result.message || 'Failed to create template');
+      }
+    } catch (error) {
+      toast.error('Error creating template');
+    }
+  };
 
   // Memoized static data
   const popularCountries = useMemo(() => calendarificService.getPopularCountries(), []);
@@ -278,6 +329,7 @@ const CalendarificManagement = () => {
 
   return (
     <div className="space-y-3">
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -345,10 +397,17 @@ const CalendarificManagement = () => {
       )}
 
       {/* Main Tabs */}
-      <Tabs defaultValue="sync" className="space-y-3">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-3">
+        
         <TabsList>
           <TabsTrigger value="sync">Holiday Sync</TabsTrigger>
           <TabsTrigger value="preview">Preview</TabsTrigger>
+          <TabsTrigger value="selection">
+            Holiday Selection
+          </TabsTrigger>
+          <TabsTrigger value="templates">
+            Templates
+          </TabsTrigger>
           <TabsTrigger value="bulk">Bulk Sync</TabsTrigger>
           <TabsTrigger value="manage">Manage Holidays</TabsTrigger>
           <TabsTrigger value="stats">Statistics</TabsTrigger>
@@ -487,10 +546,27 @@ const CalendarificManagement = () => {
                     <div className="flex gap-2">
                       <Badge>{previewData.count} holidays</Badge>
                       <Badge variant="outline">{previewData.types.join(', ')}</Badge>
+                      <Button 
+                        size="sm" 
+                        onClick={() => setShowSelectionMode(!showSelectionMode)}
+                        variant={showSelectionMode ? "default" : "outline"}
+                      >
+                        {showSelectionMode ? "Exit Selection" : "Select Holidays"}
+                      </Button>
                     </div>
                   </div>
                   
-                  <HolidayPreviewList holidays={previewData.holidays} />
+                  {showSelectionMode ? (
+                    <HolidaySelectionList 
+                      holidays={previewData.holidays}
+                      onSelectionChange={handleHolidaySelectionChange}
+                      maxSelection={10}
+                      showTemplateCreation={true}
+                      initialSelection={selectedHolidays}
+                    />
+                  ) : (
+                    <HolidayPreviewList holidays={previewData.holidays} />
+                  )}
                 </div>
               )}
 
@@ -502,6 +578,75 @@ const CalendarificManagement = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Holiday Selection Tab */}
+        <TabsContent value="selection" className="space-y-3">
+          
+          {/* Show selection interface if preview data is available */}
+          {previewData ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckSquare className="h-4 w-4" />
+                  Holiday Selection System
+                </CardTitle>
+                <div className="flex gap-2">
+                  <Badge>{previewData.count} holidays available</Badge>
+                  <Badge variant="outline">{previewData.country} - {previewData.year}</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <HolidaySelectionList 
+                  holidays={previewData.holidays}
+                  onSelectionChange={handleHolidaySelectionChange}
+                  maxSelection={10}
+                  showTemplateCreation={true}
+                  initialSelection={selectedHolidays}
+                />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckSquare className="h-4 w-4" />
+                  Holiday Selection System
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>How Holiday Selection Works:</strong>
+                    <br />1. First, go to the "Preview" tab and load holidays from Calendarific
+                    <br />2. Then return here to select specific holidays (up to 10)
+                    <br />3. Save your selection as a reusable template
+                    <br />4. Use templates to sync only your selected holidays
+                  </AlertDescription>
+                </Alert>
+                
+                <div className="text-center py-8 text-muted-foreground">
+                  <CheckSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No holidays loaded for selection</p>
+                  <p className="text-sm mt-2">Load a preview first to see available holidays</p>
+                  <Button 
+                    className="mt-4" 
+                    onClick={() => setActiveTab('preview')}
+                    variant="outline"
+                  >
+                    Go to Preview Tab
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Templates Tab */}
+        <TabsContent value="templates" className="space-y-3">
+          {console.log('� [TAB CONTENT] Templates tab content is rendering! activeTab:', activeTab)}
+          <HolidayTemplateManagement />
         </TabsContent>
 
         {/* Bulk Sync Tab */}

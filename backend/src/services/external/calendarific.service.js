@@ -7,15 +7,31 @@
 import axios from 'axios';
 import logger from '../../utils/logger.js';
 import { Holiday } from '../../models/index.js';
+import { 
+  FESTIVAL_KEYWORDS, 
+  NATIONAL_KEYWORDS, 
+  OBSERVANCE_KEYWORDS, 
+  STATE_KEYWORDS,
+  IMPORTANCE_LEVELS,
+  COMPANY_POLICY_TEMPLATES 
+} from '../../constants/festivalKeywords.js';
 
 class CalendarificService {
   constructor() {
     this.baseURL = 'https://calendarific.com/api/v2';
     this.apiKey = process.env.CALENDARIFIC_API_KEY;
     
-    // In-memory cache to reduce API calls
+    // Enhanced caching system to minimize API calls
     this.cache = new Map();
-    this.CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+    this.CACHE_TTL = 7 * 24 * 60 * 60 * 1000; // 7 days (holidays don't change often)
+    this.requestQueue = new Map(); // Prevent duplicate simultaneous requests
+    this.rateLimitDelay = 1000; // 1 second between API calls
+    this.lastApiCall = 0;
+    
+    // API usage tracking
+    this.apiCallCount = 0;
+    this.dailyLimit = 1000; // Calendarific free tier limit
+    this.resetTime = this.getNextMidnight();
     
     if (!this.apiKey) {
       logger.warn('Calendarific API key not found. Holiday sync will be disabled.');
@@ -23,10 +39,62 @@ class CalendarificService {
   }
 
   /**
+   * Get next midnight for daily reset
+   */
+  getNextMidnight() {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0);
+    return tomorrow.getTime();
+  }
+
+  /**
+   * Reset daily API counter if needed
+   */
+  checkDailyReset() {
+    const now = Date.now();
+    if (now >= this.resetTime) {
+      this.apiCallCount = 0;
+      this.resetTime = this.getNextMidnight();
+      logger.info('🔄 Daily API counter reset');
+    }
+  }
+
+  /**
+   * Generate cache key for raw API data (before filtering)
+   */
+  getRawCacheKey(country, year, type) {
+    return `raw-${country}-${year}-${type}`;
+  }
+
+  /**
+   * Generate cache key for filtered data
+   */
+  getFilteredCacheKey(country, year, type, filters = {}) {
+    const filterHash = this.hashFilters(filters);
+    return `filtered-${country}-${year}-${type}-${filterHash}`;
+  }
+
+  /**
+   * Create a hash of filter options for caching
+   */
+  hashFilters(filters) {
+    if (!filters || Object.keys(filters).length === 0) return 'none';
+    
+    // Sort keys to ensure consistent hashing
+    const sortedFilters = {};
+    Object.keys(filters).sort().forEach(key => {
+      sortedFilters[key] = filters[key];
+    });
+    
+    return Buffer.from(JSON.stringify(sortedFilters)).toString('base64').slice(0, 16);
+  }
+
+  /**
    * Generate cache key for API requests
    */
-  getCacheKey(country, year, type) {
-    return `${country}-${year}-${type}`;
+  getCacheKey(country, year, type, filters = {}) {
+    return this.getFilteredCacheKey(country, year, type, filters);
   }
 
   /**
@@ -41,29 +109,82 @@ class CalendarificService {
   /**
    * Get data from cache if valid
    */
-  getFromCache(country, year, type) {
-    const key = this.getCacheKey(country, year, type);
-    const cached = this.cache.get(key);
+  getFromCache(country, year, type, filters = {}) {
+    // Try filtered cache first
+    const filteredKey = this.getFilteredCacheKey(country, year, type, filters);
+    const filteredCached = this.cache.get(filteredKey);
     
-    if (this.isCacheValid(cached)) {
-      logger.info(`Cache HIT for ${key} - Saving API credit`);
-      return cached.data;
+    if (this.isCacheValid(filteredCached)) {
+      logger.info(`✅ Filtered cache HIT for ${filteredKey} - API call saved`);
+      return filteredCached.data;
+    }
+
+    // Try raw cache if no filters
+    if (Object.keys(filters).length === 0) {
+      const rawKey = this.getRawCacheKey(country, year, type);
+      const rawCached = this.cache.get(rawKey);
+      
+      if (this.isCacheValid(rawCached)) {
+        logger.info(`✅ Raw cache HIT for ${rawKey} - API call saved`);
+        return rawCached.data;
+      }
     }
     
-    logger.info(`Cache MISS for ${key} - Will call API`);
+    logger.info(`❌ Cache MISS for ${country}-${year}-${type} - Will call API`);
     return null;
   }
 
   /**
    * Store data in cache
    */
-  setCache(country, year, type, data) {
-    const key = this.getCacheKey(country, year, type);
+  setCache(country, year, type, data, filters = {}) {
+    const key = this.getFilteredCacheKey(country, year, type, filters);
     this.cache.set(key, {
       data,
       timestamp: Date.now()
     });
-    logger.info(`Cached data for ${key}`);
+    
+    // Also cache raw data if no filters
+    if (Object.keys(filters).length === 0) {
+      const rawKey = this.getRawCacheKey(country, year, type);
+      this.cache.set(rawKey, {
+        data,
+        timestamp: Date.now()
+      });
+    }
+    
+    logger.info(`💾 Cached data for ${key}`);
+  }
+
+  /**
+   * Rate limiting to prevent API abuse
+   */
+  async enforceRateLimit() {
+    const now = Date.now();
+    const timeSinceLastCall = now - this.lastApiCall;
+    
+    if (timeSinceLastCall < this.rateLimitDelay) {
+      const waitTime = this.rateLimitDelay - timeSinceLastCall;
+      logger.info(`⏳ Rate limiting: waiting ${waitTime}ms`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+    
+    this.lastApiCall = Date.now();
+  }
+
+  /**
+   * Check API usage limits
+   */
+  checkApiLimits() {
+    this.checkDailyReset();
+    
+    if (this.apiCallCount >= this.dailyLimit) {
+      throw new Error(`Daily API limit reached (${this.dailyLimit} calls). Resets at midnight.`);
+    }
+    
+    if (this.apiCallCount > this.dailyLimit * 0.9) {
+      logger.warn(`⚠️ API usage warning: ${this.apiCallCount}/${this.dailyLimit} calls used today`);
+    }
   }
 
   /**
@@ -75,26 +196,52 @@ class CalendarificService {
   }
 
   /**
-   * Get holidays for a specific country and year
-   * @param {string} country - ISO 3166-1 alpha-2 country code (e.g., 'IN', 'US', 'GB')
-   * @param {number} year - Year to fetch holidays for
-   * @param {string} type - Holiday type filter ('national', 'local', 'religious', 'observance')
-   * @returns {Array} - Array of holiday objects
+   * Get holidays for a specific country and year with advanced filtering
+   * OPTIMIZED to minimize API calls through smart caching
    */
-  async getHolidays(country = 'IN', year = new Date().getFullYear(), type = 'national') {
+  async getHolidays(country = 'IN', year = new Date().getFullYear(), type = 'national', filters = {}) {
     if (!this.apiKey) {
       throw new Error('Calendarific API key is not configured');
     }
 
+    // Check if we're already fetching this data
+    const requestKey = `${country}-${year}-${type}`;
+    if (this.requestQueue.has(requestKey)) {
+      logger.info(`⏳ Request already in progress for ${requestKey}, waiting...`);
+      return await this.requestQueue.get(requestKey);
+    }
+
     // Check cache first - SAVES API CREDITS
-    const cachedData = this.getFromCache(country, year, type);
+    const cachedData = this.getFromCache(country, year, type, filters);
     if (cachedData) {
       return cachedData;
     }
 
+    // Check API limits before making call
+    this.checkApiLimits();
+
+    // Create promise for this request to prevent duplicates
+    const requestPromise = this.makeApiCall(country, year, type, filters);
+    this.requestQueue.set(requestKey, requestPromise);
+
     try {
-      logger.info(`Fetching holidays from Calendarific for ${country} - ${year} - ${type}`);
-      
+      const result = await requestPromise;
+      return result;
+    } finally {
+      // Remove from queue when done
+      this.requestQueue.delete(requestKey);
+    }
+  }
+
+  /**
+   * Make the actual API call with optimizations
+   */
+  async makeApiCall(country, year, type, filters) {
+    await this.enforceRateLimit();
+    
+    logger.info(`🌐 API Call #${this.apiCallCount + 1}: ${country}-${year}-${type}`);
+    
+    try {
       const response = await axios.get(`${this.baseURL}/holidays`, {
         params: {
           api_key: this.apiKey,
@@ -102,24 +249,35 @@ class CalendarificService {
           year: year,
           type: type
         },
-        timeout: 10000 // 10 second timeout
+        timeout: 15000 // 15 second timeout
       });
+
+      this.apiCallCount++;
+      logger.info(`📊 API call completed successfully (${this.apiCallCount}/${this.dailyLimit} used today)`);
 
       if (response.data.meta.code !== 200) {
         throw new Error(`Calendarific API error: ${response.data.meta.error_detail || 'Unknown error'}`);
       }
 
       const holidays = response.data.response.holidays || [];
-      logger.info(`Successfully fetched ${holidays.length} holidays from Calendarific`);
+      logger.info(`✅ Fetched ${holidays.length} raw holidays from Calendarific`);
       
-      const transformedHolidays = this.transformCalendarificHolidays(holidays);
+      let transformedHolidays = this.transformCalendarificHolidays(holidays);
       
-      // Cache the result for 24 hours
-      this.setCache(country, year, type, transformedHolidays);
+      // Apply advanced filters
+      if (Object.keys(filters).length > 0) {
+        transformedHolidays = this.applyAdvancedFilters(transformedHolidays, filters);
+        logger.info(`🎯 Applied filters: ${transformedHolidays.length} holidays after filtering`);
+      }
+      
+      // Cache the result for future use
+      this.setCache(country, year, type, transformedHolidays, filters);
       
       return transformedHolidays;
       
     } catch (error) {
+      this.apiCallCount++; // Count failed calls too
+      
       if (error.response) {
         logger.error('Calendarific API error:', {
           status: error.response.status,
@@ -134,6 +292,275 @@ class CalendarificService {
         throw error;
       }
     }
+  }
+
+  /**
+   * Apply advanced filters to holidays
+   * @param {Array} holidays - Array of transformed holidays
+   * @param {Object} filters - Filter options
+   * @returns {Array} - Filtered holidays
+   */
+  applyAdvancedFilters(holidays, filters) {
+    let filteredHolidays = [...holidays];
+
+    // Filter by festivals only
+    if (filters.festivalsOnly) {
+      filteredHolidays = this.filterFestivals(filteredHolidays);
+    }
+
+    // Filter by national holidays only
+    if (filters.nationalOnly) {
+      filteredHolidays = this.filterNationalHolidays(filteredHolidays);
+    }
+
+    // Filter by specific categories
+    if (filters.categories && filters.categories.length > 0) {
+      filteredHolidays = this.filterByCategories(filteredHolidays, filters.categories);
+    }
+
+    // Filter by importance level
+    if (filters.importanceLevel) {
+      filteredHolidays = this.filterByImportance(filteredHolidays, filters.importanceLevel);
+    }
+
+    // Filter by state/region
+    if (filters.state) {
+      filteredHolidays = this.filterByState(filteredHolidays, filters.state);
+    }
+
+    // Exclude observances
+    if (filters.excludeObservances) {
+      filteredHolidays = this.excludeObservances(filteredHolidays);
+    }
+
+    // Filter by paid holidays only
+    if (filters.paidOnly) {
+      filteredHolidays = filteredHolidays.filter(h => h.isPaid === true);
+    }
+
+    // Filter by specific holiday names
+    if (filters.includeHolidays && filters.includeHolidays.length > 0) {
+      filteredHolidays = this.filterBySpecificHolidays(filteredHolidays, filters.includeHolidays);
+    }
+
+    // Exclude specific holiday names
+    if (filters.excludeHolidays && filters.excludeHolidays.length > 0) {
+      filteredHolidays = this.excludeSpecificHolidays(filteredHolidays, filters.excludeHolidays);
+    }
+
+    // Apply company policy template
+    if (filters.companyPolicy) {
+      filteredHolidays = this.applyCompanyPolicy(filteredHolidays, filters.companyPolicy);
+    }
+
+    // Limit number of holidays
+    if (filters.maxHolidays && filters.maxHolidays > 0) {
+      filteredHolidays = this.limitHolidays(filteredHolidays, filters.maxHolidays);
+    }
+
+    return filteredHolidays;
+  }
+
+  /**
+   * Filter holidays to festivals only
+   * @param {Array} holidays - Array of holidays
+   * @returns {Array} - Filtered festivals
+   */
+  filterFestivals(holidays) {
+    return holidays.filter(holiday => {
+      if (!holiday?.name) return false;
+      
+      const name = holiday.name.toLowerCase();
+      const isReligious = holiday.category?.toLowerCase() === 'religious';
+      const hasFestivalKeyword = FESTIVAL_KEYWORDS.some(keyword => 
+        name.includes(keyword.toLowerCase())
+      );
+      
+      return isReligious || hasFestivalKeyword;
+    });
+  }
+
+  /**
+   * Filter holidays to national holidays only
+   * @param {Array} holidays - Array of holidays
+   * @returns {Array} - Filtered national holidays
+   */
+  filterNationalHolidays(holidays) {
+    return holidays.filter(holiday => {
+      if (!holiday?.name) return false;
+      
+      const name = holiday.name.toLowerCase();
+      const isNational = holiday.category?.toLowerCase() === 'national';
+      const hasNationalKeyword = NATIONAL_KEYWORDS.some(keyword => 
+        name.includes(keyword.toLowerCase())
+      );
+      
+      return isNational || hasNationalKeyword;
+    });
+  }
+
+  /**
+   * Filter holidays by specific categories
+   * @param {Array} holidays - Array of holidays
+   * @param {Array} categories - Categories to include
+   * @returns {Array} - Filtered holidays
+   */
+  filterByCategories(holidays, categories) {
+    return holidays.filter(holiday => 
+      categories.includes(holiday.category)
+    );
+  }
+
+  /**
+   * Filter holidays by importance level
+   * @param {Array} holidays - Array of holidays
+   * @param {string} level - Importance level (CRITICAL, HIGH, MEDIUM, LOW)
+   * @returns {Array} - Filtered holidays
+   */
+  filterByImportance(holidays, level) {
+    const importantHolidays = IMPORTANCE_LEVELS[level.toUpperCase()] || [];
+    
+    return holidays.filter(holiday => {
+      const name = holiday.name.toLowerCase();
+      return importantHolidays.some(important => 
+        name.includes(important.toLowerCase())
+      );
+    });
+  }
+
+  /**
+   * Filter holidays by state/region
+   * @param {Array} holidays - Array of holidays
+   * @param {string} state - State name
+   * @returns {Array} - Filtered holidays
+   */
+  filterByState(holidays, state) {
+    const stateKeywords = STATE_KEYWORDS[state.toLowerCase()] || [];
+    
+    return holidays.filter(holiday => {
+      // Include global holidays
+      if (holiday.locationScope === 'GLOBAL') return true;
+      
+      // Include state-specific holidays
+      const name = holiday.name.toLowerCase();
+      return stateKeywords.some(keyword => 
+        name.includes(keyword.toLowerCase())
+      );
+    });
+  }
+
+  /**
+   * Exclude observance holidays
+   * @param {Array} holidays - Array of holidays
+   * @returns {Array} - Filtered holidays
+   */
+  excludeObservances(holidays) {
+    return holidays.filter(holiday => {
+      const name = holiday.name.toLowerCase();
+      const hasObservanceKeyword = OBSERVANCE_KEYWORDS.some(keyword => 
+        name.includes(keyword.toLowerCase())
+      );
+      
+      return !hasObservanceKeyword && holiday.category !== 'optional';
+    });
+  }
+
+  /**
+   * Filter by specific holiday names
+   * @param {Array} holidays - Array of holidays
+   * @param {Array} includeList - Holiday names to include
+   * @returns {Array} - Filtered holidays
+   */
+  filterBySpecificHolidays(holidays, includeList) {
+    return holidays.filter(holiday => {
+      const name = holiday.name.toLowerCase();
+      return includeList.some(includeName => 
+        name.includes(includeName.toLowerCase())
+      );
+    });
+  }
+
+  /**
+   * Exclude specific holiday names
+   * @param {Array} holidays - Array of holidays
+   * @param {Array} excludeList - Holiday names to exclude
+   * @returns {Array} - Filtered holidays
+   */
+  excludeSpecificHolidays(holidays, excludeList) {
+    return holidays.filter(holiday => {
+      const name = holiday.name.toLowerCase();
+      return !excludeList.some(excludeName => 
+        name.includes(excludeName.toLowerCase())
+      );
+    });
+  }
+
+  /**
+   * Apply company policy template
+   * @param {Array} holidays - Array of holidays
+   * @param {string} policyName - Company policy template name
+   * @returns {Array} - Filtered holidays
+   */
+  applyCompanyPolicy(holidays, policyName) {
+    const policy = COMPANY_POLICY_TEMPLATES[policyName.toUpperCase()];
+    if (!policy) return holidays;
+
+    let filteredHolidays = holidays;
+
+    // Apply category filters
+    if (policy.includeCategories) {
+      filteredHolidays = this.filterByCategories(filteredHolidays, policy.includeCategories);
+    }
+
+    // Exclude observances if specified
+    if (policy.excludeObservances) {
+      filteredHolidays = this.excludeObservances(filteredHolidays);
+    }
+
+    // Limit number of holidays
+    if (policy.maxHolidays) {
+      filteredHolidays = this.limitHolidays(filteredHolidays, policy.maxHolidays);
+    }
+
+    return filteredHolidays;
+  }
+
+  /**
+   * Limit number of holidays by importance
+   * @param {Array} holidays - Array of holidays
+   * @param {number} maxCount - Maximum number of holidays
+   * @returns {Array} - Limited holidays
+   */
+  limitHolidays(holidays, maxCount) {
+    // Sort by importance (critical first, then by date)
+    const sortedHolidays = holidays.sort((a, b) => {
+      const aImportance = this.getHolidayImportance(a);
+      const bImportance = this.getHolidayImportance(b);
+      
+      if (aImportance !== bImportance) {
+        return aImportance - bImportance; // Lower number = higher importance
+      }
+      
+      return new Date(a.date || '1900-01-01') - new Date(b.date || '1900-01-01');
+    });
+
+    return sortedHolidays.slice(0, maxCount);
+  }
+
+  /**
+   * Get holiday importance score (lower = more important)
+   * @param {Object} holiday - Holiday object
+   * @returns {number} - Importance score
+   */
+  getHolidayImportance(holiday) {
+    const name = holiday.name.toLowerCase();
+    
+    if (IMPORTANCE_LEVELS.CRITICAL.some(h => name.includes(h))) return 1;
+    if (IMPORTANCE_LEVELS.HIGH.some(h => name.includes(h))) return 2;
+    if (IMPORTANCE_LEVELS.MEDIUM.some(h => name.includes(h))) return 3;
+    if (IMPORTANCE_LEVELS.LOW.some(h => name.includes(h))) return 4;
+    
+    return 5; // Unknown importance
   }
 
   /**
@@ -261,7 +688,7 @@ class CalendarificService {
   }
 
   /**
-   * Sync holidays from Calendarific to database
+   * Sync holidays from Calendarific to database with advanced filtering
    * @param {string} country - Country code
    * @param {number} year - Year to sync
    * @param {Object} options - Sync options
@@ -271,14 +698,15 @@ class CalendarificService {
     const {
       overwriteExisting = false,
       dryRun = false,
-      holidayTypes = 'national,religious'
+      holidayTypes = 'national,religious',
+      filters = {}
     } = options;
 
     try {
-      logger.info(`Starting holiday sync for ${country} - ${year}`, { dryRun, overwriteExisting });
+      logger.info(`Starting holiday sync for ${country} - ${year}`, { dryRun, overwriteExisting, filters });
       
-      // Fetch holidays from Calendarific
-      const calendarificHolidays = await this.getHolidays(country, year, holidayTypes);
+      // Fetch holidays from Calendarific with filters
+      const calendarificHolidays = await this.getHolidays(country, year, holidayTypes, filters);
       
       if (calendarificHolidays.length === 0) {
         return {
@@ -525,6 +953,309 @@ class CalendarificService {
       console.error('❌ [SERVICE] Returning error result:', result);
       return result;
     }
+  }
+
+  /**
+   * Get cache statistics for monitoring API usage
+   */
+  getCacheStats() {
+    const stats = {
+      totalEntries: this.cache.size,
+      validEntries: 0,
+      expiredEntries: 0,
+      apiCallsToday: this.apiCallCount,
+      remainingCalls: this.dailyLimit - this.apiCallCount,
+      resetTime: new Date(this.resetTime).toLocaleString(),
+      cacheHitRate: 0
+    };
+    
+    for (const [key, entry] of this.cache.entries()) {
+      if (this.isCacheValid(entry)) {
+        stats.validEntries++;
+      } else {
+        stats.expiredEntries++;
+      }
+    }
+    
+    // Calculate cache hit rate (rough estimate)
+    if (this.apiCallCount > 0) {
+      stats.cacheHitRate = Math.round((stats.validEntries / (this.apiCallCount + stats.validEntries)) * 100);
+    }
+    
+    return stats;
+  }
+
+  /**
+   * Clean expired cache entries to save memory
+   */
+  cleanExpiredCache() {
+    let cleaned = 0;
+    for (const [key, entry] of this.cache.entries()) {
+      if (!this.isCacheValid(entry)) {
+        this.cache.delete(key);
+        cleaned++;
+      }
+    }
+    
+    logger.info(`🧹 Cleaned ${cleaned} expired cache entries`);
+    return cleaned;
+  }
+
+  /**
+   * Batch fetch multiple holiday types efficiently
+   */
+  async batchFetchHolidays(country, year, types = ['national', 'religious']) {
+    logger.info(`🔄 Batch fetching holidays for ${country}-${year}: ${types.join(', ')}`);
+    
+    const results = [];
+    
+    // Fetch each type, using cache when possible
+    for (const type of types) {
+      try {
+        const holidays = await this.getHolidays(country, year, type);
+        results.push({
+          type,
+          holidays,
+          count: holidays.length,
+          success: true
+        });
+      } catch (error) {
+        logger.error(`Error fetching ${type} holidays:`, error);
+        results.push({
+          type,
+          holidays: [],
+          count: 0,
+          success: false,
+          error: error.message
+        });
+      }
+    }
+    
+    // Combine all holidays
+    const allHolidays = [];
+    results.forEach(result => {
+      if (result.success) {
+        result.holidays.forEach(holiday => {
+          allHolidays.push({
+            ...holiday,
+            sourceType: result.type
+          });
+        });
+      }
+    });
+    
+    // Remove duplicates
+    const uniqueHolidays = this.removeDuplicateHolidays(allHolidays);
+    
+    logger.info(`✅ Batch fetch completed: ${uniqueHolidays.length} unique holidays`);
+    
+    return {
+      holidays: uniqueHolidays,
+      breakdown: results,
+      stats: this.getCacheStats()
+    };
+  }
+
+  /**
+   * Remove duplicate holidays based on name and date
+   */
+  removeDuplicateHolidays(holidays) {
+    const seen = new Set();
+    return holidays.filter(holiday => {
+      const key = `${holiday.name}-${holiday.date || holiday.recurringDate}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
+  }
+
+  /**
+   * Optimized preview that shows API usage statistics
+   */
+  async previewHolidaysOptimized(country = 'IN', year = new Date().getFullYear(), filters = {}) {
+    const startStats = this.getCacheStats();
+    
+    try {
+      const result = await this.previewHolidays(country, year, filters);
+      const endStats = this.getCacheStats();
+      
+      return {
+        ...result,
+        apiUsage: {
+          callsMade: endStats.apiCallsToday - startStats.apiCallsToday,
+          callsRemaining: endStats.remainingCalls,
+          cacheHitRate: endStats.cacheHitRate,
+          cacheEntries: endStats.validEntries,
+          message: endStats.apiCallsToday === startStats.apiCallsToday ? 
+            '✅ No API calls made - served from cache' : 
+            `📞 ${endStats.apiCallsToday - startStats.apiCallsToday} API call(s) made`
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to preview holidays',
+        error: error.message,
+        apiUsage: this.getCacheStats()
+      };
+    }
+  }
+
+  /**
+   * Get available filter options for holidays
+   * @returns {Object} - Available filter options
+   */
+  getAvailableFilters() {
+    return {
+      festivalsOnly: {
+        type: 'boolean',
+        description: 'Filter to show only festivals and religious holidays'
+      },
+      nationalOnly: {
+        type: 'boolean',
+        description: 'Filter to show only national holidays'
+      },
+      categories: {
+        type: 'array',
+        options: ['public', 'optional', 'national', 'religious', 'company'],
+        description: 'Filter by specific holiday categories'
+      },
+      importanceLevel: {
+        type: 'string',
+        options: ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW'],
+        description: 'Filter by importance level'
+      },
+      state: {
+        type: 'string',
+        options: Object.keys(STATE_KEYWORDS),
+        description: 'Filter by state/region'
+      },
+      excludeObservances: {
+        type: 'boolean',
+        description: 'Exclude observance days and awareness days'
+      },
+      paidOnly: {
+        type: 'boolean',
+        description: 'Show only paid holidays'
+      },
+      includeHolidays: {
+        type: 'array',
+        description: 'Specific holiday names to include'
+      },
+      excludeHolidays: {
+        type: 'array',
+        description: 'Specific holiday names to exclude'
+      },
+      companyPolicy: {
+        type: 'string',
+        options: Object.keys(COMPANY_POLICY_TEMPLATES),
+        description: 'Apply predefined company policy template'
+      },
+      maxHolidays: {
+        type: 'number',
+        description: 'Maximum number of holidays to return'
+      }
+    };
+  }
+
+  /**
+   * Get company policy templates
+   * @returns {Object} - Available company policy templates
+   */
+  getCompanyPolicyTemplates() {
+    return COMPANY_POLICY_TEMPLATES;
+  }
+
+  /**
+   * Preview holidays with filters (without syncing to database)
+   * @param {string} country - Country code
+   * @param {number} year - Year
+   * @param {Object} filters - Filter options
+   * @returns {Object} - Preview result
+   */
+  async previewHolidays(country = 'IN', year = new Date().getFullYear(), filters = {}) {
+    try {
+      const holidayTypes = filters.holidayTypes || 'national,religious';
+      const holidays = await this.getHolidays(country, year, holidayTypes, filters);
+      
+      return {
+        success: true,
+        data: {
+          holidays,
+          count: holidays.length,
+          filters: filters,
+          summary: this.generateHolidaySummary(holidays)
+        }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to preview holidays',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Generate holiday summary statistics
+   * @param {Array} holidays - Array of holidays
+   * @returns {Object} - Summary statistics
+   */
+  generateHolidaySummary(holidays) {
+    const summary = {
+      total: holidays.length,
+      byCategory: {},
+      byImportance: {},
+      byMonth: {},
+      paidHolidays: 0,
+      recurringHolidays: 0
+    };
+
+    holidays.forEach(holiday => {
+      // Count by category
+      const category = holiday.category || 'unknown';
+      summary.byCategory[category] = (summary.byCategory[category] || 0) + 1;
+
+      // Count by importance
+      const importance = this.getHolidayImportanceLevel(holiday);
+      summary.byImportance[importance] = (summary.byImportance[importance] || 0) + 1;
+
+      // Count by month
+      if (holiday.date) {
+        const month = new Date(holiday.date).getMonth() + 1;
+        summary.byMonth[month] = (summary.byMonth[month] || 0) + 1;
+      }
+
+      // Count paid holidays
+      if (holiday.isPaid) {
+        summary.paidHolidays++;
+      }
+
+      // Count recurring holidays
+      if (holiday.type === 'RECURRING') {
+        summary.recurringHolidays++;
+      }
+    });
+
+    return summary;
+  }
+
+  /**
+   * Get holiday importance level name
+   * @param {Object} holiday - Holiday object
+   * @returns {string} - Importance level name
+   */
+  getHolidayImportanceLevel(holiday) {
+    const name = holiday.name.toLowerCase();
+    
+    if (IMPORTANCE_LEVELS.CRITICAL.some(h => name.includes(h))) return 'CRITICAL';
+    if (IMPORTANCE_LEVELS.HIGH.some(h => name.includes(h))) return 'HIGH';
+    if (IMPORTANCE_LEVELS.MEDIUM.some(h => name.includes(h))) return 'MEDIUM';
+    if (IMPORTANCE_LEVELS.LOW.some(h => name.includes(h))) return 'LOW';
+    
+    return 'UNKNOWN';
   }
 }
 

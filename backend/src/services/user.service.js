@@ -400,7 +400,27 @@ const getUserById = async (userId) => {
       };
     }
 
-    return user;
+    const userJson = user.toJSON();
+    
+    // Populate department details if user has assignedDepartments
+    if (userJson.assignedDepartments && userJson.assignedDepartments.length > 0) {
+      const departments = await Department.findAll({
+        where: {
+          id: userJson.assignedDepartments,
+        },
+        attributes: ['id', 'name', 'code'],
+      });
+      
+      userJson.assignedDepartments = departments.map(dept => ({
+        id: dept.id,
+        name: dept.name,
+        code: dept.code,
+      }));
+    } else {
+      userJson.assignedDepartments = [];
+    }
+
+    return userJson;
   } catch (error) {
     logger.error('Error getting user:', error);
     throw error;
@@ -441,8 +461,35 @@ const listUsers = async (filters = {}, pagination = {}) => {
       offset: parseInt(offset),
     });
 
+    // Populate department details for users with assignedDepartments
+    const usersWithDepartments = await Promise.all(
+      users.map(async (user) => {
+        const userJson = user.toJSON();
+        
+        if (userJson.assignedDepartments && userJson.assignedDepartments.length > 0) {
+          // Fetch department details for assigned department IDs
+          const departments = await Department.findAll({
+            where: {
+              id: userJson.assignedDepartments,
+            },
+            attributes: ['id', 'name', 'code'],
+          });
+          
+          userJson.assignedDepartments = departments.map(dept => ({
+            id: dept.id,
+            name: dept.name,
+            code: dept.code,
+          }));
+        } else {
+          userJson.assignedDepartments = [];
+        }
+        
+        return userJson;
+      })
+    );
+
     return {
-      users,
+      users: usersWithDepartments,
       pagination: {
         total,
         page: parseInt(page),

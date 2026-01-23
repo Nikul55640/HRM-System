@@ -17,6 +17,7 @@ import SystemPolicy from './SystemPolicy.js';
 import EmergencyContact from './EmergencyContact.js';
 import WorkingRule from './WorkingRule.js';
 import Notification from './Notification.js';
+import HolidaySelectionTemplate from './HolidaySelectionTemplate.js';
 
 // Define associations
 
@@ -124,6 +125,12 @@ EmergencyContact.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 WorkingRule.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
 WorkingRule.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
 
+// Holiday Selection Template relationships
+HolidaySelectionTemplate.belongsTo(User, { foreignKey: 'createdBy', as: 'creator' });
+HolidaySelectionTemplate.belongsTo(User, { foreignKey: 'updatedBy', as: 'updater' });
+User.hasMany(HolidaySelectionTemplate, { foreignKey: 'createdBy', as: 'createdTemplates' });
+User.hasMany(HolidaySelectionTemplate, { foreignKey: 'updatedBy', as: 'updatedTemplates' });
+
 export {
   sequelize,
   User,
@@ -144,6 +151,7 @@ export {
   EmergencyContact,
   WorkingRule,
   Notification,
+  HolidaySelectionTemplate,
 };
 
 export default {
@@ -166,4 +174,5 @@ export default {
   EmergencyContact,
   WorkingRule,
   Notification,
+  HolidaySelectionTemplate,
 };

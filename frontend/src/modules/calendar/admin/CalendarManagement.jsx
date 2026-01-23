@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../shared/ui/tabs';
 import { Calendar, Settings, Grid, List, BarChart3, Users, Plus, TabletSmartphone, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import UnifiedCalendarView from '../components/UnifiedCalendarView';
+
 import api from '../../../services/api';
 import { toast } from 'react-toastify';
 
 const CalendarManagement = () => {
   const [viewMode, setViewMode] = useState('list');
+  const [activeTab, setActiveTab] = useState('calendar');
   const [stats, setStats] = useState({
     totalEvents: 0,
     thisMonth: 0,
@@ -87,32 +90,6 @@ const CalendarManagement = () => {
               <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-2xl">
                 Manage company events, holidays, meetings, and important dates across your organization
               </p>
-            </div>
-
-            {/* Action Buttons - Responsive */}
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-              {/* View Toggle - Mobile friendly */}
-              <div className="flex rounded-lg border border-gray-200 bg-white p-1">
-                <Button
-                  variant={viewMode === 'list' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('list')}
-                  className="flex-1 sm:flex-none"
-                >
-                  <List className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">List</span>
-                </Button>
-                <Button
-                  variant={viewMode === 'calendar' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setViewMode('calendar')}
-                  className="flex-1 sm:flex-none"
-                >
-                  <Grid className="w-4 h-4 mr-2" />
-                  <span className="hidden sm:inline">Calendar</span>
-                </Button>
-              </div>
-
             </div>
           </div>
         </div>
@@ -208,67 +185,94 @@ const CalendarManagement = () => {
           </Card>
         </div>
 
-        {/* Quick Actions Bar - Compact */}
-        <Card className="mb-4 sm:mb-6">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div>
-                <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1">
-                  Quick Actions
-                </h3>
-                <p className="text-xs text-gray-600">
-                  Manage your calendar efficiently
-                  {!loading && (
-                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
-                      Live Data
-                    </span>
-                  )}
-                </p>
-              </div>
-              
-              <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={fetchCalendarStats}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  ) : (
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                  )}
-                  <span className="hidden sm:inline">Refresh Stats</span>
-                  <span className="sm:hidden">Refresh</span>
-                </Button>
-                
-                <Link to="/admin/calendar/smart" className="contents">
-                  <Button variant="outline" size="sm">
-                    <Settings className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Smart Calendar</span>
-                    <span className="sm:hidden">Smart</span>
-                  </Button>
-                </Link>
-                
-                <Link to="/admin/calendar/calendarific" className="contents">
-                  <Button variant="outline" size="sm">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Holiday Sync</span>
-                    <span className="sm:hidden">Sync</span>
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Main Content with Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-1">
+            <TabsTrigger value="calendar" className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Calendar View
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Main Calendar Component - Fully Responsive */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <UnifiedCalendarView 
-            viewMode={viewMode} 
-            showManagementFeatures={true} 
-          />
-        </div>
+          <TabsContent value="calendar" className="space-y-6">
+            {/* Quick Actions Bar - Compact */}
+            <Card>
+              <CardContent className="p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 mb-1">
+                      Quick Actions
+                    </h3>
+                    <p className="text-xs text-gray-600">
+                      Manage your calendar efficiently
+                      {!loading && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                          Live Data
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 sm:flex gap-2 sm:gap-3">
+                    {/* View Toggle - Mobile friendly */}
+                    <div className="flex rounded-lg border border-gray-200 bg-white p-1">
+                      <Button
+                        variant={viewMode === 'list' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('list')}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <List className="w-4 h-4 mr-2" />
+                        <span className="hidden sm:inline">List</span>
+                      </Button>
+                      <Button
+                        variant={viewMode === 'calendar' ? 'default' : 'ghost'}
+                        size="sm"
+                        onClick={() => setViewMode('calendar')}
+                        className="flex-1 sm:flex-none"
+                      >
+                        <Grid className="w-4 h-4 mr-2" />
+                        <span className="hidden sm:inline">Calendar</span>
+                      </Button>
+                    </div>
+
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={fetchCalendarStats}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      ) : (
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                      )}
+                      <span className="hidden sm:inline">Refresh Stats</span>
+                      <span className="sm:hidden">Refresh</span>
+                    </Button>
+                    
+                    <Link to="/admin/calendar/smart" className="contents">
+                      <Button variant="outline" size="sm">
+                        <Settings className="w-4 h-4 mr-2" />
+                        <span className="hidden sm:inline">Smart Calendar</span>
+                        <span className="sm:hidden">Smart</span>
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Main Calendar Component - Fully Responsive */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+              <UnifiedCalendarView 
+                viewMode={viewMode} 
+                showManagementFeatures={true} 
+              />
+            </div>
+          </TabsContent>
+
+        </Tabs>
 
         {/* Mobile-specific Help Section */}
         <div className="mt-4 sm:mt-6 block sm:hidden">
@@ -285,98 +289,6 @@ const CalendarManagement = () => {
               </ul>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Desktop-specific Features */}
-        <div className="mt-4 sm:mt-6 hidden lg:block">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Recent Activity
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-gray-600">Team meeting scheduled</span>
-                    <span className="text-gray-400 ml-auto text-xs">2h ago</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-gray-600">Holiday added</span>
-                    <span className="text-gray-400 ml-auto text-xs">1d ago</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-gray-600">Training session updated</span>
-                    <span className="text-gray-400 ml-auto text-xs">2d ago</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card> */}
-
-            {/* Upcoming Events */}
-            {/* <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Upcoming Events</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-2">
-                  <div className="border-l-4 border-blue-500 pl-2">
-                    <p className="font-medium text-sm">All Hands Meeting</p>
-                    <p className="text-xs text-gray-600">Tomorrow, 10:00 AM</p>
-                  </div>
-                  <div className="border-l-4 border-green-500 pl-2">
-                    <p className="font-medium text-sm">Team Building</p>
-                    <p className="text-xs text-gray-600">Friday, 2:00 PM</p>
-                  </div>
-                  <div className="border-l-4 border-purple-500 pl-2">
-                    <p className="font-medium text-sm">Training Workshop</p>
-                    <p className="text-xs text-gray-600">Next Monday, 9:00 AM</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card> */}
-
-            {/* Calendar Stats
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Calendar Insights</CardTitle>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">Events This Month</span>
-                      <span className="font-medium">8/12</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5">
-                      <div className="bg-blue-500 h-1.5 rounded-full" style={{ width: '67%' }}></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">Attendance Rate</span>
-                      <span className="font-medium">94%</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5">
-                      <div className="bg-green-500 h-1.5 rounded-full" style={{ width: '94%' }}></div>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">Engagement</span>
-                      <span className="font-medium">High</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5">
-                      <div className="bg-purple-500 h-1.5 rounded-full" style={{ width: '88%' }}></div>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card> */}
-          </div>
         </div>
       </div>
     </div>

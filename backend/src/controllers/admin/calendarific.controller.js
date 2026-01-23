@@ -120,8 +120,7 @@ export const previewHolidays = async (req, res) => {
 };
 
 /**
- * Batch preview holidays - Multiple types in ONE API call
- * SAVES API CREDITS by batching requests
+ * Batch preview holidays - Multiple types in ONE API call (OPTIMIZED)
  */
 export const batchPreviewHolidays = async (req, res) => {
   try {
@@ -135,52 +134,8 @@ export const batchPreviewHolidays = async (req, res) => {
     
     logger.info(`Batch preview for ${country} ${year} - Types: ${typeArray.join(', ')}`);
 
-    // Fetch all types (cache will prevent duplicate API calls)
-    const results = await Promise.all(
-      typeArray.map(async (type) => {
-        try {
-          const holidays = await CalendarificService.getHolidays(country, parseInt(year), type);
-          return {
-            type,
-            holidays,
-            count: holidays.length,
-            success: true
-          };
-        } catch (error) {
-          logger.error(`Error fetching ${type} holidays:`, error);
-          return {
-            type,
-            holidays: [],
-            count: 0,
-            success: false,
-            error: error.message
-          };
-        }
-      })
-    );
-
-    // Combine all holidays
-    const allHolidays = [];
-    let totalCount = 0;
-    
-    results.forEach(result => {
-      if (result.success) {
-        result.holidays.forEach(holiday => {
-          allHolidays.push({
-            ...holiday,
-            sourceType: result.type
-          });
-        });
-        totalCount += result.count;
-      }
-    });
-
-    // Sort by date
-    allHolidays.sort((a, b) => {
-      const dateA = new Date(a.date || `${year}-${a.recurringDate}`);
-      const dateB = new Date(b.date || `${year}-${b.recurringDate}`);
-      return dateA - dateB;
-    });
+    // Use optimized batch fetch
+    const result = await CalendarificService.batchFetchHolidays(country, parseInt(year), typeArray);
 
     res.json({
       success: true,
@@ -188,15 +143,16 @@ export const batchPreviewHolidays = async (req, res) => {
         country,
         year: parseInt(year),
         types: typeArray,
-        holidays: allHolidays,
-        count: totalCount,
-        breakdown: results.map(r => ({
+        holidays: result.holidays,
+        count: result.holidays.length,
+        breakdown: result.breakdown.map(r => ({
           type: r.type,
           count: r.count,
           success: r.success
-        }))
+        })),
+        apiUsage: result.stats
       },
-      message: `Found ${totalCount} holidays across ${typeArray.length} categories`
+      message: `Found ${result.holidays.length} holidays across ${typeArray.length} categories. API calls today: ${result.stats.apiCallsToday}/${result.stats.remainingCalls + result.stats.apiCallsToday}`
     });
     
   } catch (error) {
@@ -347,6 +303,329 @@ export const getHolidayStats = async (req, res) => {
 };
 
 /**
+ * Get available filter options
+ */
+export const getAvailableFilters = async (req, res) => {
+  try {
+    const filters = CalendarificService.getAvailableFilters();
+    const templates = CalendarificService.getCompanyPolicyTemplates();
+    
+    res.json({
+      success: true,
+      data: {
+        filters,
+        companyPolicyTemplates: templates
+      },
+      message: 'Available filter options retrieved successfully'
+    });
+    
+  } catch (error) {
+    logger.error('Error getting available filters:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get available filters',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Preview holidays with advanced filters (OPTIMIZED)
+ */
+export const previewHolidaysWithFilters = async (req, res) => {
+  try {
+    const { 
+      country = 'IN', 
+      year = new Date().getFullYear(),
+      holidayTypes = 'national,religious',
+      ...filters
+    } = req.body;
+
+    logger.info(`Preview holidays with filters for ${country} ${year}`, { filters });
+
+    // Use optimized preview method that tracks API usage
+    const result = await CalendarificService.previewHolidaysOptimized(country, parseInt(year), {
+      holidayTypes,
+      ...filters
+    });
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        country,
+        year: parseInt(year),
+        appliedFilters: filters,
+        ...result.data,
+        apiUsage: result.apiUsage // Show API usage stats
+      },
+      message: `Preview generated with ${result.data.count} holidays. ${result.apiUsage?.message || ''}`
+    });
+    
+  } catch (error) {
+    logger.error('Error previewing holidays with filters:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to preview holidays with filters',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Sync holidays with advanced filters
+ */
+export const syncHolidaysWithFilters = async (req, res) => {
+  try {
+    const { 
+      country = 'IN', 
+      year = new Date().getFullYear(),
+      overwriteExisting = false,
+      dryRun = false,
+      holidayTypes = 'national,religious',
+      ...filters
+    } = req.body;
+
+    logger.info(`Holiday sync with filters requested by user ${req.user.id}`, {
+      country,
+      year,
+      overwriteExisting,
+      dryRun,
+      holidayTypes,
+      filters
+    });
+
+    const result = await CalendarificService.syncHolidays(country, parseInt(year), {
+      overwriteExisting,
+      dryRun,
+      holidayTypes,
+      filters
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        ...result,
+        appliedFilters: filters
+      },
+      message: dryRun ? 
+        `Dry run completed with filters. Would sync ${result.stats.created + result.stats.updated} holidays` :
+        `${result.message} with applied filters`
+    });
+    
+  } catch (error) {
+    logger.error('Error syncing holidays with filters:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to sync holidays with filters',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get festival holidays only
+ */
+export const getFestivalHolidays = async (req, res) => {
+  try {
+    const { 
+      country = 'IN', 
+      year = new Date().getFullYear(),
+      holidayTypes = 'national,religious'
+    } = req.query;
+
+    const filters = { festivalsOnly: true };
+    
+    const result = await CalendarificService.previewHolidays(country, parseInt(year), {
+      holidayTypes,
+      ...filters
+    });
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        country,
+        year: parseInt(year),
+        festivals: result.data.holidays,
+        count: result.data.count,
+        summary: result.data.summary
+      },
+      message: `Found ${result.data.count} festivals for ${country} in ${year}`
+    });
+    
+  } catch (error) {
+    logger.error('Error getting festival holidays:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get festival holidays',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get national holidays only
+ */
+export const getNationalHolidays = async (req, res) => {
+  try {
+    const { 
+      country = 'IN', 
+      year = new Date().getFullYear()
+    } = req.query;
+
+    const filters = { nationalOnly: true };
+    
+    const result = await CalendarificService.previewHolidays(country, parseInt(year), {
+      holidayTypes: 'national',
+      ...filters
+    });
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        country,
+        year: parseInt(year),
+        nationalHolidays: result.data.holidays,
+        count: result.data.count,
+        summary: result.data.summary
+      },
+      message: `Found ${result.data.count} national holidays for ${country} in ${year}`
+    });
+    
+  } catch (error) {
+    logger.error('Error getting national holidays:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get national holidays',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get API usage statistics and cache status
+ */
+export const getApiUsageStats = async (req, res) => {
+  try {
+    const stats = CalendarificService.getCacheStats();
+    
+    // Clean expired cache entries
+    const cleanedEntries = CalendarificService.cleanExpiredCache();
+    
+    res.json({
+      success: true,
+      data: {
+        ...stats,
+        cleanedEntries,
+        recommendations: {
+          status: stats.remainingCalls > 100 ? 'healthy' : 'warning',
+          message: stats.remainingCalls > 100 ? 
+            'API usage is within healthy limits' : 
+            'API usage is high, consider using more filters to reduce calls',
+          cacheEfficiency: stats.cacheHitRate > 70 ? 'excellent' : 
+                          stats.cacheHitRate > 50 ? 'good' : 'needs improvement'
+        }
+      },
+      message: `API Usage: ${stats.apiCallsToday}/${stats.apiCallsToday + stats.remainingCalls} calls used today. Cache hit rate: ${stats.cacheHitRate}%`
+    });
+    
+  } catch (error) {
+    logger.error('Error getting API usage stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get API usage statistics',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Apply company policy template
+ */
+export const applyCompanyPolicy = async (req, res) => {
+  try {
+    const { 
+      country = 'IN', 
+      year = new Date().getFullYear(),
+      policyTemplate,
+      dryRun = true
+    } = req.body;
+
+    if (!policyTemplate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Policy template is required'
+      });
+    }
+
+    const filters = { companyPolicy: policyTemplate };
+    
+    if (dryRun) {
+      // Preview only
+      const result = await CalendarificService.previewHolidays(country, parseInt(year), {
+        holidayTypes: 'national,religious',
+        ...filters
+      });
+      
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+      
+      res.json({
+        success: true,
+        data: {
+          country,
+          year: parseInt(year),
+          policyTemplate,
+          holidays: result.data.holidays,
+          count: result.data.count,
+          summary: result.data.summary,
+          dryRun: true
+        },
+        message: `Policy preview: ${result.data.count} holidays would be selected`
+      });
+    } else {
+      // Actually sync
+      const result = await CalendarificService.syncHolidays(country, parseInt(year), {
+        overwriteExisting: false,
+        dryRun: false,
+        holidayTypes: 'national,religious',
+        filters
+      });
+      
+      res.json({
+        success: true,
+        data: {
+          ...result,
+          policyTemplate,
+          appliedFilters: filters
+        },
+        message: `Company policy applied: ${result.message}`
+      });
+    }
+    
+  } catch (error) {
+    logger.error('Error applying company policy:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to apply company policy',
+      error: error.message
+    });
+  }
+};
+
+/**
  * Bulk sync holidays for multiple years
  */
 export const bulkSyncHolidays = async (req, res) => {
@@ -432,6 +711,127 @@ export const bulkSyncHolidays = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to bulk sync holidays',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Sync holidays using a holiday selection template
+ * This applies the template's selected holidays to filter Calendarific results
+ */
+export const syncWithTemplate = async (req, res) => {
+  try {
+    const { templateId } = req.params;
+    const { 
+      year = new Date().getFullYear(),
+      overwriteExisting = false,
+      dryRun = false
+    } = req.body;
+
+    if (!templateId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Template ID is required'
+      });
+    }
+
+    logger.info(`Template-based sync requested by user ${req.user.id}`, {
+      templateId,
+      year,
+      overwriteExisting,
+      dryRun
+    });
+
+    // Import the service here to avoid circular dependency
+    const { default: holidaySelectionTemplateService } = await import('../../services/admin/holidaySelectionTemplate.service.js');
+
+    // Get the template
+    const templateResult = await holidaySelectionTemplateService.getTemplateById(templateId);
+    
+    if (!templateResult.success) {
+      return res.status(404).json({
+        success: false,
+        message: 'Holiday selection template not found'
+      });
+    }
+
+    const template = templateResult.data;
+
+    // Fetch holidays from Calendarific using template configuration
+    const result = await CalendarificService.batchFetchHolidays(
+      template.country, 
+      parseInt(year), 
+      template.holidayTypes
+    );
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to fetch holidays from Calendarific',
+        error: result.error
+      });
+    }
+
+    // Apply template selection to filter holidays
+    const applyResult = await holidaySelectionTemplateService.applyTemplateToHolidays(
+      templateId,
+      result.holidays
+    );
+
+    if (!applyResult.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to apply template selection',
+        error: applyResult.error
+      });
+    }
+
+    const filteredHolidays = applyResult.data.holidays;
+
+    if (dryRun) {
+      // Return preview without syncing
+      return res.json({
+        success: true,
+        data: {
+          template: template,
+          year: parseInt(year),
+          originalCount: applyResult.data.originalCount,
+          selectedCount: applyResult.data.filteredCount,
+          holidays: filteredHolidays,
+          skippedHolidays: applyResult.data.skippedHolidays,
+          dryRun: true
+        },
+        message: `Template preview: ${filteredHolidays.length} holidays selected from ${applyResult.data.originalCount} available holidays`
+      });
+    }
+
+    // Sync the filtered holidays to database
+    const syncResult = await CalendarificService.syncFilteredHolidays(
+      template.country,
+      parseInt(year),
+      filteredHolidays,
+      { overwriteExisting }
+    );
+
+    res.json({
+      success: true,
+      data: {
+        template: template,
+        year: parseInt(year),
+        originalCount: applyResult.data.originalCount,
+        selectedCount: applyResult.data.filteredCount,
+        syncStats: syncResult.stats,
+        holidays: filteredHolidays
+      },
+      message: `Template sync completed: ${syncResult.stats.created} holidays created, ${syncResult.stats.updated} updated, ${syncResult.stats.skipped} skipped`
+    });
+    
+  } catch (error) {
+    logger.error('Error in template-based sync:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to sync holidays with template',
       error: error.message
     });
   }

@@ -319,36 +319,56 @@ const employeeCalendarService = {
   getUpcomingBirthdays: async (limit = 10) => {
     try {
       const now = new Date();
-      const sixMonthsLater = new Date(now.getFullYear(), now.getMonth() + 6, now.getDate());
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1; // 1-based month
       
       console.log('🎂 [CALENDAR SERVICE] Fetching upcoming birthdays (next 6 months)...');
+      console.log('🎂 [CALENDAR SERVICE] Current date:', now.toDateString());
+      console.log('🎂 [CALENDAR SERVICE] Current year/month:', currentYear, currentMonth);
+      console.log('🎂 [CALENDAR SERVICE] JavaScript month (0-based):', now.getMonth());
       
       const birthdays = [];
       
-      // Fetch 6 months to ensure we get multiple birthdays
+      // ✅ FIX: Properly calculate months to fetch - start from January to ensure we get all birthdays
+      // Since we're in January 2026, we need to fetch January through June to get all 3 birthdays
       const monthsToFetch = [];
+      
+      // Start from January and go through the next 6 months
       for (let i = 0; i < 6; i++) {
-        const targetDate = new Date(now.getFullYear(), now.getMonth() + i, 1);
+        const targetDate = new Date(now.getFullYear(), 0 + i, 1); // Start from January (month 0)
+        const targetYear = targetDate.getFullYear();
+        const targetMonth = targetDate.getMonth() + 1; // Convert to 1-based month
+        
         monthsToFetch.push({
-          year: targetDate.getFullYear(),
-          month: targetDate.getMonth() + 1
+          year: targetYear,
+          month: targetMonth
         });
       }
       
-      
-      console.log('🎂 [CALENDAR SERVICE] Fetching months:', monthsToFetch);
+      console.log('🎂 [CALENDAR SERVICE] Months to fetch:', monthsToFetch.map(m => `${m.year}-${String(m.month).padStart(2, '0')}`).join(', '));
       
       for (const { year, month } of monthsToFetch) {
         try {
+          console.log(`🎂 [CALENDAR SERVICE] Fetching birthdays for ${year}-${month}...`);
           const monthlyData = await employeeCalendarService.getMonthlyCalendar(year, month);
           
           if (monthlyData.success && monthlyData.calendar) {
+            console.log(`🎂 [CALENDAR SERVICE] Processing month ${year}-${month}, found ${Object.keys(monthlyData.calendar).length} days`);
+            
             Object.values(monthlyData.calendar).forEach(day => {
               if (day.birthdays && day.birthdays.length > 0) {
+                console.log(`🎂 [CALENDAR SERVICE] Found ${day.birthdays.length} birthdays on ${day.date}:`, day.birthdays.map(b => b.employeeName));
+                
                 day.birthdays.forEach(birthday => {
                   const birthdayDate = new Date(day.date);
-                  // Only include future birthdays (including today)
-                  if (birthdayDate >= new Date(now.getFullYear(), now.getMonth(), now.getDate())) {
+                  const todayDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                  
+                  console.log(`🎂 [CALENDAR SERVICE] Checking birthday: ${birthday.employeeName} on ${day.date}`);
+                  console.log(`🎂 [CALENDAR SERVICE] Birthday date: ${birthdayDate.toDateString()}, Today: ${todayDate.toDateString()}`);
+                  
+                  // Include today and future birthdays
+                  if (birthdayDate >= todayDate) {
+                    console.log(`🎂 [CALENDAR SERVICE] ✅ Including birthday: ${birthday.employeeName}`);
                     birthdays.push({
                       ...birthday,
                       date: day.date,
@@ -356,10 +376,14 @@ const employeeCalendarService = {
                       title: birthday.title,
                       department: birthday.department || birthday.departmentName || null
                     });
+                  } else {
+                    console.log(`🎂 [CALENDAR SERVICE] ❌ Excluding past birthday: ${birthday.employeeName}`);
                   }
                 });
               }
             });
+          } else {
+            console.warn(`❌ [CALENDAR SERVICE] Failed to fetch month ${year}-${month}:`, monthlyData.message);
           }
         } catch (monthError) {
           console.warn(`Failed to fetch birthdays for ${year}-${month}:`, monthError);

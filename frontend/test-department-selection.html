@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Selection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .department-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 8px; 
+            margin: 4px 0; 
+            border: 1px solid #ddd; 
+            border-radius: 4px;
+        }
+        .department-item:hover { background-color: #f5f5f5; }
+        input[type="checkbox"] { margin-right: 10px; }
+        .selected-count { 
+            margin-top: 20px; 
+            padding: 10px; 
+            background-color: #e3f2fd; 
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Department Selection Test</h2>
+    <p>This test verifies that department selection works correctly (not selecting all when one is clicked)</p>
+    
+    <div id="departments"></div>
+    <div class="selected-count" id="selectedCount">Selected: 0 departments</div>
+    
+    <script>
+        // Mock departments data (similar to your backend structure)
+        const departments = [
+            { id: 1, name: 'Human Resources', code: 'HR' },
+            { id: 2, name: 'Information Technology', code: 'IT' },
+            { id: 3, name: 'Finance', code: 'FIN' },
+            { id: 4, name: 'Sales', code: 'SALES' },
+            { id: 6, name: 'Medical', code: 'MD' },
+            { id: 7, name: 'ANtyone', code: 'AO' }
+        ];
+        
+        let assignedDepartments = [];
+        
+        function handleDepartmentToggle(deptId) {
+            console.log('Toggling department:', deptId);
+            console.log('Current assigned departments:', assignedDepartments);
+            
+            const isSelected = assignedDepartments.includes(deptId);
+            
+            if (isSelected) {
+                // Remove from selection
+                assignedDepartments = assignedDepartments.filter(id => id !== deptId);
+            } else {
+                // Add to selection
+                assignedDepartments = [...assignedDepartments, deptId];
+            }
+            
+            console.log('New assigned departments:', assignedDepartments);
+            updateUI();
+        }
+        
+        function updateUI() {
+            // Update checkboxes
+            departments.forEach(dept => {
+                const checkbox = document.getElementById(`dept-${dept.id}`);
+                if (checkbox) {
+                    checkbox.checked = assignedDepartments.includes(dept.id);
+                }
+            });
+            
+            // Update counter
+            document.getElementById('selectedCount').textContent = 
+                `Selected: ${assignedDepartments.length} departments (${assignedDepartments.join(', ')})`;
+        }
+        
+        function renderDepartments() {
+            const container = document.getElementById('departments');
+            
+            departments.forEach(dept => {
+                const div = document.createElement('div');
+                div.className = 'department-item';
+                
+                div.innerHTML = `
+                    <input 
+                        type="checkbox" 
+                        id="dept-${dept.id}" 
+                        onchange="handleDepartmentToggle(${dept.id})"
+                    />
+                    <label for="dept-${dept.id}">
+                        <strong>${dept.name}</strong> (${dept.code})
+                    </label>
+                `;
+                
+                container.appendChild(div);
+            });
+        }
+        
+        // Initialize
+        renderDepartments();
+        updateUI();
+    </script>
+</body>
+</html>

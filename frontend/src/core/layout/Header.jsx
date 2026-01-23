@@ -101,8 +101,10 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
 
           {/* Right Section - Actions */}
           {isAuthenticated && (
+           
             <div className="flex items-center gap-2">
               {/* Help */}
+               {(user?.role === 'Employee'  )&& (
               <Button
                 variant="ghost"
                 size="sm"
@@ -112,6 +114,9 @@ const Header = ({ mobileMenuOpen, setMobileMenuOpen }) => {
                   <HelpCircle className="w-4 h-4" />
                 </Link>
               </Button>
+              )}
+
+              
 
               {/* Notifications */}
               <NotificationBell />
