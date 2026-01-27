@@ -22,11 +22,9 @@ async function getEmployeeShiftForDate(employeeId, dateString) {
         ]
       }
     });
-
     if (!employeeShift) {
       return null;
     }
-
     // Then, get the shift details separately
     const shift = await Shift.findByPk(employeeShift.shiftId, {
       attributes: [
@@ -37,7 +35,6 @@ async function getEmployeeShiftForDate(employeeId, dateString) {
         'gracePeriodMinutes'
       ]
     });
-
     return shift;
   } catch (error) {
     logger.error(`Error fetching shift for employee ${employeeId}:`, error);
@@ -50,21 +47,18 @@ async function getEmployeeShiftForDate(employeeId, dateString) {
  * Returns true only if current time is past shift end + 30-minute buffer
  * This prevents marking absent too early
  */
-function hasShiftEnded(shiftEndTime, dateString, bufferMinutes = 30) {
+function hasShiftEnded(shiftEndTime, dateString, bufferMinutes = 15) {
   try {
     const now = new Date();
     const currentDateString = getLocalDateString(now);
-    
     // If we're checking a past date, shift has definitely ended
     if (currentDateString > dateString) {
       return true;
     }
-    
     // If we're checking a future date, shift hasn't ended yet
     if (currentDateString < dateString) {
       return false;
     }
-    
     // Same day - check time
     const [hours, minutes, seconds] = shiftEndTime.split(':').map(Number);
     const shiftEndDateTime = new Date();
@@ -219,7 +213,6 @@ export const finalizeDailyAttendance = async (date = new Date()) => {
       logger.info(`${dateString} is not a working day (weekend). Skipping attendance finalization.`);
       return { skipped: true, reason: 'weekend' };
     }
-
     // ✅ FIXED: Get all active employees WITHOUT complex includes to avoid association errors
     const employees = await Employee.findAll({
       where: { 
@@ -227,9 +220,7 @@ export const finalizeDailyAttendance = async (date = new Date()) => {
         status: 'Active'
       }
     });
-
     logger.info(`Processing ${employees.length} active employees...`);
-
     let stats = {
       processed: 0,
       skipped: 0, // Employees whose shift is not finished yet

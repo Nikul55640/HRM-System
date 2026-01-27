@@ -3,7 +3,7 @@
  * Handles Calendarific API integration for holiday management
  */
 
-import CalendarificService from '../../services/external/calendarific.service.js';
+import CalendarificService from '../../services/external/optimizedCalendarific.service.js';
 import logger from '../../utils/logger.js';
 import { validationResult } from 'express-validator';
 

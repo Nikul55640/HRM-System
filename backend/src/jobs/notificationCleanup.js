@@ -1,13 +1,12 @@
-const cron = require('node-cron');
-const notificationService = require('../services/notificationService');
-const logger = require('../utils/logger');
+import cron from 'node-cron';
+import notificationService from '../services/notificationService.js';
+import logger from '../utils/logger.js';
 
 /**
  * Scheduled job to clean up old read notifications
  * Runs daily at 2:00 AM
  */
 const scheduleNotificationCleanup = () => {
-  // Run every day at 2:00 AM
   cron.schedule('0 2 * * *', async () => {
     try {
       logger.info('Starting notification cleanup job...');
@@ -15,7 +14,9 @@ const scheduleNotificationCleanup = () => {
       // Delete notifications older than 30 days
       const result = await notificationService.cleanupOldNotifications(30);
 
-      logger.info(`Notification cleanup completed. Deleted ${result.deletedCount} notifications.`);
+      logger.info(
+        `Notification cleanup completed. Deleted ${result?.deletedCount || 0} notifications.`
+      );
     } catch (error) {
       logger.error('Error in notification cleanup job:', error);
     }
@@ -24,4 +25,4 @@ const scheduleNotificationCleanup = () => {
   logger.info('Notification cleanup job scheduled (daily at 2:00 AM)');
 };
 
-module.exports = { scheduleNotificationCleanup };
+export { scheduleNotificationCleanup };

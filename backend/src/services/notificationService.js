@@ -18,7 +18,7 @@ class NotificationService {
     type = 'info',
     category,
     metadata = null,
-  }) {
+   }) {
     try {
       const notification = await Notification.create({
         userId,
@@ -59,15 +59,12 @@ class NotificationService {
         createdAt: notification.createdAt,
         isRead: false,
       };
-
       const sent = sseManager.sendToUser(userId, sseData);
-      
       if (sent) {
         logger.info(`Notification sent to user ${userId} via SSE`);
       } else {
         logger.warn(`User ${userId} not connected to SSE, notification saved to DB only`);
       }
-
       return notification;
     } catch (error) {
       logger.error('Failed to send notification to user:', error);
@@ -97,7 +94,7 @@ class NotificationService {
         notifications.push(notification);
       }
 
-      // Send via SSE to connected users
+    // Send via SSE to connected users
       const sseData = {
         title: notificationData.title,
         message: notificationData.message,
@@ -107,9 +104,7 @@ class NotificationService {
         createdAt: new Date().toISOString(),
         isRead: false,
       };
-
       const sentCount = sseManager.sendToRole(role, sseData);
-      
       logger.info(`Notification sent to ${notifications.length} users with role ${role}, ${sentCount} via SSE`);
       return notifications;
     } catch (error) {
@@ -122,8 +117,7 @@ class NotificationService {
    * Send notification to multiple roles
    */
   async sendToRoles(roles, notificationData) {
-    const allNotifications = [];
-    
+    const allNotifications = []; 
     for (const role of roles) {
       const notifications = await this.sendToRole(role, notificationData);
       allNotifications.push(...notifications);
@@ -143,23 +137,17 @@ class NotificationService {
       category,
       type,
     } = options;
-
     const where = { userId };
-    
     if (isRead !== undefined) {
       where.isRead = isRead;
     }
-    
     if (category) {
       where.category = category;
     }
-    
     if (type) {
       where.type = type;
     }
-
     const offset = (page - 1) * limit;
-
     const { count, rows } = await Notification.findAndCountAll({
       where,
       order: [['createdAt', 'DESC']],
