@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 import Header from "./Header";
 import Sidebar from "./Sidebar";
-import Footer from "./Footer";
+// import Footer from "./Footer";
 import { useState } from "react";
 import useNotifications from "../../hooks/useNotifications";
 
@@ -38,8 +38,8 @@ const MainLayout = () => {
             <Outlet />
           </div>
         </main>
-
-        <Footer />
+{/* 
+        <Footer /> */}
       </div>
     </div>
   );

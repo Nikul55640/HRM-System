@@ -1,21 +1,22 @@
 import { Routes, Route, Navigate } from "react-router-dom";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, lazy } from "react";
 import { ToastContainer } from "react-toastify";
 import {
   ErrorBoundary,
   LoadingSpinner,
 } from "./shared/components";
+import PerformanceMonitor from "./shared/components/PerformanceMonitor";
 import  ProtectedRoute  from "./core/guards/ProtectedRoute";
 import { applyRoutes } from "./routes/applyRoutes";
 import { setupZustandStores } from "./stores/setupStores";
 
-
-import Login from "./modules/auth/pages/Login";
-import AdminLogin from "./modules/auth/pages/AdminLogin";
-import ForgotPassword from "./modules/auth/pages/ForgotPassword";
-import MainLayout from "./core/layout/MainLayout";
-import NotFound from "./pages/NotFound";
-import Unauthorized from "./pages/Unauthorized";
+// Lazy load heavy components
+const Login = lazy(() => import("./modules/auth/pages/Login"));
+const AdminLogin = lazy(() => import("./modules/auth/pages/AdminLogin"));
+const ForgotPassword = lazy(() => import("./modules/auth/pages/ForgotPassword"));
+const MainLayout = lazy(() => import("./core/layout/MainLayout"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Unauthorized = lazy(() => import("./pages/Unauthorized"));
 
 import {
   essRoutes,
@@ -34,7 +35,7 @@ function App() {
 
   return (
     <ErrorBoundary>
-
+      <PerformanceMonitor />
         <Suspense
           fallback={
             <LoadingSpinner
@@ -55,6 +56,7 @@ function App() {
             draggable
             pauseOnHover
             theme="light"
+            limit={3} // Limit number of toasts
           />
 
           <Routes>

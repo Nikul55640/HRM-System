@@ -29,3 +29,5 @@ export { default as birthdayService } from "./birthdayService";
 export { default as shiftService } from "./shiftService"; // Feature 6: Shift Management
 export { default as auditLogService } from "./auditLogService"; // Feature 8: Audit Logs
 export { default as helpSupportService } from "./helpSupportService"; // Help & Support
+
+// Performance note: Consider lazy loading these services to reduce initial bundle size

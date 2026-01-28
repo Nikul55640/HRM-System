@@ -36,7 +36,16 @@ class DateCalculationService {
     }
     
     if (!workingRule) {
-      // Default to Monday-Friday if no rule found
+      // 🔧 FIX: Try to get default rule as final fallback
+      const defaultRule = await WorkingRule.findOne({
+        where: { isDefault: true, isActive: true }
+      });
+      
+      if (defaultRule) {
+        return defaultRule.workingDays.includes(dayOfWeek);
+      }
+      
+      // Ultimate fallback: Monday-Friday if no rules exist at all
       return [1, 2, 3, 4, 5].includes(dayOfWeek);
     }
     
@@ -57,7 +66,16 @@ class DateCalculationService {
     }
     
     if (!workingRule) {
-      // Default to Saturday-Sunday if no rule found
+      // 🔧 FIX: Try to get default rule as final fallback
+      const defaultRule = await WorkingRule.findOne({
+        where: { isDefault: true, isActive: true }
+      });
+      
+      if (defaultRule) {
+        return defaultRule.weekendDays.includes(dayOfWeek);
+      }
+      
+      // Ultimate fallback: Saturday-Sunday if no rules exist at all
       return [0, 6].includes(dayOfWeek);
     }
     
@@ -76,7 +94,16 @@ class DateCalculationService {
     }
     
     if (!workingRule) {
-      // Default to Saturday-Sunday if no rule found
+      // 🔧 FIX: Try to get default rule as final fallback
+      const defaultRule = await WorkingRule.findOne({
+        where: { isDefault: true, isActive: true }
+      });
+      
+      if (defaultRule) {
+        return defaultRule.weekendDays.includes(dayOfWeek);
+      }
+      
+      // Ultimate fallback: Saturday-Sunday if no rules exist at all
       return [0, 6].includes(dayOfWeek);
     }
     
@@ -93,7 +120,8 @@ class DateCalculationService {
     // ✅ FIX: Use local timezone, not UTC
     const dateStr = getLocalDateString(checkDate);
     
-    const workingRule = await WorkingRule.findOne({
+    // First, try to find an active rule for the date
+    let workingRule = await WorkingRule.findOne({
       where: {
         isActive: true,
         effectiveFrom: {
@@ -106,6 +134,22 @@ class DateCalculationService {
       },
       order: [['effectiveFrom', 'DESC']]
     });
+    
+    // 🔧 FIX: If no active rule found, use the most recent expired rule as fallback
+    if (!workingRule) {
+      workingRule = await WorkingRule.findOne({
+        where: {
+          isActive: true,
+          effectiveFrom: {
+            [Op.lte]: dateStr
+          },
+          effectiveTo: {
+            [Op.lt]: dateStr  // Rule has expired
+          }
+        },
+        order: [['effectiveTo', 'DESC']]  // Get the most recently expired rule
+      });
+    }
     
     return workingRule;
   }

@@ -31,7 +31,15 @@ import { mapAttendanceRecord, getStatusDisplay, getStatusColor, formatTime } fro
  *    - leave: Approved leave request (protected status)
  *    - incomplete: Pending finalization (temporary status)
  *    - pending_correction: Missed clock-out, requires correction
- *    - holiday: System-detected holiday (auto-status)
+ *    - holiday: System-detected holiday (auto-status) ✅ NOW DISPLAYED
+ * 
+ * ✅ HOLIDAY RECORDS:
+ * - Holiday records are now included in the attendance table
+ * - Holiday rows have blue background highlighting
+ * - Clock In/Out columns show "Holiday" instead of times
+ * - Late Minutes shows "N/A" for holidays
+ * - Working Hours shows "Holiday" for holiday records
+ * - Edit/Delete actions are disabled for holiday records (view-only)
  */
 
 const ManageAttendance = () => {
@@ -84,7 +92,8 @@ const ManageAttendance = () => {
         { value: 'leave', label: 'On Leave' }, // ✅ FIXED: Use 'leave' instead of 'on-leave'
         { value: 'half_day', label: 'Half Day' }, // ✅ ADDED: Half day status
         { value: 'incomplete', label: 'Incomplete' }, // ✅ Missing clock-out
-        { value: 'holiday', label: 'Holiday' },
+        { value: 'holiday', label: 'Holiday' }, // ✅ Include holiday records
+        { value: 'absent', label: 'Absent' }, // ✅ ADDED: Absent status
         { value: 'pending_correction', label: 'Pending Correction' },
       ]);
     } finally {
@@ -348,6 +357,8 @@ const ManageAttendance = () => {
               <p className="text-xs text-muted-foreground line-clamp-2">
                 {key === 'present' ? 'Employees present today' : ''}
                 {key === 'leave' ? 'Employees on leave today' : ''}
+                {key === 'absent' ? 'Employees absent today' : ''}
+                {key === 'holiday' ? 'Employees on holiday today' : ''}
                 {key === 'late' ? 'Employees late today' : ''}
                 {key === 'onLeave' ? 'Employees on leave' : ''}
               </p>
@@ -384,7 +395,11 @@ const ManageAttendance = () => {
                 ) : safeAttendance.length > 0 ? (
                   safeAttendance.map((record) => {
                     return (
-                      <TableRow key={record.id} className={record.status === 'incomplete' ? 'bg-orange-50' : record.isLate ? 'bg-red-50' : ''}>
+                      <TableRow key={record.id} className={
+                        record.status === 'incomplete' ? 'bg-orange-50' : 
+                        record.status === 'holiday' ? 'bg-blue-50' : 
+                        record.isLate ? 'bg-red-50' : ''
+                      }>
                         <TableCell className="font-medium">
                           <div className="flex items-center space-x-2">
                             <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center font-semibold text-xs flex-shrink-0">
@@ -404,8 +419,14 @@ const ManageAttendance = () => {
                         <TableCell>{getStatusBadge(record)}</TableCell>
                         <TableCell>
                           <div className={record.isLate ? 'text-red-600 font-medium' : ''}>
-                            <div className="text-sm">{formatTimeDisplay(record.clockIn)}</div>
-                            {record.isLate && (
+                            <div className="text-sm">
+                              {record.status === 'holiday' ? (
+                                <span className="text-blue-600">Holiday</span>
+                              ) : (
+                                formatTimeDisplay(record.clockIn)
+                              )}
+                            </div>
+                            {record.isLate && record.status !== 'holiday' && (
                               <div className="text-xs text-red-500">
                                 {record.lateMinutes}m late
                               </div>
@@ -415,23 +436,35 @@ const ManageAttendance = () => {
                         <TableCell>
                           <div className={record.status === 'incomplete' ? 'text-orange-600 font-medium' : ''}>
                             <div className="text-sm">
-                              {record.clockOut ? formatTimeDisplay(record.clockOut) : (
-                                record.status === 'incomplete' ? (
-                                  <span className="text-orange-600">Missing</span>
-                                ) : '--:--'
+                              {record.status === 'holiday' ? (
+                                <span className="text-blue-600">Holiday</span>
+                              ) : record.clockOut ? (
+                                formatTimeDisplay(record.clockOut)
+                              ) : record.status === 'incomplete' ? (
+                                <span className="text-orange-600">Missing</span>
+                              ) : (
+                                '--:--'
                               )}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
-                          {record.isLate ? (
+                          {record.status === 'holiday' ? (
+                            <span className="text-blue-600 text-sm">N/A</span>
+                          ) : record.isLate ? (
                             <span className="text-red-600 font-medium text-sm">{record.lateMinutes}m</span>
                           ) : (
                             <span className="text-green-600 text-sm">0m</span>
                           )}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-sm">
-                          {record.workHours ? `${record.workHours}h` : '--'}
+                          {record.status === 'holiday' ? (
+                            <span className="text-blue-600">Holiday</span>
+                          ) : record.workHours ? (
+                            `${record.workHours}h`
+                          ) : (
+                            '--'
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="relative">
@@ -457,16 +490,19 @@ const ManageAttendance = () => {
                                   >
                                     View Details
                                   </button>
-                                  <button
-                                    onClick={() => {
-                                      setSelectedRecord(record);
-                                      setShowActionMenu(null);
-                                      setShowAddModal(true);
-                                    }}
-                                    className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                                  >
-                                    Edit
-                                  </button>
+                                  {/* Only show edit/delete for non-holiday records or allow holiday editing */}
+                                  {record.status !== 'holiday' && (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedRecord(record);
+                                        setShowActionMenu(null);
+                                        setShowAddModal(true);
+                                      }}
+                                      className="block w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                                    >
+                                      Edit
+                                    </button>
+                                  )}
                                   {record.correctionRequested && (
                                     <>
                                       <button
@@ -489,17 +525,20 @@ const ManageAttendance = () => {
                                       </button>
                                     </>
                                   )}
-                                  <button
-                                    onClick={() => {
-                                      if (window.confirm('Are you sure you want to delete this record?')) {
-                                        deleteAttendanceRecord(record.id);
-                                      }
-                                      setShowActionMenu(null);
-                                    }}
-                                    className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
-                                  >
-                                    Delete
-                                  </button>
+                                  {/* Only allow deletion of non-holiday records */}
+                                  {record.status !== 'holiday' && (
+                                    <button
+                                      onClick={() => {
+                                        if (window.confirm('Are you sure you want to delete this record?')) {
+                                          deleteAttendanceRecord(record.id);
+                                        }
+                                        setShowActionMenu(null);
+                                      }}
+                                      className="block w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                    >
+                                      Delete
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             )}

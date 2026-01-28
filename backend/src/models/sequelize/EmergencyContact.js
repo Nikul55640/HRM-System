@@ -34,14 +34,14 @@ const EmergencyContact = sequelize.define('EmergencyContact', {
     allowNull: false,
     validate: {
       notEmpty: true,
-      is: /^[+]?[\d\s\-\(\)]+$/,
+      is: /^[+]?[\d\s\-()]+$/,
     },
   },
   alternatePhone: {
     type: DataTypes.STRING(15),
     allowNull: true,
     validate: {
-      is: /^[+]?[\d\s\-\(\)]+$/,
+      is: /^[+]?[\d\s\-()]+$/,
     },
   },
   address: {

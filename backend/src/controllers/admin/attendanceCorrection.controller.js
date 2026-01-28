@@ -623,6 +623,16 @@ class AttendanceCorrectionController {
             // Prepare new values (model hooks will calculate work hours)
             const newCheckIn = correction.checkIn ? new Date(correction.checkIn) : record.checkIn;
             const newCheckOut = correction.checkOut ? new Date(correction.checkOut) : record.checkOut;
+            
+            // Calculate work hours for audit log (even though model hooks will recalculate)
+            let newWorkHours = 0;
+            if (newCheckIn && newCheckOut) {
+              const timeDiff = newCheckOut - newCheckIn;
+              const totalMinutes = timeDiff / (1000 * 60);
+              const breakTime = correction.breakTime !== undefined ? correction.breakTime : record.breakTime;
+              const workedMinutes = Math.max(0, totalMinutes - (breakTime || 0));
+              newWorkHours = Math.round((workedMinutes / 60) * 100) / 100;
+            }
 
             // ✅ CRITICAL FIX: Reset to incomplete so finalization job can re-evaluate
             // NEVER set status = 'present' manually - let the finalization job decide

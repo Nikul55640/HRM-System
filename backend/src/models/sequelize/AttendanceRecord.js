@@ -343,12 +343,12 @@ AttendanceRecord.prototype.canClockOut = function () {
     };
   }
 
-  // ✅ NEW: Check for pending correction status
+  // ✅ UPDATED: Allow clock-out for pending correction status
+  // Employees should be able to clock out even if there's a pending correction
+  // The correction can be processed later, but they need to end their work day
   if (this.status === 'pending_correction') {
-    return { 
-      allowed: false, 
-      reason: 'Attendance correction pending - contact HR' 
-    };
+    // Allow clock-out - the correction process is separate from daily operations
+    return { allowed: true, reason: null };
   }
 
   return { allowed: true, reason: null };
@@ -474,6 +474,7 @@ AttendanceRecord.getMonthlySummary = async function (employeeId, year, month) {
     totalDays: records.length,
     presentDays: records.filter(r => r.status === 'present').length,
     leaveDays: records.filter(r => r.status === 'leave').length, // ✅ Renamed from absentDays
+    absentDays: records.filter(r => r.status === 'absent').length, // ✅ NEW: Actual absent days
     halfDays: records.filter(r => r.status === 'half_day').length,
     holidayDays: records.filter(r => r.status === 'holiday').length,
     totalWorkHours: totalWorkHours,

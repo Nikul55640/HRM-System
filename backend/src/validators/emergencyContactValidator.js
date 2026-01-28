@@ -18,7 +18,7 @@ export const validateEmergencyContact = [
     .trim()
     .notEmpty()
     .withMessage('Phone number is required')
-    .matches(/^[+]?[\d\s\-\(\)]+$/)
+    .matches(/^[+]?[\d\s\-()]+$/)
     .withMessage('Please enter a valid phone number')
     .isLength({ min: 10, max: 15 })
     .withMessage('Phone number must be between 10 and 15 digits'),
@@ -28,7 +28,7 @@ export const validateEmergencyContact = [
     .trim()
     .custom((value) => {
       if (value && value.length > 0) {
-        if (!/^[+]?[\d\s\-\(\)]+$/.test(value)) {
+        if (!/^[+]?[\d\s\-()]+$/.test(value)) {
           throw new Error('Please enter a valid alternate phone number');
         }
         if (value.length < 10 || value.length > 15) {

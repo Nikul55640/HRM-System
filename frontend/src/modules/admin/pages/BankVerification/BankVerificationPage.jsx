@@ -14,7 +14,8 @@ import {
   Building2,
   CreditCard,
   User,
-  Calendar
+  Calendar,
+  X
 } from 'lucide-react';
 import { toast } from 'react-toastify';
 import api from '../../../../services/api';
@@ -343,7 +344,7 @@ const BankVerificationPage = () => {
                   size="sm"
                   onClick={() => setShowModal(false)}
                 >
-                  ×
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
 

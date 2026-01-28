@@ -59,7 +59,7 @@ export const validateProfileUpdate = [
   body('contactInfo.phone')
     .optional()
     .trim()
-    .matches(/^[+]?[\d\s\-\(\)]+$/)
+    .matches(/^[+]?[\d\s\-()]+$/)
     .withMessage('Please enter a valid phone number')
     .isLength({ min: 10, max: 15 })
     .withMessage('Phone number must be between 10 and 15 digits'),

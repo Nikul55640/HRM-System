@@ -38,7 +38,10 @@ class AttendancePolicyService {
     const dateStr = DateCalculationService.formatLocalDate(new Date(year, month - 1, day));
     
     // 1. Check if it's a weekend (highest priority)
-    const isWeekend = await DateCalculationService.isWeekendByDayIndex(dayOfWeek);
+    // Get working rule for the specific date, not today's date
+    const targetDate = new Date(year, month - 1, day);
+    const workingRule = await DateCalculationService.getActiveWorkingRule(targetDate);
+    const isWeekend = await DateCalculationService.isWeekendByDayIndex(dayOfWeek, workingRule);
     if (isWeekend) {
       return {
         status: 'WEEKEND',

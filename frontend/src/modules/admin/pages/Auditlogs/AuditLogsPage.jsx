@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/card';
 import { Button } from '../../../../shared/ui/button';
-import { Search, Filter, Download, RefreshCw, Eye, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Filter, Download, RefreshCw, Eye, ChevronDown, ChevronUp , NotepadText, X}  from 'lucide-react';
 import { toast } from 'react-toastify';
 import { formatDate } from '../../../ess/utils/essHelpers';
 import auditLogService from '../../../../services/auditLogService';
@@ -296,7 +296,9 @@ const AuditLogsPage = () => {
           <div className="block lg:hidden">
             {filteredLogs.length === 0 ? (
               <div className="p-8 text-center text-gray-400">
-                <div className="text-4xl mb-4">📋</div>
+                <div className="flex justify-center mb-4">
+                  <NotepadText size={32} />
+                </div>
                 <p className="text-sm">No logs found</p>
               </div>
             ) : (
@@ -385,7 +387,9 @@ const AuditLogsPage = () => {
                 {filteredLogs.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-gray-400 text-sm">
-                      <div className="text-4xl mb-4">📋</div>
+                      <div className="flex justify-center mb-4">
+                        <NotepadText size={32} />
+                      </div> 
                       <p>No logs found</p>
                     </td>
                   </tr>
@@ -515,7 +519,7 @@ const AuditLogsPage = () => {
                   size="sm"
                   onClick={() => setShowLogDetails(false)}
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
               

@@ -346,9 +346,9 @@ export const useAttendance = () => {
       // Normalize attendance summary to handle different field names
       const normalizedSummary = {
         presentDays: summary?.presentDays ?? 0,
-        absentDays: summary?.leaveDays ?? summary?.absentDays ?? 0, // Backend uses leaveDays
+        absentDays: summary?.absentDays ?? 0, // ✅ NEW: Actual absent days
+        leaveDays: summary?.leaveDays ?? 0, // ✅ Approved leave days
         lateDays: summary?.lateDays ?? 0,
-        leaveDays: summary?.leaveDays ?? 0, // Keep original for other uses
         halfDays: summary?.halfDays ?? 0,
         holidayDays: summary?.holidayDays ?? 0,
         totalWorkHours: summary?.totalWorkHours ?? 0,

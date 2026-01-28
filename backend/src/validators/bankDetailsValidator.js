@@ -26,7 +26,7 @@ const validateAccountNumber = (accountNumber) => {
   }
 
   // Remove any spaces or hyphens
-  const cleaned = accountNumber.replace(/[\s\-]/g, '');
+  const cleaned = accountNumber.replace(/[\s-]/g, '');
 
   // Check if it's numeric and within valid length
   const accountRegex = /^\d{8,18}$/;
@@ -59,7 +59,7 @@ const validateAccountHolderName = (name) => {
 
   const trimmed = name.trim();
   // Should contain only letters, spaces, and common punctuation
-  const nameRegex = /^[a-zA-Z\s\.\-']+$/;
+  const nameRegex = /^[a-zA-Z\s.''-]+$/;
   return trimmed.length >= 2 && trimmed.length <= 100 && nameRegex.test(trimmed);
 };
 

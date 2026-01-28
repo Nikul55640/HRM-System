@@ -10,3 +10,7 @@ export { default as  ScopeIndicator } from './ScopeIndicator';
 export { default as ApprovalStatusBadge } from './ApprovalStatusBadge';
 export { default as DetailModal } from './DetailModal';
 export { default as QuickPreview } from './QuickPreview';
+
+// Performance and responsive components
+export { default as ResponsiveLayout } from './ResponsiveLayout';
+export { default as PerformanceMonitor } from './PerformanceMonitor';

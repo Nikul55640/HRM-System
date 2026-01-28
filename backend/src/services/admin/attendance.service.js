@@ -316,25 +316,35 @@ class AttendanceService {
             
             breakSessions.push(newBreakSession);
 
-            // ✅ FIXED: Use proper Sequelize update with transaction
+            // 🔧 CRITICAL FIX: Use direct assignment + changed() + save() for JSON fields
             attendanceRecord.breakSessions = breakSessions;
             attendanceRecord.updatedBy = user.id;
+            // Force Sequelize to recognize the JSON field change
+            attendanceRecord.changed('breakSessions', true);
             await attendanceRecord.save({ transaction });
 
-            // Log break start action
-            await AuditLog.logAction({
-                userId: user.id,
-                action: 'attendance_break_in',
-                module: 'attendance',
-                targetType: 'AttendanceRecord',
-                targetId: attendanceRecord.id,
-                description: `Started break at ${breakInTime.toLocaleTimeString()}`,
-                ipAddress: metadata.ipAddress,
-                userAgent: metadata.userAgent,
-                severity: 'low'
-            });
+            // Log break start action (with error handling to prevent transaction rollback)
+            try {
+                await AuditLog.logAction({
+                    userId: user.id,
+                    action: 'attendance_break_in',
+                    module: 'attendance',
+                    targetType: 'AttendanceRecord',
+                    targetId: attendanceRecord.id,
+                    description: `Started break at ${breakInTime.toLocaleTimeString()}`,
+                    ipAddress: metadata.ipAddress,
+                    userAgent: metadata.userAgent,
+                    severity: 'low'
+                });
+            } catch (auditError) {
+                // Log the audit error but don't fail the transaction
+                logger.warn('Failed to create audit log for break start:', auditError.message);
+            }
 
             await transaction.commit();
+
+            // 🔧 CRITICAL FIX: Reload the record after commit to get the updated data
+            await attendanceRecord.reload();
 
             return {
                 success: true,
@@ -394,25 +404,35 @@ class AttendanceService {
             breakSessions[activeBreakIndex].breakOut = breakOutTime;
             breakSessions[activeBreakIndex].duration = AttendanceCalculationService.calculateBreakDuration(breakSessions[activeBreakIndex]);
 
-            // ✅ FIXED: Use proper Sequelize update with transaction
+            // 🔧 CRITICAL FIX: Use direct assignment + changed() + save() for JSON fields
             attendanceRecord.breakSessions = breakSessions;
             attendanceRecord.updatedBy = user.id;
+            // Force Sequelize to recognize the JSON field change
+            attendanceRecord.changed('breakSessions', true);
             await attendanceRecord.save({ transaction });
 
-            // Log break end action
-            await AuditLog.logAction({
-                userId: user.id,
-                action: 'attendance_break_out',
-                module: 'attendance',
-                targetType: 'AttendanceRecord',
-                targetId: attendanceRecord.id,
-                description: `Ended break at ${breakOutTime.toLocaleTimeString()} (Duration: ${breakSessions[activeBreakIndex].duration} minutes)`,
-                ipAddress: metadata.ipAddress,
-                userAgent: metadata.userAgent,
-                severity: 'low'
-            });
+            // Log break end action (with error handling to prevent transaction rollback)
+            try {
+                await AuditLog.logAction({
+                    userId: user.id,
+                    action: 'attendance_break_out',
+                    module: 'attendance',
+                    targetType: 'AttendanceRecord',
+                    targetId: attendanceRecord.id,
+                    description: `Ended break at ${breakOutTime.toLocaleTimeString()} (Duration: ${breakSessions[activeBreakIndex].duration} minutes)`,
+                    ipAddress: metadata.ipAddress,
+                    userAgent: metadata.userAgent,
+                    severity: 'low'
+                });
+            } catch (auditError) {
+                // Log the audit error but don't fail the transaction
+                logger.warn('Failed to create audit log for break end:', auditError.message);
+            }
 
             await transaction.commit();
+
+            // 🔧 CRITICAL FIX: Reload the record after commit to get the updated data
+            await attendanceRecord.reload();
 
             return {
                 success: true,
@@ -444,6 +464,7 @@ class AttendanceService {
             // ✅ FIX: Use local timezone, not UTC
             const today = getLocalDateString();
 
+            // 🔧 CRITICAL FIX: Force fresh read from database to avoid stale data
             const attendanceRecord = await AttendanceRecord.findOne({
                 where: {
                     employeeId: user.employee?.id,
@@ -455,18 +476,48 @@ class AttendanceService {
                         as: 'shift',
                         attributes: ['shiftName', 'shiftStartTime', 'shiftEndTime', 'gracePeriodMinutes']
                     }
-                ]
+                ],
+                // Force fresh read from database, bypass any caching
+                raw: false,
+                nest: true,
+                // Ensure we get the latest data
+                order: [['updatedAt', 'DESC']]
             });
+
+            // 🔧 CRITICAL FIX: If record exists, reload it to ensure we have the latest data
+            if (attendanceRecord) {
+                await attendanceRecord.reload({
+                    include: [
+                        {
+                            model: Shift,
+                            as: 'shift',
+                            attributes: ['shiftName', 'shiftStartTime', 'shiftEndTime', 'gracePeriodMinutes']
+                        }
+                    ]
+                });
+            }
 
             // Debug logging
             if (attendanceRecord) {
-                logger.debug('Raw attendance record:', {
+                logger.debug('Raw attendance record after reload:', {
                     id: attendanceRecord.id,
                     breakSessions: attendanceRecord.breakSessions,
                     breakSessionsType: typeof attendanceRecord.breakSessions,
                     breakSessionsLength: attendanceRecord.breakSessions?.length,
+                    updatedAt: attendanceRecord.updatedAt,
                     dataValues: attendanceRecord.dataValues?.breakSessions
                 });
+
+                // Ensure breakSessions is properly formatted
+                if (attendanceRecord.breakSessions && Array.isArray(attendanceRecord.breakSessions)) {
+                    // Normalize the break sessions to ensure consistent format
+                    attendanceRecord.breakSessions = AttendanceCalculationService.normalizeBreakSessions(attendanceRecord.breakSessions);
+                    
+                    logger.debug('Normalized break sessions:', {
+                        breakSessions: attendanceRecord.breakSessions,
+                        activeBreaks: attendanceRecord.breakSessions.filter(s => s.breakIn && !s.breakOut).length
+                    });
+                }
             }
 
             return {

@@ -32,8 +32,8 @@ const submitLeaveRequest = async (employeeId, leaveData) => {
 
     const leaveRequest = await LeaveRequest.create({
       employeeId,
-      startDate: start,
-      endDate: end,
+      startDate: startDate,
+      endDate: endDate,
       leaveType,
       reason,
       days,

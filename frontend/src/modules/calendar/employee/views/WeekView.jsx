@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/card';
 import { Badge } from '../../../../shared/ui/badge';
 import smartCalendarService from '../../../../services/smartCalendarService';
 
 const WeekView = ({ date, events, onDateClick }) => {
-  const [hoveredDay, setHoveredDay] = useState(null);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [smartCalendarData, setSmartCalendarData] = useState({});
   const [loading, setLoading] = useState(true);
 
@@ -108,45 +105,6 @@ const WeekView = ({ date, events, onDateClick }) => {
     return dayStatus.isHoliday;
   };
 
-  // Get day styling classes based on day status (PROPER PRIORITY ORDER)
-  const getDayClasses = (day, isTodayDate, dayEvents) => {
-    const dayStatus = getDayStatus(day);
-    
-    let baseClasses = 'border rounded-lg p-2 sm:p-3 cursor-pointer hover:bg-gray-50 transition-colors min-h-24 sm:min-h-32 relative';
-    
-    // Priority order: Today > Holiday > Weekend > Working Day
-    if (isTodayDate) {
-      baseClasses += ' border-blue-500 bg-blue-50';
-    } else if (dayStatus.isHoliday) {
-      baseClasses += ' border-red-300 bg-red-50';
-    } else if (dayStatus.isWeekend) {
-      baseClasses += ' border-gray-300 bg-gray-100';
-    } else {
-      baseClasses += ' border-gray-200 bg-white';
-    }
-    
-    return baseClasses;
-  };
-
-  // Get day number styling (PROPER PRIORITY ORDER)
-  const getDayNumberClasses = (day, isTodayDate) => {
-    const dayStatus = getDayStatus(day);
-    
-    let classes = 'text-sm sm:text-lg font-semibold';
-    
-    if (isTodayDate) {
-      classes += ' text-blue-600';
-    } else if (dayStatus.isHoliday) {
-      classes += ' text-red-700';
-    } else if (dayStatus.isWeekend) {
-      classes += ' text-gray-500';
-    } else {
-      classes += ' text-gray-800';
-    }
-    
-    return classes;
-  };
-
   // Get the start of the week (Sunday)
   const startOfWeek = new Date(date);
   startOfWeek.setDate(date.getDate() - date.getDay());
@@ -211,200 +169,207 @@ const WeekView = ({ date, events, onDateClick }) => {
     return day.toDateString() === today.toDateString();
   };
 
-  const handleMouseEnter = (day, event) => {
-    const dayEvents = getEventsForDate(day);
-    if (dayEvents.length > 0) {
-      const rect = event.currentTarget.getBoundingClientRect();
-      setTooltipPosition({
-        x: rect.left + rect.width / 2,
-        y: rect.top - 10
-      });
-      setHoveredDay(day);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    setHoveredDay(null);
-  };
-
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   // Show loading state while fetching smart calendar data
   if (loading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Week View</CardTitle>
-        </CardHeader>
-        <CardContent className="p-2 sm:p-6">
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-gray-900">Week View</h2>
+          <div className="text-sm text-gray-500">Loading...</div>
+        </div>
+        <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Week View</CardTitle>
-      </CardHeader>
-      <CardContent className="p-2 sm:p-6">
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 sm:gap-4">
-          {weekDays.map((day, index) => {
-            const dayEvents = getEventsForDate(day);
-            const isTodayDate = isToday(day);
-            const dayStatus = getDayStatus(day);
+    <div className="space-y-3">
+      {/* Week Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-gray-900">Week View</h2>
+        <div className="text-sm text-gray-500">
+          {weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {weekDays[6].toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+        </div>
+      </div>
 
-            return (
-              <div
-                key={day.toISOString()}
-                onClick={() => onDateClick(day)}
-                onMouseEnter={(e) => handleMouseEnter(day, e)}
-                onMouseLeave={handleMouseLeave}
-                className={getDayClasses(day, isTodayDate, dayEvents)}
-              >
-                {/* Day header */}
-                <div className="text-center mb-1 sm:mb-2">
-                  <div className="text-xs font-medium text-gray-500 uppercase">
-                    <span className="hidden sm:inline">{dayNames[index]}</span>
-                    <span className="sm:hidden">{dayNames[index].slice(0, 1)}</span>
-                    {/* Smart status indicators */}
-                    {!isTodayDate && (
-                      <>
-                        {dayStatus.isHoliday && (
-                          <span className="ml-1 text-[10px] text-red-500">H</span>
-                        )}
-                        {dayStatus.isWeekend && !dayStatus.isHoliday && (
-                          <span className="ml-1 text-[10px] text-gray-400">W</span>
-                        )}
-                      </>
-                    )}
+      {/* Week List */}
+      <div className="space-y-2">
+        {weekDays.map((day, index) => {
+          const dayEvents = getEventsForDate(day);
+          const isTodayDate = isToday(day);
+          const dayStatus = getDayStatus(day);
+
+          return (
+            <div
+              key={day.toISOString()}
+              onClick={() => onDateClick(day)}
+              className={`border rounded-lg p-3 sm:p-4 cursor-pointer hover:shadow-md transition-all duration-200 ${
+                isTodayDate 
+                  ? 'border-blue-500 bg-blue-50 shadow-sm' 
+                  : dayStatus.isHoliday
+                  ? 'border-red-300 bg-red-50'
+                  : dayStatus.isWeekend
+                  ? 'border-gray-300 bg-gray-50'
+                  : 'border-gray-200 bg-white hover:bg-gray-50'
+              }`}
+            >
+              {/* Day Header */}
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex flex-col items-center">
+                    <div className="text-xs font-medium text-gray-500 uppercase">
+                      {dayNames[index]}
+                    </div>
+                    <div className={`text-xl font-bold ${
+                      isTodayDate 
+                        ? 'text-blue-600' 
+                        : dayStatus.isHoliday
+                        ? 'text-red-700'
+                        : dayStatus.isWeekend
+                        ? 'text-gray-500'
+                        : 'text-gray-800'
+                    }`}>
+                      {day.getDate()}
+                    </div>
                   </div>
-                  <div className={getDayNumberClasses(day, isTodayDate)}>
-                    {day.getDate()}
+                  
+                  <div className="flex flex-col">
+                    <div className="text-sm font-medium text-gray-900">
+                      {day.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        month: 'long', 
+                        day: 'numeric',
+                        year: day.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+                      })}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      {/* Day Status Badge */}
+                      {dayStatus.isHoliday ? (
+                        <Badge className="bg-red-100 text-red-700 text-xs">Holiday</Badge>
+                      ) : dayStatus.isWeekend ? (
+                        <Badge className="bg-gray-100 text-gray-600 text-xs">Weekend</Badge>
+                      ) : (
+                        <Badge className="bg-green-100 text-green-700 text-xs">Working Day</Badge>
+                      )}
+                      
+                      {isTodayDate && (
+                        <Badge className="bg-blue-100 text-blue-700 text-xs">Today</Badge>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                {/* Events for this day */}
-                <div className="space-y-1">
-                  {dayEvents.slice(0, window.innerWidth < 640 ? 2 : 3).map((event) => (
+                {/* Event Count */}
+                {dayEvents.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">
+                      {dayEvents.length} event{dayEvents.length !== 1 ? 's' : ''}
+                    </span>
+                    <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
+                      {dayEvents.length}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Events List */}
+              {dayEvents.length > 0 ? (
+                <div className="space-y-2">
+                  {dayEvents.map((event, eventIndex) => (
                     <div
-                      key={event._id || event.id}
-                      className={`text-xs px-1 sm:px-2 py-0.5 sm:py-1 rounded truncate ${getEventColor(event.eventType)}`}
-                      title={event.title}
+                      key={event._id || event.id || eventIndex}
+                      className="flex items-center gap-3 p-2 rounded-md bg-white border border-gray-100"
                     >
-                      <span className="hidden sm:inline">{event.title}</span>
-                      <span className="sm:hidden">•</span>
+                      {/* Event Type Indicator */}
+                      <div
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ 
+                          backgroundColor: event.color || (() => {
+                            const colorMap = {
+                              meeting: '#3b82f6',
+                              holiday: '#ef4444',
+                              birthday: '#ec4899',
+                              anniversary: '#8b5cf6',
+                              leave: '#f97316',
+                              event: '#10b981',
+                            };
+                            return colorMap[event.eventType] || '#6b7280';
+                          })()
+                        }}
+                      ></div>
+
+                      {/* Event Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900 truncate">
+                            {event.title}
+                          </span>
+                          <Badge className={`text-xs ${getEventColor(event.eventType)}`}>
+                            {event.eventType}
+                          </Badge>
+                        </div>
+                        
+                        {/* Additional Event Info */}
+                        {(event.employeeName || event.description) && (
+                          <div className="text-xs text-gray-500 mt-1 truncate">
+                            {event.employeeName && (
+                              <span>{event.employeeName}</span>
+                            )}
+                            {event.employeeName && event.description && <span> • </span>}
+                            {event.description && (
+                              <span>{event.description}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Event Time (if available) */}
+                      {event.time && (
+                        <div className="text-xs text-gray-500 flex-shrink-0">
+                          {event.time}
+                        </div>
+                      )}
                     </div>
                   ))}
-                  
-                  {dayEvents.length > (window.innerWidth < 640 ? 2 : 3) && (
-                    <div className="text-xs text-gray-500 px-1 sm:px-2">
-                      <span className="hidden sm:inline">+{dayEvents.length - 3} more</span>
-                      <span className="sm:hidden">+{dayEvents.length - 2}</span>
-                    </div>
-                  )}
                 </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Hover Tooltip */}
-        {hoveredDay && (
-          <div
-            className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-3 max-w-xs pointer-events-none"
-            style={{
-              left: `${tooltipPosition.x}px`,
-              top: `${tooltipPosition.y}px`,
-              transform: 'translateX(-50%) translateY(-100%)'
-            }}
-          >
-            <div className="text-sm font-semibold mb-2">
-              {hoveredDay.toLocaleDateString('en-US', {
-                weekday: 'long',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </div>
-            
-            {/* Day Status from Smart Calendar */}
-            <div className="mb-2">
-              {(() => {
-                const dayStatus = getDayStatus(hoveredDay);
-                if (dayStatus.isHoliday) {
-                  return <span className="text-xs px-2 py-1 bg-red-100 text-red-700 rounded">Holiday</span>;
-                } else if (dayStatus.isWeekend) {
-                  return <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">Weekend</span>;
-                } else {
-                  return <span className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">Working Day</span>;
-                }
-              })()}
-            </div>
-            
-            <div className="space-y-1">
-              {getEventsForDate(hoveredDay).map((event, idx) => (
-                <div key={idx} className="flex items-center gap-2">
-                  <div
-                    className="w-2 h-2 rounded-full flex-shrink-0"
-                    style={{ 
-                      backgroundColor: event.color || (() => {
-                        const colorMap = {
-                          meeting: '#3b82f6',
-                          holiday: '#ef4444',
-                          birthday: '#ec4899',
-                          anniversary: '#8b5cf6',
-                          leave: '#f97316',
-                          event: '#10b981',
-                        };
-                        return colorMap[event.eventType] || '#6b7280';
-                      })()
-                    }}
-                  ></div>
-                  <span className="text-xs text-gray-700 truncate">
-                    {event.title}
-                  </span>
+              ) : (
+                <div className="text-center py-4 text-gray-500 text-sm">
+                  No events scheduled
                 </div>
-              ))}
+              )}
             </div>
-          </div>
-        )}
+          );
+        })}
+      </div>
 
-        {/* Legend */}
-        <div className="mt-4 sm:mt-6 flex flex-wrap gap-2 sm:gap-4 justify-center">
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-gray-100 border border-gray-300 rounded"></div>
-            <span className="text-xs sm:text-sm text-gray-600">Weekend</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-red-100 border border-red-200 rounded"></div>
-            <span className="text-xs sm:text-sm text-gray-600">Holiday</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-blue-100 border border-blue-200 rounded"></div>
-            <span className="text-xs sm:text-sm text-gray-600">Meeting</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-orange-100 border border-orange-200 rounded"></div>
-            <span className="text-xs sm:text-sm text-gray-600">Leave</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-pink-100 border border-pink-200 rounded"></div>
-            <span className="text-xs sm:text-sm text-gray-600">Birthday</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-purple-100 border border-purple-200 rounded"></div>
-            <span className="text-xs sm:text-sm text-gray-600">Anniversary</span>
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2">
-            <div className="w-2 h-2 sm:w-3 sm:h-3 bg-green-100 border border-green-200 rounded"></div>
-            <span className="text-xs sm:text-sm text-gray-600">Event</span>
-          </div>
+      {/* Legend */}
+      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+        <h3 className="text-sm font-medium text-gray-900 mb-3">Event Types</h3>
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+          {[
+            { type: 'holiday', label: 'Holiday', color: '#ef4444' },
+            { type: 'leave', label: 'Leave', color: '#f97316' },
+            { type: 'birthday', label: 'Birthday', color: '#ec4899' },
+            { type: 'anniversary', label: 'Anniversary', color: '#8b5cf6' },
+            { type: 'meeting', label: 'Meeting', color: '#3b82f6' },
+            { type: 'event', label: 'Event', color: '#10b981' },
+            { type: 'other', label: 'Other', color: '#6b7280' }
+          ].map(({ type, label, color }) => (
+            <div key={type} className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full flex-shrink-0" 
+                style={{ backgroundColor: color }}
+              ></div>
+              <span className="text-xs text-gray-600">{label}</span>
+            </div>
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

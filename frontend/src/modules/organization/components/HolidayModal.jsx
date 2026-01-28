@@ -17,7 +17,7 @@ import { Input } from "../../../shared/ui/input";
 import { Textarea } from "../../../shared/ui/textarea";
 import { Label } from "../../../shared/ui/label";
 import { Checkbox } from "../../../shared/ui/checkbox";
-import { Calendar, Info, AlertCircle, CheckCircle2, Loader2, Palette, Eye } from "lucide-react";
+import { Calendar, Info, AlertCircle, CheckCircle2, Loader2, Palette, Eye, Building2, Zap, Flag, Church, Building } from "lucide-react";
 
 import {
   Popover,
@@ -515,11 +515,11 @@ const HolidayModal = ({ open, holiday, onClose, onSuccess }) => {
                 hasFieldError('category') ? "border-red-500" : "border-gray-300 focus:border-primary"
               }`}
             >
-              <option value="public">🏛️ Public Holiday</option>
-              <option value="optional">⚡ Optional Holiday</option>
-              <option value="national">🇮🇳 National Holiday</option>
-              <option value="religious">🕉️ Religious Holiday</option>
-              <option value="company">🏢 Company Holiday</option>
+              <option value="public">Public Holiday</option>
+              <option value="optional">Optional Holiday</option>
+              <option value="national">National Holiday</option>
+              <option value="religious">Religious Holiday</option>
+              <option value="company">Company Holiday</option>
             </select>
             {getFieldError('category') && (
               <p className="text-xs text-red-500 flex items-center gap-1">

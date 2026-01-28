@@ -57,7 +57,7 @@ const EnhancedClockInOut = () => {
     if (todayRecord) {
       fetchButtonStates();
     }
-  }, [todayRecord?.clockIn, todayRecord?.clockOut, todayRecord?.status]);
+  }, [todayRecord?.clockIn, todayRecord?.clockOut, todayRecord?.status, todayRecord?.breakSessions?.length]);
 
   // Update clock every second
   useEffect(() => {

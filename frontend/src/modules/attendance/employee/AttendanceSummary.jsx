@@ -1,14 +1,48 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
-import { Clock, Calendar, TrendingUp, AlertCircle, Coffee, Timer, Award, AlertTriangle } from 'lucide-react';
+import { Clock, Calendar, AlertCircle, Coffee, Timer, AlertTriangle, Gift, CalendarDays, Briefcase } from 'lucide-react';
 import { formatIndianTime } from '../../../utils/indianFormatters';
+import smartCalendarService from '../../../services/smartCalendarService';
 
 const AttendanceSummary = ({ summary, period }) => {
+  const [calendarSummary, setCalendarSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch smart calendar data for working days, holidays, weekends
+  useEffect(() => {
+    const fetchCalendarSummary = async () => {
+      try {
+        setLoading(true); 
+        // Get current month/year or use period if provided
+        const now = new Date();
+        const year = period?.year || now.getFullYear();
+        const month = period?.month || (now.getMonth() + 1);
+        
+        console.log(`📅 [ATTENDANCE SUMMARY] Fetching calendar summary for ${year}-${month}`);
+        
+        const response = await smartCalendarService.getSmartMonthlyCalendar({ year, month });
+        
+        if (response.success) {
+          console.log('📅 [ATTENDANCE SUMMARY] Calendar summary loaded:', response.data.summary);
+          setCalendarSummary(response.data);
+        } else {
+          console.warn('📅 [ATTENDANCE SUMMARY] Failed to load calendar summary:', response.message);
+        }
+      } catch (error) {
+        console.error('📅 [ATTENDANCE SUMMARY] Error fetching calendar summary:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCalendarSummary();
+  }, [period]);
+
   // Default values if summary is not provided or incomplete
   const defaultSummary = {
     presentDays: 0,
     leaveDays: 0, // ✅ Backend uses leaveDays
+    absentDays: 0, // ✅ NEW: Actual absent days
+    holidayDays: 0, // ✅ NEW: Holiday days
     lateDays: 0,
     earlyDepartures: 0,
     totalWorkedMinutes: 0,
@@ -19,48 +53,139 @@ const AttendanceSummary = ({ summary, period }) => {
     incompleteDays: 0,
     totalLateMinutes: 0,
     totalEarlyExitMinutes: 0,
-    halfDays: 0
+    
   };
-
   // Safely merge summary with defaults, ensuring all numeric values are valid
   const data = {
     ...defaultSummary,
     ...summary,
     presentDays: Number(summary?.presentDays) || 0,
     leaveDays: Number(summary?.leaveDays) || 0, // ✅ Backend uses leaveDays
+    absentDays: Number(summary?.absentDays) || 0, // ✅ NEW: Actual absent days
+    holidayDays: Number(summary?.holidayDays) || 0, // ✅ NEW: Holiday days
     lateDays: Number(summary?.lateDays) || 0,
     earlyDepartures: Number(summary?.earlyDepartures) || 0,
     totalWorkedMinutes: Number(summary?.totalWorkedMinutes) || 0,
     averageWorkHours: Number(summary?.averageWorkHours) || 0,
     totalDays: Number(summary?.totalDays) || 0,
     totalBreakMinutes: Number(summary?.totalBreakMinutes) || 0,
-    overtimeHours: Number(summary?.overtimeHours) || 0,
+    overtimeHours: Number(summary?.overtimeHours) || Number(summary?.totalOvertimeHours) || 0, // Handle both field names
     incompleteDays: Number(summary?.incompleteDays) || 0,
     totalLateMinutes: Number(summary?.totalLateMinutes) || 0,
     totalEarlyExitMinutes: Number(summary?.totalEarlyExitMinutes) || 0,
-    halfDays: Number(summary?.halfDays) || 0
+    halfDays: Number(summary?.halfDays) || 0,
+    // Additional backend fields
+    totalWorkHours: Number(summary?.totalWorkHours) || 0
   };
 
-  // Calculate attendance percentage
-  const attendancePercentage = data.totalDays > 0 
-    ? Math.round((data.presentDays / data.totalDays) * 100) 
-    : 0;
+  // Calculate working days = Total days in month - Holidays - Weekends
+  // This gives us the actual expected working days
+  const getMonthDaysFromPeriod = () => {
+    let year, month;
+    
+    if (period) {
+      // Try to extract month/year from period string like "January 2024"
+      const periodMatch = period.match(/(\w+)\s+(\d{4})/);
+      if (periodMatch) {
+        const monthNames = [
+          'January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'
+        ];
+        const monthIndex = monthNames.indexOf(periodMatch[1]);
+        year = parseInt(periodMatch[2]);
+        month = monthIndex;
+        if (monthIndex !== -1) {
+          return { year, month, totalDays: new Date(year, monthIndex + 1, 0).getDate() };
+        }
+      }
+    }
+    // Fallback to current month
+    const now = new Date();
+    year = now.getFullYear();
+    month = now.getMonth();
+    return { year, month, totalDays: new Date(year, month + 1, 0).getDate() };
+  };
 
-  // Calculate punctuality percentage
-  const punctualityPercentage = data.presentDays > 0
-    ? Math.round(((data.presentDays - data.lateDays) / data.presentDays) * 100)
-    : 0;
+  const { year, month, totalDays: totalMonthDays } = getMonthDaysFromPeriod();
+  
+  // Calculate weekends in the month
+  const getWeekendsInMonth = (year, month) => {
+    let weekends = 0;
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day);
+      const dayOfWeek = date.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) { // Sunday = 0, Saturday = 6
+        weekends++;
+      }
+    }
+    return weekends;
+  };
+
+  // Get calendar summary data from smart calendar service
+  const getCalendarMetrics = () => {
+    if (calendarSummary?.summary) {
+      return {
+        totalDays: calendarSummary.summary.totalDays || totalMonthDays,
+        workingDays: calendarSummary.summary.workingDays || 0,
+        weekends: calendarSummary.summary.weekends || 0,
+        holidays: calendarSummary.summary.holidays || 0,
+        leaves: calendarSummary.summary.leaves || 0,
+        activeWorkingRule: calendarSummary.activeWorkingRule?.ruleName || 'Default'
+      };
+    }
+    
+    // Fallback to calculated values if smart calendar not available
+    const weekendsInMonth = getWeekendsInMonth(year, month);
+    const workingDays = Math.max(0, totalMonthDays - data.holidayDays - weekendsInMonth);
+    
+    return {
+      totalDays: totalMonthDays,
+      workingDays: workingDays,
+      weekends: weekendsInMonth,
+      holidays: data.holidayDays,
+      leaves: data.leaveDays,
+      activeWorkingRule: 'Calculated'
+    };
+  };
+
+  const calendarMetrics = getCalendarMetrics();
+
+  // Calculate attendance percentage based on working days (excluding holidays)
+  // const attendancePercentage = workingDays > 0 
+  //   ? Math.round((data.presentDays / workingDays) * 100) 
+  //   : 0;
+
+  // Data validation warnings
+  const dataWarnings = [];
+  if (data.lateDays > data.presentDays) {
+    dataWarnings.push(`⚠️ Data inconsistency: ${data.lateDays} late days but only ${data.presentDays} present days`);
+  }
+  if (data.presentDays + data.absentDays + data.leaveDays + data.halfDays > calendarMetrics.workingDays) {
+    dataWarnings.push(`⚠️ Data inconsistency: Total attendance records exceed working days`);
+  }
+  
+  // Log warnings for debugging
+  if (dataWarnings.length > 0) {
+    console.warn('Attendance Data Issues:', dataWarnings);
+  }
+
+  // Calculate punctuality percentage with safety checks
+  // const punctualityPercentage = data.presentDays > 0
+  //   ? Math.round(((Math.max(0, data.presentDays - data.lateDays)) / data.presentDays) * 100)
+  //   : 0;
 
   // Convert minutes to hours and minutes using Indian formatting
-  const formatWorkTime = (minutes) => {
-    return formatIndianTime(minutes);
-  };
+  // const formatWorkTime = (minutes) => {
+  //   return formatIndianTime(minutes);
+  // };
 
   // Safe number formatting
-  const safeToFixed = (value, decimals = 1) => {
-    const num = Number(value) || 0;
-    return num.toFixed(decimals);
-  };
+  // const safeToFixed = (value, decimals = 1) => {
+  //   const num = Number(value) || 0;
+  //   return num.toFixed(decimals);
+  // };
 
   // Calculate monthly metrics
   const calculateMonthlyMetrics = () => {
@@ -106,262 +231,206 @@ const AttendanceSummary = ({ summary, period }) => {
     };
   };
 
-  const monthlyMetrics = calculateMonthlyMetrics();
+  // Calculate monthly metrics for potential future use
+  calculateMonthlyMetrics();
 
-  const summaryCards = [
-    {
-      title: 'Present Days',
-      value: data.presentDays,
-      icon: Calendar,
-      color: 'text-green-600',
-      bgColor: 'bg-green-50',
-      description: `Out of ${data.totalDays} working days`
-    },
-    {
-      title: 'Leave Days',
-      value: data.leaveDays, // ✅ Backend uses leaveDays
-      icon: AlertCircle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-50',
-      description: 'Days on leave'
-    },
-    {
-      title: 'Late Arrivals',
-      value: data.lateDays,
-      icon: AlertTriangle,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-50',
-      description: `Total: ${formatWorkTime(data.totalLateMinutes)}`
-    },
-    {
-      title: 'Attendance Rate',
-      value: `${attendancePercentage}%`,
-      icon: TrendingUp,
-      color: attendancePercentage >= 90 ? 'text-green-600' : attendancePercentage >= 75 ? 'text-yellow-600' : 'text-red-600',
-      bgColor: attendancePercentage >= 90 ? 'bg-green-50' : attendancePercentage >= 75 ? 'bg-yellow-50' : 'bg-red-50',
-      description: 'Overall attendance'
-    }
-  ];
+  // const summaryCards = [
+  //   {
+  //     title: 'Present Days',
+  //     value: data.presentDays,
+  //     icon: Calendar,
+  //     color: 'text-green-600',
+  //     bgColor: 'bg-green-50',
+  //     description: `Out of ${workingDays} working days`
+  //   },
+  //   {
+  //     title: 'Leave Days',
+  //     value: data.leaveDays, // ✅ Backend uses leaveDays
+  //     icon: AlertCircle,
+  //     color: 'text-red-600',
+  //     bgColor: 'bg-red-50',
+  //     description: 'Days on leave'
+  //   },
+  //   {
+  //     title: 'Holiday Days',
+  //     value: data.holidayDays, // ✅ NEW: Holiday days
+  //     icon: Gift,
+  //     color: 'text-blue-600',
+  //     bgColor: 'bg-blue-50',
+  //     description: 'Public holidays'
+  //   },
+  //   {
+  //     title: 'Late Arrivals',
+  //     value: data.lateDays,
+  //     icon: AlertTriangle,
+  //     color: 'text-yellow-600',
+  //     bgColor: 'bg-yellow-50',
+  //     description: data.totalLateMinutes > 0 ? `Total: ${formatWorkTime(data.totalLateMinutes)}` : 'No late arrivals'
+  //   }
+  // ];
 
-  const additionalMetrics = [
-    {
-      title: 'Punctuality Rate',
-      value: `${punctualityPercentage}%`,
-      icon: Clock,
-      color: punctualityPercentage >= 90 ? 'text-green-600' : punctualityPercentage >= 75 ? 'text-yellow-600' : 'text-red-600',
-      bgColor: punctualityPercentage >= 90 ? 'bg-green-50' : punctualityPercentage >= 75 ? 'bg-yellow-50' : 'bg-red-50',
-      description: 'On-time arrivals'
-    },
-    {
-      title: 'Break Time',
-      value: formatWorkTime(data.totalBreakMinutes),
-      icon: Coffee,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-50',
-      description: 'Total break duration'
-    },
-    {
-      title: 'Overtime Hours',
-      value: `${safeToFixed(data.overtimeHours, 1)}h`,
-      icon: Timer,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-50',
-      description: 'Extra hours worked'
-    },
-    {
-      title: 'Incomplete Days',
-      value: data.incompleteDays,
-      icon: AlertTriangle,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
-      description: 'Missing clock-out'
-    }
-  ];
+  //const additionalMetrics = [
+  //   {
+  //     title: 'Attendance Rate',
+  //     value: `${attendancePercentage}%`,
+  //     icon: TrendingUp,
+  //     color: attendancePercentage >= 90 ? 'text-green-600' : attendancePercentage >= 75 ? 'text-yellow-600' : 'text-red-600',
+  //     bgColor: attendancePercentage >= 90 ? 'bg-green-50' : attendancePercentage >= 75 ? 'bg-yellow-50' : 'bg-red-50',
+  //     description: 'Overall attendance'
+  //   },
+  //   {
+  //     title: 'Punctuality Rate',
+  //     value: `${punctualityPercentage}%`,
+  //     icon: Clock,
+  //     color: punctualityPercentage >= 90 ? 'text-green-600' : punctualityPercentage >= 75 ? 'text-yellow-600' : 'text-red-600',
+  //     bgColor: punctualityPercentage >= 90 ? 'bg-green-50' : punctualityPercentage >= 75 ? 'bg-yellow-50' : 'bg-red-50',
+  //     description: 'On-time arrivals'
+  //   },
+  //   {
+  //     title: 'Break Time',
+  //     value: formatWorkTime(data.totalBreakMinutes),
+  //     icon: Coffee,
+  //     color: 'text-blue-600',
+  //     bgColor: 'bg-blue-50',
+  //     description: 'Total break duration'
+  //   },
+  //   {
+  //     title: 'Overtime Hours',
+  //     value: `${safeToFixed(data.overtimeHours, 1)}h`,
+  //     icon: Timer,
+  //     color: 'text-purple-600',
+  //     bgColor: 'bg-purple-50',
+  //     description: 'Extra hours worked'
+  //   }
+  // ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Attendance Summary</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Attendance Summary</h2>
           {period && (
-            <p className="text-gray-600 mt-1">Period: {period}</p>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">Period: {period}</p>
           )}
         </div>
       </div>
 
-      {/* Data Error Warning */}
-      {monthlyMetrics.hasDataError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-          <div>
-            <h3 className="font-semibold text-red-900">Data Error Detected</h3>
-            <p className="text-sm text-red-700 mt-1">
-              The attendance data shows impossible work hours (more than 24 hours per day). 
-              This indicates corrupted data in the database. Please contact your administrator 
-              to review and correct the attendance records.
-            </p>
-            <p className="text-xs text-red-600 mt-2">
-              Note: Values have been capped to realistic limits for display purposes.
-            </p>
+      {/* Enhanced Calendar Summary - Smart Calendar Data */}
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        {/* Total Days */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center hover:shadow-md transition-shadow">
+          <div className="flex flex-col items-center">
+            <div className="p-1.5 sm:p-2 rounded-full bg-gray-50 mb-2">
+              <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5 text-gray-600" />
+            </div>
+            <div className="text-xs text-gray-500 mb-1 font-medium">Total Days</div>
+            <div className="text-lg sm:text-2xl font-bold text-gray-600">{calendarMetrics.totalDays}</div>
+            <div className="text-xs text-gray-400 mt-1">in month</div>
           </div>
         </div>
-      )}
 
-      {/* Primary Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {summaryCards.map((card, index) => {
-          const Icon = card.icon;
-          return (
-            <Card key={index} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
-                      {card.title}
-                    </p>
-                    <p className="text-xl font-bold text-gray-900">
-                      {card.value}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {card.description}
-                    </p>
-                  </div>
-                  <div className={`p-2 rounded-full ${card.bgColor}`}>
-                    <Icon className={`w-5 h-5 ${card.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {/* Working Days - From Smart Calendar */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center hover:shadow-md transition-shadow">
+          <div className="flex flex-col items-center">
+            <div className="p-1.5 sm:p-2 rounded-full bg-blue-50 mb-2">
+              <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+            </div>
+            <div className="text-xs text-gray-500 mb-1 font-medium">Working Days</div>
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">{calendarMetrics.workingDays}</div>
+            <div className="text-xs text-gray-400 mt-1 truncate max-w-full">{calendarMetrics.activeWorkingRule}</div>
+          </div>
+        </div>
+
+        {/* Weekends - From Smart Calendar */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center hover:shadow-md transition-shadow">
+          <div className="flex flex-col items-center">
+            <div className="p-1.5 sm:p-2 rounded-full bg-indigo-50 mb-2">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600" />
+            </div>
+            <div className="text-xs text-gray-500 mb-1 font-medium">Weekends</div>
+            <div className="text-lg sm:text-2xl font-bold text-indigo-600">{calendarMetrics.weekends}</div>
+            <div className="text-xs text-gray-400 mt-1">rest days</div>
+          </div>
+        </div>
+
+        {/* Holidays - From Smart Calendar */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center hover:shadow-md transition-shadow">
+          <div className="flex flex-col items-center">
+            <div className="p-1.5 sm:p-2 rounded-full bg-purple-50 mb-2">
+              <Gift className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+            </div>
+            <div className="text-xs text-gray-500 mb-1 font-medium">Holidays</div>
+            <div className="text-lg sm:text-2xl font-bold text-purple-600">{calendarMetrics.holidays}</div>
+            <div className="text-xs text-gray-400 mt-1">public holidays</div>
+          </div>
+        </div>
+
+        {/* Company Leaves - From Smart Calendar */}
+        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center hover:shadow-md transition-shadow">
+          <div className="flex flex-col items-center">
+            <div className="p-1.5 sm:p-2 rounded-full bg-amber-50 mb-2">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+            </div>
+            <div className="text-xs text-gray-500 mb-1 font-medium">Leave</div>
+            <div className="text-lg sm:text-2xl font-bold text-amber-600">{calendarMetrics.leaves}</div>
+            <div className="text-xs text-gray-400 mt-1">On leaves</div>
+          </div>
+        </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-5 w-5 sm:h-6 sm:w-6 border-b-2 border-blue-600 mb-2"></div>
+              <div className="text-xs text-gray-500">Loading...</div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Additional Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {additionalMetrics.map((metric, index) => {
-          const Icon = metric.icon;
-          return (
-            <Card key={index} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-gray-600 mb-1">
-                      {metric.title}
-                    </p>
-                    <p className="text-lg font-bold text-gray-900">
-                      {metric.value}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {metric.description}
-                    </p>
-                  </div>
-                  <div className={`p-2 rounded-full ${metric.bgColor}`}>
-                    <Icon className={`w-5 h-5 ${metric.color}`} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      {/* Detailed Analysis */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Work Hours Analysis - {period || 'This Month'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Total Hours Worked:</span>
-                <span className="font-semibold">
-                  {safeToFixed(monthlyMetrics.totalHoursWorked, 1)}h
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Expected Hours (Month):</span>
-                <span className="font-semibold text-gray-500">
-                  {safeToFixed(monthlyMetrics.expectedHours, 1)}h
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Work Completion:</span>
-                <span className={`font-semibold ${monthlyMetrics.workHoursPercentage >= 100 ? 'text-green-600' : monthlyMetrics.workHoursPercentage >= 90 ? 'text-blue-600' : 'text-yellow-600'}`}>
-                  {safeToFixed(monthlyMetrics.workHoursPercentage, 1)}%
-                </span>
-              </div>
-              <div className="h-px bg-gray-200 my-2"></div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Avg Hours/Day:</span>
-                <span className="font-semibold text-blue-600">
-                  {safeToFixed(monthlyMetrics.avgHoursPerDay, 1)}h
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Working Days:</span>
-                <span className="font-semibold">
-                  {monthlyMetrics.actualWorkDays} / {monthlyMetrics.workingDaysInMonth}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Overtime Hours:</span>
-                <span className="font-semibold text-purple-600">
-                  {safeToFixed(data.overtimeHours, 1)}h
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Break Time:</span>
-                <span className="font-semibold text-orange-600">
-                  {formatWorkTime(data.totalBreakMinutes)}
-                </span>
-              </div>
+      {/* Attendance Summary Cards */}
+      <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center hover:shadow-md transition-shadow">
+          <div className="flex flex-col items-center">
+            <div className="p-1.5 sm:p-2 rounded-full bg-green-50 mb-2">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
             </div>
-          </CardContent>
-        </Card>
+            <div className="text-xs text-gray-500 mb-1 font-medium">Days Present</div>
+            <div className="text-lg sm:text-2xl font-bold text-green-600">{data.presentDays}</div>
+            <div className="text-xs text-gray-400 mt-1">out of {calendarMetrics.workingDays} working</div>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Award className="w-5 h-5" />
-              Performance Indicators
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Punctuality Rate:</span>
-                <span className={`font-semibold ${punctualityPercentage >= 90 ? 'text-green-600' : punctualityPercentage >= 75 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {punctualityPercentage}%
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Early Departures:</span>
-                <span className="font-semibold text-yellow-600">
-                  {data.earlyDepartures} ({formatWorkTime(data.totalEarlyExitMinutes)})
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Incomplete Days:</span>
-                <span className="font-semibold text-orange-600">
-                  {data.incompleteDays}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-600">Consistency Score:</span>
-                <span className={`font-semibold ${attendancePercentage >= 95 ? 'text-green-600' : attendancePercentage >= 85 ? 'text-blue-600' : attendancePercentage >= 75 ? 'text-yellow-600' : 'text-red-600'}`}>
-                  {attendancePercentage >= 95 ? 'Excellent' : 
-                   attendancePercentage >= 85 ? 'Good' : 
-                   attendancePercentage >= 75 ? 'Average' : 'Needs Improvement'}
-                </span>
-              </div>
+        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center hover:shadow-md transition-shadow">
+          <div className="flex flex-col items-center">
+            <div className="p-1.5 sm:p-2 rounded-full bg-yellow-50 mb-2">
+              <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-600" />
             </div>
-          </CardContent>
-        </Card>
+            <div className="text-xs text-gray-500 mb-1 font-medium">Late</div>
+            <div className="text-lg sm:text-2xl font-bold text-yellow-600">{data.lateDays}</div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center hover:shadow-md transition-shadow">
+          <div className="flex flex-col items-center">
+            <div className="p-1.5 sm:p-2 rounded-full bg-orange-50 mb-2">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
+            </div>
+            <div className="text-xs text-gray-500 mb-1 font-medium">Half Day</div>
+            <div className="text-lg sm:text-2xl font-bold text-orange-600">{data.halfDays}</div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4 text-center hover:shadow-md transition-shadow">
+          <div className="flex flex-col items-center">
+            <div className="p-1.5 sm:p-2 rounded-full bg-red-50 mb-2">
+              <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+            </div>
+            <div className="text-xs text-gray-500 mb-1 font-medium">Absent</div>
+            <div className="text-lg sm:text-2xl font-bold text-red-600">{data.absentDays}</div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -371,6 +440,8 @@ AttendanceSummary.propTypes = {
   summary: PropTypes.shape({
     presentDays: PropTypes.number,
     leaveDays: PropTypes.number, // ✅ Backend uses leaveDays
+    absentDays: PropTypes.number, // ✅ NEW: Actual absent days
+    holidayDays: PropTypes.number, // ✅ NEW: Holiday days
     lateDays: PropTypes.number,
     earlyDepartures: PropTypes.number,
     totalWorkedMinutes: PropTypes.number,

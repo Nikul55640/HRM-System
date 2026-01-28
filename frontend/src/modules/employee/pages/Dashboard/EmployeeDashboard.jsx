@@ -8,7 +8,9 @@ import { DetailModal, EmptyState } from "../../../../shared/components";
 import { useNotifications } from "../../../../services/useEmployeeSelfService";
 import { usePermissions } from "../../../../core/hooks";
 import { MODULES } from "../../../../core/utils/rolePermissions";
-import { format } from "date-fns";
+// Import only specific date functions instead of entire library
+import { format, isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, subWeeks, subMonths } from "date-fns";
+// Import only specific icons instead of entire library
 import {
   Clock,
   MapPin,
@@ -36,7 +38,7 @@ import {
 } from "lucide-react";
 import useAuthStore from "../../../../stores/useAuthStore";
 import useAttendanceSessionStore from "../../../../stores/useAttendanceSessionStore";
-import { isSameDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, addDays, addWeeks, addMonths, subWeeks, subMonths } from "date-fns";
+// Remove duplicate date-fns import
 
 // Custom Hooks
 import { useDashboardData } from "./hooks/useDashboardData";

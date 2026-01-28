@@ -17,6 +17,7 @@ const WorkingRuleForm = ({ rule = null, onSave, onCancel }) => {
     weekendDays: [0, 6], // Default Sun-Sat
     effectiveFrom: '',
     effectiveTo: '',
+    isActive: true, // Default to active
     isDefault: false,
     description: ''
   });
@@ -30,6 +31,7 @@ const WorkingRuleForm = ({ rule = null, onSave, onCancel }) => {
         weekendDays: rule.weekendDays || [0, 6],
         effectiveFrom: rule.effectiveFrom || '',
         effectiveTo: rule.effectiveTo || '',
+        isActive: rule.isActive !== undefined ? rule.isActive : true,
         isDefault: rule.isDefault || false,
         description: rule.description || ''
       });
@@ -208,6 +210,18 @@ const WorkingRuleForm = ({ rule = null, onSave, onCancel }) => {
                 className="w-full"
               />
             </div>
+          </div>
+
+          {/* Active Rule */}
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="isActive"
+              checked={formData.isActive}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isActive: checked }))}
+            />
+            <Label htmlFor="isActive" className="text-sm">
+              Set as active working rule
+            </Label>
           </div>
 
           {/* Default Rule */}

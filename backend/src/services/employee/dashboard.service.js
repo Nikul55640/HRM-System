@@ -145,8 +145,9 @@ const formatActivityDescription = (log) => {
 };
 
 const getRecentActivity = async (user, options = {}) => {
+  const { limit = 20, offset = 0 } = options;
+  
   try {
-    const { limit = 20, offset = 0 } = options;
 
     // Find employee by userId if needed
     let employeeId = null;

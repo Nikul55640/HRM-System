@@ -120,6 +120,8 @@ export const getStatusDisplay = (status, isLate, lateMinutes) => {
       return 'Present';
     case 'leave': // ✅ FIXED: Use 'leave' instead of 'absent'
       return 'On Leave';
+    case 'absent': // ✅ ADDED: Absent status
+      return 'Absent';
     case 'incomplete':
       return 'Incomplete - Missing Clock-out';
     case 'half_day':
@@ -141,10 +143,11 @@ export const getStatusColor = (status, isLate) => {
   const statusColors = {
     present: 'bg-green-100 text-green-800',
     leave: 'bg-blue-100 text-blue-800', // ✅ FIXED: Use 'leave' instead of 'absent'
+    absent: 'bg-red-100 text-red-800', // ✅ ADDED: Absent status
     late: 'bg-yellow-100 text-yellow-800',
     incomplete: 'bg-orange-100 text-orange-800',
     half_day: 'bg-purple-100 text-purple-800',
-    holiday: 'bg-purple-100 text-purple-800',
+    holiday: 'bg-blue-100 text-blue-800', // ✅ UPDATED: Holiday with blue color
     pending_correction: 'bg-gray-100 text-gray-800'
   };
   

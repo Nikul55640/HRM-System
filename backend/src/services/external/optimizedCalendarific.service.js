@@ -523,6 +523,259 @@ class OptimizedCalendarificService {
     });
   }
 
+  /**
+   * Test API connection
+   */
+  async testConnection() {
+    try {
+      if (!this.apiKey) {
+        return {
+          success: false,
+          message: 'Calendarific API key is not configured'
+        };
+      }
+
+      // Test with a simple API call
+      const result = await this.getHolidays('IN', new Date().getFullYear(), 'national');
+      
+      return {
+        success: true,
+        message: 'Calendarific API connection successful',
+        holidayCount: result.length
+      };
+    } catch (error) {
+      logger.error('Calendarific connection test failed:', error);
+      return {
+        success: false,
+        message: `Connection failed: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * Get supported countries (mock implementation)
+   */
+  async getSupportedCountries() {
+    // This would typically come from Calendarific API
+    // For now, return common countries
+    return [
+      { code: 'IN', name: 'India' },
+      { code: 'US', name: 'United States' },
+      { code: 'GB', name: 'United Kingdom' },
+      { code: 'CA', name: 'Canada' },
+      { code: 'AU', name: 'Australia' }
+    ];
+  }
+
+  /**
+   * Sync holidays to database
+   */
+  async syncHolidays(country, year, options = {}) {
+    try {
+      const { overwriteExisting = false, dryRun = false, holidayTypes = 'national,religious' } = options;
+      
+      // Get holidays from API
+      const types = holidayTypes.split(',').map(t => t.trim());
+      const allHolidays = [];
+      
+      for (const type of types) {
+        const holidays = await this.getHolidays(country, year, type);
+        allHolidays.push(...holidays);
+      }
+
+      // Remove duplicates
+      const uniqueHolidays = this.removeDuplicateHolidays(allHolidays);
+
+      if (dryRun) {
+        return {
+          success: true,
+          message: 'Dry run completed',
+          data: {
+            holidaysFound: uniqueHolidays.length,
+            holidays: uniqueHolidays
+          }
+        };
+      }
+
+      // Sync to database
+      let syncedCount = 0;
+      let skippedCount = 0;
+
+      for (const holiday of uniqueHolidays) {
+        try {
+          const existingHoliday = await Holiday.findOne({
+            where: {
+              name: holiday.name,
+              date: holiday.date
+            }
+          });
+
+          if (existingHoliday && !overwriteExisting) {
+            skippedCount++;
+            continue;
+          }
+
+          if (existingHoliday && overwriteExisting) {
+            await existingHoliday.update({
+              description: holiday.description,
+              type: holiday.type || 'public',
+              isActive: true
+            });
+          } else {
+            await Holiday.create({
+              name: holiday.name,
+              date: holiday.date,
+              description: holiday.description,
+              type: holiday.type || 'public',
+              isActive: true
+            });
+          }
+          
+          syncedCount++;
+        } catch (error) {
+          logger.error(`Error syncing holiday ${holiday.name}:`, error);
+        }
+      }
+
+      return {
+        success: true,
+        message: `Synced ${syncedCount} holidays, skipped ${skippedCount}`,
+        data: {
+          synced: syncedCount,
+          skipped: skippedCount,
+          total: uniqueHolidays.length
+        }
+      };
+
+    } catch (error) {
+      logger.error('Error syncing holidays:', error);
+      return {
+        success: false,
+        message: `Sync failed: ${error.message}`
+      };
+    }
+  }
+
+  /**
+   * Preview holidays with optimized API usage
+   */
+  async previewHolidaysOptimized(country, year, filters = {}) {
+    return this.previewHolidays(country, year, filters);
+  }
+
+  /**
+   * Get available filters
+   */
+  getAvailableFilters() {
+    return {
+      holidayTypes: ['national', 'religious', 'local', 'observance'],
+      categories: ['public', 'bank', 'school', 'optional'],
+      importanceLevels: ['high', 'medium', 'low'],
+      regions: ['all', 'north', 'south', 'east', 'west']
+    };
+  }
+
+  /**
+   * Get company policy templates
+   */
+  getCompanyPolicyTemplates() {
+    return {
+      TECH_STARTUP: {
+        name: 'Tech Startup',
+        description: 'Minimal holidays, flexible work culture',
+        maxHolidays: 12,
+        includeTypes: ['national'],
+        excludeObservances: true
+      },
+      TRADITIONAL_CORPORATE: {
+        name: 'Traditional Corporate',
+        description: 'Standard corporate holiday calendar',
+        maxHolidays: 20,
+        includeTypes: ['national', 'religious'],
+        excludeObservances: false
+      },
+      GOVERNMENT_OFFICE: {
+        name: 'Government Office',
+        description: 'All official government holidays',
+        maxHolidays: 30,
+        includeTypes: ['national', 'religious', 'local'],
+        excludeObservances: false
+      },
+      MANUFACTURING: {
+        name: 'Manufacturing',
+        description: 'Essential holidays only',
+        maxHolidays: 15,
+        includeTypes: ['national'],
+        excludeObservances: true
+      }
+    };
+  }
+
+  /**
+   * Sync filtered holidays
+   */
+  async syncFilteredHolidays(country, year, selectedHolidays, options = {}) {
+    try {
+      const { overwriteExisting = false } = options;
+      
+      let syncedCount = 0;
+      let skippedCount = 0;
+
+      for (const holiday of selectedHolidays) {
+        try {
+          const existingHoliday = await Holiday.findOne({
+            where: {
+              name: holiday.name,
+              date: holiday.date
+            }
+          });
+
+          if (existingHoliday && !overwriteExisting) {
+            skippedCount++;
+            continue;
+          }
+
+          if (existingHoliday && overwriteExisting) {
+            await existingHoliday.update({
+              description: holiday.description,
+              type: holiday.type || 'public',
+              isActive: true
+            });
+          } else {
+            await Holiday.create({
+              name: holiday.name,
+              date: holiday.date,
+              description: holiday.description,
+              type: holiday.type || 'public',
+              isActive: true
+            });
+          }
+          
+          syncedCount++;
+        } catch (error) {
+          logger.error(`Error syncing holiday ${holiday.name}:`, error);
+        }
+      }
+
+      return {
+        success: true,
+        message: `Synced ${syncedCount} holidays, skipped ${skippedCount}`,
+        data: {
+          synced: syncedCount,
+          skipped: skippedCount,
+          total: selectedHolidays.length
+        }
+      };
+
+    } catch (error) {
+      logger.error('Error syncing filtered holidays:', error);
+      return {
+        success: false,
+        message: `Sync failed: ${error.message}`
+      };
+    }
+  }
+
   // ... (include all other helper methods)
 }
 
