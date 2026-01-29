@@ -1,6 +1,7 @@
 import { Notification, User, Employee } from '../models/index.js';
 import sseManager from '../utils/sseManager.js';
-import resendEmailService from './resendEmailService.js';
+import { sendEmail } from './email/email.service.js';
+import { render } from '@react-email/render';
 import logger from '../utils/logger.js';
 import { Op } from 'sequelize';
 
@@ -330,18 +331,38 @@ class NotificationService {
 
     const employee = user.employee;
 
+    // Import email templates dynamically
+    const { AttendanceAbsent } = await import('../emails/templates/AttendanceAbsent.js');
+    const { CorrectionRequired } = await import('../emails/templates/CorrectionRequired.js');
+
     if (metadata?.action === 'attendance_auto_absent') {
-      await resendEmailService.sendAttendanceAbsentEmail(
-        employee,
-        emailData.date || metadata.date,
-        emailData.reason || metadata.reason || 'No clock-in recorded'
-      );
+      const html = render(AttendanceAbsent({
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        date: new Date(emailData.date || metadata.date).toLocaleDateString(),
+        reason: emailData.reason || metadata.reason || 'No clock-in recorded',
+        actionUrl: `${process.env.FRONTEND_URL}/attendance/corrections`
+      }));
+
+      await sendEmail({
+        to: user.email,
+        subject: `Attendance Marked as Absent - ${emailData.date || metadata.date}`,
+        html,
+        text: `Your attendance for ${emailData.date || metadata.date} was marked as absent. Reason: ${emailData.reason || metadata.reason || 'No clock-in recorded'}`
+      });
     } else if (metadata?.action === 'attendance_correction_required') {
-      await resendEmailService.sendCorrectionRequiredEmail(
-        employee,
-        emailData.date || metadata.date,
-        emailData.issue || metadata.reason || 'Missing clock-out'
-      );
+      const html = render(CorrectionRequired({
+        employeeName: `${employee.firstName} ${employee.lastName}`,
+        date: new Date(emailData.date || metadata.date).toLocaleDateString(),
+        issue: emailData.issue || metadata.reason || 'Missing clock-out',
+        actionUrl: `${process.env.FRONTEND_URL}/attendance/corrections`
+      }));
+
+      await sendEmail({
+        to: user.email,
+        subject: `Attendance Correction Required - ${emailData.date || metadata.date}`,
+        html,
+        text: `Your attendance for ${emailData.date || metadata.date} requires correction. Issue: ${emailData.issue || metadata.reason || 'Missing clock-out'}`
+      });
     }
   }
 
@@ -365,18 +386,29 @@ class NotificationService {
     
     if (metadata?.status && ['approved', 'rejected'].includes(metadata.status)) {
       if (metadata.status === 'approved') {
-        const leaveRequest = {
-          leaveType: emailData.leaveType || 'Leave',
-          startDate: emailData.startDate,
-          endDate: emailData.endDate,
-          numberOfDays: emailData.duration || 1
-        };
+        // Import email template dynamically
+        const { LeaveApproved } = await import('../emails/templates/LeaveApproved.js');
         
-        await resendEmailService.sendLeaveApprovedEmail(
-          employee,
-          leaveRequest,
-          emailData.approverName || 'Manager'
-        );
+        const startDate = new Date(emailData.startDate).toLocaleDateString();
+        const endDate = new Date(emailData.endDate).toLocaleDateString();
+        const days = emailData.duration || 1;
+
+        const html = render(LeaveApproved({
+          employeeName: `${employee.firstName} ${employee.lastName}`,
+          leaveType: emailData.leaveType || 'Leave',
+          startDate,
+          endDate,
+          days,
+          approverName: emailData.approverName || 'Manager',
+          actionUrl: `${process.env.FRONTEND_URL}/leave/my-leaves`
+        }));
+
+        await sendEmail({
+          to: user.email,
+          subject: `Leave Request Approved - ${startDate} to ${endDate}`,
+          html,
+          text: `Your ${emailData.leaveType || 'Leave'} request from ${startDate} to ${endDate} has been approved.`
+        });
       }
       // Note: We don't have a leave rejected template yet
     }

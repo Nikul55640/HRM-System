@@ -18,9 +18,17 @@ import { LeaveApproved } from '../emails/templates/LeaveApproved.js';
 
 class ResendEmailService {
   constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
-    this.fromEmail = process.env.RESEND_FROM_EMAIL || 'noreply@hrm.local';
+    this.resend = null;
+    this.fromEmail = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || 'onboarding@resend.dev';
     this.baseUrl = process.env.APP_BASE_URL || 'http://localhost:5174';
+  }
+
+  // Initialize Resend only when needed
+  _initializeResend() {
+    if (!this.resend && process.env.RESEND_API_KEY) {
+      this.resend = new Resend(process.env.RESEND_API_KEY);
+    }
+    return this.resend;
   }
 
   /**
@@ -42,11 +50,17 @@ class ResendEmailService {
         throw new Error('Email template is required');
       }
 
+      // Initialize Resend
+      const resend = this._initializeResend();
+      if (!resend) {
+        throw new Error('Resend API key not configured');
+      }
+
       // Render React component to HTML
       const html = render(template);
 
       // Send via Resend
-      const response = await this.resend.emails.send({
+      const response = await resend.emails.send({
         from: this.fromEmail,
         to,
         subject,

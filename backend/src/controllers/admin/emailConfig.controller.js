@@ -1,4 +1,5 @@
-import resendEmailService from '../../services/resendEmailService.js';
+import { sendEmail, verifyEmailConfig, getEmailProviderInfo } from '../../services/email/email.service.js';
+import { render } from '@react-email/render';
 import logger from '../../utils/logger.js';
 import { ROLES } from '../../config/rolePermissions.js';
 
@@ -41,33 +42,62 @@ export const testEmail = async (req, res) => {
     // Send different types of test emails
     switch (type) {
       case 'attendance_absent':
-        result = await resendEmailService.sendAttendanceAbsentEmail(
-          testEmployee,
-          data.date || new Date().toISOString().split('T')[0],
-          data.reason || 'Test email - No clock-in recorded'
-        );
+        // Import and render template
+        const { AttendanceAbsent } = await import('../../emails/templates/AttendanceAbsent.js');
+        const absentHtml = render(AttendanceAbsent({
+          employeeName: data.employeeName || 'Test Employee',
+          date: new Date(data.date || new Date().toISOString().split('T')[0]).toLocaleDateString(),
+          reason: data.reason || 'Test email - No clock-in recorded',
+          actionUrl: `${process.env.FRONTEND_URL}/attendance/corrections`
+        }));
+        
+        result = await sendEmail({
+          to: email,
+          subject: `Attendance Marked as Absent - ${data.date || new Date().toISOString().split('T')[0]}`,
+          html: absentHtml,
+          text: `Test email: Your attendance was marked as absent. Reason: ${data.reason || 'No clock-in recorded'}`
+        });
         break;
       
       case 'correction_required':
-        result = await resendEmailService.sendCorrectionRequiredEmail(
-          testEmployee,
-          data.date || new Date().toISOString().split('T')[0],
-          data.issue || 'Test email - Missing clock-out'
-        );
+        const { CorrectionRequired } = await import('../../emails/templates/CorrectionRequired.js');
+        const correctionHtml = render(CorrectionRequired({
+          employeeName: data.employeeName || 'Test Employee',
+          date: new Date(data.date || new Date().toISOString().split('T')[0]).toLocaleDateString(),
+          issue: data.issue || 'Test email - Missing clock-out',
+          actionUrl: `${process.env.FRONTEND_URL}/attendance/corrections`
+        }));
+        
+        result = await sendEmail({
+          to: email,
+          subject: `Attendance Correction Required - ${data.date || new Date().toISOString().split('T')[0]}`,
+          html: correctionHtml,
+          text: `Test email: Your attendance requires correction. Issue: ${data.issue || 'Missing clock-out'}`
+        });
         break;
       
       case 'leave_approved':
-        const testLeaveRequest = {
+        const { LeaveApproved } = await import('../../emails/templates/LeaveApproved.js');
+        const startDate = new Date(data.startDate || new Date().toISOString().split('T')[0]).toLocaleDateString();
+        const endDate = new Date(data.endDate || new Date().toISOString().split('T')[0]).toLocaleDateString();
+        const days = data.days || 1;
+        
+        const leaveHtml = render(LeaveApproved({
+          employeeName: data.employeeName || 'Test Employee',
           leaveType: data.leaveType || 'Annual Leave',
-          startDate: data.startDate || new Date().toISOString().split('T')[0],
-          endDate: data.endDate || new Date().toISOString().split('T')[0],
-          numberOfDays: data.days || 1
-        };
-        result = await resendEmailService.sendLeaveApprovedEmail(
-          testEmployee,
-          testLeaveRequest,
-          data.approverName || 'Test Manager'
-        );
+          startDate,
+          endDate,
+          days,
+          approverName: data.approverName || 'Test Manager',
+          actionUrl: `${process.env.FRONTEND_URL}/leave/my-leaves`
+        }));
+        
+        result = await sendEmail({
+          to: email,
+          subject: `Leave Request Approved - ${startDate} to ${endDate}`,
+          html: leaveHtml,
+          text: `Test email: Your ${data.leaveType || 'Annual Leave'} request has been approved.`
+        });
         break;
       
       default:
@@ -82,7 +112,11 @@ export const testEmail = async (req, res) => {
       return res.json({
         success: true,
         message: 'Test email sent successfully',
-        data: { emailId: result.emailId, type }
+        data: { 
+          emailId: result.messageId || result.emailId, 
+          type,
+          provider: result.provider 
+        }
       });
     } else {
       logger.error(`Test email failed for ${email}:`, result.error);
@@ -115,16 +149,18 @@ export const getEmailStatus = async (req, res) => {
       });
     }
 
-    const configStatus = await resendEmailService.verifyConfiguration();
+    const configStatus = await verifyEmailConfig();
+    const providerInfo = getEmailProviderInfo();
 
     return res.json({
       success: true,
       data: {
         isConfigured: configStatus.valid,
-        service: 'Resend',
-        fromEmail: process.env.RESEND_FROM_EMAIL || 'Not configured',
-        baseUrl: process.env.APP_BASE_URL || 'Not configured',
-        apiKeyConfigured: !!process.env.RESEND_API_KEY,
+        service: providerInfo.provider,
+        provider: providerInfo.provider,
+        fromEmail: providerInfo.fromEmail,
+        baseUrl: providerInfo.baseUrl,
+        configured: providerInfo.configured,
         lastChecked: new Date().toISOString(),
         ...configStatus
       }
