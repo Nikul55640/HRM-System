@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import TodayView from './views/TodayView';
 import WeekView from './views/WeekView';
 import MonthView from './views/MonthView';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
+import { PlaneTakeoff, Users, Calendar as CalendarIcon, ChevronRight } from 'lucide-react';
 
 const EmployeeCalendarView = ({
   viewMode,

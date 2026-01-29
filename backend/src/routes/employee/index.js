@@ -1,7 +1,7 @@
 import express from 'express';
 
 // Import all employee routes (8 core modules only)
-import dashboardRoutes from './dashboard.routes.js';
+import dashboardRoutes from './employeeDashboard.routes.js';
 import profileRoutes from './profile.routes.js';
 import emergencyContactsRoutes from './emergencyContacts.routes.js';
 import bankDetailsRoutes from './bankDetails.routes.js';

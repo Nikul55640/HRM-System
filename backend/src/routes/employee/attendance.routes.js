@@ -1,6 +1,6 @@
 import express from "express";
 import { authenticate } from "../../middleware/authenticate.js";
-import attendanceController from "../../controllers/employee/attendance.controller.js";
+import attendanceController from "../../controllers/employee/attendanceSelf.controller.js";
 
 const router = express.Router();
 

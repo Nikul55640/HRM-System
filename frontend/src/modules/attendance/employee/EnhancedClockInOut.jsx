@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import LocationSelectionModal from './LocationSelectionModal';
 import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore';
 import { formatIndianTime, formatIndianTimeString } from '../../../utils/indianFormatters';
+import { formatDuration } from '../../../utils/attendanceCalculations';
 import attendanceService from '../../../services/attendanceService';
 
 const EnhancedClockInOut = () => {
@@ -103,7 +104,7 @@ const EnhancedClockInOut = () => {
         if (clockInSummary) {
           if (clockInSummary.isLate) {
             toast.warning(
-              `Late arrival recorded! Clocked in at ${clockInSummary.clockInTime} - Late by ${clockInSummary.lateMinutes} minutes. Shift started at ${clockInSummary.shiftStartTime}`,
+              `Late arrival recorded! Clocked in at ${clockInSummary.clockInTime} - Late by ${formatDuration(clockInSummary.lateMinutes)}. Shift started at ${clockInSummary.shiftStartTime}`,
               { autoClose: 5000 }
             );
           } else {
@@ -246,10 +247,6 @@ const EnhancedClockInOut = () => {
     });
   };
 
-  const formatDuration = (minutes) => {
-    return formatIndianTime(minutes);
-  };
-
   const calculateWorkedMinutes = (checkInTime) => {
     if (!checkInTime) return 0;
     const now = new Date();
@@ -359,7 +356,7 @@ const EnhancedClockInOut = () => {
                     {todayRecord?.isLate && (
                       <span className="px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 bg-red-100 text-red-700">
                         <AlarmClockMinus className="h-3 w-3" />
-                        Late ({todayRecord.lateMinutes}m)
+                        Late ({formatDuration(todayRecord.lateMinutes)})
                       </span>
                     )}
                   </div>
@@ -558,14 +555,14 @@ const EnhancedClockInOut = () => {
               {todayRecord?.isLate && (
                 <div className="text-sm text-orange-600 bg-orange-50 border border-orange-200 rounded p-2 text-center flex items-center justify-center gap-1">
                   <AlertTriangle className="w-4 h-4" />
-                  Late arrival recorded ({todayRecord.lateMinutes} minutes late)
+                  Late arrival recorded ({formatDuration(todayRecord.lateMinutes)} late)
                 </div>
               )}
 
               {todayRecord?.isEarlyDeparture && (
                 <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded p-2 text-center flex items-center justify-center gap-1">
                   <AlertTriangle className="w-4 h-4" />
-                  Early departure recorded ({todayRecord.earlyExitMinutes} minutes early)
+                  Early departure recorded ({formatDuration(todayRecord.earlyExitMinutes)} early)
                 </div>
               )}
 

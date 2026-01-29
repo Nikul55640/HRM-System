@@ -1,7 +1,7 @@
 import express from "express";
 import { authenticate } from "../../middleware/authenticate.js";
 
-import leaveController from "../../controllers/employee/leave.controller.js";
+import leaveController from "../../controllers/employee/leaveOverview.controller.js";
 import leaveRequestController from "../../controllers/employee/leaveRequest.controller.js";
 
 const router = express.Router();

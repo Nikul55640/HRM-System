@@ -1,11 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../shared/ui/dialog';
 import { Badge } from '../../../shared/ui/badge';
 import { Button } from '../../../shared/ui/button';
-import { useAttendance } from '../../../services/useEmployeeSelfService';
-import employeeCalendarService from '../../../services/employeeCalendarService';
-import api from '../../../services/api';
 import { 
   Calendar, 
   Clock, 
@@ -18,117 +15,31 @@ import {
   Star,
   Info,
   Building,
-  Zap
+  Zap,
+  PlaneTakeoff,
 } from 'lucide-react';
 
-
-const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange }) => {
+// 🔧 FIX: Pure presentational component - receives all data as props
+const MonthlyAttendanceCalendar = ({ 
+  attendanceRecords = [], 
+  calendarData = {}, 
+  selectedMonth, 
+  selectedYear, 
+  loading = false,
+  error = null, // 🔧 FIX: Add error prop
+  onMonthChange 
+}) => {
+  // 🔧 FIX: Pure presentational component - no API calls, no internal state for data
   const [selectedDate, setSelectedDate] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(selectedMonth || new Date().getMonth() + 1);
-  const [currentYear, setCurrentYear] = useState(selectedYear || new Date().getFullYear());
-  const [monthlyAttendanceData, setMonthlyAttendanceData] = useState([]);
-  const [calendarData, setCalendarData] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
 
-  // Use the attendance hook for summary data
-  const {
-    attendanceSummary,
-    getAttendanceSummary,
-  } = useAttendance();
+  // 🔧 FIX: Use props directly - backend now returns clean array format
+  const currentMonth = selectedMonth;
+  const currentYear = selectedYear;
+  const monthlyAttendanceData = Array.isArray(attendanceRecords) ? attendanceRecords : [];
 
-  useEffect(() => {
-    if (selectedMonth && selectedYear) {
-      setCurrentMonth(selectedMonth);
-      setCurrentYear(selectedYear);
-    }
-  }, [selectedMonth, selectedYear]);
-
-  // Fetch attendance data when month/year changes
-  useEffect(() => {
-    const fetchMonthlyData = async () => {
-      setLoading(true);
-      setError(null);
-  
-      try {
-        console.log(`📅 [MONTHLY CALENDAR] Fetching data for ${currentYear}-${currentMonth}`);
-        
-        // Fetch monthly attendance records using the same pattern as SessionHistoryView
-        const attendanceResponse = await api.get(`/employee/attendance`, {
-          params: { 
-            startDate: `${currentYear}-${String(currentMonth).padStart(2, '0')}-01`,
-            endDate: `${currentYear}-${String(currentMonth).padStart(2, '0')}-${new Date(currentYear, currentMonth, 0).getDate()}`,
-            limit: 50 // Get enough records for the month
-          }
-        });
-        
-        // 🔍 DEBUG: Log the complete response structure
-        console.log('🔍 [DEBUG] Complete attendance response:', {
-          success: attendanceResponse.data.success,
-          message: attendanceResponse.data.message,
-          dataType: typeof attendanceResponse.data.data,
-          dataIsArray: Array.isArray(attendanceResponse.data.data),
-          dataLength: Array.isArray(attendanceResponse.data.data) ? attendanceResponse.data.data.length : 'N/A',
-          firstItem: Array.isArray(attendanceResponse.data.data) && attendanceResponse.data.data.length > 0 ? attendanceResponse.data.data[0] : 'N/A'
-        });
-        
-        if (attendanceResponse.data.success) {
-          // ✅ FIX: Robust attendance data extraction
-          // Controller sends: sendResponse(res, true, result.message, result.data.records)
-          // So attendanceResponse.data.data should be the array
-          let records = [];
-          
-          const payload = attendanceResponse.data.data;
-          if (Array.isArray(payload)) {
-            records = payload;
-          } else if (Array.isArray(payload?.records)) {
-            records = payload.records;
-          } else if (Array.isArray(payload?.attendance)) {
-            records = payload.attendance;
-          } else {
-            console.warn('📅 [MONTHLY CALENDAR] Expected array but got:', typeof payload, payload);
-          }
-          
-          console.log(`📅 [MONTHLY CALENDAR] Loaded ${records.length} attendance records for ${currentYear}-${currentMonth}`);
-          
-          if (records.length > 0) {
-            console.log(`📅 [MONTHLY CALENDAR] Sample record:`, records[0]);
-            console.log(`📅 [MONTHLY CALENDAR] Available fields:`, Object.keys(records[0]));
-          }
-          
-          setMonthlyAttendanceData(records);
-        } else {
-          console.warn('📅 [MONTHLY CALENDAR] API returned unsuccessful response:', attendanceResponse.data);
-          setMonthlyAttendanceData([]);
-        }
-        
-        // Fetch calendar data (holidays, events, etc.)
-        const calendarResponse = await employeeCalendarService.getMonthlyCalendar(currentYear, currentMonth);
-        if (calendarResponse.success) {
-          console.log(`📅 [MONTHLY CALENDAR] Loaded calendar data with ${Object.keys(calendarResponse.calendar).length} days`);
-          setCalendarData(calendarResponse.calendar || {});
-        } else {
-          console.warn('📅 [MONTHLY CALENDAR] Calendar API returned unsuccessful response');
-          setCalendarData({});
-        }
-        
-        // Fetch attendance summary
-        await getAttendanceSummary(currentMonth, currentYear);
-        
-      } catch (error) {
-        console.error('Failed to fetch monthly data:', error);
-        setError(error.message || 'Failed to load monthly data');
-        // Set empty arrays on error to prevent filter errors
-        setMonthlyAttendanceData([]);
-        setCalendarData({});
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMonthlyData();
-  }, [currentMonth, currentYear, getAttendanceSummary]);
+  // 🔧 FIX: No more useEffect hooks for data fetching - parent handles all data
+  // Component is now purely presentational
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -145,7 +56,7 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
     
     const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     
-    // Try exact date match first
+    // Try exact date match first from attendance records
     let record = monthlyAttendanceData.find(record => record.date === dateStr);
     
     // If no exact match, try parsing the date field in case of different formats
@@ -157,14 +68,23 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
       });
     }
     
+    // 🔧 NEW: If no record found in attendance data, check calendar data
+    if (!record) {
+      const calendarDay = getCalendarDataForDate(day);
+      if (calendarDay?.attendance && calendarDay.attendance.id) {
+        record = calendarDay.attendance;
+      }
+    }
+    
     // Debug logging for first few days
-    if (day <= 3) {
+    if (day <= 3 && process.env.NODE_ENV === 'development') {
       console.log(`🔍 [DEBUG] Day ${day} (${dateStr}):`, {
         found: !!record,
         recordDate: record?.date,
         status: record?.status,
         hasClockIn: !!record?.clockIn,
-        hasClockOut: !!record?.clockOut
+        hasClockOut: !!record?.clockOut,
+        fromCalendar: !monthlyAttendanceData.find(r => r.date === dateStr) && !!record
       });
     }
     
@@ -180,29 +100,119 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
     return calendarData[day] || null;
   };
 
+  // 🔧 CRITICAL FIX B: Normalize calendar day data
+  const normalizeCalendarDay = (calendarDay) => {
+    if (!calendarDay) return {};
+    
+    return {
+      ...calendarDay,
+      // Handle both old format (dayType) and new format (status field)
+      isWeekend: calendarDay.status === 'WEEKEND' || calendarDay.status === 'weekend' || calendarDay.dayType === 'WEEKEND' || calendarDay.dayType === 'weekend',
+      holidays: (calendarDay.status === 'HOLIDAY' || calendarDay.status === 'holiday' || calendarDay.dayType === 'HOLIDAY' || calendarDay.dayType === 'holiday')
+        ? [{ name: calendarDay.holidayName || 'Holiday' }]
+        : (calendarDay.holidays && calendarDay.holidays.length > 0)
+          ? calendarDay.holidays
+          : []
+    };
+  };
+
   // Get status symbol and color for a day based on your design system
   const getStatusSymbol = (record, calendarDay, day) => {
+    // 🔧 FIX: Normalize calendar day data before using
+    const normalizedCalendarDay = normalizeCalendarDay(calendarDay);
+    
     // Debug logging for first few days
-    if (day <= 3) {
-      console.log(`🎨 [DEBUG] Day ${day} - Record:`, record, 'Calendar:', calendarDay);
+    if (day <= 3 && process.env.NODE_ENV === 'development') {
+      console.log(`🎨 [DEBUG] Day ${day} - Record:`, record, 'Calendar:', normalizedCalendarDay);
+      console.log(`🎨 [DEBUG] Day ${day} - Calendar status:`, calendarDay?.status);
+      console.log(`🎨 [DEBUG] Day ${day} - Calendar attendance:`, calendarDay?.attendance);
     }
     
-    // First check if it's a holiday from calendar data
-    if (calendarDay?.holidays && calendarDay.holidays.length > 0) {
+    // 🔧 CRITICAL FIX: Use 'status' field instead of 'dayType'
+    if (calendarDay?.status === 'HOLIDAY' || calendarDay?.status === 'holiday') {
       return { 
         icon: Star, 
         color: 'text-yellow-600', 
-        bgColor: 'bg-yellow-50 border-yellow-200',
-        tooltip: calendarDay.holidays[0].name
+        tooltip: calendarDay.holidayName || 'Holiday'
       };
     }
 
-    // Check if it's a weekend
-    if (calendarDay?.isWeekend) {
+    if (calendarDay?.status === 'WEEKEND' || calendarDay?.status === 'weekend') {
       return { 
         icon: Calendar, 
         color: 'text-gray-500', 
-        bgColor: 'bg-gray-50 border-gray-200',
+        tooltip: 'Weekend'
+      };
+    }
+
+    // 🔧 NEW: Handle LEAVE from smart calendar
+    if (calendarDay?.status === 'LEAVE' || calendarDay?.status === 'leave') {
+      return { 
+        icon: PlaneTakeoff, 
+        color: 'text-purple-600', 
+        tooltip: 'On Leave'
+      };
+    }
+
+    // 🔧 CRITICAL FIX: Check if there's attendance data in the calendar response
+    if (calendarDay?.attendance && calendarDay.attendance.id) {
+      const attendanceRecord = calendarDay.attendance;
+      
+      // Use the attendance data from calendar response
+      switch (attendanceRecord.status) {
+        case 'present':
+          if (attendanceRecord.isLate) {
+            return { 
+              icon: Info, 
+              color: 'text-blue-600', 
+              tooltip: `Present (Late by ${attendanceRecord.lateMinutes || 0}m)`
+            };
+          }
+          return { 
+            icon: CheckCircle, 
+            color: 'text-green-600', 
+            tooltip: 'Present'
+          };
+        case 'absent':
+          return { 
+            icon: XCircle, 
+            color: 'text-red-600', 
+            tooltip: 'Absent'
+          };
+        case 'half_day':
+          return { 
+            icon: Zap, 
+            color: 'text-orange-600', 
+            tooltip: 'Half Day'
+          };
+        case 'incomplete':
+          return { 
+            icon: AlertTriangle, 
+            color: 'text-amber-600', 
+            tooltip: 'Incomplete (Missing clock out)'
+          };
+        default:
+          return { 
+            icon: CheckCircle, 
+            color: 'text-green-600', 
+            tooltip: attendanceRecord.status || 'Present'
+          };
+      }
+    }
+
+    // Fallback to normalized format for backward compatibility
+    if (normalizedCalendarDay?.holidays && normalizedCalendarDay.holidays.length > 0) {
+      return { 
+        icon: Star, 
+        color: 'text-yellow-600', 
+        tooltip: normalizedCalendarDay.holidays[0].name
+      };
+    }
+
+    if (normalizedCalendarDay?.isWeekend) {
+      return { 
+        icon: Calendar, 
+        color: 'text-gray-500', 
         tooltip: 'Weekend'
       };
     }
@@ -222,22 +232,21 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
         };
       }
       
-      // 🔥 CRITICAL FIX: Past/current working days without attendance records = ABSENT
-      // Check if it's a working day (not weekend, not holiday)
-      if (!calendarDay?.isWeekend && (!calendarDay?.holidays || calendarDay.holidays.length === 0)) {
+      // 🔥 CRITICAL FIX: Check if it's a working day using 'status' field
+      const isWorkingDay = calendarDay?.status === 'WORKING_DAY' || calendarDay?.status === 'working_day';
+      
+      if (isWorkingDay && !calendarDay?.attendance) {
         return { 
           icon: XCircle, 
           color: 'text-red-600', 
-          bgColor: 'bg-red-50 border-red-200',
           tooltip: 'Absent (No attendance record)'
         };
       }
       
-      // Default for other cases (weekends, holidays without records)
+      // Default for other cases (weekends, holidays, leaves without records)
       return { 
         icon: null, 
         color: 'text-gray-400', 
-        bgColor: 'bg-gray-100',
         tooltip: 'No data'
       };
     }
@@ -262,36 +271,43 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
       case 'absent':
         return { 
           icon: XCircle, 
-          color: 'text-red-600', 
-          bgColor: 'bg-red-50 border-red-200',
+          color: 'text-red-600',
           tooltip: 'Absent'
         };
       case 'half_day':
         return { 
           icon: Zap, 
-          color: 'text-orange-600', 
-          bgColor: 'bg-orange-50 border-orange-200',
+          color: 'text-orange-600',
           tooltip: 'Half Day'
         };
       case 'on_leave':
         return { 
-          icon: Calendar, 
-          color: 'text-purple-600', 
-          bgColor: 'bg-purple-50 border-purple-200',
+          icon: PlaneTakeoff, 
+          color: 'text-purple-600',
           tooltip: 'On Leave'
+        };
+      case 'leave':
+        return { 
+          icon: PlaneTakeoff, 
+          color: 'text-purple-600', 
+          tooltip: 'On Leave'
+        };
+      case 'pending_correction':
+        return { 
+          icon: AlertTriangle, 
+          color: 'text-orange-600', 
+          tooltip: 'Pending correction'
         };
       case 'incomplete':
         return { 
           icon: AlertTriangle, 
           color: 'text-amber-600', 
-          bgColor: 'bg-amber-50 border-amber-200',
           tooltip: 'Incomplete (Missing clock out)'
         };
       default:
         return { 
           icon: null, 
-          color: 'text-gray-400', 
-          bgColor: 'bg-gray-100',
+          color: 'text-gray-400',
           tooltip: record.status || 'Unknown status'
         };
     }
@@ -299,7 +315,7 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
 
   const handleDateClick = (day) => {
     const record = getAttendanceForDate(day);
-    const calendarDay = getCalendarDataForDate(day);
+    const calendarDay = normalizeCalendarDay(getCalendarDataForDate(day));
     setSelectedDate({ day, record, calendarDay });
     setIsModalOpen(true);
   };
@@ -316,9 +332,7 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
       newYear = currentMonth === 12 ? currentYear + 1 : currentYear;
     }
 
-    setCurrentMonth(newMonth);
-    setCurrentYear(newYear);
-    
+    // 🔧 FIX: Don't set internal state, just call parent callback
     if (onMonthChange) {
       onMonthChange(newMonth, newYear);
     }
@@ -363,6 +377,7 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
     return dayNames[date.getDay()];
   };
 
+  //This is view of the details
   const renderModalContent = () => {
     if (!selectedDate) return null;
 
@@ -388,6 +403,40 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
         {/* Calendar Events (Holidays, etc.) */}
         {calendarDay && (
           <div className="space-y-3">
+            {/* Handle smart calendar HOLIDAY */}
+            {(calendarDay.status === 'HOLIDAY' || calendarDay.status === 'holiday') && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <Star className="h-4 w-4 text-yellow-600" />
+                  <span className="font-medium text-yellow-800">Holiday</span>
+                </div>
+                <div className="text-sm text-yellow-700">
+                  {calendarDay.holidayName || 'Holiday'}
+                </div>
+              </div>
+            )}
+
+            {/* Handle smart calendar WEEKEND */}
+            {(calendarDay.status === 'WEEKEND' || calendarDay.status === 'weekend') && (
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-gray-600" />
+                  <span className="font-medium text-gray-700">Weekend</span>
+                </div>
+              </div>
+            )}
+
+            {/* Handle smart calendar LEAVE */}
+            {(calendarDay.status === 'LEAVE' || calendarDay.status === 'leave') && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <PlaneTakeoff className="h-4 w-4 text-purple-600" />
+                  <span className="font-medium text-purple-800">On Leave</span>
+                </div>
+              </div>
+            )}
+
+            {/* Fallback for legacy format */}
             {calendarDay.holidays && calendarDay.holidays.length > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
@@ -402,19 +451,10 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
               </div>
             )}
 
-            {calendarDay.isWeekend && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-600" />
-                  <span className="font-medium text-gray-700">Weekend</span>
-                </div>
-              </div>
-            )}
-
             {calendarDay.leaves && calendarDay.leaves.length > 0 && (
               <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
                 <div className="flex items-center gap-2 mb-2">
-                  <Calendar className="h-4 w-4 text-purple-600" />
+                  <PlaneTakeoff className="h-4 w-4 text-purple-600" />
                   <span className="font-medium text-purple-800">Team Leaves</span>
                 </div>
                 {calendarDay.leaves.map((leave, index) => (
@@ -486,16 +526,22 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
           </div>
         ) : (
           <div className="text-center py-8">
-            {calendarDay?.holidays?.length > 0 ? (
+            {(calendarDay?.status === 'HOLIDAY' || calendarDay?.status === 'holiday') ? (
               <>
                 <Star className="h-12 w-12 text-yellow-500 mx-auto mb-3" />
                 <p className="text-gray-700 font-medium">Holiday</p>
-                <p className="text-gray-500 text-sm">No attendance required</p>
+                <p className="text-gray-500 text-sm">{calendarDay.holidayName || 'No attendance required'}</p>
               </>
-            ) : calendarDay?.isWeekend ? (
+            ) : (calendarDay?.status === 'WEEKEND' || calendarDay?.status === 'weekend') ? (
               <>
                 <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-700 font-medium">Weekend</p>
+                <p className="text-gray-500 text-sm">No attendance required</p>
+              </>
+            ) : (calendarDay?.status === 'LEAVE' || calendarDay?.status === 'leave') ? (
+              <>
+                <PlaneTakeoff className="h-12 w-12 text-purple-500 mx-auto mb-3" />
+                <p className="text-gray-700 font-medium">On Leave</p>
                 <p className="text-gray-500 text-sm">No attendance required</p>
               </>
             ) : (() => {
@@ -528,17 +574,19 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
   };
 
   // Calculate summary stats
-  const calculateStats = () => {
+  const calculateStats = useMemo(() => {
     // Ensure monthlyAttendanceData is an array before using filter
     if (!Array.isArray(monthlyAttendanceData)) {
-      return { present: 0, absent: 0, late: 0, total: `0/${daysInMonth}` };
+      return { present: 0, absent: 0, late: 0, halfDay: 0, totalHours: '0.0', total: '0/0' };
     }
     
-    const present = monthlyAttendanceData.filter(r => r.status === 'present').length;
-    const late = monthlyAttendanceData.filter(r => r.isLate).length;
-    
-    // Calculate absent days by counting working days without attendance records
+    let presentDays = 0;
     let absentDays = 0;
+    let lateDays = 0;
+    let halfDays = 0;
+    let totalHours = 0;
+    let workingDays = 0;
+    
     const today = new Date();
     
     for (let day = 1; day <= daysInMonth; day++) {
@@ -550,28 +598,48 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
       const record = getAttendanceForDate(day);
       const calendarDay = getCalendarDataForDate(day);
       
-      // Count as absent if:
-      // 1. No attendance record exists
-      // 2. Not a weekend
-      // 3. Not a holiday
-      // 4. Not explicitly marked as leave
-      if (!record && 
-          !calendarDay?.isWeekend && 
-          (!calendarDay?.holidays || calendarDay.holidays.length === 0) &&
-          (!calendarDay?.leaves || calendarDay.leaves.length === 0)) {
-        absentDays++;
+      // 🔧 FIX: Use 'status' field for accurate classification
+      const isWeekend = calendarDay?.status === 'WEEKEND' || calendarDay?.status === 'weekend';
+      const isHoliday = calendarDay?.status === 'HOLIDAY' || calendarDay?.status === 'holiday';
+      const isLeave = calendarDay?.status === 'LEAVE' || calendarDay?.status === 'leave';
+      const isWorkingDay = calendarDay?.status === 'WORKING_DAY' || calendarDay?.status === 'working_day';
+      const workingDay = isWorkingDay;
+      
+      // 🔧 FIX: Count working days for accurate total calculation
+      if (workingDay) {
+        workingDays++;
       }
       
-      // Also count explicitly marked absent records
-      if (record && record.status === 'absent') {
+      // 🔧 FIX: Make absent counting mutually exclusive to avoid double counting
+      if (record || calendarDay?.attendance) {
+        // Use either the fetched record or the attendance data from calendar
+        const attendanceData = record || calendarDay?.attendance;
+        
+        if (attendanceData.status === 'present') {
+          presentDays++;
+          if (attendanceData.isLate) lateDays++;
+          if (attendanceData.isHalfDay) halfDays++;
+          if (attendanceData.totalHours) totalHours += attendanceData.totalHours;
+        } else if (attendanceData.status === 'absent') {
+          absentDays++;
+        }
+      } else if (workingDay) {
+        // Only count as absent if it's a working day and no record exists
         absentDays++;
       }
     }
     
-    return { present, absent: absentDays, late, total: `${present}/${daysInMonth}` };
-  };
+    return { 
+      present: presentDays, 
+      absent: absentDays, 
+      late: lateDays, 
+      halfDay: halfDays,
+      totalHours: totalHours.toFixed(1),
+      total: `${presentDays}/${workingDays}` // 🔧 FIX: Use working days instead of total days
+    };
+  }, [monthlyAttendanceData, calendarData, currentMonth, currentYear, daysInMonth]);
 
-  const stats = calculateStats();
+  const stats = calculateStats;
 
   return (
     <>
@@ -654,7 +722,7 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
             <>
               {/* Legend */}
               <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                <div className="text-xs font-medium text-gray-600 mb-2">Legend:</div>
+                <div className="text-xs font-medium text-gray-600 mb-2">Note:</div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 sm:gap-4 text-xs text-gray-700">
                   <span className="flex items-center gap-1">
                     <Star className="h-3 w-3 text-yellow-600 flex-shrink-0" />
@@ -681,7 +749,7 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
                     <span className="truncate">Absent</span>
                   </span>
                   <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3 text-purple-600 flex-shrink-0" />
+                    <PlaneTakeoff className="h-3 w-3 text-purple-600 flex-shrink-0" />
                     <span className="truncate">On Leave</span>
                   </span>
                   <span className="flex items-center gap-1">
@@ -694,7 +762,7 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
               {/* Calendar Header */}
               <div className="overflow-x-auto">
                 <div className="min-w-full">
-                  <div className="grid gap-1 text-xs" style={{ gridTemplateColumns: `repeat(${daysInMonth + 1}, minmax(24px, 1fr))` }}>
+                  <div className="grid gap-3 mb-2 ml-3 text-xs" style={{ gridTemplateColumns: `repeat(${daysInMonth + 1}, minmax(24px, 1fr))` }}>
                     {/* Day numbers */}
                     {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
                       <div key={day} className="text-center text-gray-700 font-medium p-1 min-w-6">
@@ -705,7 +773,7 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
                   </div>
 
                   {/* Day abbreviations */}
-                  <div className="grid gap-1 text-xs" style={{ gridTemplateColumns: `repeat(${daysInMonth + 1}, minmax(24px, 1fr))` }}>
+                  <div className="grid gap-3 mb-2  ml-3 text-xs" style={{ gridTemplateColumns: `repeat(${daysInMonth + 1}, minmax(24px, 1fr))` }}>
                     {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => (
                       <div key={day} className="text-center text-gray-500 p-1 min-w-6">
                         {getDayOfWeek(day)}
@@ -715,10 +783,10 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
                   </div>
 
                   {/* Status symbols */}
-                  <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${daysInMonth + 1}, minmax(24px, 1fr))` }}>
+                  <div className="grid gap-3 mb-2  ml-3" style={{ gridTemplateColumns: `repeat(${daysInMonth + 1}, minmax(24px, 1fr))` }}>
                     {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(day => {
                       const record = getAttendanceForDate(day);
-                      const calendarDay = getCalendarDataForDate(day);
+                      const calendarDay = normalizeCalendarDay(getCalendarDataForDate(day));
                       const statusInfo = getStatusSymbol(record, calendarDay, day);
                       const isToday = day === new Date().getDate() && 
                                      currentMonth === new Date().getMonth() + 1 && 
@@ -729,7 +797,7 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
                           key={day}
                           onClick={() => handleDateClick(day)}
                           className={`
-                            h-6 sm:h-8 flex items-center justify-center rounded cursor-pointer border min-w-6
+                            h-6 sm:h-8 flex items-center justify-center rounded cursor-pointer min-w-6
                             ${statusInfo.bgColor} ${statusInfo.color}
                             hover:shadow-md hover:scale-105 transition-all duration-200
                             ${isToday ? 'ring-2 ring-blue-400 ring-offset-1' : ''}
@@ -774,7 +842,15 @@ const MonthlyAttendanceCalendar = ({ selectedMonth, selectedYear, onMonthChange 
                   {/* Show today's activity if available */}
                   {(() => {
                     const today = new Date().toISOString().split('T')[0];
-                    const todayRecord = getAttendanceForDate(new Date().getDate());
+                    
+                    // 🔧 FIX: Only show today's activity if we're viewing the current month
+                    const isCurrentMonth = 
+                      currentMonth === new Date().getMonth() + 1 &&
+                      currentYear === new Date().getFullYear();
+                    
+                    const todayRecord = isCurrentMonth 
+                      ? getAttendanceForDate(new Date().getDate())
+                      : null;
                     
                     if (todayRecord) {
                       return (

@@ -1,5 +1,6 @@
 import { Notification, User, Employee } from '../models/index.js';
 import sseManager from '../utils/sseManager.js';
+import resendEmailService from './resendEmailService.js';
 import logger from '../utils/logger.js';
 import { Op } from 'sequelize';
 
@@ -38,9 +39,9 @@ class NotificationService {
   }
 
   /**
-   * Send notification to specific user (create + SSE)
+   * Send notification to specific user (create + SSE + Email)
    */
-  async sendToUser(userId, notificationData) {
+  async sendToUser(userId, notificationData, options = {}) {
     try {
       // Create notification in database
       const notification = await this.createNotification({
@@ -65,6 +66,12 @@ class NotificationService {
       } else {
         logger.warn(`User ${userId} not connected to SSE, notification saved to DB only`);
       }
+
+      // 🔥 NEW: Send email if enabled and appropriate
+      if (options.sendEmail && this.shouldSendEmail(notificationData)) {
+        await this.sendEmailNotification(userId, notificationData, options.emailData);
+      }
+
       return notification;
     } catch (error) {
       logger.error('Failed to send notification to user:', error);
@@ -266,6 +273,125 @@ class NotificationService {
   }
 
   // ===================================================
+  // EMAIL NOTIFICATION METHODS
+  // ===================================================
+
+  /**
+   * Determine if notification should trigger email
+   */
+  shouldSendEmail(notificationData) {
+    const emailCategories = ['attendance', 'leave', 'account', 'payroll', 'system'];
+    const emailTypes = ['error', 'warning', 'success'];
+    
+    // Send email for important categories or high-priority types
+    return emailCategories.includes(notificationData.category) || 
+           emailTypes.includes(notificationData.type);
+  }
+
+  /**
+   * Send email notification
+   */
+  async sendEmailNotification(userId, notificationData, emailData = {}) {
+    try {
+      const { category, type, metadata } = notificationData;
+
+      // Route to appropriate email template based on category
+      switch (category) {
+        case 'attendance':
+          await this.sendAttendanceEmail(userId, notificationData, emailData);
+          break;
+        case 'leave':
+          await this.sendLeaveEmail(userId, notificationData, emailData);
+          break;
+        default:
+          await this.sendGenericEmail(userId, notificationData);
+      }
+    } catch (error) {
+      logger.error('Failed to send email notification:', error);
+      // Don't throw - email failure shouldn't break notification flow
+    }
+  }
+
+  /**
+   * Send attendance-related email
+   */
+  async sendAttendanceEmail(userId, notificationData, emailData) {
+    const { metadata } = notificationData;
+    
+    // Get user and employee details
+    const user = await User.findByPk(userId, {
+      include: [{ model: Employee, as: 'employee' }],
+    });
+
+    if (!user || !user.email || !user.employee) {
+      logger.warn(`Cannot send email: User ${userId} has no email or employee record`);
+      return;
+    }
+
+    const employee = user.employee;
+
+    if (metadata?.action === 'attendance_auto_absent') {
+      await resendEmailService.sendAttendanceAbsentEmail(
+        employee,
+        emailData.date || metadata.date,
+        emailData.reason || metadata.reason || 'No clock-in recorded'
+      );
+    } else if (metadata?.action === 'attendance_correction_required') {
+      await resendEmailService.sendCorrectionRequiredEmail(
+        employee,
+        emailData.date || metadata.date,
+        emailData.issue || metadata.reason || 'Missing clock-out'
+      );
+    }
+  }
+
+  /**
+   * Send leave-related email
+   */
+  async sendLeaveEmail(userId, notificationData, emailData) {
+    const { metadata } = notificationData;
+    
+    // Get user and employee details
+    const user = await User.findByPk(userId, {
+      include: [{ model: Employee, as: 'employee' }],
+    });
+
+    if (!user || !user.email || !user.employee) {
+      logger.warn(`Cannot send email: User ${userId} has no email or employee record`);
+      return;
+    }
+
+    const employee = user.employee;
+    
+    if (metadata?.status && ['approved', 'rejected'].includes(metadata.status)) {
+      if (metadata.status === 'approved') {
+        const leaveRequest = {
+          leaveType: emailData.leaveType || 'Leave',
+          startDate: emailData.startDate,
+          endDate: emailData.endDate,
+          numberOfDays: emailData.duration || 1
+        };
+        
+        await resendEmailService.sendLeaveApprovedEmail(
+          employee,
+          leaveRequest,
+          emailData.approverName || 'Manager'
+        );
+      }
+      // Note: We don't have a leave rejected template yet
+    }
+  }
+
+  /**
+   * Send generic email for other notifications
+   */
+  async sendGenericEmail(userId, notificationData) {
+    // For now, we don't send generic emails
+    // This can be extended later if needed
+    logger.info(`Generic email not sent for category: ${notificationData.category}`);
+  }
+
+  // ===================================================
   // HELPER METHODS FOR COMMON NOTIFICATION SCENARIOS
   // ===================================================
 
@@ -288,13 +414,13 @@ class NotificationService {
   }
 
   /**
-   * Leave approval notification
+   * Leave approval notification (with email)
    */
   async notifyLeaveApproval(leaveRequest, approved = true) {
     const status = approved ? 'approved' : 'rejected';
     const type = approved ? 'success' : 'error';
 
-    // Notify employee about leave status
+    // 🔥 NEW: Notify employee about leave status with email
     await this.sendToUser(leaveRequest.employee.userId, {
       title: `Leave ${status.charAt(0).toUpperCase() + status.slice(1)}`,
       message: `Your ${leaveRequest.leaveType} leave request has been ${status}`,
@@ -304,6 +430,16 @@ class NotificationService {
         leaveRequestId: leaveRequest.id,
         status,
       },
+    }, {
+      sendEmail: true, // 🔥 Enable email for leave approvals/rejections
+      emailData: {
+        leaveType: leaveRequest.leaveType,
+        startDate: leaveRequest.startDate,
+        endDate: leaveRequest.endDate,
+        duration: leaveRequest.duration,
+        reason: leaveRequest.reason,
+        adminComments: leaveRequest.adminComments
+      }
     });
   }
 
@@ -338,7 +474,7 @@ class NotificationService {
   }
 
   /**
-   * ✅ NEW: Absent employee notification
+   * ✅ NEW: Absent employee notification (with email)
    */
   async notifyAbsentEmployee(attendanceRecord) {
     // Notify HR and Admin about absent employee
@@ -356,7 +492,7 @@ class NotificationService {
       },
     });
 
-    // Optional: Notify employee (if they have access to notifications)
+    // 🔥 NEW: Send email to employee
     try {
       if (attendanceRecord.employee.userId) {
         await this.sendToUser(attendanceRecord.employee.userId, {
@@ -367,8 +503,11 @@ class NotificationService {
           metadata: {
             attendanceId: attendanceRecord.id,
             date: attendanceRecord.date,
-            reason: 'No clock-in recorded'
+            reason: 'No clock-in recorded',
+            action: 'attendance_auto_absent'
           },
+        }, {
+          sendEmail: true // 🔥 Enable email for this notification
         });
       }
     } catch (error) {
@@ -411,6 +550,135 @@ class NotificationService {
         workHours: attendanceRecord.workHours,
       },
     });
+  }
+
+  /**
+   * 🔥 NEW: Auto-finalized attendance notification (with email)
+   */
+  async notifyAutoFinalized(attendanceRecord, shiftEndTime) {
+    try {
+      if (attendanceRecord.employee.userId) {
+        await this.sendToUser(attendanceRecord.employee.userId, {
+          title: 'Attendance Auto-Finalized',
+          message: `Your attendance for ${attendanceRecord.date} was auto-finalized at shift end. Clock-out recorded at ${shiftEndTime}. Status: ${attendanceRecord.status}`,
+          type: 'info',
+          category: 'attendance',
+          metadata: {
+            attendanceId: attendanceRecord.id,
+            date: attendanceRecord.date,
+            reason: 'Auto clock-out at shift end (+30 min rule)',
+            action: 'attendance_auto_finalized'
+          },
+        }, {
+          sendEmail: true, // 🔥 Enable email for auto-finalized attendance
+          emailData: {
+            clockOutTime: shiftEndTime,
+            status: attendanceRecord.status,
+            workHours: attendanceRecord.workHours
+          }
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to send auto-finalized notification:', error);
+    }
+  }
+
+  /**
+   * 🔥 NEW: Attendance correction required notification (with email)
+   */
+  async notifyAttendanceCorrectionRequired(attendanceRecord, reason) {
+    try {
+      if (attendanceRecord.employee.userId) {
+        await this.sendToUser(attendanceRecord.employee.userId, {
+          title: 'Attendance Correction Required',
+          message: `Your attendance for ${attendanceRecord.date} requires correction. Reason: ${reason}. Please submit a correction request.`,
+          type: 'warning',
+          category: 'attendance',
+          metadata: {
+            attendanceId: attendanceRecord.id,
+            date: attendanceRecord.date,
+            reason: reason,
+            action: 'attendance_correction_required'
+          },
+        }, {
+          sendEmail: true // 🔥 Enable email for correction requests
+        });
+      }
+    } catch (error) {
+      logger.error('Failed to send correction required notification:', error);
+    }
+  }
+
+  /**
+   * 🔥 NEW: Password reset notification (with email)
+   */
+  async notifyPasswordReset(userId, resetToken) {
+    try {
+      await this.sendToUser(userId, {
+        title: 'Password Reset Request',
+        message: 'You have requested to reset your password. Check your email for reset instructions.',
+        type: 'info',
+        category: 'account',
+        metadata: {
+          action: 'password_reset'
+        },
+      }, {
+        sendEmail: true,
+        emailData: {
+          resetToken
+        }
+      });
+    } catch (error) {
+      logger.error('Failed to send password reset notification:', error);
+    }
+  }
+
+  /**
+   * 🔥 NEW: Account created notification (with email)
+   */
+  async notifyAccountCreated(userId, temporaryPassword) {
+    try {
+      await this.sendToUser(userId, {
+        title: 'Welcome to HRM System',
+        message: 'Your account has been created successfully. Check your email for login credentials.',
+        type: 'success',
+        category: 'account',
+        metadata: {
+          action: 'account_created'
+        },
+      }, {
+        sendEmail: true,
+        emailData: {
+          temporaryPassword
+        }
+      });
+    } catch (error) {
+      logger.error('Failed to send account created notification:', error);
+    }
+  }
+
+  /**
+   * 🔥 NEW: Payslip generated notification (with email)
+   */
+  async notifyPayslipGenerated(userId, payslipData) {
+    try {
+      await this.sendToUser(userId, {
+        title: 'Payslip Generated',
+        message: `Your payslip for ${payslipData.month} ${payslipData.year} has been generated and is ready for download.`,
+        type: 'success',
+        category: 'payroll',
+        metadata: {
+          action: 'payslip_generated',
+          month: payslipData.month,
+          year: payslipData.year
+        },
+      }, {
+        sendEmail: true,
+        emailData: payslipData
+      });
+    } catch (error) {
+      logger.error('Failed to send payslip notification:', error);
+    }
   }
 
   /**
@@ -534,6 +802,75 @@ class NotificationService {
         action: 'deleted'
       }
     });
+  }
+
+  /**
+   * 🔥 NEW: Send email notification using Resend
+   * Handles different notification types with appropriate templates
+   */
+  async sendEmailNotification(userId, notificationData, emailData = {}) {
+    try {
+      // Get user and employee details
+      const user = await User.findByPk(userId, {
+        include: [{ model: Employee, as: 'employee' }],
+      });
+
+      if (!user || !user.email) {
+        logger.warn(`Cannot send email: User ${userId} has no email`);
+        return;
+      }
+
+      const employee = user.employee;
+
+      // Route to appropriate email template based on notification type
+      switch (notificationData.category) {
+        case 'attendance':
+          if (notificationData.type === 'error' && notificationData.message.includes('absent')) {
+            await resendEmailService.sendAttendanceAbsentEmail(
+              employee,
+              emailData.date || new Date(),
+              emailData.reason || 'No clock-in recorded'
+            );
+          } else if (notificationData.message.includes('correction')) {
+            await resendEmailService.sendCorrectionRequiredEmail(
+              employee,
+              emailData.date || new Date(),
+              emailData.issue || 'Missing clock-out'
+            );
+          }
+          break;
+
+        case 'leave':
+          if (notificationData.type === 'success' && notificationData.message.includes('approved')) {
+            await resendEmailService.sendLeaveApprovedEmail(
+              employee,
+              emailData.leaveRequest,
+              emailData.approverName || 'Manager'
+            );
+          }
+          break;
+
+        default:
+          logger.debug(`No email template for notification category: ${notificationData.category}`);
+      }
+    } catch (error) {
+      logger.error(`Failed to send email notification for user ${userId}:`, error);
+      // Don't throw - email failure shouldn't block notification
+    }
+  }
+
+  /**
+   * Determine if an email should be sent for this notification
+   */
+  shouldSendEmail(notificationData) {
+    // Send emails for important notifications
+    const emailableCategories = ['attendance', 'leave', 'correction'];
+    const emailableTypes = ['error', 'warning', 'success'];
+
+    return (
+      emailableCategories.includes(notificationData.category) &&
+      emailableTypes.includes(notificationData.type)
+    );
   }
 }
 

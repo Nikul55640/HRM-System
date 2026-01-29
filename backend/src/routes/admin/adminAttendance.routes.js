@@ -2,7 +2,7 @@ import express from 'express';
 import { authenticate } from '../../middleware/authenticate.js';
 import { checkPermission, checkAnyPermission } from '../../middleware/checkPermission.js';
 import { MODULES } from '../../config/rolePermissions.js';
-import attendanceController from '../../controllers/admin/attendance.controller.js';
+import attendanceController from '../../controllers/admin/attendanceManagement.controller.js';
 import liveAttendanceController from '../../controllers/admin/liveAttendance.controller.js';
 import {
   preventHistoricalModification,

@@ -10,8 +10,7 @@ frontend/src/
 ├── main.jsx                        # Application entry point (14 lines)
 ├── index.css                       # Global styles
 ├── components/                     # Global components
-│   ├── NotificationBell.jsx       # Global notification component (303 lines)
-│   └── ViewTestComponent.jsx      # View test component (198 lines)
+│   └── NotificationBell.jsx       # Global notification component (303 lines)
 ├── core/                          # Core application infrastructure
 │   ├── guards/                    # Route protection and access control
 │   │   ├── index.js (3 lines)
@@ -68,11 +67,12 @@ frontend/src/
 │   │   │   └── ShiftStatusWidget.jsx (373 lines)
 │   │   └── employee/              # Employee attendance features
 │   │       ├── AttendancePage.jsx (295 lines)
-│   │       ├── AttendanceSummary.jsx (395 lines)
+│   │       ├── AttendanceSummary.jsx (395 lines) # ✅ ENHANCED: Smart calendar integration + responsive design
 │   │       ├── AttendanceCorrectionRequests.jsx (411 lines)
 │   │       ├── AttendanceStatsWidget.jsx (77 lines)
 │   │       ├── EnhancedClockInOut.jsx (747 lines)
 │   │       ├── LocationSelectionModal.jsx (337 lines)
+│   │       ├── MonthlyAttendanceCalendar.jsx (318 lines) # ✅ FIXED: Data loading issues + calendar key mapping
 │   │       └── SessionHistoryView.jsx (318 lines)
 │   ├── auth/                      # Authentication module
 │   │   ├── index.js (3 lines)
@@ -87,7 +87,7 @@ frontend/src/
 │   │   │   ├── CalendarManagement.jsx (280 lines)
 │   │   │   ├── CalendarificManagement.jsx (742 lines)
 │   │   │   ├── SmartCalendarManagement.jsx (958 lines)
-│   │   │   ├── WorkingRuleForm.jsx (254 lines)
+│   │   │   ├── WorkingRuleForm.jsx (254 lines) # ✅ ENHANCED: Added isActive field support
 │   │   │   ├── HolidayForm.jsx (0 lines)
 │   │   │   ├── components/
 │   │   │   │   ├── ApiStatusCard.jsx (115 lines)
@@ -111,7 +111,7 @@ frontend/src/
 │   │   │   ├── EmployeeCalendarView.jsx (57 lines)
 │   │   │   └── views/
 │   │   │       ├── MonthView.jsx (403 lines)
-│   │   │       ├── WeekView.jsx (411 lines)
+│   │   │       ├── WeekView.jsx (411 lines) # ✅ REDESIGNED: Card to list layout + smart calendar integration
 │   │   │       └── TodayView.jsx (186 lines)
 │   │   ├── pages/                 # Calendar pages
 │   │   │   └── CalendarView.jsx (20 lines)
@@ -443,20 +443,142 @@ frontend/src/
 - **Icons**: Lucide React
 - **Notifications**: React Toastify
 
+## Recent Updates and Improvements
+
+### Recent Updates and Improvements
+
+## Recent Updates and Improvements
+
+### ⚠️ CRITICAL: Frontend File Naming Issues Identified (January 2026)
+
+**🔴 HIGH-PRIORITY DUPLICATES - MUST FIX:**
+
+#### 1. DetailModal.jsx - REAL DUPLICATE ❌
+- `shared/components/DetailModal.jsx`
+- `shared/ui/DetailModal.jsx`
+- **Problem**: Same exact name, different folders, import confusion guaranteed
+- **Fix Required**: Rename by responsibility:
+  - `shared/components/EntityDetailModal.jsx` (feature-specific)
+  - `shared/ui/DetailModal.jsx` (keep as base UI component)
+
+#### 2. EmptyState.jsx - REAL DUPLICATE ❌
+- `shared/components/EmptyState.jsx`
+- `shared/ui/EmptyState.jsx`
+- **Problem**: Same exact name, different folders, import confusion guaranteed
+- **Fix Required**: Rename by responsibility:
+  - `shared/components/FeatureEmptyState.jsx` (feature-specific)
+  - `shared/ui/EmptyState.jsx` (keep as base UI component)
+
+#### 3. Dashboard Files - CONFUSING OVERLAP ⚠️
+- `modules/employee/pages/Dashboard/Dashboard.jsx`
+- `modules/employee/pages/Dashboard/EmployeeDashboard.jsx`
+- **Problem**: One dashboard folder has two dashboard files, unclear responsibility
+- **Fix Required**: Keep only `EmployeeDashboard.jsx`, remove or rename the wrapper
+
+**🟡 SOFT OVERLAPS - WATCH CLOSELY:**
+
+#### 4. Calendar View Explosion ⚠️
+- `modules/calendar/components/UnifiedCalendarView.jsx`
+- `modules/calendar/pages/CalendarView.jsx`
+- `modules/calendar/employee/EmployeeCalendarView.jsx`
+- **Problem**: Three files with "Calendar + View", names don't explain scope
+- **Suggested**: Rename for clarity of purpose and audience
+
+#### 5. Employee vs Employees Module Confusion ⚠️
+- `modules/employee/` (self-service)
+- `modules/employees/` (admin management)
+- **Problem**: Singular vs plural is dangerous for future developers
+- **Suggested**: Consider renaming to `employeeSelf/` and `employeeAdmin/`
+
+### ✅ **CLEANUP COMPLETED (January 2026)**
+
+**Duplicate Files Analysis Results:**
+- ❌ **2 "duplicates" were actually different implementations** - DetailModal.jsx and EmptyState.jsx serve different purposes (feature-rich vs basic components)
+- ✅ **12 unnecessary files deleted** - Removed test files, debug scripts, and unused test components
+- ✅ **Architecture preserved** - Maintained important UI/Components separation pattern
+- ✅ **Zero breaking changes** - All production functionality intact
+
+**Key Insight**: Files with similar names in `/shared/ui` vs `/shared/components` are intentionally different - UI components are basic building blocks, Components are feature-rich implementations.
+
+See `DUPLICATE_FILES_CLEANUP_SUMMARY.md` for detailed analysis.
+
+### New Features Added
+- **Email Notification Integration**: Frontend components now work seamlessly with backend email notification system
+- **Enhanced Monthly Attendance Calendar**: Fixed critical data loading issues with robust API response handling
+- **Smart Calendar Integration**: Complete integration with backend working rules system for accurate day status detection
+- **Responsive Attendance Summary**: Enhanced with real calendar data from smart calendar service and responsive design
+- **Working Rule Management**: Complete CRUD interface with isActive field support and proper form validation
+- **List-Style Week View**: Converted from card layout to comprehensive list layout with enhanced event presentation
+- **Cross-Month Calendar Support**: Enhanced calendar components to handle date ranges spanning multiple months
+- **Real-Time Calendar Updates**: Improved calendar data fetching with proper caching and error handling
+- **Minutes to Hours:Minutes Formatting**: All minute displays now show as "Xh Xm" format (e.g., 67 minutes → "1h 7m")
+
+### Critical Bug Fixes
+- **Minutes Formatting**: Fixed all minute displays in EnhancedClockInOut.jsx to use "Xh Xm" format instead of raw minutes
+- **Attendance API Response Mismatch**: Fixed frontend data extraction to handle backend controller response structure properly
+- **Calendar Data Key Mismatch**: Fixed date string vs day number key mapping in calendar data processing
+- **Weekend Detection System**: Enhanced to use smart calendar service for accurate working rule-based weekend detection
+- **Working Rule Form**: Added missing isActive checkbox field with proper state management
+- **Calendar Event Processing**: Improved event date parsing and cross-month event handling
+- **Responsive Design Issues**: Fixed mobile and tablet layout issues across attendance and calendar modules
+
+### Enhanced Components
+- **EnhancedClockInOut**: Enhanced with formatDuration utility for consistent "Xh Xm" time formatting across all displays
+- **MonthlyAttendanceCalendar**: Robust data loading with fallback mechanisms and proper error handling
+- **AttendanceSummary**: Real calendar data integration with responsive grid system and calendar overview cards
+- **WeekView**: Complete redesign from card to list layout with comprehensive event display and smart calendar integration
+- **WorkingRuleForm**: Added isActive field support with proper form validation and state management
+- **Smart Calendar Components**: Enhanced cross-month support and improved data fetching strategies
+- **Calendar Navigation**: Improved month/year navigation with proper data refresh and state management
+
+### Improved Services
+- **Smart Calendar Service**: Enhanced monthly calendar API calls with better error handling and data processing
+- **Attendance Service**: Improved API response handling with robust data extraction and fallback mechanisms
+- **Calendar Service**: Enhanced event processing and cross-month data management
+- **Employee Calendar Service**: Better integration with smart calendar system for accurate day status detection
+
+### UI/UX Improvements
+- **Responsive Design**: Applied comprehensive responsive grid systems across attendance and calendar modules
+- **Loading States**: Enhanced loading indicators and skeleton loaders for better user experience
+- **Error Handling**: Improved error messages and fallback UI states for failed API calls
+- **Calendar Visualization**: Better event presentation with color coding and comprehensive information display
+- **Form Validation**: Enhanced form validation with better error messaging and user feedback
+
+### Performance Optimizations
+- **Calendar Data Caching**: Implemented smart caching strategies for calendar data across components
+- **Cross-Month Fetching**: Optimized API calls for date ranges spanning multiple months
+- **Event Processing**: Improved event filtering and date parsing performance
+- **Component Re-rendering**: Reduced unnecessary re-renders with better state management and memoization
+
 ## Key Features
 
 - **Role-Based Access Control (RBAC)**
-- **Responsive Design**
-- **Real-time Notifications**
-- **Advanced Calendar System**
-- **Employee Self-Service Portal**
-- **Admin Management Dashboard**
-- **Attendance Tracking**
-- **Leave Management**
-- **Multi-step Forms**
-- **Data Visualization**
-- **File Upload/Management**
-- **Audit Trail Viewing**
+- **Responsive Design with Mobile-First Approach**
+- **Real-time Notifications with SSE Integration**
+- **Email Notification System Integration** ✅ NEW
+- **Advanced Calendar System with Smart Working Rules**
+- **Employee Self-Service Portal with Enhanced UX**
+- **Admin Management Dashboard with Live Data**
+- **Attendance Tracking with Smart Calendar Integration**
+- **Leave Management with Balance Calculations**
+- **Multi-step Forms with Validation**
+- **Data Visualization with Interactive Charts**
+- **File Upload/Management with Progress Tracking**
+- **Audit Trail Viewing with Filtering**
+- **Cross-Month Calendar Support**
+- **Working Rule Management Interface**
+- **Enhanced Monthly Attendance Calendar**
+- **Smart Weekend/Holiday Detection**
+- **Professional Time Formatting (Xh Xm)** ✅ NEW
+
+## ⚠️ CRITICAL ACTION REQUIRED
+
+**File Naming Issues Identified**: See `FRONTEND_FILE_NAMING_ISSUES.md` for detailed analysis of duplicate files and naming conflicts that must be resolved to prevent import confusion and developer errors.
+
+**Priority Issues:**
+- 2 real duplicate file names (DetailModal.jsx, EmptyState.jsx)
+- Multiple naming overlaps causing confusion
+- Import conflicts that will cause bugs
 
 ## Development Patterns
 

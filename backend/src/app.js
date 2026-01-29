@@ -30,7 +30,7 @@ import adminLeaveRoutes from "./routes/admin/leaveRequest.routes.js";
 import adminHolidayRoutes from "./routes/admin/holiday.routes.js";
 import adminDashboardRoutes from "./routes/admin/adminDashboard.routes.js";
 import adminAttendanceRoutes from "./routes/admin/adminAttendance.routes.js";
-import attendanceCorrectionRoutes from "./routes/admin/attendanceCorrection.routes.js";
+import attendanceCorrectionRoutes from "./routes/admin/attendanceCorrections.routes.js";
 import leadRoutes from "./routes/admin/lead.routes.js";
 import shiftRoutes from "./routes/admin/shift.routes.js";
 import departmentRoutes from "./routes/admin/department.routes.js";
@@ -51,6 +51,7 @@ import calendarificRoutes from "./routes/admin/calendarific.routes.js";
 import holidaySelectionTemplateRoutes from "./routes/admin/holidaySelectionTemplate.routes.js";
 import attendanceFinalizationRoutes from "./routes/admin/attendanceFinalization.routes.js";
 import adminConfigRoutes from "./routes/admin/adminConfig.routes.js";
+import emailConfigRoutes from "./routes/admin/emailConfig.routes.js";
 
 // HRM Modules
 import calendarRoutes from "./routes/calendar.routes.js";
@@ -182,6 +183,7 @@ app.use("/api/admin/calendarific", calendarificRoutes);
 app.use("/api/admin/holiday-templates", holidaySelectionTemplateRoutes);
 app.use("/api/admin/attendance-finalization", attendanceFinalizationRoutes);
 app.use("/api/admin/config", adminConfigRoutes);
+app.use("/api/admin/email", emailConfigRoutes);
 
 // AUTH SECTION
 app.use("/api/auth", authRoutes);

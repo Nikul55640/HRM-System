@@ -173,30 +173,13 @@ class CalendarDataFetcherService {
      */
     static async fetchLeaveRequests(startDate, endDate, user, employeeId = null) {
         try {
-            const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(user.role);
-            const isManager = user.role === 'Manager';
-
             const leaveFilters = {
                 ...this.buildDateRangeFilter(startDate, endDate),
                 status: 'approved'
             };
 
-            // Apply role-based filtering
-            if (!isHROrAdmin) {
-                if (isManager) {
-                    // Managers can see their team's leaves
-                    const teamEmployees = await Employee.findAll({
-                        where: { reportingManager: user.id },
-                        attributes: ['id']
-                    });
-                    const teamIds = teamEmployees.map(emp => emp.id);
-                    teamIds.push(user.employee?.id);
-                    leaveFilters.employeeId = { [Op.in]: teamIds };
-                } else {
-                    // Regular employees see only their own leaves
-                    leaveFilters.employeeId = user.employee?.id;
-                }
-            }
+            // 🔧 FIX: Remove role-based filtering - ALL users can see ALL approved leaves
+            // This allows everyone to see who is on leave for better team coordination
 
             // Apply specific employee filter if provided
             if (employeeId) {
@@ -208,7 +191,8 @@ class CalendarDataFetcherService {
                 include: [{
                     model: Employee,
                     as: 'employee',
-                    attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department']
+                    attributes: ['id', 'employeeId', 'firstName', 'lastName', 'department'],
+                    required: true // Ensure we only get leaves with valid employee data
                 }],
                 order: [['startDate', 'ASC']]
             });

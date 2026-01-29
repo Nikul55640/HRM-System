@@ -46,6 +46,9 @@ const UserManagement = lazy(() => import("../modules/organization/admin/UserMana
 const SystemConfig = lazy(() => import("../modules/organization/admin/SystemConfig"));
 const AdminSettingsPage = lazy(() => import("../modules/admin/pages/Settings/AdminSettingsPage"));
 
+// Email Testing - SuperAdmin only
+const EmailTestingPage = lazy(() => import("../modules/admin/pages/EmailTesting/EmailTestingPage"));
+
 export const adminRoutes = [
   // Employee Management - HR can view and edit, but not delete
   { path: "/admin/employees", element: <EmployeeList />, roles: ["SuperAdmin", "HR"] },
@@ -103,4 +106,5 @@ export const adminRoutes = [
   { path: "/admin/system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
   { path: "/admin/settings", element: <AdminSettingsPage />, roles: ["SuperAdmin"] },
   { path: "/admin/audit-logs", element: <AuditLogsPage />, roles: ["SuperAdmin"] },
+  { path: "/admin/email-testing", element: <EmailTestingPage />, roles: ["SuperAdmin"] },
 ];

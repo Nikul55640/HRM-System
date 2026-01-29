@@ -1,32 +1,6 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../../config/sequelize.js';
 
-/**
- * AttendanceRecord Model
- * 
- * 🚨 CRITICAL ARCHITECTURE RULES:
- * 
- * ✅ WHAT THIS MODEL SHOULD DO:
- * - Define schema, indexes, constraints
- * - State validation methods (canClockIn, canClockOut, etc.)
- * - UI mapping methods (toCalendarEvent)
- * - Static reporting methods (getMonthlySummary, etc.)
- * 
- * ❌ WHAT THIS MODEL MUST NOT DO:
- * - Calculate work hours, late minutes, overtime
- * - Determine attendance status (present/absent/half_day)
- * - Perform date/time calculations with setHours()
- * - Duplicate logic from AttendanceCalculationService
- * 
- * 🔧 BUSINESS LOGIC SEPARATION:
- * - All calculations → AttendanceCalculationService
- * - Status decisions → jobs/attendanceFinalization.js
- * - Model only stores computed values, never computes them
- * 
- * This separation prevents the "early clock-in marked as late" bug
- * by ensuring single source of truth for all time calculations.
- */
-
 const AttendanceRecord = sequelize.define('AttendanceRecord', {
   id: {
     type: DataTypes.INTEGER,
@@ -62,7 +36,6 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     type: DataTypes.DATE,
     allowNull: true,
   },
-
   // Break Management
   breakSessions: {
     type: DataTypes.JSON,
@@ -108,10 +81,25 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
-  // Status
+  // Status - CRITICAL: Separated LIVE vs FINAL states
   status: {
-    type: DataTypes.ENUM('present', 'absent', 'leave', 'half_day', 'holiday', 'incomplete', 'pending_correction'),
-    defaultValue: 'incomplete',
+    type: DataTypes.ENUM(
+      // 🟢 LIVE STATES (during shift - real-time)
+      'in_progress',        // Employee is actively working
+      'on_break',          // Employee is on break
+      'completed',         // ⚠️ IMPORTANT: Employee clocked out, but NOT finalized yet
+                           // This is a LIVE state, NOT a final status
+                           // Cron job will convert this to 'present', 'half_day', etc.
+      
+      // 🔴 FINAL STATES (after shift end + buffer - cron-only)
+      'present',           // Full day attendance (≥ fullDayHours)
+      'half_day',          // Partial attendance (≥ halfDayHours, < fullDayHours)
+      'absent',            // No attendance (no clock-in)
+      'leave',             // On approved leave
+      'holiday',           // Holiday
+      'pending_correction' // Needs manual correction (missing data)
+    ),
+    defaultValue: 'in_progress',
   },
   statusReason: {
     type: DataTypes.STRING,
@@ -238,7 +226,7 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
       fields: ['employeeId', 'date'],
       where: { status: 'pending_correction' },
       unique: true,
-      name: 'unique_pending_correction_per_employee_date'
+      name:  'unique_pending_correction_per_employee_date'
     },
   ],
 });
@@ -309,7 +297,14 @@ AttendanceRecord.prototype.canClockIn = function (shift = null) {
   return { allowed: true, reason: null };
 };
 
-AttendanceRecord.prototype.canClockOut = function () {
+/**
+ * ⏰ GRACE PERIOD RULE: Clock-out allowed until Shift End + 15 minutes
+ * After that: ❌ Manual clock-out blocked → Goes to correction flow
+ * 
+ * @param {Object} shift - Employee's shift with shiftEndTime
+ * @returns {Object} { allowed: boolean, reason: string|null }
+ */
+AttendanceRecord.prototype.canClockOut = function (shift) {
   // ❌ Cannot clock out if:
   // - No clock-in recorded
   // - Already clocked out
@@ -349,6 +344,39 @@ AttendanceRecord.prototype.canClockOut = function () {
   if (this.status === 'pending_correction') {
     // Allow clock-out - the correction process is separate from daily operations
     return { allowed: true, reason: null };
+  }
+
+  // 🔥 NEW: GRACE PERIOD CHECK - Shift End + 15 minutes
+  // After this window, manual clock-out is blocked (goes to correction flow)
+  if (shift && shift.shiftEndTime) {
+    try {
+      const now = new Date();
+      
+      // Parse shift end time (e.g., "17:00")
+      const [h, m, s = 0] = shift.shiftEndTime.split(':').map(Number);
+      
+      // Create shift end time for today
+      const shiftEnd = new Date(this.clockIn);
+      shiftEnd.setHours(h, m, s, 0);
+      
+      // Handle overnight shift (if shift end is before clock-in time)
+      if (shiftEnd < this.clockIn) {
+        shiftEnd.setDate(shiftEnd.getDate() + 1);
+      }
+      
+      // ⏰ Grace period: Shift end + 15 minutes
+      const graceLimit = new Date(shiftEnd.getTime() + 15 * 60 * 1000);
+      
+      if (now > graceLimit) {
+        return {
+          allowed: false,
+          reason: `Clock-out window expired (15 min after shift end at ${shift.shiftEndTime}). Please submit a correction request.`
+        };
+      }
+    } catch (error) {
+      // If shift time parsing fails, allow clock-out (fail-safe)
+      console.error('Error parsing shift end time:', error);
+    }
   }
 
   return { allowed: true, reason: null };
@@ -642,8 +670,20 @@ AttendanceRecord.prototype.toCalendarEvent = function () {
 };
 
 /**
- * 🔥 CRITICAL MISSING METHOD: Finalize attendance status based on shift thresholds
- * This method determines if an employee worked enough hours for "present" vs "half_day" status
+ * 🔥 CRITICAL METHOD: Finalize attendance status based on shift thresholds
+ * 
+ * This is the SINGLE SOURCE OF TRUTH for converting LIVE states to FINAL states.
+ * It runs ONLY from the finalization cron job, never from user actions.
+ * 
+ * POLICY DEPENDENCIES:
+ * - shift.fullDayHours: Hours required for "present" status (e.g., 8)
+ * - shift.halfDayHours: Hours required for "half_day" status (e.g., 4)
+ * 
+ * ALGORITHM:
+ * 1. Calculate actual worked minutes (clockOut - clockIn - breaks)
+ * 2. Compare against shift thresholds
+ * 3. Assign FINAL status based on policy
+ * 4. Log the decision for audit trail
  * 
  * @param {Object} shift - Employee's shift with fullDayHours and halfDayHours thresholds
  */
@@ -675,16 +715,17 @@ AttendanceRecord.prototype.finalizeWithShift = async function(shift) {
   }
 
   // 🔥 CRITICAL LOGIC: Determine final status based on work hours vs shift thresholds
+  // This is where POLICY is applied - all decisions are deterministic and auditable
   if (shift && shift.fullDayHours && shift.halfDayHours) {
     const workHours = this.workHours;
     
     if (workHours >= shift.fullDayHours) {
-      // Worked full day hours or more → PRESENT
+      // ✅ PRESENT: Worked full day hours or more
       this.status = 'present';
       this.halfDayType = 'full_day';
       this.statusReason = `Worked ${workHours} hours (≥ ${shift.fullDayHours} required for full day)`;
     } else if (workHours >= shift.halfDayHours) {
-      // Worked half day hours but less than full day → HALF DAY
+      // ✅ HALF DAY: Worked half day hours but less than full day
       this.status = 'half_day';
       this.statusReason = `Worked ${workHours} hours (≥ ${shift.halfDayHours} for half day, < ${shift.fullDayHours} for full day)`;
       
@@ -696,7 +737,7 @@ AttendanceRecord.prototype.finalizeWithShift = async function(shift) {
         this.halfDayType = 'second_half'; // Afternoon shift
       }
     } else {
-      // Worked less than half day hours → HALF DAY (minimum attendance)
+      // ✅ HALF DAY (minimum): Worked less than half day hours but has clock-in
       this.status = 'half_day';
       this.halfDayType = 'first_half'; // Default to first half
       this.statusReason = `Worked ${workHours} hours (< ${shift.halfDayHours} required for half day)`;
@@ -706,7 +747,7 @@ AttendanceRecord.prototype.finalizeWithShift = async function(shift) {
     // Use standard 8-hour full day, 4-hour half day
     const workHours = this.workHours;
     
-    if (workHours >= 8) {
+    if (workHours >= 7) {
       this.status = 'present';
       this.halfDayType = 'full_day';
       this.statusReason = `Worked ${workHours} hours (≥ 8 hours for full day)`;

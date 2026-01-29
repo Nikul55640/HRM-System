@@ -39,14 +39,15 @@ export const getSmartMonthlyCalendar = async (req, res) => {
     });
 
     // Get all events for the month using centralized data fetcher
+    // 🔧 FIX: Don't fetch leaves separately - use only AttendancePolicyService data
     const fetchedCalendarData = await CalendarDataFetcherService.fetchAllCalendarData(
       startDate, 
       endDate, 
       req.user, 
-      { departmentId, employeeId: targetEmployeeId }
+      { departmentId, employeeId: targetEmployeeId, includeLeaves: false }
     );
 
-    const { holidays, events, leaves, birthdays, anniversaries } = fetchedCalendarData;
+    const { holidays, events, birthdays, anniversaries } = fetchedCalendarData;
 
     // Build calendar data with smart day evaluation
     const calendarData = {};
@@ -65,7 +66,7 @@ export const getSmartMonthlyCalendar = async (req, res) => {
         isHoliday: dayStatus.status === 'HOLIDAY',
         events: dayEvents,
         holiday: dayStatus.holiday || null,
-        leave: dayStatus.leave || null,
+        leave: dayStatus.leave || null, // This comes from AttendancePolicyService with correct employee data
         birthdays: birthdays.filter(b => 
           isEventOnDate({ startDate: b.date }, new Date(dayStatus.date))
         ),
@@ -75,45 +76,7 @@ export const getSmartMonthlyCalendar = async (req, res) => {
       };
     });
 
-    // 🔧 FIX: Add global leaves for ALL users (both admin and employees)
-    if (leaves.length > 0) {
-      leaves.forEach(leave => {
-        // Process each day of the leave period
-        let currentDate = new Date(leave.startDate);
-        const endDate = new Date(leave.endDate);
-        
-        while (currentDate <= endDate) {
-          const dateKey = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD format
-          
-          if (calendarData[dateKey]) {
-            // Initialize leaves array if it doesn't exist
-            if (!calendarData[dateKey].leaves) {
-              calendarData[dateKey].leaves = [];
-            }
-            
-            // Add leave with employee information
-            calendarData[dateKey].leaves.push({
-              id: leave.id,
-              employeeId: leave.employee?.id || leave.employeeId,
-              employeeName: leave.employee ? `${leave.employee.firstName} ${leave.employee.lastName}` : 'Unknown Employee',
-              employeeCode: leave.employee?.employeeId || '',
-              leaveType: leave.leaveType,
-              status: leave.status,
-              isHalfDay: leave.isHalfDay,
-              halfDayPeriod: leave.halfDayPeriod,
-              reason: leave.reason,
-              startDate: leave.startDate,
-              endDate: leave.endDate,
-              eventType: 'leave',
-              color: '#f97316' // Orange color for leaves
-            });
-          }
-          
-          // Move to next day
-          currentDate.setDate(currentDate.getDate() + 1);
-        }
-      });
-    }
+    // 🔧 REMOVED: No longer adding duplicate leaves array - use only the 'leave' property from AttendancePolicyService
 
     res.json({
       success: true,
@@ -367,7 +330,8 @@ async function getLeavesForMonth(startDate, endDate, user, employeeId) {
     include: [{
       model: Employee,
       as: 'employee', // Add the alias here
-      attributes: ['firstName', 'lastName', 'employeeId']
+      attributes: ['id', 'firstName', 'lastName', 'employeeId'],
+      required: true // Ensure we only get leaves with valid employee data
     }],
     order: [['startDate', 'ASC']]
   });

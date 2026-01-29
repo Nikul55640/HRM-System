@@ -1,6 +1,6 @@
 import express from "express";
 import { authenticate } from "../../middleware/authenticate.js";
-import employeeCalendarController from "../../controllers/employee/employeeCalendar.controller.js";
+import employeeCalendarController from "../../controllers/employee/myCalendar.controller.js";
 
 const router = express.Router();
 

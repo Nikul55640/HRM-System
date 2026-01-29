@@ -3,7 +3,7 @@ import { authenticate } from "../../middleware/authenticate.js";
 import { checkPermission, checkAnyPermission } from "../../middleware/checkPermission.js";
 import { MODULES } from "../../config/rolePermissions.js";
 
-import leaveRequestController from "../../controllers/admin/leaveRequest.controller.js";
+import leaveRequestController from "../../controllers/admin/leaveApproval.controller.js";
 import leaveBalanceController from "../../controllers/admin/leaveBalance.controller.js";
 
 const router = express.Router();

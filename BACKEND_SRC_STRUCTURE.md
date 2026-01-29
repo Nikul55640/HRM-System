@@ -5,7 +5,7 @@ This document outlines the complete structure of the HRM System backend source c
 
 ```
 backend/src/
-├── app.js                          # Express app configuration
+├── app.js                          # Express app configuration (✅ ENHANCED: Email routes added)
 ├── server.js                       # Server entry point
 ├── config/                         # Configuration files
 │   ├── index.js                   # Main config exports
@@ -20,22 +20,23 @@ backend/src/
 │   ├── admin/                     # Admin-specific controllers
 │   │   ├── adminConfig.controller.js
 │   │   ├── adminDashboard.controller.js
-│   │   ├── attendance.controller.js
-│   │   ├── attendanceCorrection.controller.js
+│   │   ├── attendanceManagement.controller.js  # ✅ RENAMED: Was attendance.controller.js - clearer responsibility
+│   │   ├── attendanceCorrections.controller.js  # ✅ RENAMED: Was attendanceCorrection.controller.js - consistent naming
 │   │   ├── attendanceFinalization.controller.js
 │   │   ├── auditLog.controller.js
 │   │   ├── calendarific.controller.js
 │   │   ├── companyEvent.controller.js
 │   │   ├── department.controller.js
+│   │   ├── emailConfig.controller.js  # ✅ NEW: Email configuration and testing
 │   │   ├── employee.controller.js
 │   │   ├── employeeManagement.controller.js
 │   │   ├── employeeShift.controller.js
 │   │   ├── holiday.controller.js
 │   │   ├── holidaySelectionTemplate.controller.js  # ✅ NEW: Holiday template system
 │   │   ├── lead.controller.js
+│   │   ├── leaveApproval.controller.js  # ✅ RENAMED: Was leaveRequest.controller.js - clearer responsibility
 │   │   ├── leaveBalance.controller.js
 │   │   ├── leaveBalanceRollover.controller.js
-│   │   ├── leaveRequest.controller.js
 │   │   ├── liveAttendance.controller.js
 │   │   ├── settings.controller.js
 │   │   ├── shift.controller.js
@@ -46,22 +47,22 @@ backend/src/
 │   │   ├── calendarView.controller.js
 │   │   └── smartCalendar.controller.js
 │   └── employee/                  # Employee-specific controllers
-│       ├── attendance.controller.js
+│       ├── attendanceSelf.controller.js  # ✅ RENAMED: Was attendance.controller.js - clearer responsibility
 │       ├── attendanceCorrectionRequests.controller.js
 │       ├── bankDetails.controller.js
 │       ├── companyStatus.controller.js
-│       ├── dashboard.controller.js
 │       ├── emergencyContacts.controller.js
-│       ├── employeeCalendar.controller.js
-│       ├── leave.controller.js
+│       ├── employeeDashboard.controller.js  # ✅ RENAMED: Was dashboard.controller.js - consistent naming
+│       ├── leaveOverview.controller.js  # ✅ RENAMED: Was leave.controller.js - clearer responsibility
 │       ├── leaveRequest.controller.js
+│       ├── myCalendar.controller.js  # ✅ RENAMED: Was employeeCalendar.controller.js - clearer responsibility
 │       ├── notifications.controller.js
 │       ├── profile.controller.js
 │       ├── recentActivity.controller.js
 │       └── shift.controller.js
 ├── jobs/                          # Background jobs and cron tasks
 │   ├── attendanceAutoCorrection.js
-│   ├── attendanceFinalization.js
+│   ├── attendanceFinalization.js  # ✅ ENHANCED: Email notifications for auto-finalized attendance
 │   └── notificationCleanup.js
 ├── middleware/                    # Express middleware
 │   ├── attendanceValidation.js   # Attendance-specific validation
@@ -129,7 +130,7 @@ backend/src/
 │   │   ├── adminAttendance.routes.js
 │   │   ├── adminConfig.routes.js
 │   │   ├── adminDashboard.routes.js
-│   │   ├── attendanceCorrection.routes.js
+│   │   ├── attendanceCorrections.routes.js  # ✅ RENAMED: Was attendanceCorrection.routes.js - consistent naming
 │   │   ├── attendanceFinalization.routes.js
 │   │   ├── attendanceStatus.routes.js
 │   │   ├── auditLog.routes.js
@@ -138,6 +139,7 @@ backend/src/
 │   │   ├── companyEvent.routes.js
 │   │   ├── department.routes.js
 │   │   ├── designation.routes.js
+│   │   ├── emailConfig.routes.js         # ✅ NEW: Email configuration and testing routes
 │   │   ├── employee.routes.js
 │   │   ├── employeeManagement.routes.js
 │   │   ├── eventTypes.routes.js
@@ -161,9 +163,9 @@ backend/src/
 │       ├── attendanceCorrectionRequests.routes.js
 │       ├── bankDetails.routes.js
 │       ├── companyStatus.routes.js
-│       ├── dashboard.routes.js
 │       ├── emergencyContacts.routes.js
 │       ├── employeeCalendar.routes.js
+│       ├── employeeDashboard.routes.js  # ✅ RENAMED: Was dashboard.routes.js - consistent naming
 │       ├── leave.routes.js
 │       ├── notifications.routes.js
 │       ├── payslips.routes.js
@@ -174,8 +176,9 @@ backend/src/
 │   └── initialize-database.js
 ├── services/                      # Business logic services
 │   ├── index.js                  # Service exports
+│   ├── emailService.js           # ✅ NEW: Email notification service with SMTP integration
 │   ├── ip.service.js             # IP address utilities
-│   ├── notificationService.js    # Notification handling
+│   ├── notificationService.js    # Notification handling (✅ ENHANCED: Email integration)
 │   ├── user.service.js           # User management
 │   ├── admin/                    # Admin services
 │   │   ├── adminDashboard.service.js
@@ -187,8 +190,8 @@ backend/src/
 │   │   ├── holiday.service.js
 │   │   ├── holidaySelectionTemplate.service.js  # ✅ NEW: Holiday template service
 │   │   ├── lead.service.js
+│   │   ├── leaveApproval.service.js  # ✅ RENAMED: Was leaveRequest.service.js - clearer responsibility
 │   │   ├── leaveBalance.service.js
-│   │   ├── leaveRequest.service.js
 │   │   ├── shift.service.js
 │   │   └── systemPolicy.service.js
 │   ├── attendance/               # Attendance services
@@ -206,7 +209,7 @@ backend/src/
 │   │   └── leaveBalanceRollover.service.js
 │   ├── employee/                 # Employee services
 │   │   ├── dashboard.service.js
-│   │   ├── leave.service.js
+│   │   ├── leaveOverview.service.js  # ✅ RENAMED: Was leave.service.js - clearer responsibility
 │   │   ├── profile.service.js
 │   │   └── recentActivity.service.js
 │   └── external/                 # External API services
@@ -321,6 +324,8 @@ backend/src/
 - **Calendar Integration**
 - **Audit Logging**
 - **Real-time Notifications**
+- **Email Notification System** ✅ NEW
+- **Grace Period & Auto-Finalize** ✅ NEW
 - **File Upload Management**
 - **Smart Calendar System**
 - **Working Rules Engine**
@@ -330,27 +335,92 @@ backend/src/
 ## Recent Updates
 
 ### New Features Added
+- **File Structure Optimization**: Renamed controllers and services for clearer responsibility and reduced naming confusion
+- **Email Notification System**: Complete SMTP integration with professional HTML templates for HRM events
+- **Working Rules Engine**: Complete CRUD operations for working rules with date-based fallback logic
+- **Enhanced Smart Calendar System**: Improved weekend/working day detection with proper date handling
 - **Holiday Selection Template System**: Complete CRUD operations for holiday templates
 - **Optimized Calendarific Service**: Enhanced external API integration with caching
 - **Festival Keywords**: Added festival keyword definitions for better categorization
+- **Attendance Policy Service**: Enhanced with proper date-aware working rule resolution
+- **Grace Period & Auto-Finalize**: Implemented 15-minute grace period and 30-minute auto-finalize with email notifications
+
+### Critical Bug Fixes
+- **Email Service Integration**: Fixed nodemailer typo (createTransporter → createTransport) for proper SMTP functionality
+- **Working Rule Date Resolution**: Fixed AttendancePolicyService to use correct target dates when determining working rules instead of current date
+- **Weekend Detection**: Enhanced DateCalculationService with intelligent fallback for expired working rules and proper date-specific resolution
+- **Calendar Data Consistency**: Fixed Smart Calendar API to properly reflect custom working rules across different time periods
+- **Monthly Attendance Calendar**: Fixed data loading issues with proper API response handling and calendar data key mapping
+- **Cross-Month Calendar Support**: Enhanced calendar components to handle date ranges spanning multiple months
+- **Attendance Summary Integration**: Fixed smart calendar service integration for accurate working day calculations
+- **Grace Period Implementation**: Added canClockOut method to AttendanceRecord model with proper shift validation
 
 ### New Migrations Added
 - `create-holiday-selection-templates.js` - Holiday template system database schema
+- `create-working-rules.js` - Working rules system with date-based logic
 - Enhanced existing migrations for better data integrity
 
 ### Enhanced Services
-- **Holiday Template Service**: Full business logic for template management
-- **Optimized Calendarific Service**: Improved performance and error handling
-- **Enhanced Calendar Data Fetcher**: Better data processing and normalization
+- **EmailService**: Complete SMTP integration with nodemailer, professional HTML templates, and 8 HRM-specific email types
+- **NotificationService**: Enhanced with email integration for automatic email sending alongside in-app notifications
+- **DateCalculationService**: Added intelligent fallback logic for expired working rules with proper date-aware resolution
+- **AttendancePolicyService**: Fixed critical bug to use target date for working rule resolution instead of current date
+- **Holiday Template Service**: Complete business logic for template management with CRUD operations
+- **Optimized Calendarific Service**: Improved performance, caching, and error handling for external API calls
+- **Enhanced Calendar Data Fetcher**: Better data processing, normalization, and cross-month support
+- **Smart Calendar Service**: Enhanced monthly calendar generation with proper working rule integration
+- **Attendance Calculation Service**: Improved weekend/working day detection with date-specific rule resolution
+- **Attendance Finalization Service**: Enhanced with email notifications for auto-finalized attendance records
 
 ### Updated Routes
+- **Email Configuration Routes**: Complete REST API for email testing, status checking, and notification management
+- **Working Rules Routes**: Complete REST API for working rule management
 - **Holiday Selection Template Routes**: Complete REST API for template management
 - **Enhanced Admin Routes**: Improved route organization and middleware
 
 ### Enhanced Models
+- **AttendanceRecord Model**: Enhanced with canClockOut method for grace period validation and shift-aware clock-out restrictions
+- **WorkingRule Model**: Enhanced with date-based validation and fallback logic
 - **HolidaySelectionTemplate Model**: New model for template system
 - **Enhanced Holiday Model**: Better integration with template system
+
+### File Structure Optimization (January 2026)
+To eliminate naming confusion and improve developer experience, the following files were renamed for clearer responsibility:
+
+#### Controllers Renamed
+**Admin Controllers:**
+- `attendance.controller.js` → `attendanceManagement.controller.js` (clearer admin responsibility)
+- `attendanceCorrection.controller.js` → `attendanceCorrections.controller.js` (consistent plural naming)
+- `leaveRequest.controller.js` → `leaveApproval.controller.js` (clearer admin approval responsibility)
+
+**Employee Controllers:**
+- `attendance.controller.js` → `attendanceSelf.controller.js` (clearer employee self-service)
+- `leave.controller.js` → `leaveOverview.controller.js` (clearer overview vs request distinction)
+- `employeeCalendar.controller.js` → `myCalendar.controller.js` (clearer personal calendar)
+- `dashboard.controller.js` → `employeeDashboard.controller.js` (consistent naming with admin)
+
+#### Routes Renamed
+**Admin Routes:**
+- `attendanceCorrection.routes.js` → `attendanceCorrections.routes.js` (consistent with controller)
+
+**Employee Routes:**
+- `dashboard.routes.js` → `employeeDashboard.routes.js` (consistent with controller)
+
+#### Services Renamed
+**Admin Services:**
+- `leaveRequest.service.js` → `leaveApproval.service.js` (clearer admin approval responsibility)
+
+**Employee Services:**
+- `leave.service.js` → `leaveOverview.service.js` (clearer overview vs request distinction)
+
+#### Benefits of Renaming
+- **Eliminated Confusion**: No more guessing which "attendance.controller.js" to use
+- **Clear Responsibilities**: File names now clearly indicate their purpose and audience
+- **Consistent Naming**: Uniform naming patterns across admin/employee boundaries
+- **Future-Proof**: Prevents accidental duplicate creation by new developers
+- **Better Organization**: Logical grouping by functionality and user type
 
 ### Enhanced Utilities
 - **Festival Keywords**: Better holiday categorization
 - **Enhanced Calendar Event Normalizer**: Improved event processing
+- **Day Utils**: Enhanced day calculation utilities for working rules

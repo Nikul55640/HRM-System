@@ -315,8 +315,9 @@ export const useAttendance = () => {
       const result = await employeeSelfService.attendance.getRecords(params);
       console.log('⏰ [USE ATTENDANCE] Records API response:', result);
       
-      // Extract the data array from the response with multiple fallback patterns
-      const records = result?.data?.data || result?.data || (Array.isArray(result) ? result : []);
+      // 🔧 CRITICAL FIX: Handle the new response format
+      // Backend now returns: { success: true, data: [...], pagination: {...} }
+      const records = Array.isArray(result?.data) ? result.data : [];
       console.log('⏰ [USE ATTENDANCE] Extracted records:', records);
       
       setAttendanceRecords(records);

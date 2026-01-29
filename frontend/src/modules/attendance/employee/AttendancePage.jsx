@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useAttendance } from "../../../services/useEmployeeSelfService";
+import employeeCalendarService from "../../../services/employeeCalendarService";
 import AttendanceSummary from "./AttendanceSummary";
 import EnhancedClockInOut from "./EnhancedClockInOut";
 import SessionHistoryView from "./SessionHistoryView";
 import MonthlyAttendanceCalendar from "./MonthlyAttendanceCalendar";
-import ShiftStatusWidget from "../components/ShiftStatusWidget";
 import { 
   Download, 
   AlertTriangle, 
@@ -13,15 +13,10 @@ import {
   Calendar, 
   BarChart3, 
   History, 
-  Gift,
-  Settings,
-  TrendingUp,
-  Users,
-  Target,
-  Award
+  Gift
 } from "lucide-react";
 import { toast } from "react-toastify";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
+import { Card, CardContent } from "../../../shared/ui/card";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../shared/ui/tabs";
@@ -44,6 +39,8 @@ const AttendancePage = () => {
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [calendarData, setCalendarData] = useState({}); // 🔧 FIX: Add calendar data state
+  const [calendarLoading, setCalendarLoading] = useState(false);
   const [todayStats, setTodayStats] = useState({
     isLate: false,
     lateMinutes: 0,
@@ -58,11 +55,16 @@ const AttendancePage = () => {
       try {
         console.log('📊 [ATTENDANCE PAGE] Fetching data for:', { month: selectedMonth, year: selectedYear });
         
-        const records = await getAttendanceRecords({ month: selectedMonth, year: selectedYear });
-        console.log('📊 [ATTENDANCE PAGE] Records result:', records);
+        // 🔧 FIX: Fetch both attendance and calendar data in parallel
+        const [records, summary, calendarResponse] = await Promise.all([
+          getAttendanceRecords({ month: selectedMonth, year: selectedYear }),
+          getAttendanceSummary(selectedMonth, selectedYear),
+          fetchCalendarData(selectedMonth, selectedYear)
+        ]);
         
-        const summary = await getAttendanceSummary(selectedMonth, selectedYear);
+        console.log('📊 [ATTENDANCE PAGE] Records result:', records);
         console.log('📊 [ATTENDANCE PAGE] Summary result:', summary);
+        console.log('📊 [ATTENDANCE PAGE] Calendar result:', calendarResponse);
 
         // ✅ NEW: Check for today's attendance status including holidays
         if (records && Array.isArray(records)) {
@@ -104,6 +106,29 @@ const AttendancePage = () => {
     
     fetchData();
   }, [getAttendanceRecords, getAttendanceSummary, selectedMonth, selectedYear]);
+
+  // 🔧 FIX: Separate function to fetch calendar data
+  const fetchCalendarData = async (month, year) => {
+    setCalendarLoading(true);
+    try {
+      const calendarResponse = await employeeCalendarService.getMonthlyCalendar(year, month);
+      if (calendarResponse.success) {
+        console.log('📅 [ATTENDANCE PAGE] Calendar data loaded:', Object.keys(calendarResponse.calendar).length, 'days');
+        setCalendarData(calendarResponse.calendar || {});
+        return calendarResponse.calendar || {};
+      } else {
+        console.warn('📅 [ATTENDANCE PAGE] Calendar API returned unsuccessful response');
+        setCalendarData({});
+        return {};
+      }
+    } catch (error) {
+      console.error('📅 [ATTENDANCE PAGE] Error fetching calendar data:', error);
+      setCalendarData({});
+      return {};
+    } finally {
+      setCalendarLoading(false);
+    }
+  };
 
   const handleExport = async () => {
     try {
@@ -331,10 +356,14 @@ const AttendancePage = () => {
 
               <TabsContent value="analytics" className="space-y-4 mt-4">
                 <div className="space-y-4">
+                  {/* 🔧 FIX: Pass all required data as props - no more internal API calls */}
                   <MonthlyAttendanceCalendar 
                     attendanceRecords={attendanceRecords}
+                    calendarData={calendarData}
                     selectedMonth={selectedMonth}
                     selectedYear={selectedYear}
+                    loading={loading || calendarLoading}
+                    error={error}
                     onMonthChange={(month, year) => {
                       setSelectedMonth(month);
                       setSelectedYear(year);

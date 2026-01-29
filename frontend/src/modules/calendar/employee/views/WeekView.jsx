@@ -4,9 +4,10 @@ import smartCalendarService from '../../../../services/smartCalendarService';
 
 const WeekView = ({ date, events, onDateClick }) => {
   const [smartCalendarData, setSmartCalendarData] = useState({});
+  const [leaveData, setLeaveData] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Fetch smart calendar data for proper weekend detection
+  // Fetch smart calendar data for proper weekend detection and leave information
   useEffect(() => {
     const fetchSmartCalendarData = async () => {
       try {
@@ -31,6 +32,7 @@ const WeekView = ({ date, events, onDateClick }) => {
         
         // Fetch data for all required months
         const allCalendarData = {};
+        const allLeaveData = {};
         const fetchPromises = Array.from(monthsToFetch).map(async (monthKey) => {
           const [year, month] = monthKey.split('-').map(Number);
           try {
@@ -40,7 +42,27 @@ const WeekView = ({ date, events, onDateClick }) => {
             });
             
             if (response.success && response.data) {
-              Object.assign(allCalendarData, response.data.calendar || {});
+              const calendarData = response.data.calendar || {};
+              Object.assign(allCalendarData, calendarData);
+              
+              // Extract leave data from smart calendar response (using single leave property)
+              Object.entries(calendarData).forEach(([dateStr, dayData]) => {
+                // Only use single leave property (ignore leaves array)
+                if (dayData.leave) {
+                  console.log(`📅 [WEEK VIEW] Found leave data for ${dateStr}:`, dayData.leave);
+                  allLeaveData[dateStr] = [{
+                    employeeName: dayData.leave.employeeName || 'Unknown Employee',
+                    leaveType: dayData.leave.leaveType || 'Leave',
+                    status: dayData.leave.status || 'approved',
+                    startDate: dayData.leave.startDate || dateStr,
+                    endDate: dayData.leave.endDate || dateStr,
+                    reason: dayData.leave.reason || '',
+                    employeeId: dayData.leave.employeeId,
+                    isHalfDay: dayData.leave.isHalfDay,
+                    ...dayData.leave
+                  }];
+                }
+              });
             }
           } catch (error) {
             console.warn(`📅 [WEEK VIEW] Failed to fetch data for ${year}-${month}:`, error);
@@ -50,11 +72,17 @@ const WeekView = ({ date, events, onDateClick }) => {
         await Promise.all(fetchPromises);
         
         setSmartCalendarData(allCalendarData);
-        console.log('📅 [WEEK VIEW] Smart calendar data loaded for cross-month week detection');
+        setLeaveData(allLeaveData);
+        setLeaveData(allLeaveData);
+        console.log('📅 [WEEK VIEW] Smart calendar data loaded with leave information', {
+          calendarDays: Object.keys(allCalendarData).length,
+          leaveDays: Object.keys(allLeaveData).length
+        });
         
       } catch (error) {
         console.warn('📅 [WEEK VIEW] Smart calendar error, using fallback:', error);
         setSmartCalendarData({});
+        setLeaveData({});
       } finally {
         setLoading(false);
       }
@@ -92,17 +120,6 @@ const WeekView = ({ date, events, onDateClick }) => {
       status: isWeekend ? 'WEEKEND' : 'WORKING_DAY',
       reason: isWeekend ? 'Weekend day (fallback)' : 'Regular working day (fallback)'
     };
-  };
-  // Weekend detection helper (now uses smart calendar data)
-  const isWeekend = (day) => {
-    const dayStatus = getDayStatus(day);
-    return dayStatus.isWeekend;
-  };
-
-  // Holiday detection helper
-  const isHoliday = (day) => {
-    const dayStatus = getDayStatus(day);
-    return dayStatus.isHoliday;
   };
 
   // Get the start of the week (Sunday)
@@ -202,6 +219,11 @@ const WeekView = ({ date, events, onDateClick }) => {
           const dayEvents = getEventsForDate(day);
           const isTodayDate = isToday(day);
           const dayStatus = getDayStatus(day);
+          
+          // Get leave data for this day
+          const dateStr = day.toISOString().split('T')[0];
+          const dayLeaves = leaveData[dateStr] || [];
+          const totalItems = dayEvents.length + dayLeaves.length;
 
           return (
             <div
@@ -210,6 +232,8 @@ const WeekView = ({ date, events, onDateClick }) => {
               className={`border rounded-lg p-3 sm:p-4 cursor-pointer hover:shadow-md transition-all duration-200 ${
                 isTodayDate 
                   ? 'border-blue-500 bg-blue-50 shadow-sm' 
+                  : dayLeaves.length > 0
+                  ? 'border-orange-300 bg-orange-50'
                   : dayStatus.isHoliday
                   ? 'border-red-300 bg-red-50'
                   : dayStatus.isWeekend
@@ -248,7 +272,9 @@ const WeekView = ({ date, events, onDateClick }) => {
                     </div>
                     <div className="flex items-center gap-2 mt-1">
                       {/* Day Status Badge */}
-                      {dayStatus.isHoliday ? (
+                      {dayLeaves.length > 0 ? (
+                        <Badge className="bg-orange-100 text-orange-700 text-xs">On Leave</Badge>
+                      ) : dayStatus.isHoliday ? (
                         <Badge className="bg-red-100 text-red-700 text-xs">Holiday</Badge>
                       ) : dayStatus.isWeekend ? (
                         <Badge className="bg-gray-100 text-gray-600 text-xs">Weekend</Badge>
@@ -264,21 +290,57 @@ const WeekView = ({ date, events, onDateClick }) => {
                 </div>
 
                 {/* Event Count */}
-                {dayEvents.length > 0 && (
+                {totalItems > 0 && (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-500">
-                      {dayEvents.length} event{dayEvents.length !== 1 ? 's' : ''}
+                      {totalItems} item{totalItems !== 1 ? 's' : ''}
                     </span>
                     <div className="w-6 h-6 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xs font-medium">
-                      {dayEvents.length}
+                      {totalItems}
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Events List */}
-              {dayEvents.length > 0 ? (
+              {/* Events and Leaves List */}
+              {totalItems > 0 ? (
                 <div className="space-y-2">
+                  {/* Show leave information first */}
+                  {dayLeaves.map((leave, leaveIndex) => (
+                    <div
+                      key={`leave-${leaveIndex}`}
+                      className="flex items-center gap-3 p-2 rounded-md bg-orange-50 border border-orange-200"
+                    >
+                      {/* Leave Type Indicator */}
+                      <div className="w-3 h-3 rounded-full flex-shrink-0 bg-orange-500"></div>
+
+                      {/* Leave Details */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-orange-900 truncate">
+                            {leave.employeeName} - {leave.leaveType} Leave
+                          </span>
+                          <Badge className="text-xs bg-orange-100 text-orange-700">
+                            leave
+                          </Badge>
+                        </div>
+                        
+                        {/* Additional Leave Info */}
+                        {leave.reason && (
+                          <div className="text-xs text-orange-600 mt-1 truncate">
+                            {leave.reason}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Leave Status */}
+                      <div className="text-xs text-orange-600 flex-shrink-0">
+                        {leave.status || 'Approved'}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Show other events */}
                   {dayEvents.map((event, eventIndex) => (
                     <div
                       key={event._id || event.id || eventIndex}
@@ -338,7 +400,7 @@ const WeekView = ({ date, events, onDateClick }) => {
                 </div>
               ) : (
                 <div className="text-center py-4 text-gray-500 text-sm">
-                  No events scheduled
+                  No events or leaves scheduled
                 </div>
               )}
             </div>

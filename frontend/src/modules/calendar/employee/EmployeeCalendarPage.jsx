@@ -10,6 +10,8 @@ import {
 import EmployeeCalendarToolbar from "./EmployeeCalendarToolbar";
 import EmployeeCalendarView from "./EmployeeCalendarView";
 import DayEventsDrawer from "./DayEventsDrawer";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
+import { PlaneTakeoff, Users, Calendar as CalendarIcon, Loader2 } from "lucide-react";
 
 const EmployeeCalendarPage = () => {
   const [searchParams] = useSearchParams();
@@ -23,6 +25,12 @@ const EmployeeCalendarPage = () => {
   const [selectedDayEvents, setSelectedDayEvents] = useState([]);
   const [showDayEvents, setShowDayEvents] = useState(false);
   const [clickedDate, setClickedDate] = useState(null);
+  const [leaveStats, setLeaveStats] = useState({
+    todayOnLeave: [],
+    thisWeekOnLeave: [],
+    totalOnLeave: 0,
+    loading: true
+  });
 
   const fetchEvents = useCallback(async (startDate, endDate) => {
     setLoading(true);
@@ -84,19 +92,83 @@ const EmployeeCalendarPage = () => {
         });
         
         setEvents(sortedEvents);
+        
+        // ✅ NEW: Calculate leave statistics
+        calculateLeaveStats(sortedEvents);
       } else {
         console.warn("❌ [EMPLOYEE CALENDAR] API returned unsuccessful response:", response);
         toast.warning("Unable to load calendar events. Please try again.");
         setEvents([]);
+        setLeaveStats(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
       console.error("💥 [EMPLOYEE CALENDAR] Failed to fetch events:", error);
       toast.error("Failed to load calendar events. Please check your connection and try again.");
       setEvents([]);
+      setLeaveStats(prev => ({ ...prev, loading: false }));
     } finally {
       setLoading(false);
     }
   }, [viewMode]);
+
+  // ✅ NEW: Calculate leave statistics from events
+  const calculateLeaveStats = useCallback((events) => {
+    const today = new Date();
+    const todayStr = formatLocalDate(today);
+    
+    // Get start and end of current week
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - today.getDay());
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    
+    const leaveEvents = events.filter(event => event.eventType === "leave");
+    
+    // Today's leaves
+    const todayOnLeave = leaveEvents
+      .filter(event => event.startDate === todayStr)
+      .map(event => ({
+        name: event.employeeName || event.title,
+        leaveType: event.leaveType || "Leave",
+        department: event.department || "Unknown",
+        startDate: event.startDate,
+        endDate: event.endDate
+      }));
+    
+    // This week's leaves
+    const thisWeekOnLeave = leaveEvents
+      .filter(event => {
+        const eventDate = new Date(event.startDate);
+        return eventDate >= startOfWeek && eventDate <= endOfWeek;
+      })
+      .map(event => ({
+        name: event.employeeName || event.title,
+        leaveType: event.leaveType || "Leave",
+        department: event.department || "Unknown",
+        startDate: event.startDate,
+        endDate: event.endDate,
+        isToday: event.startDate === todayStr
+      }))
+      .sort((a, b) => {
+        // Sort by today first, then by date
+        if (a.isToday && !b.isToday) return -1;
+        if (!a.isToday && b.isToday) return 1;
+        return new Date(a.startDate) - new Date(b.startDate);
+      });
+    
+    setLeaveStats({
+      todayOnLeave,
+      thisWeekOnLeave,
+      totalOnLeave: leaveEvents.length,
+      loading: false
+    });
+    
+    console.log("🏖️ [EMPLOYEE CALENDAR] Leave stats calculated:", {
+      todayOnLeave: todayOnLeave.length,
+      thisWeekOnLeave: thisWeekOnLeave.length,
+      totalOnLeave: leaveEvents.length
+    });
+  }, []);
 
   const formatLocalDate = (date) => {
     const d = new Date(date);

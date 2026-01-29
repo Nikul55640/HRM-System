@@ -47,7 +47,7 @@ async function getEmployeeShiftForDate(employeeId, dateString) {
  * Returns true only if current time is past shift end + 30-minute buffer
  * This prevents marking absent too early
  */
-function hasShiftEnded(shiftEndTime, dateString, bufferMinutes = 15) {
+function hasShiftEnded(shiftEndTime, dateString, bufferMinutes = 30) {
   try {
     const now = new Date();
     const currentDateString = getLocalDateString(now);
@@ -80,13 +80,15 @@ function hasShiftEnded(shiftEndTime, dateString, bufferMinutes = 15) {
 async function sendAbsentNotification(employee, dateString, reason) {
   try {
     const notificationService = (await import('../services/notificationService.js')).default;
+    const resendEmailService = (await import('../services/resendEmailService.js')).default;
     
     // Get user ID from employee
     const employeeWithUser = await Employee.findByPk(employee.id, {
-      include: [{ model: User, as: 'user', attributes: ['id'] }]
+      include: [{ model: User, as: 'user', attributes: ['id', 'email'] }]
     });
     
     if (employeeWithUser?.user?.id) {
+      // Send notification with email
       await notificationService.sendToUser(employeeWithUser.user.id, {
         title: 'Attendance Marked as Absent',
         message: `Your attendance for ${dateString} was marked as absent. Reason: ${reason}. Please submit a correction request if this is incorrect.`,
@@ -97,7 +99,22 @@ async function sendAbsentNotification(employee, dateString, reason) {
           reason: reason,
           action: 'attendance_auto_absent'
         }
+      }, {
+        sendEmail: true,
+        emailData: {
+          date: dateString,
+          reason: reason
+        }
       });
+      
+      // 🔥 NEW: Also send email directly via Resend
+      if (employeeWithUser.user.email) {
+        await resendEmailService.sendAttendanceAbsentEmail(
+          employeeWithUser,
+          dateString,
+          reason
+        );
+      }
     }
   } catch (error) {
     logger.error(`Failed to send absent notification for employee ${employee.id}:`, error);
@@ -111,13 +128,15 @@ async function sendAbsentNotification(employee, dateString, reason) {
 async function sendCorrectionNotification(employee, dateString, reason) {
   try {
     const notificationService = (await import('../services/notificationService.js')).default;
+    const resendEmailService = (await import('../services/resendEmailService.js')).default;
     
     // Get user ID from employee
     const employeeWithUser = await Employee.findByPk(employee.id, {
-      include: [{ model: User, as: 'user', attributes: ['id'] }]
+      include: [{ model: User, as: 'user', attributes: ['id', 'email'] }]
     });
     
     if (employeeWithUser?.user?.id) {
+      // Send notification with email
       await notificationService.sendToUser(employeeWithUser.user.id, {
         title: 'Attendance Correction Required',
         message: `Your attendance for ${dateString} requires correction. Reason: ${reason}. Please submit a correction request.`,
@@ -128,7 +147,22 @@ async function sendCorrectionNotification(employee, dateString, reason) {
           reason: reason,
           action: 'attendance_correction_required'
         }
+      }, {
+        sendEmail: true,
+        emailData: {
+          date: dateString,
+          issue: reason
+        }
       });
+      
+      // 🔥 NEW: Also send email directly via Resend
+      if (employeeWithUser.user.email) {
+        await resendEmailService.sendCorrectionRequiredEmail(
+          employeeWithUser,
+          dateString,
+          reason
+        );
+      }
     }
   } catch (error) {
     logger.error(`Failed to send correction notification for employee ${employee.id}:`, error);
@@ -138,32 +172,102 @@ async function sendCorrectionNotification(employee, dateString, reason) {
 
 /**
  * Send notification when employee is auto-marked as leave
+ * (Currently not used - kept for future implementation)
  */
-async function sendLeaveNotification(employee, dateString, reason) {
+async function sendLeaveNotificationPlaceholder(employee, dateString, reason) {
+  // Placeholder for future leave notification implementation
+  logger.debug(`Leave notification placeholder for employee ${employee.id}`);
+}
+
+/**
+ * 🔥 NEW: Auto-finalize missed clock-outs (Shift End + 30 minutes)
+ * 
+ * Rule: If employee did not clock out by Shift End + 30 minutes,
+ * system automatically:
+ * 1. Sets clockOut to shift end time
+ * 2. Finalizes as FULL DAY
+ * 3. Uses shift end time (not current time)
+ * 
+ * This ensures payroll is accurate and employees don't get stuck in "incomplete" status
+ */
+async function autoFinalizeMissedClockOuts(dateString) {
   try {
-    const notificationService = (await import('../services/notificationService.js')).default;
-    
-    // Get user ID from employee
-    const employeeWithUser = await Employee.findByPk(employee.id, {
-      include: [{ model: User, as: 'user', attributes: ['id'] }]
+    const records = await AttendanceRecord.findAll({
+      where: {
+        date: dateString,
+        clockIn: { [Op.not]: null },
+        clockOut: null,
+        status: 'incomplete'
+      }
     });
-    
-    if (employeeWithUser?.user?.id) {
-      await notificationService.sendToUser(employeeWithUser.user.id, {
-        title: 'Attendance Auto-Marked as Leave',
-        message: `Your attendance for ${dateString} was marked as leave. Reason: ${reason}. Please submit a correction request if this is incorrect.`,
-        type: 'warning',
-        category: 'attendance',
-        data: {
-          date: dateString,
-          reason: reason,
-          action: 'attendance_auto_leave'
-        }
-      });
+
+    if (records.length === 0) {
+      return { autoFinalized: 0 };
     }
+
+    let autoFinalized = 0;
+
+    for (const record of records) {
+      try {
+        // Get employee's shift
+        const shift = await getEmployeeShiftForDate(record.employeeId, dateString);
+        if (!shift || !shift.shiftEndTime) {
+          logger.debug(`Employee ${record.employeeId}: No shift found, skipping auto-finalize`);
+          continue;
+        }
+
+        // Parse shift end time
+        const [h, m, s = 0] = shift.shiftEndTime.split(':').map(Number);
+        
+        // Create shift end time for the attendance date
+        const shiftEnd = new Date(record.clockIn);
+        shiftEnd.setHours(h, m, s, 0);
+        
+        // Handle overnight shift
+        if (shiftEnd < record.clockIn) {
+          shiftEnd.setDate(shiftEnd.getDate() + 1);
+        }
+
+        // ⏳ Auto-finalize time: Shift end + 30 minutes
+        const autoFinalizeTime = new Date(shiftEnd.getTime() + 30 * 60 * 1000);
+        const now = new Date();
+
+        // Only auto-finalize if current time is past the threshold
+        if (now >= autoFinalizeTime) {
+          // 🔥 AUTO CLOCK-OUT: Use shift end time (not current time)
+          record.clockOut = shiftEnd;
+          record.statusReason = 'Auto clock-out at shift end (+30 min rule)';
+
+          // 🔥 FINALIZE: Calculate final status
+          await record.finalizeWithShift(shift);
+          await record.save();
+
+          autoFinalized++;
+          logger.info(`✅ Auto-finalized attendance for employee ${record.employeeId} on ${dateString} (status: ${record.status})`);
+
+          // 🔥 NEW: Send notification with email (non-blocking)
+          try {
+            const employee = await Employee.findByPk(record.employeeId);
+            if (employee) {
+              const notificationService = (await import('../services/notificationService.js')).default;
+              await notificationService.notifyAutoFinalized(
+                { ...record.toJSON(), employee }, 
+                shift.shiftEndTime
+              );
+            }
+          } catch (notifError) {
+            logger.error(`Failed to send auto-finalize notification:`, notifError);
+          }
+        }
+      } catch (error) {
+        logger.error(`Error auto-finalizing attendance for employee ${record.employeeId}:`, error);
+      }
+    }
+
+    return { autoFinalized };
   } catch (error) {
-    logger.error(`Failed to send leave notification for employee ${employee.id}:`, error);
-    // Don't throw - notification failure shouldn't stop finalization
+    logger.error('Error in autoFinalizeMissedClockOuts:', error);
+    return { autoFinalized: 0, error: error.message };
   }
 }
 
@@ -213,6 +317,11 @@ export const finalizeDailyAttendance = async (date = new Date()) => {
       logger.info(`${dateString} is not a working day (weekend). Skipping attendance finalization.`);
       return { skipped: true, reason: 'weekend' };
     }
+
+    // 🔥 NEW: Auto-finalize missed clock-outs (Shift End + 30 min)
+    const autoFinalizeResult = await autoFinalizeMissedClockOuts(dateString);
+    logger.info(`Auto-finalize result: ${autoFinalizeResult.autoFinalized} records auto-finalized`);
+
     // ✅ FIXED: Get all active employees WITHOUT complex includes to avoid association errors
     const employees = await Employee.findAll({
       where: { 
@@ -231,7 +340,8 @@ export const finalizeDailyAttendance = async (date = new Date()) => {
       pendingCorrection: 0, // ✅ NEW: Track pending corrections
       incomplete: 0,
       errors: 0,
-      lateRecalculated: 0 // 🔥 NEW: Track late status recalculations
+      lateRecalculated: 0, // 🔥 NEW: Track late status recalculations
+      autoFinalized: autoFinalizeResult.autoFinalized // 🔥 NEW: Track auto-finalized records
     };
 
     for (const employee of employees) {
@@ -328,8 +438,8 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
       stats.absent = (stats.absent || 0) + 1;
       logger.info(`✅ Employee ${employee.id}: Marked as ABSENT (no clock-in recorded)`);
       
-      // Send notification (non-blocking)
-      sendAbsentNotification(employee, dateString, 'No clock-in recorded').catch(err => 
+      // 🔥 NEW: Send notification with email (non-blocking)
+      sendAbsentNotification({ ...employee.toJSON(), employee }, dateString, 'No clock-in recorded').catch(err => 
         logger.error(`Notification failed for employee ${employee.id}:`, err)
       );
       return;
@@ -337,7 +447,7 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
 
     // ⏰ CASE 2: Clocked in but never clocked out → PENDING CORRECTION
     if (record.clockIn && !record.clockOut) {
-      record.status = 'pending_correction';
+      record.status = 'pending_correction'; // ✅ FINAL STATE: Only cron can set this
       record.correctionRequested = true;
       record.statusReason = 'Missed clock-out - requires correction';
       await record.save();
@@ -379,6 +489,11 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
 
     // ✅ CASE 4: Has both clock-in and clock-out → Calculate final status
     if (record.clockIn && record.clockOut) {
+      // 🔧 RESCUE LOGIC: Fix any corrupted live states
+      if (['in_progress', 'on_break', 'completed'].includes(record.status)) {
+        logger.debug(`Employee ${employee.id}: Fixing corrupted live state '${record.status}' to final state`);
+      }
+      
       // 🔥 CRITICAL FIX: Use model's finalization method instead of duplicating logic
       await record.finalizeWithShift(shift);
       

@@ -137,24 +137,116 @@ export const getEmployeeFinalizationStatus = async (req, res) => {
  */
 export const triggerFinalization = async (req, res) => {
   try {
-    const { date } = req.body; // Optional: YYYY-MM-DD format
+    const { date, employeeId } = req.body; // Optional: YYYY-MM-DD format and specific employee
 
-    logger.info(`Manual attendance finalization triggered by user ${req.user.id}`, { date });
+    logger.info(`Manual attendance finalization triggered by user ${req.user.id}`, { date, employeeId });
 
-    const result = await manualFinalizeAttendance(date);
-
-    res.status(200).json({
-      success: true,
-      message: 'Attendance finalization completed successfully',
-      data: result
-    });
+    if (employeeId) {
+      // Finalize specific employee's attendance
+      const result = await finalizeSpecificEmployeeAttendance(employeeId, date);
+      res.status(200).json({
+        success: true,
+        message: 'Employee attendance finalization completed successfully',
+        data: result
+      });
+    } else {
+      // Finalize all employees for the date
+      const result = await manualFinalizeAttendance(date);
+      res.status(200).json({
+        success: true,
+        message: 'Attendance finalization completed successfully',
+        data: result
+      });
+    }
   } catch (error) {
-    logger.error('Error in manual attendance finalization:', error);
+    logger.error('Error in manual finalization:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to finalize attendance',
       error: error.message
     });
+  }
+};
+
+/**
+ * Finalize attendance for a specific employee
+ */
+export const finalizeSpecificEmployeeAttendance = async (employeeId, dateString) => {
+  try {
+    const date = dateString ? new Date(dateString) : new Date();
+    const localDateString = getLocalDateString(date);
+    
+    logger.info(`Finalizing attendance for employee ${employeeId} on ${localDateString}`);
+
+    // Get the attendance record
+    const record = await AttendanceRecord.findOne({
+      where: {
+        employeeId: parseInt(employeeId),
+        date: localDateString
+      }
+    });
+
+    if (!record) {
+      return {
+        success: false,
+        message: 'No attendance record found for this employee and date'
+      };
+    }
+
+    // Get employee's shift
+    const employeeShift = await EmployeeShift.findOne({
+      where: {
+        employeeId: parseInt(employeeId),
+        isActive: true,
+        effectiveDate: { [Op.lte]: localDateString },
+        [Op.or]: [
+          { endDate: null },
+          { endDate: { [Op.gte]: localDateString } }
+        ]
+      }
+    });
+
+    if (!employeeShift) {
+      return {
+        success: false,
+        message: 'No active shift found for this employee'
+      };
+    }
+
+    const shift = await Shift.findByPk(employeeShift.shiftId);
+    if (!shift) {
+      return {
+        success: false,
+        message: 'Shift details not found'
+      };
+    }
+
+    // If record has both clock-in and clock-out, finalize it
+    if (record.clockIn && record.clockOut) {
+      await record.finalizeWithShift(shift);
+      await record.save();
+      
+      return {
+        success: true,
+        message: 'Attendance record finalized successfully',
+        data: {
+          employeeId: record.employeeId,
+          date: record.date,
+          status: record.status,
+          workHours: record.workHours,
+          statusReason: record.statusReason
+        }
+      };
+    } else {
+      return {
+        success: false,
+        message: 'Record is incomplete - missing clock-in or clock-out'
+      };
+    }
+
+  } catch (error) {
+    logger.error(`Error finalizing attendance for employee ${employeeId}:`, error);
+    throw error;
   }
 };
 

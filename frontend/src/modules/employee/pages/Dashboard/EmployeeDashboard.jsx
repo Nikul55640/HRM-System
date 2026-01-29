@@ -46,6 +46,7 @@ import { useDashboardTeam } from "./hooks/useDashboardTeam";
 
 // Services
 import employeeCalendarService from "../../../../services/employeeCalendarService";
+import smartCalendarService from "../../../../services/smartCalendarService";
 import api from "../../../../services/api";
 
 
@@ -187,46 +188,108 @@ const EmployeeDashboard = () => {
     }
   };
 
-  // ✅ OPTIMIZED: Calendar helper functions - only fetch what's needed
+  // ✅ OPTIMIZED: Calendar helper functions - fetch smart calendar data with leave information
   const fetchCalendarEvents = async () => {
     try {
-      const startDate = calendarView === CALENDAR_VIEW.WEEK 
-        ? startOfWeek(calendarDate).toISOString().split('T')[0]
-        : startOfMonth(calendarDate).toISOString().split('T')[0];
-      
-      const endDate = calendarView === CALENDAR_VIEW.WEEK
-        ? endOfWeek(calendarDate).toISOString().split('T')[0]
-        : endOfMonth(calendarDate).toISOString().split('T')[0];
-
-      console.log('📅 [DASHBOARD] Fetching optimized calendar events:', { 
+      console.log('📅 [DASHBOARD] Fetching smart calendar events for:', { 
         view: calendarView, 
-        startDate, 
-        endDate,
-        range: calendarView === CALENDAR_VIEW.WEEK ? '7 days' : '~30 days'
+        date: calendarDate.toISOString().split('T')[0]
       });
 
-      // ✅ Use optimized employee calendar service - only fetch needed date range
-      const eventsResponse = await employeeCalendarService.getEventsByDateRange(startDate, endDate);
+      // Use smart calendar service for comprehensive data including leaves
+      const year = calendarDate.getFullYear();
+      const month = calendarDate.getMonth() + 1;
       
-      if (eventsResponse && eventsResponse.success) {
-        const allEvents = eventsResponse.data.events || [];
+      const smartResponse = await smartCalendarService.getSmartMonthlyCalendar({
+        year,
+        month
+      });
+      
+      if (smartResponse && smartResponse.success) {
+        const calendarData = smartResponse.data.calendar || {};
+        const allEvents = [];
         
-        console.log('✅ [DASHBOARD] Optimized calendar events loaded:', {
+        // Extract events and leave information from smart calendar data
+        Object.entries(calendarData).forEach(([dateStr, dayData]) => {
+          // Add leave information as events (using single leave property)
+          if (dayData.leave) {
+            console.log(`📅 [DASHBOARD] Found leave data for ${dateStr}:`, dayData.leave);
+            allEvents.push({
+              id: `leave-${dateStr}-${dayData.leave.employeeId}`,
+              title: `${dayData.leave.employeeName} - ${dayData.leave.leaveType} Leave`,
+              startDate: dateStr,
+              date: dateStr,
+              eventType: 'leave',
+              color: '#f97316', // Orange color for leaves
+              employeeName: dayData.leave.employeeName,
+              leaveType: dayData.leave.leaveType,
+              status: dayData.leave.status,
+              reason: dayData.leave.reason,
+              isAllDay: true
+            });
+          }
+          
+          // Add holiday information
+          if (dayData.holiday) {
+            allEvents.push({
+              id: `holiday-${dateStr}`,
+              title: dayData.holiday.name || dayData.reason,
+              startDate: dateStr,
+              date: dateStr,
+              eventType: 'holiday',
+              color: '#ef4444', // Red color for holidays
+              isAllDay: true
+            });
+          }
+          
+          // Add birthday information
+          if (dayData.birthdays && dayData.birthdays.length > 0) {
+            dayData.birthdays.forEach((birthday, idx) => {
+              allEvents.push({
+                id: `birthday-${dateStr}-${idx}`,
+                title: `${birthday.employeeName}'s Birthday`,
+                startDate: dateStr,
+                date: dateStr,
+                eventType: 'birthday',
+                color: '#ec4899', // Pink color for birthdays
+                employeeName: birthday.employeeName,
+                isAllDay: true
+              });
+            });
+          }
+          
+          // Add anniversary information
+          if (dayData.anniversaries && dayData.anniversaries.length > 0) {
+            dayData.anniversaries.forEach((anniversary, idx) => {
+              allEvents.push({
+                id: `anniversary-${dateStr}-${idx}`,
+                title: `${anniversary.employeeName}'s Work Anniversary`,
+                startDate: dateStr,
+                date: dateStr,
+                eventType: 'anniversary',
+                color: '#8b5cf6', // Purple color for anniversaries
+                employeeName: anniversary.employeeName,
+                isAllDay: true
+              });
+            });
+          }
+        });
+        
+        console.log('✅ [DASHBOARD] Smart calendar events loaded:', {
           total: allEvents.length,
           holidays: allEvents.filter(e => e.eventType === 'holiday').length,
           leaves: allEvents.filter(e => e.eventType === 'leave').length,
           birthdays: allEvents.filter(e => e.eventType === 'birthday').length,
-          anniversaries: allEvents.filter(e => e.eventType === 'anniversary').length,
-          events: allEvents.filter(e => e.eventType === 'event').length
+          anniversaries: allEvents.filter(e => e.eventType === 'anniversary').length
         });
         
         setCalendarEvents(allEvents);
       } else {
-        console.warn('❌ [DASHBOARD] Calendar events failed:', eventsResponse);
+        console.warn('❌ [DASHBOARD] Smart calendar failed:', smartResponse);
         setCalendarEvents([]);
       }
     } catch (error) {
-      console.error('❌ [DASHBOARD] Failed to fetch calendar events:', error);
+      console.error('❌ [DASHBOARD] Failed to fetch smart calendar events:', error);
       
       // Handle 403 errors gracefully for employees
       if (error.response?.status === 403) {

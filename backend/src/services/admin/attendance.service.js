@@ -99,7 +99,7 @@ class AttendanceService {
                         workMode: workMode,
                         location: clockInData.location || null,
                         deviceInfo: clockInData.deviceInfo || null,
-                        status: 'incomplete', // ✅ Start as incomplete, will be evaluated on clock-out
+                        status: 'in_progress', // ✅ LIVE STATE: Employee is now working
                         createdBy: user.id
                     }, { transaction });
                 } catch (createError) {
@@ -115,7 +115,7 @@ class AttendanceService {
                     workMode: workMode,
                     location: clockInData.location || null,
                     deviceInfo: clockInData.deviceInfo || null,
-                    status: 'incomplete', // ✅ Start as incomplete
+                    status: 'in_progress', // ✅ LIVE STATE: Employee is now working
                     updatedBy: user.id
                 }, { transaction });
             }
@@ -198,8 +198,28 @@ class AttendanceService {
                 throw { message: "No attendance record found for today", statusCode: 400 };
             }
 
-            // 🚫 APPLY ENHANCED BUTTON CONTROL RULES
-            const canClockOut = attendanceRecord.canClockOut();
+            // 🔥 NEW: Get employee's shift for grace period check
+            const employeeShift = await EmployeeShift.findOne({
+                where: {
+                    employeeId: user.employee?.id,
+                    isActive: true,
+                    effectiveDate: { [Op.lte]: today },
+                    [Op.or]: [
+                        { endDate: null },
+                        { endDate: { [Op.gte]: today } }
+                    ]
+                }
+            });
+
+            let shift = null;
+            if (employeeShift) {
+                shift = await Shift.findByPk(employeeShift.shiftId, {
+                    attributes: ['shiftStartTime', 'shiftEndTime', 'fullDayHours', 'halfDayHours', 'gracePeriodMinutes']
+                });
+            }
+
+            // 🚫 APPLY ENHANCED BUTTON CONTROL RULES (with grace period check)
+            const canClockOut = attendanceRecord.canClockOut(shift);
             if (!canClockOut.allowed) {
                 throw { message: canClockOut.reason, statusCode: 400 };
             }
@@ -223,6 +243,7 @@ class AttendanceService {
                 totalWorkedMinutes: workMinutes,
                 totalBreakMinutes: breakMinutes,
                 workHours: Math.round((workMinutes / 60) * 100) / 100,
+                status: 'completed', // ✅ LIVE STATE: Employee completed work, pending finalization
                 updatedBy: user.id
             });
 
@@ -591,7 +612,7 @@ class AttendanceService {
 
             // Get button states using the new enhanced methods with shift data
             const canClockIn = attendanceRecord.canClockIn(shift);
-            const canClockOut = attendanceRecord.canClockOut();
+            const canClockOut = attendanceRecord.canClockOut(shift);
             const canStartBreak = attendanceRecord.canStartBreak();
             const canEndBreak = attendanceRecord.canEndBreak();
 
@@ -655,9 +676,11 @@ class AttendanceService {
 
             const {
                 page = 1,
-                limit = 20,
+                limit = 50, // Increase default limit for calendar view
                 sortBy = 'date',
-                sortOrder = 'DESC'
+                sortOrder = 'DESC',
+                month,
+                year
             } = pagination;
             const offset = (page - 1) * limit;
 
@@ -665,8 +688,14 @@ class AttendanceService {
                 employeeId: user.employee?.id // Only allow viewing own records
             };
 
-            // Apply additional filters
-            if (filters.startDate && filters.endDate) {
+            // 🔧 CRITICAL FIX: Handle month/year filtering for calendar
+            if (month && year) {
+                const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+                const endDate = new Date(year, month, 0).toISOString().split('T')[0]; // Last day of month
+                whereClause.date = {
+                    [Op.between]: [startDate, endDate]
+                };
+            } else if (filters.startDate && filters.endDate) {
                 whereClause.date = {
                     [Op.between]: [filters.startDate, filters.endDate]
                 };
@@ -712,10 +741,68 @@ class AttendanceService {
                 offset: parseInt(offset)
             });
 
+            // 🔧 CRITICAL FIX: Transform data to match frontend expectations exactly
+            const transformedRecords = rows.map(record => ({
+                // Core fields from AttendanceRecord model
+                id: record.id,
+                employeeId: record.employeeId,
+                date: record.date,
+                clockIn: record.clockIn,
+                clockOut: record.clockOut,
+                
+                // Status and timing fields
+                status: record.status,
+                isLate: record.isLate || false,
+                lateMinutes: record.lateMinutes || 0,
+                isEarlyDeparture: record.isEarlyDeparture || false,
+                earlyExitMinutes: record.earlyExitMinutes || 0,
+                
+                // Work time calculations
+                totalWorkedMinutes: record.totalWorkedMinutes || 0,
+                totalBreakMinutes: record.totalBreakMinutes || 0,
+                workHours: record.workHours || 0,
+                overtimeHours: record.overtimeHours || 0,
+                
+                // Additional fields
+                workMode: record.workMode || 'office',
+                halfDayType: record.halfDayType,
+                statusReason: record.statusReason,
+                
+                // Break sessions (if available)
+                breakSessions: record.breakSessions || [],
+                
+                // Correction fields
+                correctionRequested: record.correctionRequested || false,
+                correctionStatus: record.correctionStatus,
+                correctionReason: record.correctionReason,
+                
+                // Location and device info
+                location: record.location,
+                deviceInfo: record.deviceInfo,
+                
+                // Metadata
+                createdAt: record.createdAt,
+                updatedAt: record.updatedAt,
+                
+                // Related data
+                employee: record.employee ? {
+                    id: record.employee.id,
+                    employeeId: record.employee.employeeId,
+                    firstName: record.employee.firstName,
+                    lastName: record.employee.lastName,
+                    department: record.employee.department
+                } : null,
+                shift: record.shift ? {
+                    shiftName: record.shift.shiftName,
+                    shiftStartTime: record.shift.shiftStartTime,
+                    shiftEndTime: record.shift.shiftEndTime
+                } : null
+            }));
+
             return {
                 success: true,
                 data: {
-                    records: rows,
+                    records: transformedRecords,
                     pagination: {
                         total: count,
                         page: parseInt(page),
@@ -969,6 +1056,19 @@ class AttendanceService {
                         totalBreakMinutes: breakMinutes,
                         workHours: Math.round((workMinutes / 60) * 100) / 100
                     });
+
+                    // ✅ IMMEDIATE FINALIZATION: Call finalizeWithShift to determine final status
+                    const { EmployeeShift, Shift } = require('../../models/sequelize/index.js');
+                    const employeeShift = await EmployeeShift.findOne({
+                        where: { employeeId: attendanceRecord.employeeId },
+                        include: [{ model: Shift, as: 'shift' }],
+                        order: [['createdAt', 'DESC']]
+                    });
+
+                    if (employeeShift && employeeShift.shift) {
+                        await attendanceRecord.finalizeWithShift(employeeShift.shift);
+                        await attendanceRecord.save();
+                    }
                 }
             } else if (action === 'reject') {
                 await attendanceRecord.update({

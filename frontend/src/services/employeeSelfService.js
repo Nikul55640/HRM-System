@@ -207,8 +207,27 @@ const employeeSelfService = {
     },
     
     getRecords: async (params = {}) => {
-      const response = await api.get('/employee/attendance', { params });
-      return response.data;
+      try {
+        console.log('⏰ [ESS] Fetching attendance records:', params);
+        
+        // 🔧 CRITICAL FIX: Handle month/year parameters properly
+        const queryParams = { ...params };
+        if (params.month && params.year) {
+          // Pass month and year as query parameters for proper filtering
+          queryParams.month = params.month;
+          queryParams.year = params.year;
+          // Remove limit for calendar view to get all records for the month
+          queryParams.limit = 50;
+        }
+        
+        const response = await api.get('/employee/attendance', { params: queryParams });
+        console.log('✅ [ESS] Attendance records fetched:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('❌ [ESS] Failed to fetch attendance records:', error);
+        toast.error(error.message || 'Failed to load attendance records');
+        throw error;
+      }
     },
     
     getSummary: async (month, year) => {
