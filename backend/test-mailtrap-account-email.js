@@ -19,7 +19,7 @@ async function testMailtrapAccountEmail() {
 
   // List of possible account emails to test
   const testEmails = [
-    'n.com',
+    'nikul@techysquad.com',
     'your-email@gmail.com', // Replace with actual account email
     'test@example.com',
     'admin@example.com'

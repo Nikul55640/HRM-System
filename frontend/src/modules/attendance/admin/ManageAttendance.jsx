@@ -64,8 +64,8 @@ const ManageAttendance = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [statusOptions, setStatusOptions] = useState([]);
   const [dateRange, setDateRange] = useState({
-    from: new Date(new Date().setDate(1)),
-    to: new Date(),
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1), // First day of current month
+    to: new Date(), // Today
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);

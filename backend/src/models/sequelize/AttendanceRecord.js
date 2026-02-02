@@ -97,6 +97,7 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
       'absent',            // No attendance (no clock-in)
       'leave',             // On approved leave
       'holiday',           // Holiday
+      'weekend',           // 🔥 NEW: Weekend day
       'pending_correction' // Needs manual correction (missing data)
     ),
     defaultValue: 'in_progress',
