@@ -6,7 +6,7 @@
 import express from 'express';
 import employeeManagementController from '../../controllers/admin/employeeManagement.controller.js';
 import { authenticate, authorize } from '../../middleware/authenticate.js';
-import { ROLES } from '../../config/rolePermissions.js';
+import { ROLES } from '../../config/roles.js';
 
 const router = express.Router();
 

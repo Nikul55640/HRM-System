@@ -6,7 +6,7 @@
 import { LeaveBalance, Employee, User, AuditLog } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
-import { ROLES } from '../../config/rolePermissions.js';
+import { ROLES } from '../../config/roles.js';
 
 class LeaveBalanceService {
     /**
@@ -19,7 +19,8 @@ class LeaveBalanceService {
     async assignLeaveBalances(assignments, user, metadata = {}) {
         try {
             // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can assign leave balances", statusCode: 403 };
             }
 
@@ -38,7 +39,7 @@ class LeaveBalanceService {
                     }
 
                     // HR can only assign to employees in their departments
-                    if (user.role === ROLES.HR_ADMIN) {
+                    if (userSystemRole === ROLES.HR_ADMIN) {
                         if (!user.assignedDepartments?.includes(employee.department)) {
                             errors.push({ employeeId, error: 'No permission to assign to this employee' });
                             continue;
@@ -119,11 +120,12 @@ class LeaveBalanceService {
             const userEmployeeId = user.employee?.id?.toString();
 
             // Permission check
-            if (user.role === ROLES.EMPLOYEE && userEmployeeId !== requestedEmployeeId) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole === ROLES.EMPLOYEE && userEmployeeId !== requestedEmployeeId) {
                 throw { message: "You can only view your own leave balances", statusCode: 403 };
             }
 
-            if (user.role === ROLES.HR_ADMIN) {
+            if (userSystemRole === ROLES.HR_ADMIN) {
                 const employee = await Employee.findByPk(employeeId);
                 if (!employee || !user.assignedDepartments?.includes(employee.department)) {
                     throw { message: "You don't have access to this employee's data", statusCode: 403 };
@@ -173,7 +175,8 @@ class LeaveBalanceService {
     async adjustLeaveBalance(balanceId, adjustmentData, user, metadata = {}) {
         try {
             // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can adjust leave balances", statusCode: 403 };
             }
 
@@ -192,7 +195,7 @@ class LeaveBalanceService {
             }
 
             // HR can only adjust balances for employees in their departments
-            if (user.role === ROLES.HR_ADMIN) {
+            if (userSystemRole === ROLES.HR_ADMIN) {
                 if (!user.assignedDepartments?.includes(leaveBalance.employee.department)) {
                     throw { message: "You don't have permission to adjust this employee's balance", statusCode: 403 };
                 }
@@ -272,7 +275,8 @@ class LeaveBalanceService {
     async getLeaveUtilizationReport(filters = {}, user) {
         try {
             // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can view utilization reports", statusCode: 403 };
             }
 
@@ -286,7 +290,7 @@ class LeaveBalanceService {
 
             // Build employee filter for HR
             let employeeFilter = {};
-            if (user.role === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
+            if (userSystemRole === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
                 employeeFilter.department = { [Op.in]: user.assignedDepartments };
             }
 
@@ -379,7 +383,8 @@ class LeaveBalanceService {
     async bulkAssignDefaultQuotas(employeeIds, year, user, metadata = {}) {
         try {
             // Only Super Admin can bulk assign
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin can bulk assign leave quotas", statusCode: 403 };
             }
 
@@ -432,11 +437,12 @@ class LeaveBalanceService {
     async getLeaveBalanceHistory(employeeId, filters = {}, user) {
         try {
             // Permission check
-            if (user.role === ROLES.EMPLOYEE && user.employee?.id.toString() !== employeeId) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole === ROLES.EMPLOYEE && user.employee?.id.toString() !== employeeId) {
                 throw { message: "You can only view your own leave balance history", statusCode: 403 };
             }
 
-            if (user.role === ROLES.HR_ADMIN) {
+            if (userSystemRole === ROLES.HR_ADMIN) {
                 const employee = await Employee.findByPk(employeeId);
                 if (!employee || !user.assignedDepartments?.includes(employee.department)) {
                     throw { message: "You don't have access to this employee's data", statusCode: 403 };

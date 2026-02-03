@@ -6,7 +6,7 @@
 import { Designation, Department, Employee, AuditLog } from "../../models/sequelize/index.js";
 import { Op } from "sequelize";
 import logger from "../../utils/logger.js";
-import { ROLES } from "../../config/rolePermissions.js";
+import { ROLES } from "../../config/roles.js";
 
 class DesignationService {
   /**
@@ -19,7 +19,8 @@ class DesignationService {
   async createDesignation(designationData, user, metadata = {}) {
     try {
       // Role-based access control
-      if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
         throw { message: "Unauthorized: Only Super Admin and HR can create designations", statusCode: 403 };
       }
 
@@ -102,7 +103,8 @@ class DesignationService {
   async updateDesignation(designationId, updateData, user, metadata = {}) {
     try {
       // Role-based access control
-      if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
         throw { message: "Unauthorized: Only Super Admin and HR can update designations", statusCode: 403 };
       }
 
@@ -247,7 +249,8 @@ class DesignationService {
       const where = {};
 
       // Apply role-based scope filtering
-      if (user.role === ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole === ROLES.HR_ADMIN) {
         if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
           throw {
             code: "NO_DEPARTMENTS_ASSIGNED",
@@ -329,7 +332,8 @@ class DesignationService {
   async deleteDesignation(designationId, user, metadata = {}) {
     try {
       // Only Super Admin can delete designations
-      if (user.role !== ROLES.SUPER_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN) {
         throw { message: "Unauthorized: Only Super Admin can delete designations", statusCode: 403 };
       }
 
@@ -406,7 +410,8 @@ class DesignationService {
       }
 
       // Role-based access control
-      if (user.role === ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole === ROLES.HR_ADMIN) {
         if (!user.assignedDepartments || !user.assignedDepartments.includes(parseInt(departmentId))) {
           throw { message: "You do not have access to this department", statusCode: 403 };
         }
@@ -449,7 +454,8 @@ class DesignationService {
       }
 
       // Role-based access control
-      if (user.role === ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole === ROLES.HR_ADMIN) {
         if (!user.assignedDepartments || !user.assignedDepartments.includes(parseInt(departmentId))) {
           throw { message: "You do not have access to this department", statusCode: 403 };
         }
@@ -512,7 +518,8 @@ class DesignationService {
       const where = { isActive: true };
 
       // Apply role-based scope filtering
-      if (user.role === ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole === ROLES.HR_ADMIN) {
         if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
           throw {
             code: "NO_DEPARTMENTS_ASSIGNED",

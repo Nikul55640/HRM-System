@@ -6,6 +6,7 @@
 import express from 'express';
 import employeeManagementController from '../../controllers/admin/employeeManagement.controller.js';
 import { authenticate, authorize } from '../../middleware/authenticate.js';
+import { ROLES } from '../../config/roles.js';
 
 const router = express.Router();
 
@@ -18,7 +19,7 @@ router.use(authenticate);
  * @access HR Admin, Super Admin
  */
 router.get('/', 
-  authorize(['SuperAdmin', 'HR']),
+  authorize([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN]),
   employeeManagementController.getDesignations
 );
 
@@ -28,7 +29,7 @@ router.get('/',
  * @access HR Admin, Super Admin
  */
 router.post('/',
-  authorize(['SuperAdmin', 'HR']),
+  authorize([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN]),
   employeeManagementController.createDesignation
 );
 
@@ -38,7 +39,7 @@ router.post('/',
  * @access HR Admin, Super Admin
  */
 router.put('/:id',
-  authorize(['SuperAdmin', 'HR']),
+  authorize([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN]),
   employeeManagementController.updateDesignation
 );
 

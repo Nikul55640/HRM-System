@@ -96,6 +96,11 @@ const AttendanceCorrectionRequest = sequelize.define(
 
     originalClockIn: DataTypes.DATE,
     originalClockOut: DataTypes.DATE,
+    originalBreakMinutes: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+    },
     correctedClockIn: DataTypes.DATE,
     correctedClockOut: DataTypes.DATE,
   },

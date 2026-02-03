@@ -13,6 +13,7 @@ import logger from '../utils/logger.js';
 
 // Import React Email templates
 import { AttendanceAbsent } from '../emails/templates/AttendanceAbsent.js';
+import { AttendanceIncomplete } from '../emails/templates/AttendanceIncomplete.js';
 import { CorrectionRequired } from '../emails/templates/CorrectionRequired.js';
 import { LeaveApproved } from '../emails/templates/LeaveApproved.js';
 
@@ -151,7 +152,31 @@ class ResendEmailService {
   }
 
   /**
-   * Send correction required notification
+   * Send attendance incomplete notification (friendly, optional correction)
+   */
+  async sendAttendanceIncompleteEmail(employee, date, issue = 'Missing clock-out time') {
+    const template = AttendanceIncomplete({
+      employeeName: `${employee.firstName} ${employee.lastName}`,
+      date: new Date(date).toLocaleDateString(),
+      issue,
+      actionUrl: `${this.baseUrl}/employee/attendance/corrections`
+    });
+
+    return this.sendEmail({
+      to: employee.user?.email,
+      subject: `Attendance Notice - ${date}`,
+      template,
+      metadata: {
+        category: 'attendance',
+        type: 'incomplete_notice',
+        employeeId: employee.id,
+        date,
+      },
+    });
+  }
+
+  /**
+   * Send correction required notification (for urgent cases)
    */
   async sendCorrectionRequiredEmail(employee, date, issue = 'Missing clock-out') {
     const template = CorrectionRequired({
@@ -184,6 +209,68 @@ class ResendEmailService {
       template,
       metadata,
     });
+  }
+
+  /**
+   * Send simple HTML email (for testing)
+   * @param {Object} options - Email options
+   * @param {string} options.to - Recipient email
+   * @param {string} options.subject - Email subject
+   * @param {string} options.html - HTML content
+   * @param {string} options.text - Plain text content (optional)
+   * @returns {Promise<Object>} Send result
+   */
+  async sendSimpleEmail({ to, subject, html, text }) {
+    try {
+      if (!to) {
+        throw new Error('Recipient email is required');
+      }
+
+      if (!html) {
+        throw new Error('HTML content is required');
+      }
+
+      // Initialize Resend
+      const resend = this._initializeResend();
+      if (!resend) {
+        throw new Error('Resend API key not configured');
+      }
+
+      // Send via Resend with HTML directly
+      const response = await resend.emails.send({
+        from: this.fromEmail,
+        to,
+        subject,
+        html,
+        text: text || html.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+        tags: [
+          { name: 'category', value: 'test' },
+          { name: 'type', value: 'simple_email' },
+        ],
+      });
+
+      if (response.error) {
+        throw new Error(`Resend API error: ${response.error.message}`);
+      }
+
+      logger.info(`Simple email sent successfully to ${to}`, {
+        emailId: response.data?.id,
+        subject,
+      });
+
+      return {
+        success: true,
+        id: response.data?.id,
+        messageId: response.data?.id,
+        message: 'Email sent successfully',
+      };
+    } catch (error) {
+      logger.error(`Failed to send simple email to ${to}:`, error);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
   }
 
   /**

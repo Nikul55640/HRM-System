@@ -6,7 +6,7 @@ import Employee from "../src/models/Employee.js";
 import AttendanceRecord from "../src/models/AttendanceRecord.js";
 import LeaveRequest from "../src/models/LeaveRequest.js";
 import Payslip from "../src/models/Payslip.js";
-import Notification from "../src/models/Notification.js";
+import Notification from "../src/models/sequelize";
 import AuditLog from "../src/models/AuditLog.js";
 
 dotenv.config({ path: "./.env" });

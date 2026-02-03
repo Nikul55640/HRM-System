@@ -173,6 +173,14 @@ const submitCorrectionRequest = async (req, res) => {
       });
     }
 
+    // ✅ FIX: Find existing attendance record to capture original values
+    const existingAttendanceRecord = await AttendanceRecord.findOne({
+      where: {
+        employeeId: employee.id,
+        date
+      }
+    });
+
     // Convert time strings to full DATE objects for the requested date
     const requestedClockIn = expectedClockIn ? 
       new Date(`${date}T${expectedClockIn}:00`) : null;
@@ -182,10 +190,15 @@ const submitCorrectionRequest = async (req, res) => {
     // Create the correction request
     const correctionRequest = await AttendanceCorrectionRequest.create({
       employeeId: employee.id,
+      attendanceRecordId: existingAttendanceRecord?.id || null,
       date,
       requestedClockIn,
       requestedClockOut,
       requestedBreakMinutes: breakDuration || null,
+      // ✅ FIX: Populate original values from existing attendance record
+      originalClockIn: existingAttendanceRecord?.clockIn || null,
+      originalClockOut: existingAttendanceRecord?.clockOut || null,
+      originalBreakMinutes: existingAttendanceRecord?.totalBreakMinutes || 0,
       reason,
       issueType: issueType || 'missed_punch',
       status: 'pending'

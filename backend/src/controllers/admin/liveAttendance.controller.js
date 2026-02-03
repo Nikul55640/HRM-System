@@ -3,9 +3,12 @@
  * Handles real-time attendance monitoring for HR/Admin
  */
 
+import { Op } from 'sequelize';
 import AttendanceRecord from "../../models/sequelize/AttendanceRecord.js";
 import Employee from "../../models/sequelize/Employee.js";
 import User from "../../models/sequelize/User.js";
+import Shift from "../../models/sequelize/Shift.js";
+import EmployeeShift from "../../models/sequelize/EmployeeShift.js";
 import AuditLog from "../../models/sequelize/AuditLog.js";
 import { getLocalDateString } from '../../utils/dateUtils.js';
 
@@ -33,7 +36,7 @@ export const getLiveAttendance = async (req, res) => {
     const records = await AttendanceRecord.findAll({
       where: { 
         date: dateOnly,
-        clockIn: { [AttendanceRecord.sequelize.Sequelize.Op.ne]: null },
+        clockIn: { [Op.ne]: null },
         clockOut: null // Only get records where employee hasn't clocked out
       },
       include: [
@@ -54,10 +57,31 @@ export const getLiveAttendance = async (req, res) => {
               model: User,
               as: 'user',
               attributes: ['id', 'email']
+            },
+            {
+              model: EmployeeShift,
+              as: 'shiftAssignments',
+              where: {
+                isActive: true,
+                effectiveDate: { [Op.lte]: today },
+                [Op.or]: [
+                  { endDate: null },
+                  { endDate: { [Op.gte]: today } }
+                ]
+              },
+              required: false, // LEFT JOIN to include employees without shifts
+              include: [
+                {
+                  model: Shift,
+                  as: 'shift',
+                  attributes: ['id', 'shiftName', 'shiftStartTime', 'shiftEndTime']
+                }
+              ]
             }
           ]
         },
       ],
+      order: [['clockIn', 'DESC']] // Most recent clock-ins first
     });
 
     let liveAttendance = [];
@@ -76,9 +100,8 @@ export const getLiveAttendance = async (req, res) => {
         return;
       }
 
-      // For now, we'll assume office location if not specified
-      // This can be enhanced when location tracking is fully implemented
-      const currentLocation = record.location?.workLocation || 'office';
+      // Get current location from attendance record
+      const currentLocation = record.workMode || record.location?.workLocation || 'office';
       
       if (
         workLocation &&
@@ -95,11 +118,23 @@ export const getLiveAttendance = async (req, res) => {
       // Calculate current worked minutes (total time minus break time)
       const currentWorkedMinutes = Math.max(
         0,
-        sessionDuration - (record.totalBreakMinutes || 0)
+        sessionDuration - (record.breakMinutes || 0)
       );
 
+      // Parse break sessions from JSON if it exists
+      let breakSessions = [];
+      try {
+        if (record.breakSessions && typeof record.breakSessions === 'string') {
+          breakSessions = JSON.parse(record.breakSessions);
+        } else if (Array.isArray(record.breakSessions)) {
+          breakSessions = record.breakSessions;
+        }
+      } catch (error) {
+        console.warn('Error parsing break sessions for record:', record.id, error);
+        breakSessions = [];
+      }
+
       // Check if currently on break
-      const breakSessions = record.breakSessions || [];
       const activeBreak = breakSessions.find(session => session.breakIn && !session.breakOut);
       
       let currentBreak = null;
@@ -117,6 +152,20 @@ export const getLiveAttendance = async (req, res) => {
         };
       }
 
+      // Get shift information from employee's active shift
+      let shiftInfo = null;
+      if (record.employee.shiftAssignments && record.employee.shiftAssignments.length > 0) {
+        const activeShift = record.employee.shiftAssignments[0]; // Get the first (most recent) active shift
+        if (activeShift.shift) {
+          shiftInfo = {
+            id: activeShift.shift.id,
+            shiftName: activeShift.shift.shiftName,
+            shiftStartTime: activeShift.shift.shiftStartTime,
+            shiftEndTime: activeShift.shift.shiftEndTime
+          };
+        }
+      }
+
       liveAttendance.push({
         employeeId: record.employee.employeeId, // Use employee's ID, not the record ID
         fullName:
@@ -130,7 +179,7 @@ export const getLiveAttendance = async (req, res) => {
         isLate: record.isLate || false,
         lateMinutes: record.lateMinutes || 0,
         status: record.status || 'present',
-        shift: record.shift || null, // Include shift information if available
+        shift: shiftInfo, // Include shift information
         currentSession: {
           sessionId: `session-${record.id}`,
           checkInTime: record.clockIn,
@@ -139,7 +188,7 @@ export const getLiveAttendance = async (req, res) => {
           status: status,
           currentBreak,
           totalWorkedMinutes: currentWorkedMinutes,
-          totalBreakMinutes: record.totalBreakMinutes || 0,
+          totalBreakMinutes: record.breakMinutes || 0,
           breakCount: breakSessions.length,
           // Include late status in session as well for compatibility
           isLate: record.isLate || false,
@@ -192,7 +241,10 @@ export const getLiveAttendance = async (req, res) => {
         late: liveAttendance.filter(e => e.isLate).length,
         overtime: liveAttendance.filter(e => {
           // ✅ IMPROVEMENT: Better overtime calculation using shift data
-          if (!e.shift?.shiftEndTime) return false;
+          if (!e.shift?.shiftEndTime) {
+            // If no shift data, assume 8-hour workday (480 minutes)
+            return e.currentSession.totalWorkedMinutes > 480;
+          }
           
           try {
             const now = new Date();
@@ -205,7 +257,8 @@ export const getLiveAttendance = async (req, res) => {
             return now > shiftEndTime;
           } catch (error) {
             console.warn('Error calculating overtime for employee:', e.employeeId, error);
-            return false;
+            // Fallback to 8-hour rule
+            return e.currentSession.totalWorkedMinutes > 480;
           }
         }).length,
         incomplete: 0, // Live attendance shows active sessions, incomplete would be from previous days
@@ -243,37 +296,62 @@ export const getEmployeeLiveStatus = async (req, res) => {
       today.getDate()
     );
 
-    const record = await AttendanceRecord.findOne({
-      where: { employeeId, date: dateOnly },
+    // Find employee first to get the internal ID
+    const employee = await Employee.findOne({
+      where: { employeeId },
+      attributes: ['id', 'employeeId', 'firstName', 'lastName', 'designation', 'department', 'status'],
       include: [
         {
-          model: Employee,
-          as: "employee",
-          attributes: [
-            "id",
-            "employeeId",
-            "firstName",
-            "lastName",
-            "designation",
-            "department",
-            "status",
-          ],
+          model: User,
+          as: 'user',
+          attributes: ['id', 'email']
+        },
+        {
+          model: EmployeeShift,
+          as: 'shiftAssignments',
+          where: {
+            isActive: true,
+            effectiveDate: { [Op.lte]: today },
+            [Op.or]: [
+              { endDate: null },
+              { endDate: { [Op.gte]: today } }
+            ]
+          },
+          required: false,
           include: [
             {
-              model: User,
-              as: 'user',
-              attributes: ['id', 'email']
+              model: Shift,
+              as: 'shift',
+              attributes: ['id', 'shiftName', 'shiftStartTime', 'shiftEndTime']
             }
           ]
-        },
-      ],
+        }
+      ]
     });
 
-    if (!record || !record.employee) {
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: "Employee not found",
+      });
+    }
+
+    const record = await AttendanceRecord.findOne({
+      where: { 
+        employeeId: employee.id, // Use internal employee ID
+        date: dateOnly 
+      },
+    });
+
+    if (!record) {
       return res.json({
         success: true,
-        data: null,
-        message: "Employee not clocked in today",
+        data: {
+          employeeId: employee.employeeId,
+          fullName: `${employee.firstName || ""} ${employee.lastName || ""}`.trim() || "Unknown",
+          status: "not_clocked_in",
+          message: "Employee has not clocked in today"
+        },
       });
     }
 
@@ -282,11 +360,8 @@ export const getEmployeeLiveStatus = async (req, res) => {
       return res.json({
         success: true,
         data: {
-          employeeId: record.employee.employeeId,
-          fullName:
-            `${record.employee.firstName || ""} ${
-              record.employee.lastName || ""
-            }`.trim() || "Unknown",
+          employeeId: employee.employeeId,
+          fullName: `${employee.firstName || ""} ${employee.lastName || ""}`.trim() || "Unknown",
           status: "clocked_out",
           lastClockIn: record.clockIn,
           lastClockOut: record.clockOut,
@@ -300,11 +375,23 @@ export const getEmployeeLiveStatus = async (req, res) => {
 
     const currentWorkedMinutes = Math.max(
       0,
-      sessionDuration - (record.totalBreakMinutes || 0)
+      sessionDuration - (record.breakMinutes || 0)
     );
 
+    // Parse break sessions from JSON if it exists
+    let breakSessions = [];
+    try {
+      if (record.breakSessions && typeof record.breakSessions === 'string') {
+        breakSessions = JSON.parse(record.breakSessions);
+      } else if (Array.isArray(record.breakSessions)) {
+        breakSessions = record.breakSessions;
+      }
+    } catch (error) {
+      console.warn('Error parsing break sessions for record:', record.id, error);
+      breakSessions = [];
+    }
+
     // Check for active break
-    const breakSessions = record.breakSessions || [];
     const activeBreak = breakSessions.find(session => session.breakIn && !session.breakOut);
     
     let currentBreak = null;
@@ -322,17 +409,31 @@ export const getEmployeeLiveStatus = async (req, res) => {
       };
     }
 
-    const currentLocation = record.location?.workLocation || 'office';
+    const currentLocation = record.workMode || record.location?.workLocation || 'office';
+
+    // Get shift information
+    let shiftInfo = null;
+    if (employee.shiftAssignments && employee.shiftAssignments.length > 0) {
+      const activeShift = employee.shiftAssignments[0];
+      if (activeShift.shift) {
+        shiftInfo = {
+          id: activeShift.shift.id,
+          shiftName: activeShift.shift.shiftName,
+          shiftStartTime: activeShift.shift.shiftStartTime,
+          shiftEndTime: activeShift.shift.shiftEndTime
+        };
+      }
+    }
 
     const liveStatus = {
-      employeeId: record.employee.employeeId,
-      fullName:
-        `${record.employee.firstName || ""} ${
-          record.employee.lastName || ""
-        }`.trim() || "Unknown",
-      email: record.employee.user?.email || "",
-      department: record.employee.department || "",
-      position: record.employee.designation || "",
+      employeeId: employee.employeeId,
+      fullName: `${employee.firstName || ""} ${employee.lastName || ""}`.trim() || "Unknown",
+      email: employee.user?.email || "",
+      department: employee.department || "",
+      position: employee.designation || "",
+      shift: shiftInfo,
+      isLate: record.isLate || false,
+      lateMinutes: record.lateMinutes || 0,
       currentSession: {
         sessionId: `session-${record.id}`,
         checkInTime: record.clockIn,
@@ -341,16 +442,19 @@ export const getEmployeeLiveStatus = async (req, res) => {
         status: status,
         currentBreak,
         totalWorkedMinutes: currentWorkedMinutes,
-        totalBreakMinutes: record.totalBreakMinutes || 0,
+        totalBreakMinutes: record.breakMinutes || 0,
+        breakCount: breakSessions.length,
         breaks: breakSessions,
       },
       todayRecord: {
         clockIn: record.clockIn,
         clockOut: record.clockOut,
         totalWorkedMinutes: record.totalWorkedMinutes,
-        totalBreakMinutes: record.totalBreakMinutes,
+        totalBreakMinutes: record.breakMinutes,
         breakSessions: breakSessions,
         status: record.status,
+        isLate: record.isLate || false,
+        lateMinutes: record.lateMinutes || 0,
       }
     };
 

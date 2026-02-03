@@ -1,5 +1,6 @@
 import { User } from '../../models/index.js';
 import logger from '../../utils/logger.js';
+import { ROLES } from '../../config/roles.js';
 
 /**
  * Get user settings
@@ -9,7 +10,8 @@ export const getSettings = async (req, res) => {
     const { userId } = req.params;
 
     // Users can only view their own settings (unless admin)
-    if (req.user.id.toString() !== userId && req.user.role !== 'SuperAdmin') {
+    const userSystemRole = req.user.systemRole || req.user.role;
+    if (req.user.id.toString() !== userId && userSystemRole !== ROLES.SUPER_ADMIN) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized access'
@@ -68,7 +70,8 @@ export const updateSettings = async (req, res) => {
     } = req.body;
 
     // Users can only update their own settings (unless admin)
-    if (req.user.id.toString() !== userId && req.user.role !== 'SuperAdmin') {
+    const userSystemRole = req.user.systemRole || req.user.role;
+    if (req.user.id.toString() !== userId && userSystemRole !== ROLES.SUPER_ADMIN) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized access'

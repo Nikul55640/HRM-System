@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { toast } from 'react-toastify';
 import api, { setAuthTokenGetter } from '../services/api';
+import { ROLES, getDisplayLabel, isAdminRole, isHRRole, isEmployeeRole } from '../core/utils/roles';
 
 const useAuthStore = create(
   devtools(
@@ -208,7 +209,9 @@ const useAuthStore = create(
             const { user } = get();
             if (!user) return false;
             const roleArray = Array.isArray(roles) ? roles : [roles];
-            return roleArray.includes(user.role);
+            // Use systemRole for standardized checks, fallback to role for backward compatibility
+            const userRole = user.systemRole || user.role;
+            return roleArray.includes(userRole);
           };
         },
         
@@ -216,11 +219,48 @@ const useAuthStore = create(
           return (departmentId) => {
             const { user } = get();
             if (!user) return false;
-            if (user.role === 'SuperAdmin' || user.role === 'HR Administrator') return true;
-            if (user.role === 'HR Manager') {
+            const userRole = user.systemRole || user.role;
+            if (userRole === ROLES.SUPER_ADMIN || userRole === ROLES.HR_ADMIN) return true;
+            if (userRole === ROLES.HR_MANAGER) {
               return user.assignedDepartments?.includes(departmentId);
             }
             return user.department === departmentId;
+          };
+        },
+
+        get isAdmin() {
+          return () => {
+            const { user } = get();
+            if (!user) return false;
+            const userRole = user.systemRole || user.role;
+            return isAdminRole(userRole);
+          };
+        },
+
+        get isHR() {
+          return () => {
+            const { user } = get();
+            if (!user) return false;
+            const userRole = user.systemRole || user.role;
+            return isHRRole(userRole);
+          };
+        },
+
+        get isEmployee() {
+          return () => {
+            const { user } = get();
+            if (!user) return false;
+            const userRole = user.systemRole || user.role;
+            return isEmployeeRole(userRole);
+          };
+        },
+
+        get getRoleDisplayName() {
+          return () => {
+            const { user } = get();
+            if (!user) return '';
+            const userRole = user.systemRole || user.role;
+            return getDisplayLabel(userRole);
           };
         }
       }),

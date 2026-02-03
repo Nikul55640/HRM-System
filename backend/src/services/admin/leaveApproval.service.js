@@ -6,7 +6,7 @@
 import { LeaveRequest, LeaveBalance, Employee, User, AuditLog } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
-import { ROLES } from '../../config/rolePermissions.js';
+import { ROLES } from '../../config/roles.js';
 import LeaveCalculationService from '../core/leaveCalculation.service.js';
 
 class LeaveRequestService {
@@ -137,9 +137,10 @@ class LeaveRequestService {
         try {
             logger.info(`[LeaveRequest.getLeaveRequests] User: ${user.role}, Filters:`, filters);
             
-            // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
-                logger.warn(`[LeaveRequest.getLeaveRequests] Unauthorized access attempt by ${user.role}`);
+            // Role-based access control (use systemRole for standardized checks)
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
+                logger.warn(`[LeaveRequest.getLeaveRequests] Unauthorized access attempt by ${userSystemRole}`);
                 throw { message: "Unauthorized: Only Super Admin and HR can view all leave requests", statusCode: 403 };
             }
 
@@ -186,7 +187,7 @@ class LeaveRequestService {
 
             // HR can only see requests from employees in their assigned departments
             let employeeFilter = {};
-            if (user.role === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
+            if (userSystemRole === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
                 employeeFilter.department = { [Op.in]: user.assignedDepartments };
                 logger.info(`[LeaveRequest.getLeaveRequests] HR filter by departments:`, user.assignedDepartments);
             }
@@ -259,7 +260,8 @@ class LeaveRequestService {
     async processLeaveRequest(requestId, action, comments = '', user, metadata = {}) {
         try {
             // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can process leave requests", statusCode: 403 };
             }
 
@@ -282,7 +284,7 @@ class LeaveRequestService {
             }
 
             // HR can only process requests from employees in their assigned departments
-            if (user.role === ROLES.HR_ADMIN) {
+            if (userSystemRole === ROLES.HR_ADMIN) {
                 if (!user.assignedDepartments?.includes(leaveRequest.employee.department)) {
                     throw { message: "You don't have permission to process this request", statusCode: 403 };
                 }
@@ -401,7 +403,8 @@ class LeaveRequestService {
             }
 
             // Check permissions
-            if (user.role === ROLES.EMPLOYEE) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole === ROLES.EMPLOYEE) {
                 // Employees can only cancel their own requests
                 if (leaveRequest.employeeId !== user.employee?.id) {
                     throw { message: "You can only cancel your own leave requests", statusCode: 403 };
@@ -410,7 +413,7 @@ class LeaveRequestService {
                 if (!leaveRequest.canBeCancelled()) {
                     throw { message: "This leave request cannot be cancelled", statusCode: 400 };
                 }
-            } else if (user.role === ROLES.HR_ADMIN) {
+            } else if (userSystemRole === ROLES.HR_ADMIN) {
                 // HR can cancel requests from employees in their assigned departments
                 if (!user.assignedDepartments?.includes(leaveRequest.employee.department)) {
                     throw { message: "You don't have permission to cancel this request", statusCode: 403 };
@@ -495,11 +498,12 @@ class LeaveRequestService {
             const userEmployeeId = user.employee?.id?.toString();
 
             // Permission check
-            if (user.role === ROLES.EMPLOYEE && userEmployeeId !== requestedEmployeeId) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole === ROLES.EMPLOYEE && userEmployeeId !== requestedEmployeeId) {
                 throw { message: "You can only view your own leave requests", statusCode: 403 };
             }
 
-            if (user.role === ROLES.HR_ADMIN) {
+            if (userSystemRole === ROLES.HR_ADMIN) {
                 const employee = await Employee.findByPk(employeeId);
                 if (!employee || !user.assignedDepartments?.includes(employee.department)) {
                     throw { message: "You don't have access to this employee's data", statusCode: 403 };
@@ -574,7 +578,8 @@ class LeaveRequestService {
     async getLeaveRequestStats(filters = {}, user) {
         try {
             // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can view statistics", statusCode: 403 };
             }
 
@@ -592,7 +597,7 @@ class LeaveRequestService {
 
             // HR can only see stats for employees in their assigned departments
             let employeeFilter = {};
-            if (user.role === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
+            if (userSystemRole === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
                 employeeFilter.department = { [Op.in]: user.assignedDepartments };
             }
 
@@ -670,7 +675,8 @@ class LeaveRequestService {
     async overrideLeaveRequest(requestId, action, reason, user, metadata = {}) {
         try {
             // Only Super Admin can override
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin can override leave decisions", statusCode: 403 };
             }
 

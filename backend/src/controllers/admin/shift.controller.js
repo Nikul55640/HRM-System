@@ -1,4 +1,5 @@
 import shiftService from '../../services/admin/shift.service.js';
+import ShiftManagementService from '../../services/admin/shiftManagement.service.js';
 import notificationService from '../../services/notificationService.js';
 
 const ShiftController = {
@@ -65,7 +66,7 @@ const ShiftController = {
     }
   },
 
-  // Update shift
+  // Update shift with enhanced timing change logic
   async updateShift(req, res) {
     try {
       const { id } = req.params;
@@ -74,18 +75,64 @@ const ShiftController = {
         userAgent: req.get('User-Agent')
       };
 
-      const result = await shiftService.updateShift(id, req.body, req.user.id, metadata);
+      // Check if this is a timing change that needs special handling
+      const isTimingChange = req.body.shiftStartTime || req.body.shiftEndTime;
+      
+      if (isTimingChange) {
+        // Use enhanced shift management service for timing changes
+        const result = await ShiftManagementService.updateShiftTiming(
+          id, 
+          req.body, 
+          req.user.id
+        );
 
-      if (!result.success) {
-        return res.status(result.message === 'Shift not found' ? 404 : 400).json(result);
+        return res.json({
+          success: true,
+          message: result.message,
+          data: {
+            timingChanged: result.timingChanged,
+            affectedEmployees: result.affectedEmployees,
+            activeSessionsToday: result.activeSessionsToday,
+            effectiveDate: result.effectiveDate,
+            notificationsSent: result.notifications?.length || 0
+          }
+        });
+      } else {
+        // Use regular service for non-timing changes
+        const result = await shiftService.updateShift(id, req.body, req.user.id, metadata);
+
+        if (!result.success) {
+          return res.status(result.message === 'Shift not found' ? 404 : 400).json(result);
+        }
+
+        return res.json(result);
       }
-
-      res.json(result);
     } catch (error) {
       console.error('Error updating shift:', error);
       res.status(500).json({
         success: false,
-        message: 'Failed to update shift'
+        message: 'Failed to update shift',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
+    }
+  },
+
+  // Get shift change impact analysis
+  async getShiftChangeImpact(req, res) {
+    try {
+      const { id } = req.params;
+      const result = await ShiftManagementService.getShiftChangeImpact(id);
+
+      res.json({
+        success: true,
+        data: result
+      });
+    } catch (error) {
+      console.error('Error analyzing shift change impact:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to analyze shift change impact',
+        error: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
   },

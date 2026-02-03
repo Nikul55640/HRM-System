@@ -1,4 +1,5 @@
 import { User, AuditLog, Department, Employee } from '../models/sequelize/index.js';
+import { ROLES, normalizeToSystemRole, systemRoleToDatabase, isValidSystemRole } from '../config/roles.js';
 import logger from '../utils/logger.js';
 
 /**
@@ -18,7 +19,17 @@ const createUser = async (userData, currentUser, metadata = {}) => {
       };
     }
 
-    if (userData.role === 'HR_Manager') {
+    // Normalize role to system constant
+    const systemRole = normalizeToSystemRole(userData.role);
+    if (!isValidSystemRole(systemRole)) {
+      throw {
+        code: 'INVALID_ROLE',
+        message: `Invalid role. Must be one of: ${Object.values(ROLES).join(', ')}`,
+        statusCode: 400,
+      };
+    }
+
+    if (systemRole === ROLES.HR_MANAGER) {
       if (!userData.assignedDepartments || userData.assignedDepartments.length === 0) {
         throw {
           code: 'VALIDATION_ERROR',
@@ -28,11 +39,14 @@ const createUser = async (userData, currentUser, metadata = {}) => {
       }
     }
 
+    // Convert system role to database format for storage
+    const dbRole = systemRoleToDatabase(systemRole);
+
     const user = await User.create({
       name: userData.name || userData.email.split('@')[0], // Use provided name or extract from email
       email: userData.email,
       password: userData.password,
-      role: userData.role,
+      role: dbRole, // Store in database format
       assignedDepartments: userData.assignedDepartments || [],
       employeeId: userData.employeeId || null,
       isActive: userData.isActive !== undefined ? userData.isActive : true,
@@ -45,10 +59,10 @@ const createUser = async (userData, currentUser, metadata = {}) => {
       module: 'employee',
       targetType: 'User',
       targetId: user.id,
-      description: `Created new user: ${user.email} with role ${user.role}`,
+      description: `Created new user: ${user.email} with role ${systemRole}`,
       newValues: {
         email: user.email,
-        role: user.role,
+        role: systemRole, // Log system role for clarity
         assignedDepartments: user.assignedDepartments,
         isActive: user.isActive,
       },
@@ -100,8 +114,9 @@ const updateUser = async (userId, updateData, currentUser, metadata = {}) => {
       }
     }
 
+    const userSystemRole = user.systemRole || user.role;
     if (updateData.role === 'HR_Manager' ||
-      (user.role === 'HR_Manager' && !updateData.role)) {
+      (userSystemRole === ROLES.HR_MANAGER && !updateData.role)) {
       const departments = updateData.assignedDepartments ?? user.assignedDepartments;
 
       if (!departments || departments.length === 0) {
@@ -206,16 +221,20 @@ const changeUserRole = async (userId, newRole, currentUser, metadata = {}) => {
       };
     }
 
-    const validRoles = ['SuperAdmin', 'HR', 'HR_Manager', 'Employee'];
-    if (!validRoles.includes(newRole)) {
+    // Normalize and validate new role
+    const systemRole = normalizeToSystemRole(newRole);
+    if (!isValidSystemRole(systemRole)) {
       throw {
         code: 'INVALID_ROLE',
-        message: `Invalid role. Must be: ${validRoles.join(', ')}`,
+        message: `Invalid role. Must be one of: ${Object.values(ROLES).join(', ')}`,
         statusCode: 400,
       };
     }
 
-    if (user.role === newRole) {
+    // Convert to database format for comparison
+    const dbRole = systemRoleToDatabase(systemRole);
+    
+    if (user.role === dbRole) {
       throw {
         code: 'NO_CHANGE',
         message: 'User already has this role.',
@@ -224,8 +243,9 @@ const changeUserRole = async (userId, newRole, currentUser, metadata = {}) => {
     }
 
     const oldRole = user.role;
+    const oldSystemRole = normalizeToSystemRole(oldRole);
 
-    if (newRole === 'HR Manager') {
+    if (systemRole === ROLES.HR_MANAGER) {
       if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
         throw {
           code: 'VALIDATION_ERROR',
@@ -235,11 +255,12 @@ const changeUserRole = async (userId, newRole, currentUser, metadata = {}) => {
       }
     }
 
-    if (oldRole === 'HR Manager' && newRole !== 'HR Manager') {
+    // Clear assigned departments if changing from HR_Manager to other roles
+    if (oldSystemRole === ROLES.HR_MANAGER && systemRole !== ROLES.HR_MANAGER) {
       user.assignedDepartments = [];
     }
 
-    user.role = newRole;
+    user.role = dbRole; // Store in database format
     user.refreshToken = undefined;
 
     await user.save();
@@ -250,9 +271,9 @@ const changeUserRole = async (userId, newRole, currentUser, metadata = {}) => {
       module: 'employee',
       targetType: 'User',
       targetId: user.id,
-      description: `Changed user role from ${oldRole} to ${newRole} for ${user.email}`,
-      oldValues: { role: oldRole },
-      newValues: { role: newRole },
+      description: `Changed user role from ${oldSystemRole} to ${systemRole} for ${user.email}`,
+      oldValues: { role: oldSystemRole },
+      newValues: { role: systemRole },
       ipAddress: metadata.ipAddress,
       userAgent: metadata.userAgent,
       severity: 'high'
@@ -288,10 +309,11 @@ const deactivateUser = async (userId, currentUser, metadata = {}) => {
       };
     }
 
-    if (user.role === 'SuperAdmin') {
+    const userSystemRole = user.systemRole || user.role;
+    if (userSystemRole === systemRoleToDatabase(ROLES.SUPER_ADMIN)) {
       const activeSuperAdmins = await User.count({
         where: {
-          role: 'SuperAdmin',
+          role: systemRoleToDatabase(ROLES.SUPER_ADMIN),
           isActive: true,
         },
       });
@@ -528,7 +550,7 @@ const getActiveSuperAdminCount = async () => {
   try {
     return await User.count({
       where: {
-        role: 'SuperAdmin',
+        role: systemRoleToDatabase(ROLES.SUPER_ADMIN),
         isActive: true,
       },
     });

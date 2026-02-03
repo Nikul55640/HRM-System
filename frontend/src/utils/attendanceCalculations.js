@@ -44,12 +44,65 @@ export const formatTime = (time) => {
 };
 
 /**
+ * Check if employee is currently in overtime
+ * @param {Object} employee - Employee object with shift and attendance info
+ * @param {Date} now - Current time (default: now)
+ * @returns {boolean} True if in overtime
+ */
+export const isInOvertime = (employee, now = new Date()) => {
+  if (!employee?.shift?.shiftEndTime) return false;
+  
+  try {
+    const [hours, minutes, seconds] = employee.shift.shiftEndTime.split(':').map(Number);
+    const shiftEnd = new Date(now);
+    shiftEnd.setHours(hours, minutes, seconds || 0, 0);
+    
+    return now > shiftEnd;
+  } catch (error) {
+    console.error('Error checking overtime:', error);
+    return false;
+  }
+};
+
+/**
  * Calculate overtime minutes
- * @param {number} totalMinutes - Total worked minutes
- * @param {number} shiftMinutes - Shift duration in minutes (default 480 = 8 hours)
+ * @param {number|Object} totalMinutesOrEmployee - Total worked minutes OR employee object
+ * @param {number|Date} shiftMinutesOrCurrentTime - Shift duration in minutes OR current time
  * @returns {number} Overtime minutes
  */
-export const getOvertimeMinutes = (totalMinutes, shiftMinutes = 480) => {
+export const getOvertimeMinutes = (totalMinutesOrEmployee, shiftMinutesOrCurrentTime = 480) => {
+  // If first parameter is an object (employee), calculate overtime based on current time
+  if (typeof totalMinutesOrEmployee === 'object' && totalMinutesOrEmployee !== null) {
+    const employee = totalMinutesOrEmployee;
+    const currentTime = shiftMinutesOrCurrentTime instanceof Date ? shiftMinutesOrCurrentTime : new Date();
+    
+    // Check if employee has attendance record and shift info
+    if (!employee?.attendance?.clockIn || !employee?.shift?.shiftEndTime) {
+      return 0;
+    }
+    
+    try {
+      const clockIn = new Date(employee.attendance.clockIn);
+      const [hours, minutes, seconds] = employee.shift.shiftEndTime.split(':').map(Number);
+      const shiftEnd = new Date(currentTime);
+      shiftEnd.setHours(hours, minutes, seconds || 0, 0);
+      
+      // If current time is past shift end, calculate overtime
+      if (currentTime > shiftEnd) {
+        return Math.floor((currentTime - shiftEnd) / (1000 * 60));
+      }
+      
+      return 0;
+    } catch (error) {
+      console.error('Error calculating overtime for employee:', error);
+      return 0;
+    }
+  }
+  
+  // Original function: calculate overtime from total minutes
+  const totalMinutes = totalMinutesOrEmployee;
+  const shiftMinutes = shiftMinutesOrCurrentTime;
+  
   if (!totalMinutes || totalMinutes <= shiftMinutes) return 0;
   return totalMinutes - shiftMinutes;
 };
@@ -294,6 +347,7 @@ export default {
   formatDuration,
   formatTime,
   getOvertimeMinutes,
+  isInOvertime,
   getLocationInfo,
   getPerformanceIndicators,
   computeSummaryFromLiveData,

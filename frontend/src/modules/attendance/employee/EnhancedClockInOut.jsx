@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
-import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users, RefreshCw, Bug, AlertTriangle, Zap, AlarmClockMinus, CheckCircle, Circle, Timer, Briefcase, Clock3, ClockAlert } from 'lucide-react';
+import { Clock, LogIn, LogOut, Coffee, MapPin, Building2, Home, Users, RefreshCw, Bug, AlertTriangle, Zap, AlarmClockMinus, CheckCircle, Circle, Timer, Briefcase, Clock3, ClockAlert, Calendar } from 'lucide-react';
 import { toast } from 'react-toastify';
 import LocationSelectionModal from './LocationSelectionModal';
 import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore';
@@ -323,6 +323,19 @@ const EnhancedClockInOut = () => {
               </div>
               <div className="text-sm text-muted-foreground">{formatDate(currentTime)}</div>
             </div>
+
+            {/* Weekend Message */}
+            {buttonStates.isWeekend && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  <span className="font-medium text-blue-800">Weekend</span>
+                </div>
+                <p className="text-blue-700 text-sm">
+                  {buttonStates.weekendMessage || 'Attendance tracking is disabled on weekends.'}
+                </p>
+              </div>
+            )}
 
             {/* Active Session Info */}
             {(todayRecord?.clockIn && !todayRecord?.clockOut) && (

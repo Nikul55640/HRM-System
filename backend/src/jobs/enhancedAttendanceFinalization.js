@@ -267,15 +267,14 @@ export const enhancedFinalizeDailyAttendance = async (date = new Date()) => {
       return stats;
     }
 
-    // 🔥 NEW: Handle weekends - create weekend records
+    // 🚫 UPDATED: Skip weekends entirely - no records created
     if (isWeekend) {
-      logger.info(`${dateString} is a weekend. Creating weekend records...`);
-      const result = await createWeekendRecords(dateString);
-      stats.created = result.created;
-      stats.processed = result.created;
-      
-      logger.info(`✅ Weekend finalization completed for ${dateString}:`, stats);
-      return stats;
+      logger.info(`${dateString} is a weekend. Skipping attendance processing (no weekend records will be created).`);
+      return { 
+        skipped: true, 
+        reason: 'weekend',
+        message: 'Weekend attendance tracking is disabled'
+      };
     }
 
     // ✅ EXISTING: Handle working days (keep all existing logic)

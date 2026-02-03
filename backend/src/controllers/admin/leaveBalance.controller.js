@@ -8,7 +8,7 @@ import leaveBalanceService from '../../services/admin/leaveBalance.service.js';
 import logger from '../../utils/logger.js';
 import { AuditLog, Employee, LeaveBalance, User } from '../../models/index.js';
 import { Op } from 'sequelize';
-import { ROLES } from '../../config/rolePermissions.js';
+import { ROLES } from '../../config/roles.js';
 
 /**
  * Wrapper for consistent API responses
@@ -277,7 +277,8 @@ const leaveBalanceController = {
 
             // First, get all employees (excluding SuperAdmin users)
             let employeeFilter = {};
-            if (req.user.role === ROLES.HR_ADMIN && req.user.assignedDepartments?.length > 0) {
+            const userSystemRole = req.user.systemRole || req.user.role;
+            if (userSystemRole === ROLES.HR_ADMIN && req.user.assignedDepartments?.length > 0) {
                 employeeFilter.department = { [Op.in]: req.user.assignedDepartments };
             }
 
@@ -305,7 +306,8 @@ const leaveBalanceController = {
 
             // Filter out employees who have SuperAdmin users
             const filteredEmployees = allEmployees.filter(employee => {
-                return !employee.user || employee.user.role !== 'SuperAdmin';
+                const userSystemRole = employee.user?.systemRole || employee.user?.role;
+                return !employee.user || userSystemRole !== ROLES.SUPER_ADMIN;
             });
 
             // Get leave balances for these employees

@@ -2,7 +2,7 @@ import express from 'express';
 import { testEmail, getEmailStatus, sendTestNotification } from '../../controllers/admin/emailConfig.controller.js';
 import { authenticate } from '../../middleware/authenticate.js'
 import { requireRoles } from '../../middleware/requireRoles.js';
-import { ROLES } from '../../config/rolePermissions.js';
+import { ROLES } from '../../config/roles.js';
 
 const router = express.Router();
 

@@ -2,6 +2,7 @@ import express from "express";
 import adminDashboardController from "../../controllers/admin/adminDashboard.Controller.js";
 import { authenticate } from "../../middleware/authenticate.js";
 import { authorize } from "../../middleware/authorize.js";
+import { ROLES } from "../../config/roles.js";
 
 const router = express.Router();
 
@@ -12,7 +13,7 @@ const router = express.Router();
 router.get(
   "/",
   authenticate,
-  authorize(["SuperAdmin", "HR", "HR"]),
+  authorize([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]),
   adminDashboardController.getDashboardStats
 );
 

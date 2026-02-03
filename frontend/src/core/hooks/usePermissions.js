@@ -12,35 +12,41 @@ import {
   getRolePermissions,
   canAccessDepartment,
   MODULES,
-  ROLES,
 } from '../utils/rolePermissions';
+import { ROLES, getSystemRole, isAdminRole, isHRRole, isEmployeeRole } from '../utils/roles';
 
 const usePermissions = () => {
   const { user } = useAuth();
 
-  const permissions = useMemo(() => {
-    if (!user || !user.role) return [];
-    return getRolePermissions(user.role);
+  // Get user's system role (standardized format)
+  const userSystemRole = useMemo(() => {
+    if (!user || !user.role) return null;
+    return user.systemRole || getSystemRole(user.role);
   }, [user]);
+
+  const permissions = useMemo(() => {
+    if (!userSystemRole) return [];
+    return getRolePermissions(userSystemRole);
+  }, [userSystemRole]);
 
   const can = useMemo(
     () => ({
       // Single permission check
       do: (permission) => {
-        if (!user || !user.role) return false;
-        return hasPermission(user.role, permission);
+        if (!userSystemRole) return false;
+        return hasPermission(userSystemRole, permission);
       },
 
       // Any permission check
       doAny: (permissionList) => {
-        if (!user || !user.role) return false;
-        return hasAnyPermission(user.role, permissionList);
+        if (!userSystemRole) return false;
+        return hasAnyPermission(userSystemRole, permissionList);
       },
 
       // All permissions check
       doAll: (permissionList) => {
-        if (!user || !user.role) return false;
-        return hasAllPermissions(user.role, permissionList);
+        if (!userSystemRole) return false;
+        return hasAllPermissions(userSystemRole, permissionList);
       },
 
       // Department access check
@@ -51,34 +57,35 @@ const usePermissions = () => {
 
       // Employee access check
       accessEmployee: (employeeId) => {
-        if (!user) return false;
+        if (!user || !userSystemRole) return false;
         
         // SuperAdmin, HR can access all
-        if ([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER].includes(user.role)) {
+        if (isAdminRole(userSystemRole)) {
           return true;
         }
 
         // Employee can only access own record
-        if (user.role === ROLES.EMPLOYEE) {
+        if (isEmployeeRole(userSystemRole)) {
           return user.employeeId && user.employeeId.toString() === employeeId.toString();
         }
 
         return false;
       },
     }),
-    [user]
+    [user, userSystemRole]
   );
 
   const is = useMemo(
     () => ({
-      superAdmin: () => user?.role === ROLES.SUPER_ADMIN,
-      hrAdmin: () => user?.role === ROLES.HR_ADMIN,
-      hrManager: () => user?.role === ROLES.HR_MANAGER,
-      employee: () => user?.role === ROLES.EMPLOYEE,
-      adminRole: () =>
-        [ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER].includes(user?.role),
+      superAdmin: () => userSystemRole === ROLES.SUPER_ADMIN,
+      hrAdmin: () => userSystemRole === ROLES.HR_ADMIN,
+      hrManager: () => userSystemRole === ROLES.HR_MANAGER,
+      employee: () => userSystemRole === ROLES.EMPLOYEE,
+      adminRole: () => isAdminRole(userSystemRole),
+      hrRole: () => isHRRole(userSystemRole),
+      employeeRole: () => isEmployeeRole(userSystemRole),
     }),
-    [user]
+    [userSystemRole]
   );
 
   return {
@@ -86,6 +93,7 @@ const usePermissions = () => {
     can,
     is,
     user,
+    userSystemRole,
     MODULES,
     ROLES,
   };

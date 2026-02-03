@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticate, authorize } from '../../middleware/authenticate.js';
+import { ROLES } from '../../config/roles.js';
 import {
     getMyShifts,
     getCurrentShift,
@@ -11,7 +12,7 @@ const router = express.Router();
 
 // Apply authentication middleware to all routes
 router.use(authenticate);
-router.use(authorize(["Employee", "HR", "SuperAdmin"]));
+router.use(authorize([ROLES.EMPLOYEE, ROLES.HR_ADMIN, ROLES.SUPER_ADMIN]));
 
 // Root shifts endpoint for API testing
 router.get('/', async (req, res) => {

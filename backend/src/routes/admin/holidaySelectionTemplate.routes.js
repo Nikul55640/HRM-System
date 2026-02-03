@@ -7,6 +7,7 @@ import express from 'express';
 import holidaySelectionTemplateController from '../../controllers/admin/holidaySelectionTemplate.controller.js';
 import { authenticate } from '../../middleware/authenticate.js';
 import { requireRoles } from '../../middleware/requireRoles.js';
+import { ROLES } from '../../config/roles.js';
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Apply role-based access control (SuperAdmin and HR only)
-router.use(requireRoles(['SuperAdmin', 'HR']));
+router.use(requireRoles([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN]));
 
 /**
  * @route GET /api/admin/holiday-templates

@@ -8,6 +8,7 @@
 import attendanceService from '../../services/admin/attendance.service.js';
 import logger from '../../utils/logger.js';
 import { AuditLog } from '../../models/index.js';
+import { ROLES } from '../../config/roles.js';
 import { Op } from 'sequelize';
 import { getLocalDateString } from '../../utils/dateUtils.js';
 
@@ -128,7 +129,8 @@ const attendanceController = {
     editAttendanceRecord: async (req, res) => {
         try {
             // Only Super Admin can directly edit attendance records
-            if (req.user.role !== 'SuperAdmin') {
+            const userSystemRole = req.user.systemRole || req.user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 return sendResponse(res, false, "Unauthorized: Only Super Admin can edit attendance records", null, 403);
             }
 

@@ -3,43 +3,7 @@
  * Based on production-level HRM system requirements
  */
 
-/**
- * Role-Based Access Control (RBAC) Configuration
- * Based on production-level HRM system requirements
- */
-
-// ===================================================
-// ROLE DEFINITIONS (Standardized)
-// ===================================================
-export const ROLES = {
-  // Primary role definitions (database values)
-  SUPER_ADMIN: "SuperAdmin",
-  HR_ADMIN: "HR", 
-  HR_MANAGER: "HR_Manager",
-  EMPLOYEE: "Employee",
-  
-  // Aliases for backward compatibility
-  SuperAdmin: "SuperAdmin",
-  HR: "HR",           
-  Employee: "Employee"
-};
-
-// ✅ Role normalization function - now maps to database values
-export const normalizeRole = (role) => {
-  const roleMapping = {
-    'SuperAdmin': 'SuperAdmin',
-    'HR': 'HR', 
-    'HR_Manager': 'HR_Manager',
-    'Employee': 'Employee',
-    // Handle any new format inputs
-    'SUPER_ADMIN': 'SuperAdmin',
-    'HR_ADMIN': 'HR',
-    'HR_MANAGER': 'HR_Manager', 
-    'EMPLOYEE': 'Employee'
-  };
-  
-  return roleMapping[role] || role;
-};
+import { ROLES } from './roles.js';
 
 // ===================================================
 // MODULE PERMISSIONS
@@ -223,10 +187,7 @@ export const MODULES = {
 };
 
 // ===================================================
-// ROLE PERMISSIONS MAPPING
-// ===================================================
-// ===================================================
-// ROLE PERMISSIONS MAPPING (BASE)
+// ROLE PERMISSIONS MAPPING (Using Standardized Constants)
 // ===================================================
 export const ROLE_PERMISSIONS = {
   [ROLES.EMPLOYEE]: [
@@ -418,49 +379,47 @@ ROLE_PERMISSIONS[ROLES.SUPER_ADMIN] = [
 // ===================================================
 
 /**
- * Check if a role has a specific permission (with role normalization)
+ * Check if a role has a specific permission
  */
 export const hasPermission = (role, permission) => {
-  const normalizedRole = normalizeRole(role);
-  const permissions = ROLE_PERMISSIONS[normalizedRole] || [];
+  const permissions = ROLE_PERMISSIONS[role] || [];
   return permissions.includes(permission);
 };
 
 /**
- * Check if a role has any of the specified permissions (with role normalization)
+ * Check if a role has any of the specified permissions
  */
 export const hasAnyPermission = (role, permissions) => {
-  const normalizedRole = normalizeRole(role);
-  return permissions.some((permission) => hasPermission(normalizedRole, permission));
+  return permissions.some((permission) => hasPermission(role, permission));
 };
 
 /**
- * Check if a role has all of the specified permissions (with role normalization)
+ * Check if a role has all of the specified permissions
  */
 export const hasAllPermissions = (role, permissions) => {
-  const normalizedRole = normalizeRole(role);
-  return permissions.every((permission) => hasPermission(normalizedRole, permission));
+  return permissions.every((permission) => hasPermission(role, permission));
 };
 
 /**
- * Get all permissions for a role (with role normalization)
+ * Get all permissions for a role
  */
 export const getRolePermissions = (role) => {
-  const normalizedRole = normalizeRole(role);
-  return ROLE_PERMISSIONS[normalizedRole] || [];
+  return ROLE_PERMISSIONS[role] || [];
 };
 
 /**
  * Check if user can access department (for HR Managers)
  */
 export const canAccessDepartment = (user, departmentId) => {
+  const userSystemRole = user.systemRole || user.role;
+  
   // SuperAdmin and HR Admin can access all departments
-  if ([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN].includes(user.role)) {
+  if ([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN].includes(userSystemRole)) {
     return true;
   }
 
   // HR Manager can only access assigned departments
-  if (user.role === ROLES.HR_MANAGER) {
+  if (userSystemRole === ROLES.HR_MANAGER) {
     if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
       return false;
     }
@@ -476,28 +435,20 @@ export const canAccessDepartment = (user, departmentId) => {
  * Check if user can access employee record
  */
 export const canAccessEmployee = (user, employeeId, employeeDepartment) => {
+  const userSystemRole = user.systemRole || user.role;
+  
   // SuperAdmin and HR Admin can access all employees
-  if (
-    [ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.PAYROLL_OFFICER].includes(
-      user.role
-    )
-  ) {
+  if ([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN].includes(userSystemRole)) {
     return true;
   }
 
   // HR Manager can access employees in assigned departments
-  if (user.role === ROLES.HR_MANAGER) {
+  if (userSystemRole === ROLES.HR_MANAGER) {
     return canAccessDepartment(user, employeeDepartment);
   }
 
-  // Manager can access team members
-  if (user.role === ROLES.MANAGER) {
-    // This would need additional logic to check if employee is in manager's team
-    return false; // Implement team membership check
-  }
-
   // Employee can only access own record
-  if (user.role === ROLES.EMPLOYEE) {
+  if (userSystemRole === ROLES.EMPLOYEE) {
     return (
       user.employee?.id && user.employee?.id.toString() === employeeId.toString()
     );

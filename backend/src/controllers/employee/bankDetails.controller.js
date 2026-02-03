@@ -1,6 +1,7 @@
 import { Employee, User } from '../../models/index.js';
 import { validateIFSC } from '../../validators/bankDetailsValidator.js';
 import notificationService from '../../services/notificationService.js';
+import { ROLES } from '../../config/roles.js';
 
 /**
  * Helper function to mask account number
@@ -26,7 +27,8 @@ const getBankDetails = async (req, res) => {
 
     // Special case for SuperAdmin who might not have an employee profile
     if (!employee) {
-      if (role === 'SuperAdmin') {
+      const userSystemRole = role || req.user.systemRole || req.user.role;
+      if (userSystemRole === ROLES.SUPER_ADMIN) {
         return res.status(200).json({
           success: true,
           message: 'SuperAdmin users do not have employee records or bank details',
@@ -130,7 +132,8 @@ const updateBankDetails = async (req, res) => {
 
     // Special case for SuperAdmin who might not have an employee profile
     if (!employee) {
-      if (role === 'SuperAdmin') {
+      const userSystemRole = role || req.user.systemRole || req.user.role;
+      if (userSystemRole === ROLES.SUPER_ADMIN) {
         return res.status(400).json({
           success: false,
           message: 'SuperAdmin users do not have employee records. Bank details are not applicable.',

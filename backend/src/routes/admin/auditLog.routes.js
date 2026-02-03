@@ -1,6 +1,7 @@
 import express from "express";
 import { authenticate } from "../../middleware/authenticate.js";
 import { authorize } from "../../middleware/authorize.js";
+import { ROLES } from "../../config/roles.js";
 import auditLogController from "../../controllers/admin/auditLog.controller.js";
 
 const router = express.Router();
@@ -9,7 +10,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Restrict to SuperAdmin only
-router.use(authorize(["SuperAdmin"]));
+router.use(authorize([ROLES.SUPER_ADMIN]));
 
 // Get all audit logs with filters + pagination
 router.get("/", auditLogController.getAuditLogs);

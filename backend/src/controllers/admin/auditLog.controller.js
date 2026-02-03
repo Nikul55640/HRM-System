@@ -4,7 +4,7 @@
  */
 
 import auditService from "../../services/audit/audit.service.js";
-import { ROLES } from "../../config/rolePermissions.js";
+import { ROLES } from "../../config/roles.js";
 import logger from "../../utils/logger.js";
 
 /**
@@ -30,8 +30,9 @@ const auditLogController = {
    */
   getAuditLogs: async (req, res) => {
     try {
-      // Only Super Admin can view audit logs
-      if (req.user.role !== ROLES.SUPER_ADMIN) {
+      // Only Super Admin can view audit logs (use systemRole for standardized checks)
+      const userRole = req.user.systemRole || req.user.role;
+      if (userRole !== ROLES.SUPER_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin can view audit logs", null, 403);
       }
 
@@ -59,8 +60,9 @@ const auditLogController = {
    */
   getEmployeeAuditLogs: async (req, res) => {
     try {
-      // Only Super Admin can view audit logs
-      if (req.user.role !== ROLES.SUPER_ADMIN) {
+      // Only Super Admin can view audit logs (use systemRole for standardized checks)
+      const userRole = req.user.systemRole || req.user.role;
+      if (userRole !== ROLES.SUPER_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin can view audit logs", null, 403);
       }
 
@@ -97,8 +99,9 @@ const auditLogController = {
    */
   getAuditLogById: async (req, res) => {
     try {
-      // Only Super Admin can view audit logs
-      if (req.user.role !== ROLES.SUPER_ADMIN) {
+      // Only Super Admin can view audit logs (use systemRole for standardized checks)
+      const userRole = req.user.systemRole || req.user.role;
+      if (userRole !== ROLES.SUPER_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin can view audit logs", null, 403);
       }
 
@@ -121,8 +124,9 @@ const auditLogController = {
    */
   cleanupAuditLogs: async (req, res) => {
     try {
-      // Only Super Admin can cleanup audit logs
-      if (req.user.role !== ROLES.SUPER_ADMIN) {
+      // Only Super Admin can cleanup audit logs (use systemRole for standardized checks)
+      const userRole = req.user.systemRole || req.user.role;
+      if (userRole !== ROLES.SUPER_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin can cleanup audit logs", null, 403);
       }
 

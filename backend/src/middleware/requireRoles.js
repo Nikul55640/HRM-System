@@ -25,8 +25,9 @@ export const requireRoles = (allowedRoles) => {
       });
     }
 
-    // Check if user has required role
-    if (!roles.includes(req.user.role)) {
+    // Check if user has required role (use systemRole for standardized checks)
+    const userRole = req.user.systemRole || req.user.role;
+    if (!roles.includes(userRole)) {
       return res.status(403).json({
         success: false,
         error: {
@@ -34,7 +35,7 @@ export const requireRoles = (allowedRoles) => {
           message: 'You do not have permission to access this resource.',
           details: {
             requiredRoles: roles,
-            userRole: req.user.role,
+            userRole: userRole,
           },
           timestamp: new Date().toISOString(),
         },
@@ -64,8 +65,9 @@ export const requireAnyRole = (allowedRoles) => {
       });
     }
 
-    // Check if user has any of the required roles
-    if (!allowedRoles.includes(req.user.role)) {
+    // Check if user has any of the required roles (use systemRole for standardized checks)
+    const userRole = req.user.systemRole || req.user.role;
+    if (!allowedRoles.includes(userRole)) {
       return res.status(403).json({
         success: false,
         error: {
@@ -73,7 +75,7 @@ export const requireAnyRole = (allowedRoles) => {
           message: 'You do not have permission to access this resource.',
           details: {
             requiredRoles: allowedRoles,
-            userRole: req.user.role,
+            userRole: userRole,
           },
           timestamp: new Date().toISOString(),
         },
@@ -103,10 +105,11 @@ export const requireAllRoles = (requiredRoles) => {
       });
     }
 
-    // For single role systems, check if user has the primary role
+    // For single role systems, check if user has the primary role (use systemRole for standardized checks)
     // This is a simplified implementation - in multi-role systems,
     // you would check if user has all required roles
-    if (!requiredRoles.includes(req.user.role)) {
+    const userRole = req.user.systemRole || req.user.role;
+    if (!requiredRoles.includes(userRole)) {
       return res.status(403).json({
         success: false,
         error: {
@@ -114,7 +117,7 @@ export const requireAllRoles = (requiredRoles) => {
           message: 'You do not have all required permissions to access this resource.',
           details: {
             requiredRoles: requiredRoles,
-            userRole: req.user.role,
+            userRole: userRole,
           },
           timestamp: new Date().toISOString(),
         },

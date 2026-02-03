@@ -1,4 +1,5 @@
 import { Employee } from '../models/sequelize/index.js';
+import { ROLES } from '../config/roles.js';
 
 /**
  * Role-based access control middleware
@@ -20,8 +21,8 @@ const authorize = (allowedRoles) => (req, res, next) => {
     });
   }
 
-  // Check if user has required role
-  if (!roles.includes(req.user.role)) {
+  // Check if user has required role (use systemRole for standardized checks)
+  if (!roles.includes(req.user.systemRole)) {
     return res.status(403).json({
       success: false,
       error: {
@@ -29,7 +30,7 @@ const authorize = (allowedRoles) => (req, res, next) => {
         message: 'You do not have permission to access this resource.',
         details: {
           requiredRoles: roles,
-          userRole: req.user.role,
+          userRole: req.user.systemRole,
         },
         timestamp: new Date().toISOString(),
       },
@@ -47,17 +48,17 @@ const authorize = (allowedRoles) => (req, res, next) => {
  */
 const canAccessDepartment = (departmentId, user) => {
   // SuperAdmin can access all departments
-  if (user.role === 'SuperAdmin') {
+  if (user.systemRole === ROLES.SUPER_ADMIN) {
     return true;
   }
 
   // HR can access all departments (HR Administrator level)
-  if (user.role === 'HR') {
+  if (user.systemRole === ROLES.HR_ADMIN) {
     return true;
   }
 
   // HR_Manager can only access assigned departments
-  if (user.role === 'HR_Manager') {
+  if (user.systemRole === ROLES.HR_MANAGER) {
     if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
       return false;
     }
@@ -77,12 +78,12 @@ const canAccessDepartment = (departmentId, user) => {
 const checkDepartmentAccess = async (req, res, next) => {
   try {
     // SuperAdmin and HR have access to all departments
-    if (req.user.role === 'SuperAdmin' || req.user.role === 'HR') {
+    if (req.user.systemRole === ROLES.SUPER_ADMIN || req.user.systemRole === ROLES.HR_ADMIN) {
       return next();
     }
 
     // For HR_Manager, check department access
-    if (req.user.role === 'HR_Manager') {
+    if (req.user.systemRole === ROLES.HR_MANAGER) {
       // Get employee ID from request params or body
       const employeeId = req.params.id || req.params.employeeId || req.body.employeeId;
 
@@ -152,12 +153,12 @@ const checkDepartmentAccess = async (req, res, next) => {
  */
 const applyDepartmentScope = (req, res, next) => {
   // SuperAdmin and HR can see all employees
-  if (req.user.role === 'SuperAdmin' || req.user.role === 'HR') {
+  if (req.user.systemRole === ROLES.SUPER_ADMIN || req.user.systemRole === ROLES.HR_ADMIN) {
     return next();
   }
 
   // HR_Manager can only see employees in their assigned departments
-  if (req.user.role === 'HR_Manager') {
+  if (req.user.systemRole === ROLES.HR_MANAGER) {
     if (!req.user.assignedDepartments || req.user.assignedDepartments.length === 0) {
       return res.status(403).json({
         success: false,
@@ -176,7 +177,7 @@ const applyDepartmentScope = (req, res, next) => {
   }
 
   // Employees can only see their own profile
-  if (req.user.role === 'Employee') {
+  if (req.user.systemRole === ROLES.EMPLOYEE) {
     if (!req.user.employee?.id) {
       return res.status(403).json({
         success: false,
@@ -206,12 +207,12 @@ const checkSelfOrAdmin = (paramName = 'id') => async (req, res, next) => {
     const resourceId = req.params[paramName];
 
     // Admin roles can access any resource
-    if (['SuperAdmin', 'HR', 'HR_Manager'].includes(req.user.role)) {
+    if ([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER].includes(req.user.systemRole)) {
       return next();
     }
 
     // Employees can only access their own resources
-    if (req.user.role === 'Employee') {
+    if (req.user.systemRole === ROLES.EMPLOYEE) {
       // Check if the resource belongs to the user
       if (req.user.employee?.id && req.user.employee?.id.toString() === resourceId) {
         return next();

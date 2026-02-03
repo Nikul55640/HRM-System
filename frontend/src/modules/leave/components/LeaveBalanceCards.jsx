@@ -93,7 +93,7 @@ const LeaveBalanceCards = ({ balances = null }) => {
   }
 
   // Check if balances has direct leave type properties (alternative format)
-  const directLeaveTypes = ['casual', 'sick', 'annual', 'paid', 'maternity', 'paternity'];
+  const directLeaveTypes = ['casual', 'sick', 'paid'];
   const availableDirectTypes = directLeaveTypes.filter(type => balances[type]);
   
   if (availableDirectTypes.length > 0) {

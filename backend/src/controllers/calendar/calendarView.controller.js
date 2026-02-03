@@ -1,6 +1,7 @@
 import { CompanyEvent, Employee, LeaveRequest, AttendanceRecord, Holiday } from "../../models/sequelize/index.js";
 import { Op } from "sequelize";
 import logger from "../../utils/logger.js";
+import { ROLES } from "../../config/roles.js";
 import AttendancePolicyService from "../../services/attendance/attendancePolicy.service.js";
 import DateCalculationService from "../../services/core/dateCalculation.service.js";
 import CalendarDataFetcherService from "../../services/core/calendarDataFetcher.service.js";
@@ -41,8 +42,9 @@ const getMonthlyCalendarData = async (req, res) => {
     const startDate = new Date(currentYear, currentMonth - 1, 1);
     const endDate = new Date(currentYear, currentMonth, 0, 23, 59, 59, 999);
 
-    const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(req.user.role);
-    const isManager = req.user.role === 'Manager';
+    const userSystemRole = req.user.systemRole || req.user.role;
+    const isHROrAdmin = [ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER].includes(userSystemRole);
+    const isManager = userSystemRole === ROLES.HR_MANAGER;
 
     // Collect all normalized events
     const allNormalizedEvents = [];
@@ -262,8 +264,9 @@ const getDailyCalendarData = async (req, res) => {
     const startOfDay = new Date(targetDate.setHours(0, 0, 0, 0));
     const endOfDay = new Date(targetDate.setHours(23, 59, 59, 999));
 
-    const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(req.user.role);
-    const isManager = req.user.role === 'Manager';
+    const userSystemRole = req.user.systemRole || req.user.role;
+    const isHROrAdmin = [ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER].includes(userSystemRole);
+    const isManager = userSystemRole === ROLES.HR_MANAGER;
 
     // Collect all normalized events for the day
     const allNormalizedEvents = [];
@@ -520,8 +523,9 @@ const getEvents = async (req, res) => {
       rangeEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     }
 
-    const isHROrAdmin = ['SuperAdmin', 'HR', 'HR_Manager'].includes(req.user.role);
-    const isManager = req.user.role === 'Manager';
+    const userSystemRole = req.user.systemRole || req.user.role;
+    const isHROrAdmin = [ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER].includes(userSystemRole);
+    const isManager = userSystemRole === ROLES.HR_MANAGER;
 
     // Collect all normalized events
     const allNormalizedEvents = [];

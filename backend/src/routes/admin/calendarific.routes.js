@@ -25,12 +25,13 @@ import {
 } from '../../controllers/admin/calendarific.controller.js';
 import { authenticateToken } from '../../middleware/auth.middleware.js';
 import { requireRoles } from '../../middleware/requireRoles.js';
+import { ROLES } from '../../config/roles.js';
 
 const router = express.Router();
 
 // Apply authentication and role-based access control
 router.use(authenticateToken);
-router.use(requireRoles(['SuperAdmin', 'HR', 'HR_Manager']));
+router.use(requireRoles([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]));
 
 /**
  * @route GET /api/admin/calendarific/test-connection

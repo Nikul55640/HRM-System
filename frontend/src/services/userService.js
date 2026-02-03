@@ -104,8 +104,38 @@ const userService = {
       toast.success('User activated successfully');
       return response.data;
     } catch (error) {
-      
+      console.error('❌ [USER] Failed to activate user:', error);
       toast.error(error.message || 'Failed to activate user');
+      throw error;
+    }
+  },
+
+  // Update own profile
+  updateProfile: async (profileData) => {
+    try {
+      console.log('👤 [USER] Updating profile:', profileData);
+      const response = await api.put('/users/profile', profileData);
+      console.log('✅ [USER] Profile updated:', response.data);
+      toast.success('Profile updated successfully');
+      return response.data;
+    } catch (error) {
+      console.error('❌ [USER] Failed to update profile:', error);
+      toast.error(error.message || 'Failed to update profile');
+      throw error;
+    }
+  },
+
+  // Change own password
+  changePassword: async (passwordData) => {
+    try {
+      console.log('🔐 [USER] Changing password');
+      const response = await api.put('/users/change-password', passwordData);
+      console.log('✅ [USER] Password changed successfully');
+      toast.success('Password changed successfully');
+      return response.data;
+    } catch (error) {
+      console.error('❌ [USER] Failed to change password:', error);
+      toast.error(error.message || 'Failed to change password');
       throw error;
     }
   },

@@ -1,5 +1,6 @@
 import { User } from "../models/sequelize/index.js";
 import { verifyAccessToken, extractTokenFromHeader } from "../utils/jwt.js";
+import { ROLES, databaseToSystemRole } from "../config/roles.js";
 
 /**
  * Authenticate User - Required
@@ -101,7 +102,8 @@ const authenticate = async (req, res, next) => {
       } else {
         console.warn(`⚠️ [AUTH] No employee profile found for user ${user.id} (${user.email})`);
         // For SuperAdmin users, this might be expected
-        if (user.role === 'SuperAdmin') {
+        const userSystemRole = user.systemRole || user.role;
+        if (userSystemRole === ROLES.SUPER_ADMIN) {
           console.log('ℹ️ [AUTH] SuperAdmin user without employee profile - this is acceptable');
         }
       }
@@ -112,8 +114,8 @@ const authenticate = async (req, res, next) => {
     req.user = {
       id: user.id,
       email: user.email,
-      role: user.role, // Keep original role
-      normalizedRole: user.getNormalizedRole(), // Add normalized role
+      role: user.role, // Keep original role from database
+      systemRole: databaseToSystemRole(user.role), // Add standardized system role
       assignedDepartments: user.assignedDepartments || [],
       employee: employeeData, // New structure
       // Backward compatibility - provide employeeId directly
@@ -178,8 +180,8 @@ const optionalAuthenticate = async (req, res, next) => {
       req.user = {
         id: user.id,
         email: user.email,
-        role: user.role, // Keep original role
-        normalizedRole: user.getNormalizedRole(), // Add normalized role
+        role: user.role, // Keep original role from database
+        systemRole: databaseToSystemRole(user.role), // Add standardized system role
         assignedDepartments: user.assignedDepartments || [],
         employee: employeeData,
         // Backward compatibility - provide employeeId directly
@@ -211,10 +213,11 @@ const authorize = (roles) => (req, res, next) => {
   }
 
   const allowedRoles = Array.isArray(roles) ? roles : [roles];
-  const userRole = req.user.role; // Use original role from database
   
-  // Simple direct comparison - no normalization needed since we reverted to old format
-  if (!allowedRoles.includes(userRole)) {
+  // Use systemRole for authorization checks (standardized constants)
+  const userSystemRole = req.user.systemRole;
+  
+  if (!allowedRoles.includes(userSystemRole)) {
     return res.status(403).json({
       success: false,
       error: {
@@ -222,7 +225,7 @@ const authorize = (roles) => (req, res, next) => {
         message: "You do not have permission.",
         details: {
           requiredRoles: allowedRoles,
-          userRole: userRole,
+          userRole: userSystemRole,
           allowedRoles: allowedRoles
         },
         timestamp: new Date().toISOString(),

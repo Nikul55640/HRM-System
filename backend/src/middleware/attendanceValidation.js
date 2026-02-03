@@ -4,6 +4,7 @@
  */
 
 import { AttendanceRecord } from '../models/sequelize/index.js';
+import { ROLES } from '../config/roles.js';
 
 /**
  * Validate session start request
@@ -60,7 +61,8 @@ export const preventHistoricalModification = async (req, res, next) => {
     const { role } = req.user;
 
     // Only apply to employees (not HR/Admin)
-    if (role === 'hr' || role === 'admin') {
+    const userSystemRole = req.user.systemRole || role;
+    if ([ROLES.HR_ADMIN, ROLES.SUPER_ADMIN, ROLES.HR_MANAGER].includes(userSystemRole)) {
       return next();
     }
 

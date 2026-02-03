@@ -22,7 +22,10 @@ export const checkPermission = (permission) => {
       });
     }
 
-    if (!hasPermission(req.user.role, permission)) {
+    // Use systemRole for permission checks (standardized constants)
+    const userRole = req.user.systemRole || req.user.role;
+
+    if (!hasPermission(userRole, permission)) {
       return res.status(403).json({
         success: false,
         error: {
@@ -30,7 +33,7 @@ export const checkPermission = (permission) => {
           message: 'You do not have permission to perform this action.',
           details: {
             requiredPermission: permission,
-            userRole: req.user.role,
+            userRole: userRole,
           },
           timestamp: new Date().toISOString(),
         },
@@ -58,7 +61,10 @@ export const checkAnyPermission = (permissions) => {
       });
     }
 
-    if (!hasAnyPermission(req.user.role, permissions)) {
+    // Use systemRole for permission checks (standardized constants)
+    const userRole = req.user.systemRole || req.user.role;
+
+    if (!hasAnyPermission(userRole, permissions)) {
       return res.status(403).json({
         success: false,
         error: {
@@ -66,7 +72,7 @@ export const checkAnyPermission = (permissions) => {
           message: 'You do not have permission to perform this action.',
           details: {
             requiredPermissions: permissions,
-            userRole: req.user.role,
+            userRole: userRole,
           },
           timestamp: new Date().toISOString(),
         },
@@ -94,7 +100,10 @@ export const checkAllPermissions = (permissions) => {
       });
     }
 
-    if (!hasAllPermissions(req.user.role, permissions)) {
+    // Use systemRole for permission checks (standardized constants)
+    const userRole = req.user.systemRole || req.user.role;
+
+    if (!hasAllPermissions(userRole, permissions)) {
       return res.status(403).json({
         success: false,
         error: {
@@ -102,7 +111,7 @@ export const checkAllPermissions = (permissions) => {
           message: 'You do not have permission to perform this action.',
           details: {
             requiredPermissions: permissions,
-            userRole: req.user.role,
+            userRole: userRole,
           },
           timestamp: new Date().toISOString(),
         },

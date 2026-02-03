@@ -2,6 +2,7 @@ import { DataTypes } from 'sequelize';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import sequelize from '../../config/sequelize.js';
+import { ROLES, databaseToSystemRole, systemRoleToDatabase, normalizeToSystemRole } from '../../config/roles.js';
 
 const User = sequelize.define('User', {
   id: {
@@ -128,36 +129,39 @@ User.prototype.getFullName = function () {
   return this.email; // Fallback to email if no employee record
 };
 
-// ✅ NEW: Role normalization for backward compatibility
-User.prototype.getNormalizedRole = function () {
-  const roleMapping = {
-    'SuperAdmin': 'SUPER_ADMIN',
-    'HR': 'HR_ADMIN', 
-    'Employee': 'EMPLOYEE',
-    // New roles pass through unchanged
-    'SUPER_ADMIN': 'SUPER_ADMIN',
-    'HR_ADMIN': 'HR_ADMIN',
-    'HR_MANAGER': 'HR_MANAGER', 
-    'EMPLOYEE': 'EMPLOYEE'
+// ✅ UPDATED: Role normalization using standardized system
+User.prototype.getSystemRole = function () {
+  return databaseToSystemRole(this.role);
+};
+
+// ✅ UPDATED: Get display label for UI
+User.prototype.getRoleDisplayLabel = function () {
+  const systemRole = this.getSystemRole();
+  const labels = {
+    [ROLES.SUPER_ADMIN]: 'SuperAdmin',
+    [ROLES.HR_ADMIN]: 'HR',
+    [ROLES.HR_MANAGER]: 'HR Manager',
+    [ROLES.EMPLOYEE]: 'Employee',
   };
-  
-  return roleMapping[this.role] || this.role;
+  return labels[systemRole] || systemRole;
 };
 
-// ✅ NEW: Check if user has specific role (supports both old and new formats)
+// ✅ UPDATED: Check if user has specific role (supports both old and new formats)
 User.prototype.hasRole = function (requiredRole) {
-  const normalizedUserRole = this.getNormalizedRole();
-  const normalizedRequiredRole = typeof requiredRole === 'string' ? 
-    (requiredRole === 'SuperAdmin' ? 'SUPER_ADMIN' : 
-     requiredRole === 'HR' ? 'HR_ADMIN' : 
-     requiredRole === 'Employee' ? 'EMPLOYEE' : requiredRole) : requiredRole;
-  
-  return normalizedUserRole === normalizedRequiredRole;
+  const userSystemRole = this.getSystemRole();
+  const requiredSystemRole = normalizeToSystemRole(requiredRole);
+  return userSystemRole === requiredSystemRole;
 };
 
-// ✅ NEW: Check if user has any of the specified roles
+// ✅ UPDATED: Check if user has any of the specified roles
 User.prototype.hasAnyRole = function (requiredRoles) {
   return requiredRoles.some(role => this.hasRole(role));
+};
+
+// ✅ BACKWARD COMPATIBILITY: Keep old method name
+User.prototype.getNormalizedRole = function () {
+  console.warn('getNormalizedRole is deprecated. Use getSystemRole instead.');
+  return this.getSystemRole();
 };
 
 export default User;

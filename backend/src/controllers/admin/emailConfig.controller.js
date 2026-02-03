@@ -1,7 +1,7 @@
 import { sendEmail, verifyEmailConfig, getEmailProviderInfo } from '../../services/email/email.service.js';
 import { render } from '@react-email/render';
 import logger from '../../utils/logger.js';
-import { ROLES } from '../../config/rolePermissions.js';
+import { ROLES } from '../../config/roles.js';
 
 /**
  * Email Configuration Controller
@@ -14,7 +14,8 @@ import { ROLES } from '../../config/rolePermissions.js';
 export const testEmail = async (req, res) => {
   try {
     // Only Super Admin can test email
-    if (req.user.role !== ROLES.SUPER_ADMIN) {
+    const userSystemRole = req.user.systemRole || req.user.role;
+    if (userSystemRole !== ROLES.SUPER_ADMIN) {
       return res.status(403).json({
         success: false,
         message: 'Only Super Admin can test email functionality'
@@ -142,7 +143,8 @@ export const testEmail = async (req, res) => {
 export const getEmailStatus = async (req, res) => {
   try {
     // Only Super Admin and HR Admin can check email status
-    if (![ROLES.SUPER_ADMIN, ROLES.HR_ADMIN].includes(req.user.role)) {
+    const userSystemRole = req.user.systemRole || req.user.role;
+    if (![ROLES.SUPER_ADMIN, ROLES.HR_ADMIN].includes(userSystemRole)) {
       return res.status(403).json({
         success: false,
         message: 'Insufficient permissions'
@@ -181,7 +183,8 @@ export const getEmailStatus = async (req, res) => {
 export const sendTestNotification = async (req, res) => {
   try {
     // Only Super Admin can send test notifications
-    if (req.user.role !== ROLES.SUPER_ADMIN) {
+    const userSystemRole = req.user.systemRole || req.user.role;
+    if (userSystemRole !== ROLES.SUPER_ADMIN) {
       return res.status(403).json({
         success: false,
         message: 'Only Super Admin can send test notifications'

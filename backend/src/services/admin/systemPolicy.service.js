@@ -6,7 +6,7 @@
 
 import { SystemPolicy, AuditLog } from "../../models/sequelize/index.js";
 import logger from "../../utils/logger.js";
-import { ROLES } from "../../config/rolePermissions.js";
+import { ROLES } from "../../config/roles.js";
 
 class SystemPolicyService {
     /**
@@ -17,7 +17,8 @@ class SystemPolicyService {
     async getAllPolicies(user) {
         try {
             // Only SuperAdmin can access system policies
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only SuperAdmin can access system policies", statusCode: 403 };
             }
 
@@ -67,7 +68,8 @@ class SystemPolicyService {
     async getPoliciesByType(policyType, user) {
         try {
             // Only SuperAdmin can access system policies
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only SuperAdmin can access system policies", statusCode: 403 };
             }
 
@@ -107,7 +109,8 @@ class SystemPolicyService {
     async getPolicyByKey(policyKey, user) {
         try {
             // Only SuperAdmin can access system policies
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only SuperAdmin can access system policies", statusCode: 403 };
             }
 
@@ -147,7 +150,8 @@ class SystemPolicyService {
     async updatePolicy(policyKey, updateData, user, metadata = {}) {
         try {
             // Only SuperAdmin can update system policies
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only SuperAdmin can update system policies", statusCode: 403 };
             }
 
@@ -210,7 +214,8 @@ class SystemPolicyService {
     async createPolicy(policyData, user, metadata = {}) {
         try {
             // Only SuperAdmin can create system policies
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only SuperAdmin can create system policies", statusCode: 403 };
             }
 
@@ -278,7 +283,8 @@ class SystemPolicyService {
     async initializeDefaultPolicies(user, metadata = {}) {
         try {
             // Only SuperAdmin can initialize policies
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only SuperAdmin can initialize system policies", statusCode: 403 };
             }
 
@@ -333,7 +339,8 @@ class SystemPolicyService {
     async resetPolicyToDefault(policyKey, user, metadata = {}) {
         try {
             // Only SuperAdmin can reset policies
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only SuperAdmin can reset system policies", statusCode: 403 };
             }
 
@@ -401,7 +408,8 @@ class SystemPolicyService {
     async bulkUpdatePolicies(policies, user, metadata = {}) {
         try {
             // Only SuperAdmin can bulk update policies
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only SuperAdmin can update system policies", statusCode: 403 };
             }
 
@@ -448,7 +456,8 @@ class SystemPolicyService {
     async exportPolicies(user) {
         try {
             // Only SuperAdmin can export policies
-            if (user.role !== ROLES.SUPER_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN) {
                 throw { message: "Unauthorized: Only SuperAdmin can export system policies", statusCode: 403 };
             }
 

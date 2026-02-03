@@ -1,404 +1,509 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/shared/ui/select';
-import { Textarea } from '@/shared/ui/textarea';
-import { Alert, AlertDescription } from '@/shared/ui/alert';
-import { Badge } from '@/shared/ui/badge';
-import { Mail, Send, CheckCircle, XCircle, AlertCircle, Settings } from 'lucide-react';
-import { useToast } from '@/core/hooks/use-toast';
-import api from '@/services/api';
+/**
+ * Email Testing Page
+ * 
+ * Admin interface for testing all email providers
+ * Test Mailtrap, Resend, and SMTP configurations
+ */
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../../shared/ui/card';
+import { Button } from '../../../../shared/ui/button';
+import { Input } from '../../../../shared/ui/input';
+import { Label } from '../../../../shared/ui/label';
+import { Badge } from '../../../../shared/ui/badge';
+import { Alert, AlertDescription } from '../../../../shared/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../shared/ui/tabs';
+import { 
+  Mail, 
+  CheckCircle, 
+  XCircle, 
+  AlertCircle, 
+  Send, 
+  Settings, 
+  Zap,
+  Server,
+  Globe,
+  RefreshCw
+} from 'lucide-react';
+import { useToast } from '../../../../core/hooks/use-toast';
+import api from '../../../../services/api';
 
 const EmailTestingPage = () => {
-  const [emailConfig, setEmailConfig] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [testForm, setTestForm] = useState({
-    email: 'np425771@gmail.com',
-    type: 'attendance_absent',
-    data: {
-      employeeName: 'Test Employee',
-      date: new Date().toISOString().split('T')[0],
-      reason: 'Test email - No clock-in recorded',
-      issue: 'Test email - Missing clock-out',
-      leaveType: 'Annual Leave',
-      startDate: '2026-02-01',
-      endDate: '2026-02-03',
-      days: 3,
-      approverName: 'Test Manager'
-    }
-  });
-  const [testResults, setTestResults] = useState([]);
+  const [testEmail, setTestEmail] = useState('');
+  const [providerStatus, setProviderStatus] = useState(null);
+  const [testResults, setTestResults] = useState({});
   const { toast } = useToast();
 
-  // Load email configuration
-  const loadEmailConfig = async () => {
-    setLoading(true);
-    try {
-      const response = await api.get('/admin/email/status');
-      setEmailConfig(response.data.data);
-    } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load email configuration',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Send test email
-  const sendTestEmail = async () => {
-    setLoading(true);
-    try {
-      const response = await api.post('/admin/email/test', testForm);
-      
-      const result = {
-        id: Date.now(),
-        type: testForm.type,
-        email: testForm.email,
-        success: response.data.success,
-        emailId: response.data.data?.emailId,
-        error: response.data.error,
-        timestamp: new Date().toLocaleTimeString()
-      };
-      
-      setTestResults(prev => [result, ...prev]);
-      
-      if (response.data.success) {
-        toast({
-          title: 'Email Sent',
-          description: `Test email sent successfully to ${testForm.email}`,
-          variant: 'default'
-        });
-      } else {
-        toast({
-          title: 'Email Failed',
-          description: response.data.error || 'Failed to send email',
-          variant: 'destructive'
-        });
-      }
-    } catch (error) {
-      const result = {
-        id: Date.now(),
-        type: testForm.type,
-        email: testForm.email,
-        success: false,
-        error: error.response?.data?.message || error.message,
-        timestamp: new Date().toLocaleTimeString()
-      };
-      
-      setTestResults(prev => [result, ...prev]);
-      
-      toast({
-        title: 'Error',
-        description: 'Failed to send test email',
-        variant: 'destructive'
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Send all email types
-  const sendAllEmailTypes = async () => {
-    const emailTypes = ['attendance_absent', 'correction_required', 'leave_approved'];
-    
-    for (const type of emailTypes) {
-      setTestForm(prev => ({ ...prev, type }));
-      await sendTestEmail();
-      // Wait 2 seconds between emails
-      await new Promise(resolve => setTimeout(resolve, 2000));
-    }
-  };
-
-  React.useEffect(() => {
-    loadEmailConfig();
+  // Load email provider status on mount
+  useEffect(() => {
+    loadProviderStatus();
   }, []);
 
-  const getEmailTypeLabel = (type) => {
-    const labels = {
-      attendance_absent: 'Attendance Absent',
-      correction_required: 'Correction Required',
-      leave_approved: 'Leave Approved'
-    };
-    return labels[type] || type;
+  const loadProviderStatus = async () => {
+    try {
+      const response = await api.get('/admin/email-test/status');
+      setProviderStatus(response.data.data);
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load email provider status',
+        variant: 'destructive'
+      });
+    }
   };
 
-  const getEmailTypeIcon = (type) => {
-    const icons = {
-      attendance_absent: '❌',
-      correction_required: '⚠️',
-      leave_approved: '✅'
-    };
-    return icons[type] || '📧';
+  const testCurrentProvider = async () => {
+    if (!testEmail) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a test email address',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.post('/admin/email-test/current', {
+        email: testEmail
+      });
+
+      setTestResults(prev => ({
+        ...prev,
+        current: response.data.data
+      }));
+
+      toast({
+        title: 'Success',
+        description: `Test email sent via ${providerStatus?.current?.provider}`,
+        variant: 'default'
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to send test email',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const testSpecificProvider = async (provider) => {
+    if (!testEmail) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a test email address',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.post('/admin/email-test/provider', {
+        provider: provider.toUpperCase(),
+        email: testEmail
+      });
+
+      setTestResults(prev => ({
+        ...prev,
+        [provider]: response.data.data
+      }));
+
+      toast({
+        title: 'Success',
+        description: `${provider.toUpperCase()} test email sent successfully`,
+        variant: 'default'
+      });
+    } catch (error) {
+      setTestResults(prev => ({
+        ...prev,
+        [provider]: { success: false, error: error.response?.data?.message || 'Test failed' }
+      }));
+
+      toast({
+        title: 'Error',
+        description: `${provider.toUpperCase()}: ${error.response?.data?.message || 'Test failed'}`,
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const testAllProviders = async () => {
+    if (!testEmail) {
+      toast({
+        title: 'Error',
+        description: 'Please enter a test email address',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await api.post('/admin/email-test/all', {
+        email: testEmail
+      });
+
+      setTestResults(prev => ({
+        ...prev,
+        all: response.data.data
+      }));
+
+      const { successful, failed, total } = response.data.data;
+      toast({
+        title: 'Test Complete',
+        description: `${successful}/${total} providers working. ${failed} failed.`,
+        variant: successful === total ? 'default' : 'destructive'
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Failed to test all providers',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getProviderIcon = (provider) => {
+    switch (provider.toLowerCase()) {
+      case 'mailtrap': return <Mail className="h-4 w-4" />;
+      case 'resend': return <Zap className="h-4 w-4" />;
+      case 'smtp': return <Server className="h-4 w-4" />;
+      default: return <Globe className="h-4 w-4" />;
+    }
+  };
+
+  const getStatusBadge = (configured, valid) => {
+    if (configured && valid) {
+      return <Badge variant="success" className="bg-green-100 text-green-800"><CheckCircle className="h-3 w-3 mr-1" />Ready</Badge>;
+    } else if (configured && !valid) {
+      return <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Error</Badge>;
+    } else {
+      return <Badge variant="secondary"><AlertCircle className="h-3 w-3 mr-1" />Not Configured</Badge>;
+    }
+  };
+
+  if (!providerStatus) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="h-6 w-6 animate-spin mr-2" />
+        Loading email provider status...
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Email Testing</h1>
-          <p className="text-muted-foreground">
-            Test email notifications and verify delivery
-          </p>
+          <h1 className="text-2xl font-bold">Email Testing</h1>
+          <p className="text-gray-600">Test and verify email provider configurations</p>
         </div>
-        <Button onClick={loadEmailConfig} variant="outline" size="sm">
-          <Settings className="h-4 w-4 mr-2" />
-          Refresh Config
+        <Button onClick={loadProviderStatus} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Refresh Status
         </Button>
       </div>
 
-      {/* Email Configuration Status */}
+      {/* Current Provider Status */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Email Configuration
+          <CardTitle className="flex items-center">
+            <Settings className="h-5 w-5 mr-2" />
+            Current Configuration
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {loading && !emailConfig ? (
-            <div className="text-center py-4">Loading configuration...</div>
-          ) : emailConfig ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label className="text-sm font-medium">Status</Label>
-                <div className="flex items-center gap-2 mt-1">
-                  {emailConfig.isConfigured ? (
-                    <Badge variant="success" className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3" />
-                      Configured
-                    </Badge>
-                  ) : (
-                    <Badge variant="destructive" className="flex items-center gap-1">
-                      <XCircle className="h-3 w-3" />
-                      Not Configured
-                    </Badge>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label className="text-sm font-medium">Active Provider</Label>
+              <div className="flex items-center mt-1">
+                {getProviderIcon(providerStatus.current.provider)}
+                <span className="ml-2 font-semibold">{providerStatus.current.provider}</span>
+              </div>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">From Email</Label>
+              <p className="text-sm text-gray-600 mt-1">{providerStatus.current.fromEmail}</p>
+            </div>
+            <div>
+              <Label className="text-sm font-medium">Status</Label>
+              <div className="mt-1">
+                {getStatusBadge(providerStatus.current.configured, true)}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Test Email Input */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Test Email Address</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <Input
+                type="email"
+                placeholder="Enter email address to receive test emails"
+                value={testEmail}
+                onChange={(e) => setTestEmail(e.target.value)}
+              />
+            </div>
+            <Button 
+              onClick={testCurrentProvider} 
+              disabled={loading || !testEmail}
+              className="min-w-[120px]"
+            >
+              {loading ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+              Test Current
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Provider Testing Tabs */}
+      <Tabs defaultValue="individual" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="individual">Individual Providers</TabsTrigger>
+          <TabsTrigger value="all">Test All</TabsTrigger>
+          <TabsTrigger value="results">Results</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="individual" className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Mailtrap */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Mail className="h-5 w-5 mr-2" />
+                    Mailtrap
+                  </div>
+                  {getStatusBadge(
+                    providerStatus.providers.mailtrap.configured,
+                    providerStatus.providers.mailtrap.status.valid
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-600">
+                    {providerStatus.providers.mailtrap.status.message || 
+                     providerStatus.providers.mailtrap.status.error}
+                  </div>
+                  <Button 
+                    onClick={() => testSpecificProvider('mailtrap')}
+                    disabled={loading || !testEmail || !providerStatus.providers.mailtrap.configured}
+                    className="w-full"
+                    size="sm"
+                  >
+                    Test Mailtrap
+                  </Button>
+                  {testResults.mailtrap && (
+                    <Alert className={testResults.mailtrap.success ? 'border-green-200' : 'border-red-200'}>
+                      <AlertDescription className="text-sm">
+                        {testResults.mailtrap.success ? '✅ Test email sent successfully' : `❌ ${testResults.mailtrap.error}`}
+                      </AlertDescription>
+                    </Alert>
                   )}
                 </div>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Service</Label>
-                <p className="text-sm text-muted-foreground mt-1">{emailConfig.service}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">From Email</Label>
-                <p className="text-sm text-muted-foreground mt-1">{emailConfig.fromEmail}</p>
-              </div>
-              <div>
-                <Label className="text-sm font-medium">Base URL</Label>
-                <p className="text-sm text-muted-foreground mt-1">{emailConfig.baseUrl}</p>
-              </div>
-            </div>
-          ) : (
-            <Alert>
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>
-                Failed to load email configuration. Please check your settings.
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-      </Card>
+              </CardContent>
+            </Card>
 
-      {/* Email Test Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
-            Send Test Email
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="email">Recipient Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={testForm.email}
-                onChange={(e) => setTestForm(prev => ({ ...prev, email: e.target.value }))}
-                placeholder="Enter email address"
-              />
-            </div>
-            <div>
-              <Label htmlFor="type">Email Type</Label>
-              <Select
-                value={testForm.type}
-                onValueChange={(value) => setTestForm(prev => ({ ...prev, type: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="attendance_absent">
-                    ❌ Attendance Absent
-                  </SelectItem>
-                  <SelectItem value="correction_required">
-                    ⚠️ Correction Required
-                  </SelectItem>
-                  <SelectItem value="leave_approved">
-                    ✅ Leave Approved
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="employeeName">Employee Name</Label>
-              <Input
-                id="employeeName"
-                value={testForm.data.employeeName}
-                onChange={(e) => setTestForm(prev => ({
-                  ...prev,
-                  data: { ...prev.data, employeeName: e.target.value }
-                }))}
-              />
-            </div>
-            <div>
-              <Label htmlFor="date">Date</Label>
-              <Input
-                id="date"
-                type="date"
-                value={testForm.data.date}
-                onChange={(e) => setTestForm(prev => ({
-                  ...prev,
-                  data: { ...prev.data, date: e.target.value }
-                }))}
-              />
-            </div>
-          </div>
-
-          {testForm.type === 'attendance_absent' && (
-            <div>
-              <Label htmlFor="reason">Reason</Label>
-              <Textarea
-                id="reason"
-                value={testForm.data.reason}
-                onChange={(e) => setTestForm(prev => ({
-                  ...prev,
-                  data: { ...prev.data, reason: e.target.value }
-                }))}
-                placeholder="Reason for absence"
-              />
-            </div>
-          )}
-
-          {testForm.type === 'correction_required' && (
-            <div>
-              <Label htmlFor="issue">Issue</Label>
-              <Textarea
-                id="issue"
-                value={testForm.data.issue}
-                onChange={(e) => setTestForm(prev => ({
-                  ...prev,
-                  data: { ...prev.data, issue: e.target.value }
-                }))}
-                placeholder="Issue description"
-              />
-            </div>
-          )}
-
-          {testForm.type === 'leave_approved' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="leaveType">Leave Type</Label>
-                <Input
-                  id="leaveType"
-                  value={testForm.data.leaveType}
-                  onChange={(e) => setTestForm(prev => ({
-                    ...prev,
-                    data: { ...prev.data, leaveType: e.target.value }
-                  }))}
-                />
-              </div>
-              <div>
-                <Label htmlFor="approverName">Approver Name</Label>
-                <Input
-                  id="approverName"
-                  value={testForm.data.approverName}
-                  onChange={(e) => setTestForm(prev => ({
-                    ...prev,
-                    data: { ...prev.data, approverName: e.target.value }
-                  }))}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button onClick={sendTestEmail} disabled={loading}>
-              <Send className="h-4 w-4 mr-2" />
-              {loading ? 'Sending...' : 'Send Test Email'}
-            </Button>
-            <Button onClick={sendAllEmailTypes} variant="outline" disabled={loading}>
-              <Mail className="h-4 w-4 mr-2" />
-              Send All Types
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Test Results */}
-      {testResults.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Test Results</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {testResults.map((result) => (
-                <div
-                  key={result.id}
-                  className={`p-4 rounded-lg border ${
-                    result.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{getEmailTypeIcon(result.type)}</span>
-                      <span className="font-medium">{getEmailTypeLabel(result.type)}</span>
-                      <Badge variant={result.success ? 'success' : 'destructive'}>
-                        {result.success ? 'Sent' : 'Failed'}
-                      </Badge>
-                    </div>
-                    <span className="text-sm text-muted-foreground">{result.timestamp}</span>
+            {/* Resend */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Zap className="h-5 w-5 mr-2" />
+                    Resend
                   </div>
-                  <div className="mt-2 text-sm text-muted-foreground">
-                    <p>To: {result.email}</p>
-                    {result.success && result.emailId && (
-                      <p>Email ID: {result.emailId}</p>
-                    )}
-                    {!result.success && result.error && (
-                      <p className="text-red-600">Error: {result.error}</p>
-                    )}
+                  {getStatusBadge(
+                    providerStatus.providers.resend.configured,
+                    providerStatus.providers.resend.status.valid
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-600">
+                    {providerStatus.providers.resend.status.message || 
+                     providerStatus.providers.resend.status.error}
                   </div>
+                  <Button 
+                    onClick={() => testSpecificProvider('resend')}
+                    disabled={loading || !testEmail || !providerStatus.providers.resend.configured}
+                    className="w-full"
+                    size="sm"
+                  >
+                    Test Resend
+                  </Button>
+                  {testResults.resend && (
+                    <Alert className={testResults.resend.success ? 'border-green-200' : 'border-red-200'}>
+                      <AlertDescription className="text-sm">
+                        {testResults.resend.success ? '✅ Test email sent successfully' : `❌ ${testResults.resend.error}`}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              </CardContent>
+            </Card>
 
-      {/* Instructions */}
+            {/* SMTP */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Server className="h-5 w-5 mr-2" />
+                    SMTP
+                  </div>
+                  {getStatusBadge(
+                    providerStatus.providers.smtp.configured,
+                    providerStatus.providers.smtp.status.valid
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="text-sm text-gray-600">
+                    {providerStatus.providers.smtp.status.message || 
+                     providerStatus.providers.smtp.status.error}
+                  </div>
+                  {providerStatus.providers.smtp.status.host && (
+                    <div className="text-xs text-gray-500">
+                      Host: {providerStatus.providers.smtp.status.host}:{providerStatus.providers.smtp.status.port}
+                    </div>
+                  )}
+                  <Button 
+                    onClick={() => testSpecificProvider('smtp')}
+                    disabled={loading || !testEmail || !providerStatus.providers.smtp.configured}
+                    className="w-full"
+                    size="sm"
+                  >
+                    Test SMTP
+                  </Button>
+                  {testResults.smtp && (
+                    <Alert className={testResults.smtp.success ? 'border-green-200' : 'border-red-200'}>
+                      <AlertDescription className="text-sm">
+                        {testResults.smtp.success ? '✅ Test email sent successfully' : `❌ ${testResults.smtp.error}`}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="all">
+          <Card>
+            <CardHeader>
+              <CardTitle>Test All Providers</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  This will send test emails from all configured providers to verify they're working correctly.
+                </p>
+                <Button 
+                  onClick={testAllProviders}
+                  disabled={loading || !testEmail}
+                  className="w-full md:w-auto"
+                >
+                  {loading ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
+                  Test All Providers
+                </Button>
+                
+                {testResults.all && (
+                  <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-semibold mb-2">Test Results Summary</h4>
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>Total: {testResults.all.total}</div>
+                      <div className="text-green-600">Successful: {testResults.all.successful}</div>
+                      <div className="text-red-600">Failed: {testResults.all.failed}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="results">
+          <Card>
+            <CardHeader>
+              <CardTitle>Test Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {Object.keys(testResults).length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No test results yet. Run some tests to see results here.</p>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(testResults).map(([provider, result]) => (
+                    <div key={provider} className="border rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold capitalize">{provider}</h4>
+                        {result.success ? (
+                          <Badge variant="success"><CheckCircle className="h-3 w-3 mr-1" />Success</Badge>
+                        ) : (
+                          <Badge variant="destructive"><XCircle className="h-3 w-3 mr-1" />Failed</Badge>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {result.success ? (
+                          <div>
+                            <p>{result.message}</p>
+                            {result.messageId && <p className="text-xs mt-1">Message ID: {result.messageId}</p>}
+                            {result.emailId && <p className="text-xs mt-1">Email ID: {result.emailId}</p>}
+                          </div>
+                        ) : (
+                          <p className="text-red-600">{result.error}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Configuration Help */}
       <Card>
         <CardHeader>
-          <CardTitle>Instructions</CardTitle>
+          <CardTitle>Configuration Help</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 text-sm text-muted-foreground">
-            <p>1. Verify email configuration is valid before sending tests</p>
-            <p>2. Enter the recipient email address (default: np425771@gmail.com)</p>
-            <p>3. Select email type and customize the data as needed</p>
-            <p>4. Click "Send Test Email" to send a single email or "Send All Types" for all templates</p>
-            <p>5. Check your inbox and spam folder for the test emails</p>
-            <p>6. Monitor delivery status at <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Resend Dashboard</a></p>
+          <div className="space-y-4 text-sm">
+            <div>
+              <h4 className="font-semibold">Environment Variables</h4>
+              <ul className="list-disc list-inside mt-2 space-y-1 text-gray-600">
+                <li><code>EMAIL_PROVIDER</code> - Set to MAILTRAP, RESEND, or SMTP</li>
+                <li><code>EMAIL_FROM</code> - From email address and name</li>
+                <li><code>MAILTRAP_API_TOKEN</code> - Mailtrap API token</li>
+                <li><code>RESEND_API_KEY</code> - Resend API key</li>
+                <li><code>SMTP_HOST, SMTP_USER, SMTP_PASS</code> - SMTP configuration</li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold">SMTP Examples</h4>
+              <ul className="list-disc list-inside mt-2 space-y-1 text-gray-600">
+                <li>Gmail: smtp.gmail.com:587 (use App Password)</li>
+                <li>Outlook: smtp-mail.outlook.com:587</li>
+                <li>Office365: smtp.office365.com:587</li>
+              </ul>
+            </div>
           </div>
         </CardContent>
       </Card>

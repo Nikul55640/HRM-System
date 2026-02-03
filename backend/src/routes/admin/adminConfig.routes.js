@@ -7,12 +7,13 @@ import express from 'express';
 import adminConfigController from '../../controllers/admin/adminConfig.controller.js';
 import { authenticate } from '../../middleware/authenticate.js';
 import { requireRoles } from '../../middleware/requireRoles.js';
+import { ROLES } from '../../config/roles.js';
 
 const router = express.Router();
 
 // All routes require authentication and SuperAdmin role
 router.use(authenticate);
-router.use(requireRoles(['SuperAdmin']));
+router.use(requireRoles([ROLES.SUPER_ADMIN]));
 
 // System Configuration Routes
 router.get('/system', adminConfigController.getSystemConfig);

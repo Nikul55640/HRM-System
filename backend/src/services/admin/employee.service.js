@@ -6,7 +6,7 @@
 import { Employee, User, Department, AuditLog } from "../../models/sequelize/index.js";
 import { Op } from "sequelize";
 import logger from "../../utils/logger.js";
-import { ROLES } from "../../config/rolePermissions.js";
+import { ROLES } from "../../config/roles.js";
 
 class EmployeeService {
   /**
@@ -19,7 +19,8 @@ class EmployeeService {
   async createEmployee(employeeData, user, metadata = {}) {
     try {
       // Role-based access control
-      if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
         throw { message: "Unauthorized: Only Super Admin and HR can create employees", statusCode: 403 };
       }
 
@@ -115,7 +116,8 @@ class EmployeeService {
   async updateEmployee(employeeId, updateData, user, metadata = {}) {
     try {
       // Role-based access control
-      if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
         throw { message: "Unauthorized: Only Super Admin and HR can update employees", statusCode: 403 };
       }
 
@@ -219,7 +221,8 @@ class EmployeeService {
       const where = { id: employeeId };
 
       // Apply role-based filtering
-      if (user.role === ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole === ROLES.HR_ADMIN) {
         // HR can only access employees in their assigned departments
         if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
           throw {
@@ -231,7 +234,7 @@ class EmployeeService {
         where.department = {
           [Op.in]: user.assignedDepartments,
         };
-      } else if (user.role === ROLES.EMPLOYEE) {
+      } else if (userSystemRole === ROLES.EMPLOYEE) {
         // Employees can only access their own profile
         if (!user.employee?.id || user.employee?.id.toString() !== employeeId) {
           throw {
@@ -269,7 +272,7 @@ class EmployeeService {
       }
 
       // Return public JSON for non-admin users to hide sensitive bank details
-      const empData = user.role === ROLES.EMPLOYEE ? employee.toPublicJSON() : employee.toFrontendJSON();
+      const empData = userSystemRole === ROLES.EMPLOYEE ? employee.toPublicJSON() : employee.toFrontendJSON();
 
       return {
         success: true,
@@ -306,7 +309,8 @@ class EmployeeService {
       const where = {};
 
       // Apply role-based scope filtering
-      if (user.role === ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole === ROLES.HR_ADMIN) {
         if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
           throw {
             code: "NO_DEPARTMENTS_ASSIGNED",
@@ -317,7 +321,7 @@ class EmployeeService {
         where.department = {
           [Op.in]: user.assignedDepartments,
         };
-      } else if (user.role === ROLES.EMPLOYEE) {
+      } else if (userSystemRole === ROLES.EMPLOYEE) {
         // Employees can only see active employees in directory view
         where.status = "Active";
       }
@@ -378,7 +382,7 @@ class EmployeeService {
 
       // Return appropriate data based on user role
       const employeesData = employees.map(emp =>
-        user.role === ROLES.EMPLOYEE ? emp.toPublicJSON() : emp.toFrontendJSON()
+        userSystemRole === ROLES.EMPLOYEE ? emp.toPublicJSON() : emp.toFrontendJSON()
       );
 
       return {
@@ -414,7 +418,8 @@ class EmployeeService {
   async toggleEmployeeStatus(employeeId, isActive, user, metadata = {}) {
     try {
       // Only Super Admin can activate/deactivate employees
-      if (user.role !== ROLES.SUPER_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN) {
         throw { message: "Unauthorized: Only Super Admin can change employee status", statusCode: 403 };
       }
 
@@ -485,7 +490,8 @@ class EmployeeService {
   async assignRole(employeeId, role, user, metadata = {}) {
     try {
       // Only Super Admin can assign roles
-      if (user.role !== ROLES.SUPER_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN) {
         throw { message: "Unauthorized: Only Super Admin can assign roles", statusCode: 403 };
       }
 
@@ -712,7 +718,8 @@ class EmployeeService {
       };
 
       // Apply role-based scope filtering
-      if (user.role === ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole === ROLES.HR_ADMIN) {
         if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
           throw {
             code: "NO_DEPARTMENTS_ASSIGNED",
@@ -817,7 +824,8 @@ class EmployeeService {
       const where = {};
 
       // Apply role-based scope filtering
-      if (user.role === ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole === ROLES.HR_ADMIN) {
         if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
           throw {
             code: "NO_DEPARTMENTS_ASSIGNED",
@@ -828,7 +836,7 @@ class EmployeeService {
         where.department = {
           [Op.in]: user.assignedDepartments,
         };
-      } else if (user.role === ROLES.EMPLOYEE) {
+      } else if (userSystemRole === ROLES.EMPLOYEE) {
         // Employees can only search within active employees (directory access)
         where.status = "Active";
       }
@@ -899,7 +907,8 @@ class EmployeeService {
       const where = { id: employeeId };
 
       // Apply role-based filtering
-      if (user.role === ROLES.HR_ADMIN) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole === ROLES.HR_ADMIN) {
         if (!user.assignedDepartments || user.assignedDepartments.length === 0) {
           throw {
             code: "NO_DEPARTMENTS_ASSIGNED",
@@ -910,7 +919,7 @@ class EmployeeService {
         where.department = {
           [Op.in]: user.assignedDepartments,
         };
-      } else if (user.role === ROLES.EMPLOYEE) {
+      } else if (userSystemRole === ROLES.EMPLOYEE) {
         if (!user.employee?.id || user.employee?.id.toString() !== employeeId) {
           throw {
             code: "FORBIDDEN",
@@ -953,7 +962,7 @@ class EmployeeService {
       }
 
       // Return appropriate data based on user role
-      const empData = user.role === ROLES.EMPLOYEE ? employee.toPublicJSON() : employee.toJSON();
+      const empData = userSystemRole === ROLES.EMPLOYEE ? employee.toPublicJSON() : employee.toJSON();
 
       return {
         success: true,
@@ -978,7 +987,8 @@ class EmployeeService {
   async getReportingStructure(employeeId, user) {
     try {
       // Role-based access control
-      if (user.role === ROLES.EMPLOYEE && user.employee?.id.toString() !== employeeId) {
+      const userSystemRole = user.systemRole || user.role;
+      if (userSystemRole === ROLES.EMPLOYEE && user.employee?.id.toString() !== employeeId) {
         throw {
           code: "FORBIDDEN",
           message: "You can only view your own reporting structure.",

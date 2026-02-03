@@ -2,12 +2,13 @@ import express from 'express';
 import attendanceCorrectionController from '../../controllers/admin/attendanceCorrections.controller.js';
 import { authenticate } from '../../middleware/authenticate.js';
 import { authorize } from '../../middleware/authorize.js';
+import { ROLES } from '../../config/roles.js';
 
 const router = express.Router();
 
 // All routes require authentication and admin/hr role
 router.use(authenticate);
-router.use(authorize(["SuperAdmin", "HR", "HR"]));
+router.use(authorize([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]));
 
 // Get pending corrections
 router.get('/pending', attendanceCorrectionController.getPendingCorrections);

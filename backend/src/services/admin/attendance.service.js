@@ -6,7 +6,7 @@
 import { AttendanceRecord, Employee, Shift, EmployeeShift, AuditLog } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
-import { ROLES } from '../../config/rolePermissions.js';
+import { ROLES } from '../../config/roles.js';
 import { getLocalDateString } from '../../utils/dateUtils.js';
 import AttendanceCalculationService from '../core/attendanceCalculation.service.js';
 
@@ -27,6 +27,18 @@ class AttendanceService {
             }
 
             const today = getLocalDateString();
+            
+            // 🚫 NEW: Check if today is a weekend - prevent attendance on weekends
+            const { WorkingRule } = await import('../../models/index.js');
+            const isWeekend = await WorkingRule.isWeekend(today);
+            
+            if (isWeekend) {
+                const dayName = new Date(today).toLocaleDateString('en-US', { weekday: 'long' });
+                throw { 
+                    message: `Cannot clock in on ${dayName}. Attendance is not allowed on weekends.`, 
+                    statusCode: 400 
+                };
+            }
             
             // Check if already clocked in today
             let attendanceRecord = await AttendanceRecord.findOne({
@@ -569,6 +581,44 @@ class AttendanceService {
 
             const today = getLocalDateString();
 
+            // 🚫 NEW: Check if today is a weekend - disable all buttons on weekends
+            const { WorkingRule } = await import('../../models/index.js');
+            const isWeekend = await WorkingRule.isWeekend(today);
+            
+            if (isWeekend) {
+                const dayName = new Date(today).toLocaleDateString('en-US', { weekday: 'long' });
+                return {
+                    success: true,
+                    data: {
+                        clockIn: {
+                            enabled: false,
+                            reason: `Cannot clock in on ${dayName}. Attendance is not allowed on weekends.`
+                        },
+                        clockOut: {
+                            enabled: false,
+                            reason: `Cannot clock out on ${dayName}. Attendance is not allowed on weekends.`
+                        },
+                        startBreak: {
+                            enabled: false,
+                            reason: `Cannot start break on ${dayName}. Attendance is not allowed on weekends.`
+                        },
+                        endBreak: {
+                            enabled: false,
+                            reason: `Cannot end break on ${dayName}. Attendance is not allowed on weekends.`
+                        },
+                        currentStatus: 'weekend',
+                        hasClockIn: false,
+                        hasClockOut: false,
+                        isOnBreak: false,
+                        workMode: 'office',
+                        shiftInfo: null,
+                        isWeekend: true,
+                        weekendMessage: `Today is ${dayName}. Attendance tracking is disabled on weekends.`
+                    },
+                    message: 'Button states retrieved successfully'
+                };
+            }
+
             // Get or create today's attendance record
             let attendanceRecord = await AttendanceRecord.findOne({
                 where: {
@@ -832,7 +882,8 @@ class AttendanceService {
     async getAttendanceRecords(filters = {}, user, pagination = {}) {
         try {
             // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can view attendance records", statusCode: 403 };
             }
 
@@ -878,7 +929,7 @@ class AttendanceService {
 
             // HR can only see employees in their assigned departments
             let employeeFilter = {};
-            if (user.role === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
+            if (userSystemRole === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
                 employeeFilter.department = { [Op.in]: user.assignedDepartments };
             }
 
@@ -943,7 +994,8 @@ class AttendanceService {
             }
 
             // Employees can only request correction for their own records
-            if (user.role === ROLES.EMPLOYEE && attendanceRecord.employeeId !== user.employee?.id) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole === ROLES.EMPLOYEE && attendanceRecord.employeeId !== user.employee?.id) {
                 throw { message: "You can only request correction for your own attendance", statusCode: 403 };
             }
 
@@ -999,7 +1051,8 @@ class AttendanceService {
     async processAttendanceCorrection(attendanceId, action, correctionData, user, metadata = {}) {
         try {
             // Only HR and Super Admin can process corrections
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only HR and Super Admin can process corrections", statusCode: 403 };
             }
 
@@ -1119,7 +1172,8 @@ class AttendanceService {
     async getAttendanceAnalytics(filters = {}, user) {
         try {
             // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can view analytics", statusCode: 403 };
             }
 
@@ -1132,7 +1186,7 @@ class AttendanceService {
 
             // HR can only see analytics for their assigned departments
             let employeeFilter = {};
-            if (user.role === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
+            if (userSystemRole === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
                 employeeFilter.department = { [Op.in]: user.assignedDepartments };
             }
 
@@ -1230,12 +1284,13 @@ class AttendanceService {
 async getMonthlyAttendanceSummary(employeeId, year, month, user) {
      try {
             // Employees can only view their own summary
-            if (user.role === ROLES.EMPLOYEE && parseInt(user.employee?.id) !== parseInt(employeeId)) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole === ROLES.EMPLOYEE && parseInt(user.employee?.id) !== parseInt(employeeId)) {
                 throw { message: "You can only view your own attendance summary", statusCode: 403 };
             }
 
             // HR can only view summaries for employees in their departments
-            if (user.role === ROLES.HR_ADMIN) {
+            if (userSystemRole === ROLES.HR_ADMIN) {
                 const employee = await Employee.findByPk(employeeId);
                 if (!employee || !user.assignedDepartments?.includes(employee.department)) {
                     throw { message: "You don't have access to this employee's data", statusCode: 403 };
@@ -1322,7 +1377,8 @@ async getMonthlyAttendanceSummary(employeeId, year, month, user) {
     async getOvertimeReport(filters = {}, user, pagination = {}) {
         try {
             // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can view overtime reports", statusCode: 403 };
             }
 
@@ -1361,7 +1417,7 @@ async getMonthlyAttendanceSummary(employeeId, year, month, user) {
 
             // HR can only see employees in their assigned departments
             let employeeFilter = {};
-            if (user.role === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
+            if (userSystemRole === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
                 employeeFilter.department = { [Op.in]: user.assignedDepartments };
             }
 
@@ -1416,7 +1472,8 @@ async getMonthlyAttendanceSummary(employeeId, year, month, user) {
     async getBreakViolationsReport(filters = {}, user, pagination = {}) {
         try {
             // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can view break violations", statusCode: 403 };
             }
 
@@ -1450,7 +1507,7 @@ async getMonthlyAttendanceSummary(employeeId, year, month, user) {
 
             // HR can only see employees in their assigned departments
             let employeeFilter = {};
-            if (user.role === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
+            if (userSystemRole === ROLES.HR_ADMIN && user.assignedDepartments?.length > 0) {
                 employeeFilter.department = { [Op.in]: user.assignedDepartments };
             }
 
@@ -1510,7 +1567,8 @@ async getMonthlyAttendanceSummary(employeeId, year, month, user) {
     async bulkProcessCorrections(attendanceIds, action, user, metadata = {}) {
         try {
             // Only HR and Super Admin can bulk process
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can bulk process corrections", statusCode: 403 };
             }
 
@@ -1554,7 +1612,8 @@ async getMonthlyAttendanceSummary(employeeId, year, month, user) {
     async exportAttendanceData(filters = {}, user) {
         try {
             // Role-based access control
-            if (user.role !== ROLES.SUPER_ADMIN && user.role !== ROLES.HR_ADMIN) {
+            const userSystemRole = user.systemRole || user.role;
+            if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
                 throw { message: "Unauthorized: Only Super Admin and HR can export data", statusCode: 403 };
             }
 

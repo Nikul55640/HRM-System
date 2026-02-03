@@ -22,6 +22,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "../../../shared/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../../../shared/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../../shared/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../shared/ui/tabs";
 import {
   Calendar,
@@ -31,6 +45,11 @@ import {
   Clock,
   Loader2,
   ArrowRight,
+  MoreHorizontal,
+  Eye,
+  ChevronUp,
+  ChevronDown,
+  Filter,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { toast } from "react-hot-toast";
@@ -41,8 +60,10 @@ const AttendanceCorrections = () => {
   const [processedRequests, setProcessedRequests] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
+  const [viewRequest, setViewRequest] = useState(null);
   const [adminNotes, setAdminNotes] = useState("");
   const [activeTab, setActiveTab] = useState("pending");
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
 
   const [filters, setFilters] = useState({
     employeeId: "",
@@ -144,6 +165,60 @@ const AttendanceCorrections = () => {
     return <Badge className={style}>{label}</Badge>;
   };
 
+  // Sorting function
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortedData = (data) => {
+    if (!sortConfig.key) return data;
+
+    return [...data].sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      // Handle nested employee data
+      if (sortConfig.key === 'employee') {
+        aValue = `${a.employee?.firstName} ${a.employee?.lastName}`;
+        bValue = `${b.employee?.firstName} ${b.employee?.lastName}`;
+      }
+
+      // Handle date sorting
+      if (sortConfig.key === 'date' || sortConfig.key.includes('Clock')) {
+        aValue = new Date(aValue || 0);
+        bValue = new Date(bValue || 0);
+      }
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
+  const SortableHeader = ({ children, sortKey, className = "" }) => (
+    <TableHead 
+      className={`cursor-pointer hover:bg-gray-50 ${className}`}
+      onClick={() => handleSort(sortKey)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        {sortConfig.key === sortKey && (
+          sortConfig.direction === 'asc' ? 
+            <ChevronUp className="w-4 h-4" /> : 
+            <ChevronDown className="w-4 h-4" />
+        )}
+      </div>
+    </TableHead>
+  );
+
   /* ================= UI ================= */
 
   return (
@@ -161,7 +236,7 @@ const AttendanceCorrections = () => {
       <Card className="rounded-2xl">
         <CardHeader className="pb-3 sm:pb-4">
           <CardTitle className="flex items-center gap-2 text-sm sm:text-base">
-            <Calendar className="w-4 h-4" />
+            <Filter className="w-4 h-4" />
             Filters
           </CardTitle>
         </CardHeader>
@@ -235,9 +310,10 @@ const AttendanceCorrections = () => {
 
         {/* PENDING */}
         <TabsContent value="pending">
-          <RequestList
+          <AttendanceCorrectionTable
             loading={loading}
-            data={pendingRequests}
+            data={getSortedData(pendingRequests)}
+            onView={(req) => setViewRequest(req)}
             onAction={(req) => {
               setSelectedRequest(req);
               setAdminNotes("");
@@ -245,21 +321,207 @@ const AttendanceCorrections = () => {
             StatusBadge={StatusBadge}
             formatDateTime={formatDateTime}
             formatDuration={formatDuration}
+            SortableHeader={SortableHeader}
             pending
           />
         </TabsContent>
 
         {/* PROCESSED */}
         <TabsContent value="processed">
-          <RequestList
+          <AttendanceCorrectionTable
             loading={loading}
-            data={processedRequests}
+            data={getSortedData(processedRequests)}
+            onView={(req) => setViewRequest(req)}
             StatusBadge={StatusBadge}
             formatDateTime={formatDateTime}
             formatDuration={formatDuration}
+            SortableHeader={SortableHeader}
           />
         </TabsContent>
       </Tabs>
+
+      {/* VIEW MODAL */}
+      {viewRequest && (
+        <Dialog open onOpenChange={() => setViewRequest(null)}>
+          <DialogContent className="max-w-3xl mx-4 max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
+                <Eye className="w-5 h-5" />
+                Correction Request Details
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="space-y-6 text-sm">
+              {/* Employee & Request Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Card className="p-4">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Employee Information
+                  </h4>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-gray-500">Name:</span>
+                      <div className="font-medium">
+                        {viewRequest.employee?.firstName} {viewRequest.employee?.lastName}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Employee ID:</span>
+                      <div className="font-medium">{viewRequest.employee?.employeeId}</div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Department:</span>
+                      <div className="font-medium">{viewRequest.employee?.department?.name || 'N/A'}</div>
+                    </div>
+                  </div>
+                </Card>
+
+                <Card className="p-4">
+                  <h4 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Request Information
+                  </h4>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-gray-500">Date:</span>
+                      <div className="font-medium">
+                        {format(parseISO(viewRequest.date), "dd MMM yyyy")}
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Status:</span>
+                      <div className="mt-1">
+                        <StatusBadge status={viewRequest.status} />
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Submitted:</span>
+                      <div className="font-medium">
+                        {formatDateTime(viewRequest.createdAt)}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              </div>
+
+              {/* Attendance Comparison */}
+              <Card className="p-4 bg-blue-50 border-blue-200">
+                <h4 className="font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Attendance Comparison
+                </h4>
+                
+                <div className="space-y-4">
+                  {/* Clock In Comparison */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div className="text-sm text-gray-600 font-medium">Clock In:</div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-500">Original:</div>
+                      <div className="font-medium">
+                        {viewRequest.originalClockIn 
+                          ? formatDateTime(viewRequest.originalClockIn)
+                          : <span className="text-red-500">Missing</span>
+                        }
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-500">Requested:</div>
+                      <div className="font-medium text-blue-700">
+                        {viewRequest.requestedClockIn 
+                          ? formatDateTime(viewRequest.requestedClockIn)
+                          : <span className="text-gray-400">No change</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-blue-200"></div>
+
+                  {/* Clock Out Comparison */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div className="text-sm text-gray-600 font-medium">Clock Out:</div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-500">Original:</div>
+                      <div className="font-medium">
+                        {viewRequest.originalClockOut 
+                          ? formatDateTime(viewRequest.originalClockOut)
+                          : <span className="text-red-500">Missing</span>
+                        }
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-500">Requested:</div>
+                      <div className="font-medium text-blue-700">
+                        {viewRequest.requestedClockOut 
+                          ? formatDateTime(viewRequest.requestedClockOut)
+                          : <span className="text-gray-400">No change</span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-blue-200"></div>
+
+                  {/* Break Minutes Comparison */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
+                    <div className="text-sm text-gray-600 font-medium">Break Time:</div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-500">Original:</div>
+                      <div className="font-medium">
+                        {formatDuration(viewRequest.originalBreakMinutes || 0)}
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="text-xs text-gray-500">Requested:</div>
+                      <div className="font-medium text-blue-700">
+                        {formatDuration(viewRequest.requestedBreakMinutes || 0)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Employee Reason */}
+              <Card className="p-4">
+                <h4 className="font-semibold text-gray-900 mb-3">Employee's Reason</h4>
+                <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                  {viewRequest.reason}
+                </div>
+              </Card>
+
+              {/* Admin Notes (if any) */}
+              {viewRequest.adminNotes && (
+                <Card className="p-4">
+                  <h4 className="font-semibold text-gray-900 mb-3">Admin Notes</h4>
+                  <div className="bg-gray-50 p-3 rounded-lg text-sm">
+                    {viewRequest.adminNotes}
+                  </div>
+                </Card>
+              )}
+
+              {/* Processing History */}
+              {viewRequest.status !== 'pending' && (
+                <Card className="p-4">
+                  <h4 className="font-semibold text-gray-900 mb-3">Processing History</h4>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Processed by:</span>
+                      <span className="font-medium">{viewRequest.processedBy || 'System'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-500">Processed at:</span>
+                      <span className="font-medium">
+                        {viewRequest.updatedAt ? formatDateTime(viewRequest.updatedAt) : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* ACTION MODAL */}
       {selectedRequest && (
@@ -439,83 +701,173 @@ const AttendanceCorrections = () => {
   );
 };
 
-/* ================= LIST ================= */
+/* ================= TABLE COMPONENT ================= */
 
-const RequestList = ({
+const AttendanceCorrectionTable = ({
   loading,
   data,
+  onView,
   onAction,
   StatusBadge,
   formatDateTime,
   formatDuration,
+  SortableHeader,
   pending = false,
 }) => {
-  if (loading)
+  if (loading) {
     return (
-      <div className="py-10 text-center">
-        <Loader2 className="mx-auto animate-spin w-5 h-5 sm:w-6 sm:h-6" />
-        <p className="mt-2 text-sm text-gray-600">Loading...</p>
-      </div>
+      <Card className="rounded-2xl">
+        <CardContent className="py-12">
+          <div className="text-center">
+            <Loader2 className="mx-auto animate-spin w-6 h-6 text-gray-400" />
+            <p className="mt-2 text-sm text-gray-600">Loading correction requests...</p>
+          </div>
+        </CardContent>
+      </Card>
     );
+  }
 
-  if (!data.length)
+  if (!data.length) {
     return (
-      <div className="text-center text-gray-500 py-10">
-        <p className="text-sm sm:text-base">No requests found</p>
-      </div>
+      <Card className="rounded-2xl">
+        <CardContent className="py-12">
+          <div className="text-center text-gray-500">
+            <Clock className="mx-auto w-12 h-12 text-gray-300 mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No correction requests found
+            </h3>
+            <p className="text-sm">
+              {pending 
+                ? "There are no pending correction requests at the moment."
+                : "No processed correction requests match your current filters."
+              }
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     );
+  }
 
   return (
     <Card className="rounded-2xl">
-      <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-4">
-        {data.map((req) => (
-          <div
-            key={req.id}
-            className="border rounded-lg p-3 sm:p-4 flex flex-col gap-3 hover:bg-gray-50"
-          >
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
-              <div className="flex items-center gap-2 min-w-0 flex-1">
-                <User className="w-4 h-4 flex-shrink-0" />
-                <span className="font-medium text-sm sm:text-base truncate">
-                  {req.employee?.firstName} {req.employee?.lastName}
-                </span>
-                <span className="text-gray-500 text-xs sm:text-sm flex-shrink-0">
-                  ({req.employee?.employeeId})
-                </span>
-                <StatusBadge status={req.status} />
-              </div>
-              {pending && (
-                <Button size="sm" onClick={() => onAction(req)} className="w-full sm:w-auto">
-                  Review
-                </Button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-              <Info label="Date" value={formatDateTime(req.date)} />
-              <Info label="Clock In" value={formatDateTime(req.requestedClockIn)} />
-              <Info label="Clock Out" value={formatDateTime(req.requestedClockOut)} />
-              <Info label="Break" value={formatDuration(req.requestedBreakMinutes)} />
-            </div>
-
-            <div className="text-sm">
-              <span className="text-gray-500">Reason:</span>{" "}
-              <div className="mt-1 text-gray-700 line-clamp-2">
-                {req.reason}
-              </div>
-            </div>
+      <CardHeader className="pb-4">
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-lg font-semibold">
+            {pending ? 'Pending Requests' : 'Processed Requests'}
+          </CardTitle>
+          <div className="text-sm text-gray-500">
+            {data.length} request{data.length !== 1 ? 's' : ''}
           </div>
-        ))}
+        </div>
+      </CardHeader>
+      <CardContent className="p-0">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <SortableHeader sortKey="employee" className="min-w-[200px]">
+                  Employee
+                </SortableHeader>
+                <SortableHeader sortKey="date" className="min-w-[120px]">
+                  Date
+                </SortableHeader>
+                <TableHead className="min-w-[140px]">Clock In</TableHead>
+                <TableHead className="min-w-[140px]">Clock Out</TableHead>
+                <TableHead className="min-w-[100px]">Break</TableHead>
+                <SortableHeader sortKey="status" className="min-w-[100px]">
+                  Status
+                </SortableHeader>
+                <TableHead className="min-w-[200px]">Reason</TableHead>
+                <SortableHeader sortKey="createdAt" className="min-w-[140px]">
+                  Submitted
+                </SortableHeader>
+                <TableHead className="w-[80px]">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.map((request) => (
+                <TableRow key={request.id} className="hover:bg-gray-50">
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <div className="min-w-0">
+                        <div className="font-medium text-sm truncate">
+                          {request.employee?.firstName} {request.employee?.lastName}
+                        </div>
+                        <div className="text-xs text-gray-500 truncate">
+                          ID: {request.employee?.employeeId}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm font-medium">
+                      {format(parseISO(request.date), "dd MMM yyyy")}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {request.requestedClockIn 
+                        ? format(parseISO(request.requestedClockIn), "hh:mm a")
+                        : <span className="text-gray-400">No change</span>
+                      }
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {request.requestedClockOut 
+                        ? format(parseISO(request.requestedClockOut), "hh:mm a")
+                        : <span className="text-gray-400">No change</span>
+                      }
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      {formatDuration(request.requestedBreakMinutes || 0)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <StatusBadge status={request.status} />
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-600 max-w-[200px] truncate">
+                      {request.reason}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm text-gray-600">
+                      {formatDateTime(request.createdAt)}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        <DropdownMenuItem onClick={() => onView(request)}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View Details
+                        </DropdownMenuItem>
+                        {pending && onAction && (
+                          <DropdownMenuItem onClick={() => onAction(request)}>
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Process Request
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );
 };
-
-const Info = ({ label, value }) => (
-  <div className="min-w-0">
-    <div className="text-gray-500 text-xs truncate">{label}</div>
-    <div className="font-medium text-sm truncate">{value}</div>
-  </div>
-);
 
 export default AttendanceCorrections;

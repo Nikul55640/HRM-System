@@ -32,10 +32,7 @@ const LeaveBalancesPage = () => {
   const LEAVE_TYPES = [
     { key: "casual", label: "Casual", icon: "Calendar" },
     { key: "sick", label: "Sick", icon: "Heart" },
-    { key: "paid", label: "Paid", icon: "Banknote" },
-    { key: "annual", label: "Annual", icon: "Plane" },
-    { key: "emergency", label: "Emergency", icon: "AlertTriangle" },
-    { key: "compensatory", label: "Comp", icon: "Clock" }
+    { key: "paid", label: "Paid", icon: "Banknote" }
   ];
 
   const [assignForm, setAssignForm] = useState({
@@ -680,9 +677,6 @@ const LeaveBalancesPage = () => {
                   <SelectItem value="casual">Casual Leave</SelectItem>
                   <SelectItem value="sick">Sick Leave</SelectItem>
                   <SelectItem value="paid">Paid Leave</SelectItem>
-                  <SelectItem value="annual">Annual Leave</SelectItem>
-                  <SelectItem value="emergency">Emergency Leave</SelectItem>
-                  <SelectItem value="compensatory">Compensatory Leave</SelectItem>
                 </SelectContent>
               </Select>
             </div>

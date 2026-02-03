@@ -8,6 +8,7 @@
  */
 
 import { sendMailtrapEmail, verifyMailtrapConfig } from './mailtrap.service.js';
+import { sendSMTPEmail, verifySMTPConfig } from './smtp.service.js';
 import resendEmailService from '../resendEmailService.js';
 import logger from '../../utils/logger.js';
 
@@ -40,8 +41,11 @@ export const sendEmail = async ({ to, subject, html, text, metadata = {} }) => {
           metadata
         });
       
+      case 'SMTP':
+        return await sendSMTPEmail({ to, subject, html, text });
+      
       default:
-        throw new Error(`Unknown EMAIL_PROVIDER: ${provider}. Use MAILTRAP or RESEND`);
+        throw new Error(`Unknown EMAIL_PROVIDER: ${provider}. Use MAILTRAP, RESEND, or SMTP`);
     }
   } catch (error) {
     logger.error(`Email sending failed with provider ${provider}:`, error);
@@ -66,6 +70,9 @@ export const verifyEmailConfig = async () => {
       
       case 'RESEND':
         return await resendEmailService.verifyConfiguration();
+      
+      case 'SMTP':
+        return await verifySMTPConfig();
       
       default:
         return {
@@ -93,7 +100,8 @@ export const getEmailProviderInfo = () => {
     baseUrl: process.env.FRONTEND_URL || process.env.APP_BASE_URL || 'Not configured',
     configured: !!(
       (provider.toUpperCase() === 'MAILTRAP' && process.env.MAILTRAP_API_TOKEN) ||
-      (provider.toUpperCase() === 'RESEND' && process.env.RESEND_API_KEY)
+      (provider.toUpperCase() === 'RESEND' && process.env.RESEND_API_KEY) ||
+      (provider.toUpperCase() === 'SMTP' && process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
     )
   };
 };

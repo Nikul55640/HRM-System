@@ -3,18 +3,10 @@
  * Mirrors backend role permissions for UI rendering
  */
 
-// ===================================================
-// ROLE DEFINITIONS - Match Backend Database Values
-// ===================================================
-export const ROLES = {
-  SUPER_ADMIN: 'SuperAdmin',
-  HR_ADMIN: 'HR',
-  HR_MANAGER: 'HR_Manager', 
-  EMPLOYEE: 'Employee',
-};
+import { ROLES, getDisplayLabel } from './roles.js';
 
 // ===================================================
-// MODULE PERMISSIONS
+// MODULE PERMISSIONS (Mirror Backend)
 // ===================================================
 export const MODULES = {
   ATTENDANCE: {
@@ -185,7 +177,7 @@ export const MODULES = {
 };
 
 // ===================================================
-// ROLE PERMISSIONS MAPPING
+// ROLE PERMISSIONS MAPPING (Using Standardized Constants)
 // ===================================================
 const EMPLOYEE_PERMISSIONS = [
   MODULES.ATTENDANCE.VIEW_OWN,
@@ -355,19 +347,6 @@ export const canAccessDepartment = (user, departmentId) => {
 };
 
 /**
- * Get role display name
- */
-export const getRoleDisplayName = (role) => {
-  const roleNames = {
-    [ROLES.SUPER_ADMIN]: 'Super Admin',
-    [ROLES.HR_ADMIN]: 'HR Administrator',
-    [ROLES.HR_MANAGER]: 'HR Manager',
-    [ROLES.EMPLOYEE]: 'Employee',
-  };
-  return roleNames[role] || role;
-};
-
-/**
  * Get role description
  */
 export const getRoleDescription = (role) => {
@@ -389,6 +368,6 @@ export default {
   hasAllPermissions,
   getRolePermissions,
   canAccessDepartment,
-  getRoleDisplayName,
+  getDisplayLabel,
   getRoleDescription,
 };

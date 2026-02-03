@@ -1,0 +1,52 @@
+version: '3.8'
+
+# Development override for docker-compose.yml
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  mysql:
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: 123
+      MYSQL_DATABASE: hrm2
+      MYSQL_USER: root
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+
+  backend:
+    build:
+      target: development
+    environment:
+      NODE_ENV: development
+      DB_HOST: mysql
+      DB_PASSWORD: 123
+      DB_USER: root
+      DB_NAME: hrm2
+      CORS_ORIGIN: http://localhost:5173
+      FRONTEND_URL: http://localhost:5173
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+      - ./backend/uploads:/app/uploads
+      - ./backend/logs:/app/logs
+    ports:
+      - "5000:5000"
+    command: npm run dev
+
+  frontend:
+    build:
+      target: development
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/dist
+    ports:
+      - "5173:5173"
+    command: npm run dev -- --host
+
+volumes:
+  mysql_dev_data:
+    driver: local

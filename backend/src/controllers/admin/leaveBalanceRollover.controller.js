@@ -6,7 +6,7 @@
 import DefaultLeaveBalanceService from '../../services/admin/defaultLeaveBalance.service.js';
 import LeaveBalanceRolloverService from '../../services/cron/leaveBalanceRollover.service.js';
 import logger from '../../utils/logger.js';
-import { ROLES } from '../../config/rolePermissions.js';
+import { ROLES } from '../../config/roles.js';
 
 /**
  * Wrapper for consistent API responses
@@ -28,7 +28,8 @@ const leaveBalanceRolloverController = {
   performRollover: async (req, res) => {
     try {
       // Only Super Admin can perform rollover
-      if (req.user.role !== ROLES.SUPER_ADMIN) {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin can perform leave balance rollover", null, 403);
       }
 
@@ -66,7 +67,8 @@ const leaveBalanceRolloverController = {
   getRolloverStatus: async (req, res) => {
     try {
       // Only Super Admin and HR Admin can check status
-      if (req.user.role !== ROLES.SUPER_ADMIN && req.user.role !== ROLES.HR_ADMIN) {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin and HR Admin can check rollover status", null, 403);
       }
 
@@ -108,7 +110,8 @@ const leaveBalanceRolloverController = {
   assignToEmployee: async (req, res) => {
     try {
       // Only Super Admin and HR Admin can assign balances
-      if (req.user.role !== ROLES.SUPER_ADMIN && req.user.role !== ROLES.HR_ADMIN) {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin and HR Admin can assign leave balances", null, 403);
       }
 
@@ -155,7 +158,8 @@ const leaveBalanceRolloverController = {
   getDefaultConfig: async (req, res) => {
     try {
       // Only Super Admin and HR Admin can view config
-      if (req.user.role !== ROLES.SUPER_ADMIN && req.user.role !== ROLES.HR_ADMIN) {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin and HR Admin can view default configuration", null, 403);
       }
 

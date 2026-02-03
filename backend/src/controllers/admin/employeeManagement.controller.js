@@ -9,7 +9,7 @@ import notificationService from '../../services/notificationService.js';
 import { Department, Designation, User } from '../../models/index.js';
 import { Op } from 'sequelize';
 import logger from '../../utils/logger.js';
-import { ROLES } from '../../config/rolePermissions.js';
+import { ROLES } from '../../config/roles.js';
 
 /**
  * Wrapper for consistent API responses
@@ -438,7 +438,8 @@ const employeeManagementController = {
   createDesignation: async (req, res) => {
     try {
       // Only Super Admin and HR can create designations
-      if (req.user.role !== ROLES.SUPER_ADMIN && req.user.role !== ROLES.HR_ADMIN) {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin and HR can create designations", null, 403);
       }
 
@@ -488,7 +489,8 @@ const employeeManagementController = {
   updateDesignation: async (req, res) => {
     try {
       // Only Super Admin and HR can update designations
-      if (req.user.role !== ROLES.SUPER_ADMIN && req.user.role !== ROLES.HR_ADMIN) {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN && userSystemRole !== ROLES.HR_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin and HR can update designations", null, 403);
       }
 
@@ -580,7 +582,8 @@ const employeeManagementController = {
   deleteDesignation: async (req, res) => {
     try {
       // Only Super Admin can delete designations
-      if (req.user.role !== ROLES.SUPER_ADMIN) {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole !== ROLES.SUPER_ADMIN) {
         return sendResponse(res, false, "Unauthorized: Only Super Admin can delete designations", null, 403);
       }
 

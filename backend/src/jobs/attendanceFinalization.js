@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { AttendanceRecord, Shift, Employee, Holiday, WorkingRule, EmployeeShift, User, AttendanceCorrectionRequest, LeaveRequest } from '../models/index.js';
+import { AttendanceRecord, Shift, Employee, Holiday, WorkingRule, EmployeeShift, User, LeaveRequest } from '../models/index.js';
 import logger from '../utils/logger.js';
 import { Op } from 'sequelize';
 import { getLocalDateString } from '../utils/dateUtils.js';
@@ -138,14 +138,14 @@ async function sendCorrectionNotification(employee, dateString, reason) {
     if (employeeWithUser?.user?.id) {
       // Send notification with email
       await notificationService.sendToUser(employeeWithUser.user.id, {
-        title: 'Attendance Correction Required',
-        message: `Your attendance for ${dateString} requires correction. Reason: ${reason}. Please submit a correction request.`,
-        type: 'warning',
+        title: 'Attendance Notice',
+        message: `Your attendance for ${dateString} is incomplete. ${reason}. If you need to correct this, you can submit a correction request through the attendance portal.`,
+        type: 'info',
         category: 'attendance',
         data: {
           date: dateString,
           reason: reason,
-          action: 'attendance_correction_required'
+          action: 'attendance_incomplete_notice'
         }
       }, {
         sendEmail: true,
@@ -155,9 +155,9 @@ async function sendCorrectionNotification(employee, dateString, reason) {
         }
       });
       
-      // 🔥 NEW: Also send email directly via Resend
+      // 🔥 NEW: Send friendly email notification via Resend
       if (employeeWithUser.user.email) {
-        await resendEmailService.sendCorrectionRequiredEmail(
+        await resendEmailService.sendAttendanceIncompleteEmail(
           employeeWithUser,
           dateString,
           reason
@@ -445,32 +445,17 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
       return;
     }
 
-    // ⏰ CASE 2: Clocked in but never clocked out → PENDING CORRECTION
+    // ⏰ CASE 2: Clocked in but never clocked out → INCOMPLETE (manual correction needed)
     if (record.clockIn && !record.clockOut) {
-      record.status = 'pending_correction'; // ✅ FINAL STATE: Only cron can set this
-      record.correctionRequested = true;
-      record.statusReason = 'Missed clock-out - requires correction';
+      record.status = 'incomplete';
+      record.statusReason = 'Missing clock-out time - employee can submit correction request if needed';
       await record.save();
       
-      // Create correction request (non-blocking)
-      try {
-        await AttendanceCorrectionRequest.create({
-          employeeId: employee.id,
-          attendanceRecordId: record.id,
-          date: dateString,
-          issueType: 'missed_punch',
-          reason: 'Auto-detected missed clock-out',
-          status: 'pending'
-        });
-      } catch (err) {
-        logger.error(`Failed to create correction request:`, err);
-      }
+      stats.incomplete = (stats.incomplete || 0) + 1;
+      logger.info(`⏳ Employee ${employee.id}: Marked as INCOMPLETE (missing clock-out) - manual correction available`);
       
-      stats.pendingCorrection = (stats.pendingCorrection || 0) + 1;
-      logger.info(`⏳ Employee ${employee.id}: Marked as PENDING CORRECTION (no clock-out)`);
-      
-      // Send notification (non-blocking)
-      sendCorrectionNotification(employee, dateString, 'Clock-out missing').catch(err => 
+      // Optional: Send notification to inform employee they can submit a correction request
+      sendCorrectionNotification(employee, dateString, 'Missing clock-out time - you can submit a correction request if needed').catch(err => 
         logger.error(`Notification failed for employee ${employee.id}:`, err)
       );
       return;
@@ -616,9 +601,7 @@ export const checkAbsentEmployees = async (date = new Date()) => {
       attributes: ['id', 'firstName', 'lastName', 'employeeId', 'userId'],
       raw: true
     });
-
     const results = [];
-
     for (const employee of employees) {
       try {
         // Skip if on approved leave
@@ -686,3 +669,4 @@ export default {
   manualFinalizeAttendance,
   checkAbsentEmployees
 };
+

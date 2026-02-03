@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../shared/ui/card';
 import { Button } from '../../../shared/ui/button';
 import { Input } from '../../../shared/ui/input';
 import { Label } from '../../../shared/ui/label';
+import { Badge } from '../../../shared/ui/badge';
 import {
   Select,
   SelectContent,
@@ -10,7 +11,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../../shared/ui/select';
-import { Calendar, Clock, MapPin, Coffee, Building2, Home, Users } from 'lucide-react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../../../shared/ui/table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '../../../shared/ui/dropdown-menu';
+import { Calendar, Clock, MapPin, Coffee, Building2, Home, Users, MoreHorizontal, AlertCircle, Eye, Edit, FileText, ChevronUp, ChevronDown } from 'lucide-react';
 import { toast } from 'react-toastify';
 import api from '../../../services/api';
 import { formatDecimal } from '../../../lib/utils';
@@ -18,6 +33,7 @@ import { formatDecimal } from '../../../lib/utils';
 const SessionHistoryView = () => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -69,15 +85,16 @@ const SessionHistoryView = () => {
   };
 
   const formatTime = (dateString) => {
+    if (!dateString) return '--:--';
     return new Date(dateString).toLocaleTimeString('en-US', {
       hour: '2-digit',
       minute: '2-digit',
+      hour12: true,
     });
   };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'short',
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -85,9 +102,102 @@ const SessionHistoryView = () => {
   };
 
   const formatDuration = (minutes) => {
+    if (!minutes || minutes === 0) return '0m';
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
+    if (hours === 0) return `${mins}m`;
+    return mins === 0 ? `${hours}h` : `${hours}h ${mins}m`;
+  };
+
+  const getStatusBadge = (status) => {
+    const statusConfig = {
+      present: { label: 'Completed', className: 'bg-green-100 text-green-800 border-green-200' },
+      incomplete: { label: 'In Progress', className: 'bg-blue-100 text-blue-800 border-blue-200' },
+      absent: { label: 'Absent', className: 'bg-red-100 text-red-800 border-red-200' },
+      half_day: { label: 'Half Day', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+      holiday: { label: 'Holiday', className: 'bg-purple-100 text-purple-800 border-purple-200' },
+      weekend: { label: 'Weekend', className: 'bg-gray-100 text-gray-800 border-gray-200' },
+    };
+
+    const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800 border-gray-200' };
+    
+    return (
+      <Badge variant="outline" className={`${config.className} font-medium`}>
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getLateMinutesDisplay = (record) => {
+    if (!record.isLate || !record.lateMinutes) {
+      return <span className="text-green-600 font-medium">0m</span>;
+    }
+    return <span className="text-red-600 font-medium">{record.lateMinutes}m</span>;
+  };
+
+  const getClockInDisplay = (record) => {
+    if (!record.clockIn) {
+      return <span className="text-gray-400">--:--</span>;
+    }
+    
+    const time = formatTime(record.clockIn);
+    const isLate = record.isLate && record.lateMinutes > 0;
+    
+    return (
+      <div className="flex flex-col">
+        <span className={isLate ? 'text-red-600 font-medium' : 'text-gray-900'}>{time}</span>
+        {isLate && (
+          <span className="text-xs text-red-500">{record.lateMinutes}m late</span>
+        )}
+      </div>
+    );
+  };
+
+  const getWorkingHoursDisplay = (record) => {
+    const hours = formatDecimal(record.workHours || 0);
+    return <span className="font-medium">{hours}h</span>;
+  };
+
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedSessions = useMemo(() => {
+    let sortableSessions = [...sessions];
+    if (sortConfig.key) {
+      sortableSessions.sort((a, b) => {
+        if (sortConfig.key === 'date') {
+          const aDate = new Date(a.date);
+          const bDate = new Date(b.date);
+          return sortConfig.direction === 'asc' ? aDate - bDate : bDate - aDate;
+        }
+        if (sortConfig.key === 'workHours') {
+          const aHours = a.workHours || 0;
+          const bHours = b.workHours || 0;
+          return sortConfig.direction === 'asc' ? aHours - bHours : bHours - aHours;
+        }
+        if (sortConfig.key === 'lateMinutes') {
+          const aLate = a.lateMinutes || 0;
+          const bLate = b.lateMinutes || 0;
+          return sortConfig.direction === 'asc' ? aLate - bLate : bLate - aLate;
+        }
+        return 0;
+      });
+    }
+    return sortableSessions;
+  }, [sessions, sortConfig]);
+
+  const getSortIcon = (columnKey) => {
+    if (sortConfig.key !== columnKey) {
+      return null;
+    }
+    return sortConfig.direction === 'asc' ? 
+      <ChevronUp className="ml-1 h-4 w-4" /> : 
+      <ChevronDown className="ml-1 h-4 w-4" />;
   };
 
   const getLocationIcon = (location) => {
@@ -120,18 +230,8 @@ const SessionHistoryView = () => {
     }
   };
 
-  // Group sessions by date
-  const groupedSessions = sessions.reduce((acc, record) => {
-    const dateKey = formatDate(record.date);
-    if (!acc[dateKey]) {
-      acc[dateKey] = [];
-    }
-    acc[dateKey].push(record);
-    return acc;
-  }, {});
-
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calendar className="h-5 w-5" />
@@ -141,9 +241,9 @@ const SessionHistoryView = () => {
       <CardContent>
         <div className="space-y-6">
           {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg">
             <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
+              <Label htmlFor="startDate" className="text-sm font-medium">Start Date</Label>
               <Input
                 id="startDate"
                 type="date"
@@ -151,10 +251,11 @@ const SessionHistoryView = () => {
                 onChange={(e) =>
                   setFilters({ ...filters, startDate: e.target.value })
                 }
+                className="w-full"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
+              <Label htmlFor="endDate" className="text-sm font-medium">End Date</Label>
               <Input
                 id="endDate"
                 type="date"
@@ -162,17 +263,18 @@ const SessionHistoryView = () => {
                 onChange={(e) =>
                   setFilters({ ...filters, endDate: e.target.value })
                 }
+                className="w-full"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="workLocation">Work Location</Label>
+              <Label htmlFor="workLocation" className="text-sm font-medium">Work Location</Label>
               <Select
                 value={filters.workLocation}
                 onValueChange={(value) =>
                   setFilters({ ...filters, workLocation: value === 'all' ? '' : value })
                 }
               >
-                <SelectTrigger id="workLocation">
+                <SelectTrigger id="workLocation" className="w-full">
                   <SelectValue placeholder="All Locations" />
                 </SelectTrigger>
                 <SelectContent>
@@ -188,125 +290,151 @@ const SessionHistoryView = () => {
 
           {/* Loading State */}
           {loading && (
-            <div className="text-center py-8 text-muted-foreground">
-              Loading sessions...
+            <div className="text-center py-12">
+              <div className="inline-block w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <p className="mt-2 text-sm text-gray-600">Loading sessions...</p>
             </div>
           )}
 
           {/* Empty State */}
           {!loading && sessions.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No sessions found for the selected period
+            <div className="text-center py-12">
+              <AlertCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No sessions found</h3>
+              <p className="text-sm text-gray-600">No attendance sessions found for the selected period.</p>
             </div>
           )}
 
-          {/* Sessions List */}
+          {/* Sessions Table */}
           {!loading && sessions.length > 0 && (
-            <div className="space-y-6">
-              {Object.entries(groupedSessions).map(([date, records]) => (
-                <div key={date} className="space-y-3">
-                  <h3 className="font-semibold text-lg sticky top-0 bg-background py-2">
-                    {date}
-                  </h3>
-                  {records.map((record, recordIdx) => (
-                    <div
-                      key={record.id || record._id || `record-${date}-${recordIdx}`}
-                      className="border rounded-lg p-4 space-y-3"
+            <div className="border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead 
+                      className="font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('date')}
                     >
-                      {/* Record Summary */}
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">
-                            {formatDecimal(record.workHours)} hours worked
-                          </span>
-                        </div>
-                        <span
-                          className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            record.status === 'present'
-                              ? 'bg-green-100 text-green-700'
-                              : record.status === 'half_day'
-                              ? 'bg-yellow-100 text-yellow-700'
-                              : record.status === 'incomplete'
-                              ? 'bg-orange-100 text-orange-700'
-                              : 'bg-gray-100 text-gray-700'
-                          }`}
-                        >
-                          {record.status}
+                      <div className="flex items-center">
+                        Date
+                        {getSortIcon('date')}
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-gray-900">Status</TableHead>
+                    <TableHead className="font-semibold text-gray-900">Clock In</TableHead>
+                    <TableHead className="font-semibold text-gray-900">Clock Out</TableHead>
+                    <TableHead 
+                      className="font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('lateMinutes')}
+                    >
+                      <div className="flex items-center">
+                        Late Minutes
+                        {getSortIcon('lateMinutes')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="font-semibold text-gray-900 cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('workHours')}
+                    >
+                      <div className="flex items-center">
+                        Working Hours
+                        {getSortIcon('workHours')}
+                      </div>
+                    </TableHead>
+                    <TableHead className="font-semibold text-gray-900 text-center">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedSessions.map((record, index) => (
+                    <TableRow 
+                      key={record.id || record._id || `record-${index}`}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <TableCell className="font-medium">
+                        {formatDate(record.date)}
+                      </TableCell>
+                      
+                      <TableCell>
+                        {getStatusBadge(record.status)}
+                      </TableCell>
+                      
+                      <TableCell>
+                        {getClockInDisplay(record)}
+                      </TableCell>
+                      
+                      <TableCell>
+                        <span className={record.clockOut ? 'text-gray-900' : 'text-gray-400'}>
+                          {record.clockOut ? formatTime(record.clockOut) : '--:--'}
                         </span>
-                      </div>
-
-                      {/* Main Session Info */}
-                      <div className="bg-muted/50 rounded-md p-3 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            {getLocationIcon(record.workMode || 'office')}
-                            <span className="text-sm font-medium">{getLocationLabel(record.workMode || 'office')}</span>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 text-sm">
-                          <div>
-                            <div className="text-muted-foreground text-xs">
-                              Clock In
-                            </div>
-                            <div className="font-medium">
-                              {record.clockIn ? formatTime(record.clockIn) : '-'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground text-xs">
-                              Clock Out
-                            </div>
-                            <div className="font-medium">
-                              {record.clockOut ? formatTime(record.clockOut) : '-'}
-                            </div>
-                          </div>
-                          <div>
-                            <div className="text-muted-foreground text-xs">
-                              Worked
-                            </div>
-                            <div className="font-medium">
-                              {formatDuration(record.totalWorkedMinutes || 0)}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Breaks */}
-                        {record.breakSessions && record.breakSessions.length > 0 && (
-                          <div className="pt-2 border-t">
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                              <Coffee className="h-3 w-3" />
-                              <span>
-                                {record.breakSessions.length} break(s) -{' '}
-                                {formatDuration(record.totalBreakMinutes || 0)}
-                              </span>
-                            </div>
-                            <div className="space-y-1">
-                              {record.breakSessions.map((breakItem, bIdx) => (
-                                <div
-                                  key={`break-${record.id || record._id}-${bIdx}`}
-                                  className="text-xs flex items-center justify-between"
-                                >
-                                  <span>
-                                    {formatTime(breakItem.breakIn)} -{' '}
-                                    {breakItem.breakOut
-                                      ? formatTime(breakItem.breakOut)
-                                      : 'ongoing'}
-                                  </span>
-                                  <span className="text-muted-foreground">
-                                    {formatDuration(breakItem.duration || 0)}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                      </TableCell>
+                      
+                      <TableCell>
+                        {getLateMinutesDisplay(record)}
+                      </TableCell>
+                      
+                      <TableCell>
+                        {getWorkingHoursDisplay(record)}
+                      </TableCell>
+                      
+                      <TableCell className="text-center">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem className="cursor-pointer">
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Details
+                            </DropdownMenuItem>
+                            {record.status === 'incomplete' && (
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Edit className="mr-2 h-4 w-4" />
+                                Request Correction
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem className="cursor-pointer">
+                              <FileText className="mr-2 h-4 w-4" />
+                              Export Record
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
                   ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {/* Summary Stats */}
+          {!loading && sessions.length > 0 && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {sessions.length}
                 </div>
-              ))}
+                <div className="text-sm text-gray-600">Total Days</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {sessions.filter(s => s.status === 'present').length}
+                </div>
+                <div className="text-sm text-gray-600">Present</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">
+                  {sessions.filter(s => s.status === 'absent').length}
+                </div>
+                <div className="text-sm text-gray-600">Absent</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {formatDecimal(sessions.reduce((total, s) => total + (s.workHours || 0), 0))}h
+                </div>
+                <div className="text-sm text-gray-600">Total Hours</div>
+              </div>
             </div>
           )}
         </div>

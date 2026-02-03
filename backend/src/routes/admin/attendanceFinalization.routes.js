@@ -2,12 +2,13 @@ import express from 'express';
 import { triggerFinalization, getFinalizationStatus, getEmployeeFinalizationStatus } from '../../controllers/admin/attendanceFinalization.controller.js';
 import { authenticate } from '../../middleware/auth.middleware.js';
 import { requireRoles } from '../../middleware/requireRoles.js';
+import { ROLES } from '../../config/roles.js';
 
 const router = express.Router();
 
 // All routes require authentication and admin/hr role
 router.use(authenticate);
-router.use(requireRoles(['SuperAdmin', 'admin', 'hr']));
+router.use(requireRoles([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]));
 
 /**
  * @route   POST /api/admin/attendance-finalization/trigger

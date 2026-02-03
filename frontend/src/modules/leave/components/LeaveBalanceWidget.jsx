@@ -107,7 +107,7 @@ const LeaveBalanceWidget = ({ showActions = true, compact = false }) => {
 
   // Get the most important leave types to display
   const primaryLeaveTypes = leaveBalance.leaveTypes
-    .filter(lt => ['annual', 'sick', 'personal'].includes(lt.type))
+    .filter(lt => ['casual', 'sick', 'paid'].includes(lt.type))
     .slice(0, compact ? 2 : 3);
 
   return (
@@ -210,13 +210,9 @@ const LeaveBalanceWidget = ({ showActions = true, compact = false }) => {
 // Helper function to get color for leave types
 const getLeaveTypeColor = (type) => {
   const colors = {
-    annual: 'bg-blue-500',
+    casual: 'bg-blue-500',
     sick: 'bg-green-500',
-    personal: 'bg-purple-500',
-    maternity: 'bg-pink-500',
-    paternity: 'bg-indigo-500',
-    emergency: 'bg-red-500',
-    unpaid: 'bg-gray-500',
+    paid: 'bg-purple-500',
   };
   return colors[type] || 'bg-gray-400';
 };

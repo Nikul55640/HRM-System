@@ -3,6 +3,7 @@ import shiftController from '../../controllers/admin/shift.controller.js';
 import employeeShiftController from '../../controllers/admin/employeeShift.controller.js';
 import { authenticate } from '../../middleware/authenticate.js';
 import { authorize } from '../../middleware/authorize.js';
+import { ROLES } from '../../config/roles.js';
 
 const router = express.Router();
 
@@ -10,12 +11,13 @@ const router = express.Router();
 router.use(authenticate);
 
 // Shift management routes (Admin, HR roles)
-router.use(authorize(["SuperAdmin", "HR", "HR"]));
+router.use(authorize([ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]));
 
 // Shift CRUD operations
 router.get('/', shiftController.getShifts);
 router.get('/stats', shiftController.getShiftStats);
 router.get('/:id', shiftController.getShift);
+router.get('/:id/change-impact', shiftController.getShiftChangeImpact); // New route for impact analysis
 router.post('/', shiftController.createShift);
 router.put('/:id', shiftController.updateShift);
 router.delete('/:id', shiftController.deleteShift);

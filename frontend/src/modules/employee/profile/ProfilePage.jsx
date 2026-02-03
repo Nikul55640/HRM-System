@@ -240,8 +240,8 @@ const ProfilePage = () => {
               value={attendanceSummary?.lateDays || 0} 
             />
             <StatMiniCard 
-              title="Leaves Taken" 
-              value={attendanceSummary?.leaveDays || 0} 
+              title="Absent Days" 
+              value={attendanceSummary?.absentDays || 0} 
             />
             <StatMiniCard 
               title="Present Days" 

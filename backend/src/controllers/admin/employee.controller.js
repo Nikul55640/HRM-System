@@ -7,6 +7,7 @@
 import employeeService from '../../services/admin/employee.service.js';
 import logger from '../../utils/logger.js';
 import { AuditLog } from '../../models/index.js';
+import { ROLES } from '../../config/roles.js';
 
 /**
  * Wrapper for consistent API responses
@@ -268,18 +269,19 @@ const employeeController = {
       };
 
       // Employees can only update their own bank details
-      if (req.user.role === 'Employee' && req.user.employee?.id.toString() !== id) {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole === ROLES.EMPLOYEE && req.user.employee?.id.toString() !== id) {
         return sendResponse(res, false, "You can only update your own bank details", null, 403);
       }
 
       const updateData = {
         bankDetails: {
           ...req.body,
-          isVerified: req.user.role !== 'Employee' ? req.body.isVerified : false // Only HR/Admin can mark as verified
+          isVerified: userSystemRole !== ROLES.EMPLOYEE ? req.body.isVerified : false // Only HR/Admin can mark as verified
         }
       };
 
-      const result = req.user.role === 'Employee'
+      const result = userSystemRole === ROLES.EMPLOYEE
         ? await employeeService.selfUpdateEmployee(updateData, req.user, metadata)
         : await employeeService.updateEmployee(id, updateData, req.user, metadata);
 
@@ -308,7 +310,8 @@ const employeeController = {
       };
 
       // Employees can only update their own profile picture
-      if (req.user.role === 'Employee' && req.user.employee?.id.toString() !== id) {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole === ROLES.EMPLOYEE && req.user.employee?.id.toString() !== id) {
         return sendResponse(res, false, "You can only update your own profile picture", null, 403);
       }
 
@@ -320,7 +323,7 @@ const employeeController = {
         profilePicture: req.file.path || req.file.filename
       };
 
-      const result = req.user.role === 'Employee'
+      const result = userSystemRole === ROLES.EMPLOYEE
         ? await employeeService.selfUpdateEmployee(updateData, req.user, metadata)
         : await employeeService.updateEmployee(id, updateData, req.user, metadata);
 
@@ -349,7 +352,8 @@ const employeeController = {
       };
 
       // Employees can only update their own emergency contact
-      if (req.user.role === 'Employee' && req.user.employee?.id.toString() !== id) {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole === ROLES.EMPLOYEE && req.user.employee?.id.toString() !== id) {
         return sendResponse(res, false, "You can only update your own emergency contact", null, 403);
       }
 
@@ -357,7 +361,7 @@ const employeeController = {
         emergencyContact: req.body
       };
 
-      const result = req.user.role === 'Employee'
+      const result = userSystemRole === ROLES.EMPLOYEE
         ? await employeeService.selfUpdateEmployee(updateData, req.user, metadata)
         : await employeeService.updateEmployee(id, updateData, req.user, metadata);
 
@@ -428,7 +432,8 @@ const employeeController = {
       };
 
       // Only HR and Super Admin can verify bank details
-      if (req.user.role === 'Employee') {
+      const userSystemRole = req.user.systemRole || req.user.role;
+      if (userSystemRole === ROLES.EMPLOYEE) {
         return sendResponse(res, false, "Unauthorized: Only HR and Super Admin can verify bank details", null, 403);
       }
 

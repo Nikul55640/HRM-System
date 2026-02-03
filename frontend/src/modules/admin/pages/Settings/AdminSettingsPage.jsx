@@ -92,50 +92,59 @@ const AdminSettingsPage = () => {
   const loadSettings = async () => {
     setLoading(true);
     try {
-      // Load all settings in parallel
+      console.log('🔄 Loading admin settings...');
+      
+      // Load only the settings for active tabs
       const [
         systemConfig,
-        emailConfig,
         notificationConfig,
         securityConfig,
-        attendanceConfig,
         backupConfig
       ] = await Promise.allSettled([
         configService.getSystemConfig(),
-        configService.getEmailSettings(),
         configService.getNotificationSettings(),
         configService.getSecuritySettings(),
-        configService.getAttendanceSettings(),
         configService.getBackupSettings()
       ]);
 
+      console.log('📊 Settings loaded:', {
+        systemConfig: systemConfig.status,
+        notificationConfig: notificationConfig.status,
+        securityConfig: securityConfig.status,
+        backupConfig: backupConfig.status
+      });
+
       // Update state with loaded settings
       if (systemConfig.status === 'fulfilled' && systemConfig.value.success) {
+        console.log('✅ System config loaded:', systemConfig.value.data);
         setSystemSettings(prev => ({ ...prev, ...systemConfig.value.data }));
-      }
-
-      if (emailConfig.status === 'fulfilled' && emailConfig.value.success) {
-        setEmailSettings(prev => ({ ...prev, ...emailConfig.value.data }));
+      } else if (systemConfig.status === 'rejected') {
+        console.error('❌ System config failed:', systemConfig.reason);
       }
 
       if (notificationConfig.status === 'fulfilled' && notificationConfig.value.success) {
+        console.log('✅ Notification config loaded:', notificationConfig.value.data);
         setNotificationSettings(prev => ({ ...prev, ...notificationConfig.value.data }));
+      } else if (notificationConfig.status === 'rejected') {
+        console.error('❌ Notification config failed:', notificationConfig.reason);
       }
 
       if (securityConfig.status === 'fulfilled' && securityConfig.value.success) {
+        console.log('✅ Security config loaded:', securityConfig.value.data);
         setSecuritySettings(prev => ({ ...prev, ...securityConfig.value.data }));
-      }
-
-      if (attendanceConfig.status === 'fulfilled' && attendanceConfig.value.success) {
-        setAttendanceSettings(prev => ({ ...prev, ...attendanceConfig.value.data }));
+      } else if (securityConfig.status === 'rejected') {
+        console.error('❌ Security config failed:', securityConfig.reason);
       }
 
       if (backupConfig.status === 'fulfilled' && backupConfig.value.success) {
+        console.log('✅ Backup config loaded:', backupConfig.value.data);
         setBackupSettings(prev => ({ ...prev, ...backupConfig.value.data }));
+      } else if (backupConfig.status === 'rejected') {
+        console.error('❌ Backup config failed:', backupConfig.reason);
       }
 
     } catch (error) {
-      console.error('Error loading settings:', error);
+      console.error('❌ Error loading settings:', error);
       toast({
         title: "Error",
         description: "Failed to load settings. Please try again.",
@@ -149,6 +158,8 @@ const AdminSettingsPage = () => {
   const saveSettings = async (settingsType, settings) => {
     setSaving(true);
     try {
+      console.log(`💾 Saving ${settingsType} settings:`, settings);
+      
       let response;
       
       switch (settingsType) {
@@ -164,15 +175,14 @@ const AdminSettingsPage = () => {
         case 'security':
           response = await configService.updateSecuritySettings(settings);
           break;
-        case 'attendance':
-          response = await configService.updateAttendanceSettings(settings);
-          break;
         case 'backup':
           response = await configService.updateBackupSettings(settings);
           break;
         default:
           throw new Error('Invalid settings type');
       }
+
+      console.log(`✅ ${settingsType} settings saved:`, response);
 
       if (response.success) {
         toast({
@@ -183,7 +193,7 @@ const AdminSettingsPage = () => {
         throw new Error(response.message || 'Failed to update settings');
       }
     } catch (error) {
-      console.error('Error saving settings:', error);
+      console.error(`❌ Error saving ${settingsType} settings:`, error);
       toast({
         title: "Error",
         description: error.message || "Failed to save settings. Please try again.",
@@ -194,10 +204,38 @@ const AdminSettingsPage = () => {
     }
   };
 
+  const testConnection = async () => {
+    try {
+      console.log('🔗 Testing backend connection...');
+      const response = await configService.getSystemConfig();
+      console.log('✅ Connection test result:', response);
+      
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: "Backend connection is working!",
+        });
+      } else {
+        toast({
+          title: "Warning",
+          description: "Backend responded but with an error: " + response.message,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('❌ Connection test failed:', error);
+      toast({
+        title: "Error",
+        description: "Backend connection failed: " + error.message,
+        variant: "destructive"
+      });
+    }
+  };
+
   const testEmailSettings = async () => {
     setSaving(true);
     try {
-      const response = await configService.testEmailSettings(emailSettings);
+      const response = await configService.testEmailSettings();
       if (response.success) {
         toast({
           title: "Success",
@@ -249,6 +287,7 @@ const AdminSettingsPage = () => {
     return (
       <div className="flex items-center justify-center h-64">
         <LoadingSpinner />
+        <span className="ml-2 text-muted-foreground">Loading admin settings...</span>
       </div>
     );
   }
@@ -262,19 +301,28 @@ const AdminSettingsPage = () => {
             Configure system-wide settings and preferences
           </p>
         </div>
-        <Badge variant="outline" className="text-sm">
-          <Icon name="Settings" className="w-4 h-4 mr-1" />
-          System Configuration
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={testConnection}
+            disabled={saving}
+          >
+            <Icon name="Wifi" className="w-4 h-4 mr-1" />
+            Test Connection
+          </Button>
+          <Badge variant="outline" className="text-sm">
+            <Icon name="Settings" className="w-4 h-4 mr-1" />
+            System Configuration
+          </Badge>
+        </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="system">System</TabsTrigger>
-          <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="attendance">Attendance</TabsTrigger>
           <TabsTrigger value="backup">Backup</TabsTrigger>
         </TabsList>
 
@@ -421,7 +469,7 @@ const AdminSettingsPage = () => {
         </TabsContent>
 
         {/* Email Settings */}
-        <TabsContent value="email" className="space-y-6">
+        {/* <TabsContent value="email" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -519,7 +567,7 @@ const AdminSettingsPage = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
         {/* Notification Settings */}
         <TabsContent value="notifications" className="space-y-6">
@@ -727,7 +775,7 @@ const AdminSettingsPage = () => {
         </TabsContent>
 
         {/* Attendance Settings */}
-        <TabsContent value="attendance" className="space-y-6">
+        {/* <TabsContent value="attendance" className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -824,7 +872,7 @@ const AdminSettingsPage = () => {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
 
         {/* Backup Settings */}
         <TabsContent value="backup" className="space-y-6">

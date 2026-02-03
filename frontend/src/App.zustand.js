@@ -5,6 +5,7 @@ import { ToastContainer } from 'react-toastify';
 import { setupZustandStores } from './stores/setupStores';
 import useAuthStore from './stores/useAuthStore';
 import useUIStore from './stores/useUIStore';
+import { ROLES } from './core/utils/roles';
 
 // Import your existing components
 import Layout from './core/layout';
@@ -72,7 +73,7 @@ function App() {
               path="/"
               element={
                 <ProtectedRoute>
-                  <RoleGate allowedRoles={['SuperAdmin', 'HR Administrator', 'HR Manager']}>
+                  <RoleGate allowedRoles={[ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]}>
                     <AdminDashboard />
                   </RoleGate>
                 </ProtectedRoute>
@@ -83,7 +84,7 @@ function App() {
               path="/employee-dashboard"
               element={
                 <ProtectedRoute>
-                  <RoleGate allowedRoles={['Employee']}>
+                  <RoleGate allowedRoles={[ROLES.EMPLOYEE]}>
                     <EmployeeDashboard />
                   </RoleGate>
                 </ProtectedRoute>
@@ -95,7 +96,7 @@ function App() {
               path="/employees"
               element={
                 <ProtectedRoute>
-                  <RoleGate allowedRoles={['SuperAdmin', 'HR Administrator', 'HR Manager']}>
+                  <RoleGate allowedRoles={[ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]}>
                     <EmployeeList />
                   </RoleGate>
                 </ProtectedRoute>
@@ -106,7 +107,7 @@ function App() {
               path="/employees/new"
               element={
                 <ProtectedRoute>
-                  <RoleGate allowedRoles={['SuperAdmin', 'HR Administrator', 'HR Manager']}>
+                  <RoleGate allowedRoles={[ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]}>
                     <EmployeeForm />
                   </RoleGate>
                 </ProtectedRoute>
@@ -117,7 +118,7 @@ function App() {
               path="/employees/:id/edit"
               element={
                 <ProtectedRoute>
-                  <RoleGate allowedRoles={['SuperAdmin', 'HR Administrator', 'HR Manager']}>
+                  <RoleGate allowedRoles={[ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]}>
                     <EmployeeForm />
                   </RoleGate>
                 </ProtectedRoute>
@@ -129,7 +130,7 @@ function App() {
               path="/organization/departments"
               element={
                 <ProtectedRoute>
-                  <RoleGate allowedRoles={['SuperAdmin', 'HR Administrator']}>
+                  <RoleGate allowedRoles={[ROLES.SUPER_ADMIN, ROLES.HR_ADMIN]}>
                     <DepartmentSection />
                   </RoleGate>
                 </ProtectedRoute>
@@ -141,7 +142,7 @@ function App() {
               path="/leave/management"
               element={
                 <ProtectedRoute>
-                  <RoleGate allowedRoles={['SuperAdmin', 'HR Administrator', 'HR Manager']}>
+                  <RoleGate allowedRoles={[ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]}>
                     <LeaveManagement />
                   </RoleGate>
                 </ProtectedRoute>
@@ -153,7 +154,7 @@ function App() {
               path="/attendance/admin"
               element={
                 <ProtectedRoute>
-                  <RoleGate allowedRoles={['SuperAdmin', 'HR Administrator', 'HR Manager']}>
+                  <RoleGate allowedRoles={[ROLES.SUPER_ADMIN, ROLES.HR_ADMIN, ROLES.HR_MANAGER]}>
                     <ManageAttendance />
                   </RoleGate>
                 </ProtectedRoute>
@@ -165,7 +166,7 @@ function App() {
               path="*"
               element={
                 <ProtectedRoute>
-                  {user?.role === 'Employee' ? <EmployeeDashboard /> : <AdminDashboard />}
+                  {user?.systemRole === ROLES.EMPLOYEE || user?.role === 'Employee' ? <EmployeeDashboard /> : <AdminDashboard />}
                 </ProtectedRoute>
               }
             />
