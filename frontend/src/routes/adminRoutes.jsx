@@ -43,7 +43,6 @@ const AnnouncementsPage = lazy(() => import("../modules/admin/pages/Announcement
 
 // System Configuration
 const UserManagement = lazy(() => import("../modules/organization/admin/UserManagement"));
-const SystemConfig = lazy(() => import("../modules/organization/admin/SystemConfig"));
 const AdminSettingsPage = lazy(() => import("../modules/admin/pages/Settings/AdminSettingsPage"));
 const AdminAccountSettings = lazy(() => import("../modules/admin/pages/AccountSettings/AdminAccountSettings"));
 
@@ -104,7 +103,6 @@ export const adminRoutes = [
 
   // System Administration - SuperAdmin only
   { path: "/admin/users", element: <UserManagement />, roles: ["SuperAdmin"] },
-  { path: "/admin/system-policies", element: <SystemConfig />, roles: ["SuperAdmin"] },
   { path: "/admin/settings", element: <AdminSettingsPage />, roles: ["SuperAdmin"] },
   { path: "/admin/account", element: <AdminAccountSettings />, roles: ["SuperAdmin", "HR_Manager", "HR"] },
   { path: "/admin/audit-logs", element: <AuditLogsPage />, roles: ["SuperAdmin"] },

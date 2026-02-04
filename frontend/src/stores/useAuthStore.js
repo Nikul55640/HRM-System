@@ -3,6 +3,7 @@ import { devtools, persist } from 'zustand/middleware';
 import { toast } from 'react-toastify';
 import api, { setAuthTokenGetter } from '../services/api';
 import { ROLES, getDisplayLabel, isAdminRole, isHRRole, isEmployeeRole } from '../core/utils/roles';
+import { extractErrorMessage, extractAuthErrorMessage } from '../core/utils/errorMessageExtractor';
 
 const useAuthStore = create(
   devtools(
@@ -52,14 +53,25 @@ const useAuthStore = create(
             return response.data.data;
             
           } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Login failed';
+            console.log('🔐 [AUTH STORE] Login error details:', error);
+            
+            // Extract user-friendly error message
+            const errorMessage = extractAuthErrorMessage(error);
+            
+            console.log('🔐 [AUTH STORE] Final error message:', errorMessage);
+            
             set({
               loading: false,
               error: errorMessage,
               isAuthenticated: false
             });
 
-            throw error;
+            // Create a new error with the user-friendly message
+            const userError = new Error(errorMessage);
+            userError.code = error.response?.data?.error?.code || error.code;
+            userError.status = error.response?.status;
+            
+            throw userError;
           }
         },
         
@@ -135,7 +147,7 @@ const useAuthStore = create(
             return updatedUser;
             
           } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Unable to update your profile. Please try again.';
+            const errorMessage = extractErrorMessage(error, 'Unable to update your profile. Please try again.');
             set({ loading: false, error: errorMessage });
             toast.error(errorMessage);
             throw error;
@@ -152,7 +164,7 @@ const useAuthStore = create(
             toast.success('Your password has been changed successfully');
             
           } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Unable to change your password. Please check your current password.';
+            const errorMessage = extractErrorMessage(error, 'Unable to change your password. Please check your current password.');
             set({ loading: false, error: errorMessage });
             toast.error(errorMessage);
             throw error;

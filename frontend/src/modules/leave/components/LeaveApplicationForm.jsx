@@ -17,6 +17,7 @@ import {
 } from '../../../shared/ui/select'; 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../shared/ui/card';
 import { toast } from 'react-toastify';
+import { extractErrorMessage } from '../../../core/utils/errorMessageExtractor';
 
 const LeaveApplicationForm = ({ onSubmit, isLoading, leaveBalance }) => {
   
@@ -71,7 +72,8 @@ const LeaveApplicationForm = ({ onSubmit, isLoading, leaveBalance }) => {
       toast.success('Leave application submitted successfully');
       reset();
     } catch (error) {
-      toast.error(error.message || 'Failed to submit leave application');
+      const errorMessage = extractErrorMessage(error, 'Failed to submit leave application');
+      toast.error(errorMessage);
     }
   };
 

@@ -4,6 +4,7 @@ import { Input } from '../../../shared/ui/input';
 import { Textarea } from '../../../shared/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
 import { toast } from 'react-hot-toast';
+import { extractErrorMessage } from '../../../core/utils/errorMessageExtractor';
 import api from '../../../services/api';
 
 const LeadForm = ({ lead, onSuccess, onCancel }) => {
@@ -128,7 +129,7 @@ const LeadForm = ({ lead, onSuccess, onCancel }) => {
       }
     } catch (error) {
       console.error('Lead creation/update error:', error);
-      const errorMessage = error.response?.data?.message || error.message || `Failed to ${lead ? 'update' : 'create'} lead`;
+      const errorMessage = extractErrorMessage(error, `Failed to ${lead ? 'update' : 'create'} lead`);
       toast.error(errorMessage);
     } finally {
       setLoading(false);

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { toast } from 'react-toastify';
 import attendanceService from '../services/attendanceService';
+import { extractErrorMessage } from '../core/utils/errorMessageExtractor';
 
 const useAttendanceStore = create(
   devtools(
@@ -161,7 +162,7 @@ const useAttendanceStore = create(
           return response.data;
           
         } catch (error) {
-          const errorMessage = error.response?.data?.message || 'Failed to check in';
+          const errorMessage = extractErrorMessage(error, 'Failed to check in');
           set({ loading: false, error: errorMessage });
           toast.error(errorMessage);
           throw error;
@@ -189,7 +190,7 @@ const useAttendanceStore = create(
           return response.data;
           
         } catch (error) {
-          const errorMessage = error.response?.data?.message || 'Failed to check out';
+          const errorMessage = extractErrorMessage(error, 'Failed to check out');
           set({ loading: false, error: errorMessage });
           toast.error(errorMessage);
           throw error;
@@ -211,7 +212,7 @@ const useAttendanceStore = create(
           return response.data;
           
         } catch (error) {
-          const errorMessage = error.response?.data?.message || 'Failed to fetch attendance summary';
+          const errorMessage = extractErrorMessage(error, 'Failed to fetch attendance summary');
           set({ loading: false, error: errorMessage });
           toast.error(errorMessage);
           throw error;

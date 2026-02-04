@@ -39,32 +39,12 @@ const MonthView = ({ date, events, onDateClick }) => {
           const calendarData = smartResponse.data.calendar || {};
           setSmartCalendarData(calendarData);
           
-          console.log('📅 [MONTH VIEW] Raw smart calendar response:', {
-            success: smartResponse.success,
-            dataKeys: Object.keys(calendarData).length,
-            sampleEntries: Object.entries(calendarData).slice(0, 5).map(([date, data]) => ({
-              date,
-              status: data.status,
-              hasLeaves: !!data.leaves,
-              leavesCount: data.leaves?.length || 0,
-              leaves: data.leaves,
-              hasLeave: !!data.leave,
-              leave: data.leave
-            }))
-          });
-          
           // Extract leave data from smart calendar response
           const leavesByDate = {};
           
           Object.entries(calendarData).forEach(([dateStr, dayData]) => {
             // Only check for single leave property (ignore leaves array)
             if (dayData.leave) {
-              console.log(`📅 [MONTH VIEW] Found leave data for ${dateStr}:`, {
-                status: dayData.status,
-                hasLeave: !!dayData.leave,
-                leave: dayData.leave
-              });
-              
               const dayLeaves = [];
               
               // Handle single leave property (ONLY SOURCE)
@@ -82,36 +62,17 @@ const MonthView = ({ date, events, onDateClick }) => {
               
               if (dayLeaves.length > 0) {
                 leavesByDate[dateStr] = dayLeaves;
-                console.log(`📅 [MONTH VIEW] Added ${dayLeaves.length} leaves for ${dateStr}:`, dayLeaves);
               }
             }
           });
           
           setLeaveData(leavesByDate);
-          
-          console.log('📅 [MONTH VIEW] Smart calendar data loaded with leave information', {
-            year,
-            month,
-            dataKeys: Object.keys(calendarData).length,
-            leaveDates: Object.keys(leavesByDate).length,
-            totalLeaves: Object.values(leavesByDate).reduce((sum, leaves) => sum + leaves.length, 0),
-            leaveData: leavesByDate,
-            sampleDayData: Object.entries(calendarData).slice(0, 3).map(([date, data]) => ({
-              date,
-              status: data.status,
-              hasLeaves: data.leaves?.length > 0,
-              leavesCount: data.leaves?.length || 0,
-              leaves: data.leaves
-            }))
-          });
         } else {
-          console.warn('📅 [MONTH VIEW] Smart calendar failed, using fallback');
           setSmartCalendarData({});
           setLeaveData({});
         }
         
       } catch (error) {
-        console.warn('📅 [MONTH VIEW] Calendar data error:', error);
         setSmartCalendarData({});
         setLeaveData({});
       } finally {
@@ -129,7 +90,6 @@ const MonthView = ({ date, events, onDateClick }) => {
     const smartDayData = smartCalendarData[dateStr];
     
     if (smartDayData) {
-      console.log(`📅 [MONTH VIEW] Smart data for ${dateStr}:`, smartDayData);
       return {
         isWeekend: smartDayData.isWeekend || smartDayData.status === 'WEEKEND',
         isWorkingDay: smartDayData.isWorkingDay || smartDayData.status === 'WORKING_DAY',
@@ -143,8 +103,6 @@ const MonthView = ({ date, events, onDateClick }) => {
     // Fallback to basic weekend detection if smart calendar data is not available
     const dayOfWeek = new Date(year, month, day).getDay();
     const isWeekend = dayOfWeek === 0 || dayOfWeek === 6; // Sunday or Saturday
-    
-    console.log(`📅 [MONTH VIEW] Fallback for ${dateStr}: dayOfWeek=${dayOfWeek}, isWeekend=${isWeekend}`);
     
     return {
       isWeekend,
@@ -172,13 +130,39 @@ const MonthView = ({ date, events, onDateClick }) => {
   const getLeavesForDate = (day) => {
     const { year, month } = getDaysInMonth(date);
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    const leaves = leaveData[dateStr] || [];
     
-    if (leaves.length > 0) {
-      console.log(`📅 [MONTH VIEW] Leaves for ${dateStr} (day ${day}):`, leaves);
-    }
+    // ✅ FIX: Get leaves from Employee Calendar events (which includes ALL employees)
+    // instead of Smart Calendar data (which only includes logged-in employee)
+    const dayEvents = getEventsForDate(day);
+    const leaveEvents = dayEvents.filter(event => event.eventType === 'leave');
     
-    return leaves;
+    // Transform leave events to match expected format
+    const leaves = leaveEvents.map(event => ({
+      employeeName: event.employeeName || event.title?.split(' - ')[0] || 'Unknown Employee',
+      leaveType: event.leaveType || event.title?.split(' - ')[1] || 'Leave',
+      status: 'approved', // Employee calendar only shows approved leaves
+      startDate: event.startDate,
+      endDate: event.endDate || event.startDate,
+      reason: event.reason || '',
+      employeeId: event.employeeId,
+      isHalfDay: event.isHalfDay,
+      ...event
+    }));
+    
+    // Also check Smart Calendar data as fallback (for logged-in employee's leaves)
+    const smartCalendarLeaves = leaveData[dateStr] || [];
+    
+    // Combine both sources and remove duplicates
+    const allLeaves = [...leaves, ...smartCalendarLeaves];
+    const uniqueLeaves = allLeaves.filter((leave, index, self) => 
+      index === self.findIndex(l => 
+        l.employeeName === leave.employeeName && 
+        l.startDate === leave.startDate &&
+        l.leaveType === leave.leaveType
+      )
+    );
+    
+    return uniqueLeaves;
   };
 
   // Get day styling classes based on day status (PROPER PRIORITY ORDER)
@@ -190,12 +174,13 @@ const MonthView = ({ date, events, onDateClick }) => {
     
     let baseClasses = 'aspect-square border rounded-lg p-1 sm:p-2 cursor-pointer hover:bg-accent transition-colors relative';
     
-    // Priority order: Today > Holiday > Leave > Weekend > Working Day
+    // Priority order: Today > Holiday > Leave (ANY employee) > Weekend > Working Day
     if (isTodayDate) {
       baseClasses += ' border-primary border-2 bg-primary/5';
     } else if (dayStatus.isHoliday) {
       baseClasses += ' border-red-300 bg-red-50';
-    } else if (dayStatus.isLeave || hasLeaves) {
+    } else if (hasLeaves) {
+      // ✅ FIX: Show leave styling if ANY employee has leave (not just logged-in employee)
       baseClasses += ' border-orange-300 bg-orange-50';
     } else if (dayStatus.isWeekend) {
       baseClasses += ' border-gray-300 bg-gray-100';
@@ -217,7 +202,8 @@ const MonthView = ({ date, events, onDateClick }) => {
       classes += ' text-primary';
     } else if (dayStatus.isHoliday) {
       classes += ' text-red-700';
-    } else if (dayStatus.isLeave || dayLeaves.length > 0) {
+    } else if (dayLeaves.length > 0) {
+      // ✅ FIX: Show leave styling if ANY employee has leave
       classes += ' text-orange-700';
     } else if (dayStatus.isWeekend) {
       classes += ' text-gray-500';

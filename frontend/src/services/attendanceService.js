@@ -1,4 +1,5 @@
 import api from './api';
+import { extractErrorMessage } from '../core/utils/errorMessageExtractor';
 
 /**
  * Service for handling all attendance-related API calls
@@ -19,7 +20,7 @@ const attendanceService = {
       return response.data;
     } catch (error) {
       console.error(' [ATTENDANCE] Failed to fetch records:', error);
-      const errorMsg = error.response?.data?.message || 'Failed to load attendance records';
+      const errorMsg = extractErrorMessage(error, 'Failed to load attendance records');
       throw new Error(errorMsg);
     }
   },
@@ -37,7 +38,7 @@ const attendanceService = {
       return response.data;
     } catch (error) {
       console.error(' [ATTENDANCE] Clock-in failed:', error);
-      const errorMsg = error.response?.data?.message || 'Failed to clock in';
+      const errorMsg = extractErrorMessage(error, 'Failed to clock in');
       throw new Error(errorMsg);
     }
   },
@@ -55,7 +56,7 @@ const attendanceService = {
       return response.data;
     } catch (error) {
       console.error(' [ATTENDANCE] Clock-out failed:', error);
-      const errorMsg = error.response?.data?.message || 'Failed to clock out';
+      const errorMsg = extractErrorMessage(error, 'Failed to clock out');
       throw new Error(errorMsg);
     }
   },
@@ -74,7 +75,7 @@ const attendanceService = {
       return response.data;
     } catch (error) {
       console.error(' [ATTENDANCE] Failed to fetch summary:', error);
-      const errorMsg = error.response?.data?.message || 'Failed to load attendance summary';
+      const errorMsg = extractErrorMessage(error, 'Failed to load attendance summary');
       throw new Error(errorMsg);
     }
   },

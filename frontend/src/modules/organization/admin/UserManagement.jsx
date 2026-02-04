@@ -6,6 +6,7 @@ import { LoadingSpinner } from "../../../shared/components";
 import UserModal from "../../../shared/ui/UserModal";
 import { Search, Plus, Edit2 } from "lucide-react";
 import { mapBackendToFrontend } from "../../../utils/roleMapper";
+import { extractErrorMessage } from "../../../core/utils/errorMessageExtractor";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -43,7 +44,8 @@ const UserManagement = () => {
       setUsers(usersData);
       setDepartments(departmentsData);
     } catch (error) {
-      toast.error(error.message || "Failed to load users");
+      const errorMessage = extractErrorMessage(error, "Failed to load users");
+      toast.error(errorMessage);
       setUsers([]);
       setDepartments([]);
     } finally {
@@ -73,7 +75,8 @@ const UserManagement = () => {
       }
       loadData();
     } catch (error) {
-      toast.error(error.message || "Failed to update status");
+      const errorMessage = extractErrorMessage(error, "Failed to update status");
+      toast.error(errorMessage);
     }
   };
 
@@ -90,7 +93,8 @@ const UserManagement = () => {
       setShowModal(false);
       loadData();
     } catch (error) {
-      toast.error(error.message || "Failed to save user");
+      const errorMessage = extractErrorMessage(error, "Failed to save user");
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

@@ -29,13 +29,44 @@ class AttendanceService {
             const today = getLocalDateString();
             
             // 🚫 NEW: Check if today is a weekend - prevent attendance on weekends
-            const { WorkingRule } = await import('../../models/index.js');
+            const { WorkingRule, LeaveRequest } = await import('../../models/index.js');
             const isWeekend = await WorkingRule.isWeekend(today);
             
             if (isWeekend) {
                 const dayName = new Date(today).toLocaleDateString('en-US', { weekday: 'long' });
                 throw { 
                     message: `Cannot clock in on ${dayName}. Attendance is not allowed on weekends.`, 
+                    statusCode: 400 
+                };
+            }
+
+            // 🚫 NEW: Check if employee is on approved leave today - prevent attendance on leave days
+            const approvedLeave = await LeaveRequest.findOne({
+                where: {
+                    employeeId: user.employee?.id,
+                    status: 'approved',
+                    startDate: { [Op.lte]: today },
+                    endDate: { [Op.gte]: today }
+                }
+            });
+
+            if (approvedLeave) {
+                const leaveType = approvedLeave.leaveType;
+                const startDate = new Date(approvedLeave.startDate).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                const endDate = new Date(approvedLeave.endDate).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                
+                const leavePeriod = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
+                
+                throw { 
+                    message: `Cannot clock in today. You are on approved ${leaveType} leave (${leavePeriod}). Please contact HR if this is incorrect.`, 
                     statusCode: 400 
                 };
             }
@@ -582,7 +613,7 @@ class AttendanceService {
             const today = getLocalDateString();
 
             // 🚫 NEW: Check if today is a weekend - disable all buttons on weekends
-            const { WorkingRule } = await import('../../models/index.js');
+            const { WorkingRule, LeaveRequest } = await import('../../models/index.js');
             const isWeekend = await WorkingRule.isWeekend(today);
             
             if (isWeekend) {
@@ -614,6 +645,70 @@ class AttendanceService {
                         shiftInfo: null,
                         isWeekend: true,
                         weekendMessage: `Today is ${dayName}. Attendance tracking is disabled on weekends.`
+                    },
+                    message: 'Button states retrieved successfully'
+                };
+            }
+
+            // 🚫 NEW: Check if employee is on approved leave today - disable all buttons on leave days
+            const approvedLeave = await LeaveRequest.findOne({
+                where: {
+                    employeeId: user.employee?.id,
+                    status: 'approved',
+                    startDate: { [Op.lte]: today },
+                    endDate: { [Op.gte]: today }
+                }
+            });
+
+            if (approvedLeave) {
+                const leaveType = approvedLeave.leaveType;
+                const startDate = new Date(approvedLeave.startDate).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                const endDate = new Date(approvedLeave.endDate).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                });
+                
+                const leavePeriod = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
+                const leaveMessage = `You are on approved ${leaveType} leave (${leavePeriod}). Attendance tracking is disabled.`;
+                
+                return {
+                    success: true,
+                    data: {
+                        clockIn: {
+                            enabled: false,
+                            reason: `Cannot clock in today. ${leaveMessage}`
+                        },
+                        clockOut: {
+                            enabled: false,
+                            reason: `Cannot clock out today. ${leaveMessage}`
+                        },
+                        startBreak: {
+                            enabled: false,
+                            reason: `Cannot start break today. ${leaveMessage}`
+                        },
+                        endBreak: {
+                            enabled: false,
+                            reason: `Cannot end break today. ${leaveMessage}`
+                        },
+                        currentStatus: 'on_leave',
+                        hasClockIn: false,
+                        hasClockOut: false,
+                        isOnBreak: false,
+                        workMode: 'office',
+                        shiftInfo: null,
+                        isOnLeave: true,
+                        leaveInfo: {
+                            type: leaveType,
+                            startDate: approvedLeave.startDate,
+                            endDate: approvedLeave.endDate,
+                            period: leavePeriod
+                        },
+                        leaveMessage: leaveMessage
                     },
                     message: 'Button states retrieved successfully'
                 };

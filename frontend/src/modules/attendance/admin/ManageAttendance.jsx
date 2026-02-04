@@ -13,6 +13,7 @@ import { cn } from '../../../lib/utils';
 import { formatDate } from '../../../lib/date-utils.js';
 import AttendanceForm from '../components/AttendanceForm';
 import AttendanceViewModal from './AttendanceViewModal'; // ✅ NEW: Import view modal
+import { extractErrorMessage } from '../../../core/utils/errorMessageExtractor';
 import api from '../../../services/api';
 import { getEmployeeFullName, getEmployeeInitials } from '../../../utils/employeeDataMapper';
 import { mapAttendanceRecord, getStatusDisplay, getStatusColor, formatTime } from '../../../utils/attendanceDataMapper';
@@ -180,7 +181,8 @@ const ManageAttendance = () => {
       }
     } catch (error) {
       console.error('Error approving correction:', error);
-      alert('Failed to approve correction: ' + (error.response?.data?.message || error.message));
+      const errorMessage = extractErrorMessage(error, 'Failed to approve correction');
+      alert(errorMessage);
     }
   };
 
@@ -207,7 +209,8 @@ const ManageAttendance = () => {
       }
     } catch (error) {
       console.error('Error rejecting correction:', error);
-      alert('Failed to reject correction: ' + (error.response?.data?.message || error.message));
+      const errorMessage = extractErrorMessage(error, 'Failed to reject correction');
+      alert(errorMessage);
     }
   };
 

@@ -321,6 +321,10 @@ const getMonthlyCalendar = async (req, res) => {
     const calendar = {};
 
     console.log(`📅 [CALENDAR] Building calendar for ${year}-${month} with ${allEmployees.length} employees`);
+    console.log(`📅 [CALENDAR] Found ${allLeaves.length} approved leaves in date range:`);
+    allLeaves.forEach(leave => {
+      console.log(`   - ${leave.employee?.firstName} ${leave.employee?.lastName}: ${leave.leaveType} (${leave.startDate} to ${leave.endDate})`);
+    });
     console.log(`📅 [CALENDAR] Employees with birthdays:`, allEmployees.filter(e => e.dateOfBirth).map(e => `${e.firstName} ${e.lastName} (${e.dateOfBirth})`));
 
     for (let day = 1; day <= daysInMonth; day++) {
@@ -340,7 +344,26 @@ const getMonthlyCalendar = async (req, res) => {
 
       // Company-wide data
       const dayLeaves = allLeaves.filter(
-        (l) => l.startDate <= dayEnd && l.endDate >= dayStart
+        (l) => {
+          // ✅ FIX: Convert dates to proper Date objects for comparison
+          const leaveStart = new Date(l.startDate);
+          const leaveEnd = new Date(l.endDate);
+          
+          // Debug logging for February 4, 2026
+          if (dateStr === '2026-02-04') {
+            console.log(`🔍 [LEAVE DEBUG] Checking leave for ${dateStr}:`);
+            console.log(`   Leave: ${l.employee?.firstName} ${l.employee?.lastName} - ${l.leaveType}`);
+            console.log(`   Leave Start: ${leaveStart.toISOString()} (${leaveStart.toDateString()})`);
+            console.log(`   Leave End: ${leaveEnd.toISOString()} (${leaveEnd.toDateString()})`);
+            console.log(`   Day Start: ${dayStart.toISOString()} (${dayStart.toDateString()})`);
+            console.log(`   Day End: ${dayEnd.toISOString()} (${dayEnd.toDateString()})`);
+            console.log(`   Condition 1 (leaveStart <= dayEnd): ${leaveStart <= dayEnd}`);
+            console.log(`   Condition 2 (leaveEnd >= dayStart): ${leaveEnd >= dayStart}`);
+            console.log(`   Result: ${leaveStart <= dayEnd && leaveEnd >= dayStart}`);
+          }
+          
+          return leaveStart <= dayEnd && leaveEnd >= dayStart;
+        }
       );
 
       const dayHolidays = holidays.filter(h => {

@@ -8,6 +8,7 @@ import useAttendanceSessionStore from '../../../stores/useAttendanceSessionStore
 import { formatIndianTime, formatIndianTimeString } from '../../../utils/indianFormatters';
 import { formatDuration } from '../../../utils/attendanceCalculations';
 import attendanceService from '../../../services/attendanceService';
+import { extractErrorMessage } from '../../../core/utils/errorMessageExtractor';
 
 const EnhancedClockInOut = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -79,7 +80,8 @@ const EnhancedClockInOut = () => {
       await fetchButtonStates();
       toast.success('Attendance status refreshed');
     } catch (error) {
-      toast.error('Failed to refresh status');
+      const errorMessage = extractErrorMessage(error, 'Failed to refresh status');
+      toast.error(errorMessage);
     }
   };
 
@@ -131,12 +133,14 @@ const EnhancedClockInOut = () => {
           await fetchTodayRecord(true);
           await fetchButtonStates();
         } else {
-          toast.error(result.error || 'Failed to clock in');
+          const errorMessage = extractErrorMessage(result, 'Failed to clock in');
+          toast.error(errorMessage);
         }
       }
     } catch (error) {
       console.error('Clock-in error:', error);
-      toast.error('Failed to clock in');
+      const errorMessage = extractErrorMessage(error, 'Failed to clock in');
+      toast.error(errorMessage);
     }
   };
 
@@ -155,10 +159,12 @@ const EnhancedClockInOut = () => {
         // Refresh button states
         await fetchButtonStates();
       } else {
-        toast.error(result.error || 'Failed to clock out');
+        const errorMessage = extractErrorMessage(result, 'Failed to clock out');
+        toast.error(errorMessage);
       }
     } catch (error) {
-      toast.error('Failed to clock out');
+      const errorMessage = extractErrorMessage(error, 'Failed to clock out');
+      toast.error(errorMessage);
     }
   };
 
@@ -192,11 +198,13 @@ const EnhancedClockInOut = () => {
         }, 1000);
       } else {
         console.error('🔍 [DEBUG] Break start failed:', result.error);
-        toast.error(result.error || 'Failed to start break');
+        const errorMessage = extractErrorMessage(result, 'Failed to start break');
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('🔍 [DEBUG] Break start exception:', error);
-      toast.error('Failed to start break');
+      const errorMessage = extractErrorMessage(error, 'Failed to start break');
+      toast.error(errorMessage);
     }
   };
 
@@ -226,11 +234,13 @@ const EnhancedClockInOut = () => {
         }, 1000);
       } else {
         console.error('🔍 [DEBUG] Break end failed:', result.error);
-        toast.error(result.error || 'Failed to end break');
+        const errorMessage = extractErrorMessage(result, 'Failed to end break');
+        toast.error(errorMessage);
       }
     } catch (error) {
       console.error('🔍 [DEBUG] Break end exception:', error);
-      toast.error('Failed to end break');
+      const errorMessage = extractErrorMessage(error, 'Failed to end break');
+      toast.error(errorMessage);
     }
   };
 
@@ -334,6 +344,25 @@ const EnhancedClockInOut = () => {
                 <p className="text-blue-700 text-sm">
                   {buttonStates.weekendMessage || 'Attendance tracking is disabled on weekends.'}
                 </p>
+              </div>
+            )}
+
+            {/* Leave Message */}
+            {buttonStates.isOnLeave && (
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Coffee className="h-5 w-5 text-green-600" />
+                  <span className="font-medium text-green-800">On Leave</span>
+                </div>
+                <p className="text-green-700 text-sm">
+                  {buttonStates.leaveMessage || 'You are on approved leave today.'}
+                </p>
+                {buttonStates.leaveInfo && (
+                  <div className="mt-2 text-xs text-green-600">
+                    <div className="font-medium">{buttonStates.leaveInfo.type} Leave</div>
+                    <div>{buttonStates.leaveInfo.period}</div>
+                  </div>
+                )}
               </div>
             )}
 

@@ -62,7 +62,23 @@ const employeeAttendanceController = {
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Clock In Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages based on error type
+      let errorMessage = "Unable to clock in at this time";
+      
+      if (error.message?.includes('already clocked in')) {
+        errorMessage = "You are already clocked in for today";
+      } else if (error.message?.includes('outside working hours')) {
+        errorMessage = "Clock in is only allowed during working hours";
+      } else if (error.message?.includes('weekend')) {
+        errorMessage = "Clock in is not allowed on weekends";
+      } else if (error.message?.includes('holiday')) {
+        errorMessage = "Clock in is not allowed on holidays";
+      } else if (error.message?.includes('leave')) {
+        errorMessage = "You are on approved leave today";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -83,7 +99,19 @@ const employeeAttendanceController = {
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Clock Out Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to clock out at this time";
+      
+      if (error.message?.includes('not clocked in')) {
+        errorMessage = "You must clock in before you can clock out";
+      } else if (error.message?.includes('already clocked out')) {
+        errorMessage = "You have already clocked out for today";
+      } else if (error.message?.includes('minimum work hours')) {
+        errorMessage = "You must work the minimum required hours before clocking out";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -103,7 +131,21 @@ const employeeAttendanceController = {
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Start Break Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to start break at this time";
+      
+      if (error.message?.includes('not clocked in')) {
+        errorMessage = "You must clock in before taking a break";
+      } else if (error.message?.includes('already on break')) {
+        errorMessage = "You are already on a break";
+      } else if (error.message?.includes('maximum break')) {
+        errorMessage = "You have reached the maximum number of breaks for today";
+      } else if (error.message?.includes('break duration')) {
+        errorMessage = "Break duration limit exceeded";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -126,7 +168,19 @@ const employeeAttendanceController = {
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: End Break Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to end break at this time";
+      
+      if (error.message?.includes('not on break')) {
+        errorMessage = "You are not currently on a break";
+      } else if (error.message?.includes('minimum break')) {
+        errorMessage = "Break must be at least a few minutes long";
+      } else if (error.message?.includes('break session not found')) {
+        errorMessage = "Active break session not found";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -142,7 +196,17 @@ const employeeAttendanceController = {
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Get Today Attendance Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to retrieve attendance information";
+      
+      if (error.message?.includes('employee not found')) {
+        errorMessage = "Employee profile not found";
+      } else if (error.message?.includes('shift not assigned')) {
+        errorMessage = "No shift assigned for today";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -158,7 +222,17 @@ const employeeAttendanceController = {
       return sendResponse(res, true, "Button states retrieved successfully", result.data);
     } catch (error) {
       logger.error("Controller: Get Button States Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to retrieve attendance controls";
+      
+      if (error.message?.includes('employee not found')) {
+        errorMessage = "Employee profile not found";
+      } else if (error.message?.includes('shift not found')) {
+        errorMessage = "Shift information not available";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -186,7 +260,21 @@ const employeeAttendanceController = {
       return sendResponse(res, true, result.message, result.data);
     } catch (error) {
       logger.error("Controller: Request Correction Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to submit correction request";
+      
+      if (error.message?.includes('already pending')) {
+        errorMessage = "A correction request is already pending for this attendance record";
+      } else if (error.message?.includes('correction window')) {
+        errorMessage = "Correction requests can only be made within the allowed time window";
+      } else if (error.message?.includes('invalid reason')) {
+        errorMessage = "Please provide a valid reason for the correction";
+      } else if (error.message?.includes('attendance not found')) {
+        errorMessage = "Attendance record not found";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -213,7 +301,17 @@ const employeeAttendanceController = {
       });
     } catch (error) {
       logger.error("Controller: Get My Attendance Records Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to retrieve attendance records";
+      
+      if (error.message?.includes('invalid date range')) {
+        errorMessage = "Please provide a valid date range";
+      } else if (error.message?.includes('employee not found')) {
+        errorMessage = "Employee profile not found";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -238,7 +336,19 @@ const employeeAttendanceController = {
       return sendResponse(res, true, "Monthly attendance summary retrieved successfully", result.data);
     } catch (error) {
       logger.error("Controller: Get My Monthly Summary Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to retrieve monthly summary";
+      
+      if (error.message?.includes('invalid month')) {
+        errorMessage = "Please provide a valid month (1-12)";
+      } else if (error.message?.includes('invalid year')) {
+        errorMessage = "Please provide a valid year";
+      } else if (error.message?.includes('employee not found')) {
+        errorMessage = "Employee profile not found";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -278,7 +388,19 @@ const employeeAttendanceController = {
       return sendResponse(res, true, "Working hours retrieved successfully", workingHoursSummary);
     } catch (error) {
       logger.error("Controller: Get Working Hours Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to retrieve working hours";
+      
+      if (error.message?.includes('invalid date format')) {
+        errorMessage = "Please provide dates in valid format (YYYY-MM-DD)";
+      } else if (error.message?.includes('date range too large')) {
+        errorMessage = "Date range is too large. Please select a smaller range";
+      } else if (error.message?.includes('employee not found')) {
+        errorMessage = "Employee profile not found";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -325,7 +447,17 @@ const employeeAttendanceController = {
       return sendResponse(res, true, "Attendance status retrieved successfully", status);
     } catch (error) {
       logger.error("Controller: Get Attendance Status Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to retrieve attendance status";
+      
+      if (error.message?.includes('invalid date')) {
+        errorMessage = "Please provide a valid date";
+      } else if (error.message?.includes('employee not found')) {
+        errorMessage = "Employee profile not found";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   },
 
@@ -352,7 +484,17 @@ const employeeAttendanceController = {
       return sendResponse(res, true, "Attendance summary retrieved successfully", result.data);
     } catch (error) {
       logger.error("Controller: Get My Attendance Summary Error", error);
-      return sendResponse(res, false, "Internal server error", null, 500);
+      
+      // Provide more specific error messages
+      let errorMessage = "Unable to retrieve attendance summary";
+      
+      if (error.message?.includes('employee not found')) {
+        errorMessage = "Employee profile not found";
+      } else if (error.message?.includes('no attendance data')) {
+        errorMessage = "No attendance data available for this month";
+      }
+      
+      return sendResponse(res, false, errorMessage, null, 500);
     }
   }
 };

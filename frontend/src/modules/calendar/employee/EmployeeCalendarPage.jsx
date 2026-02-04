@@ -40,14 +40,45 @@ const EmployeeCalendarPage = () => {
         endDate,
         viewMode,
       });
+      console.log("📅 [EMPLOYEE CALENDAR] Date Range Details:", {
+        startDateType: typeof startDate,
+        endDateType: typeof endDate,
+        startDateValue: startDate,
+        endDateValue: endDate,
+        currentSelectedDate: selectedDate.toISOString(),
+        currentViewMode: viewMode
+      });
 
       // ✅ SECURITY FIX: Use employee-safe calendar service
       const response = await employeeCalendarService.getEventsByDateRange(startDate, endDate);
+
+      console.log("🔍 [EMPLOYEE CALENDAR] Raw API Response:", response);
+      console.log("🔍 [EMPLOYEE CALENDAR] Response Success:", response?.success);
+      console.log("🔍 [EMPLOYEE CALENDAR] Response Data:", response?.data);
 
       if (response && response.success) {
         console.log("✅ [EMPLOYEE CALENDAR] Events loaded:", response.data);
 
         const allEvents = response.data.events || [];
+        
+        console.log("📋 [EMPLOYEE CALENDAR] All Events Array:", allEvents);
+        console.log("📋 [EMPLOYEE CALENDAR] All Events Length:", allEvents.length);
+        
+        // Log each event in detail
+        allEvents.forEach((event, index) => {
+          console.log(`📝 [EMPLOYEE CALENDAR] Event ${index + 1}:`, {
+            id: event.id,
+            eventType: event.eventType,
+            title: event.title,
+            employeeName: event.employeeName,
+            leaveType: event.leaveType,
+            startDate: event.startDate,
+            endDate: event.endDate,
+            date: event.date,
+            color: event.color,
+            fullEvent: event
+          });
+        });
 
         // ✅ IMPROVEMENT: Guard against duplicate events with Set tracking
         const addedEventIds = new Set();
@@ -91,23 +122,51 @@ const EmployeeCalendarPage = () => {
           other: sortedEvents.filter((e) => e.eventType === "other").length,
         });
         
+        // Log leave events specifically
+        const leaveEvents = sortedEvents.filter((e) => e.eventType === "leave");
+        console.log("🏖️ [EMPLOYEE CALENDAR] Leave Events Detail:", leaveEvents);
+        leaveEvents.forEach((leave, index) => {
+          console.log(`🏖️ [EMPLOYEE CALENDAR] Leave ${index + 1}:`, {
+            title: leave.title,
+            employeeName: leave.employeeName,
+            leaveType: leave.leaveType,
+            startDate: leave.startDate,
+            endDate: leave.endDate,
+            eventType: leave.eventType,
+            color: leave.color,
+            description: leave.description
+          });
+        });
+        
         setEvents(sortedEvents);
         
         // ✅ NEW: Calculate leave statistics
         calculateLeaveStats(sortedEvents);
       } else {
         console.warn("❌ [EMPLOYEE CALENDAR] API returned unsuccessful response:", response);
+        console.warn("❌ [EMPLOYEE CALENDAR] Response details:", {
+          success: response?.success,
+          message: response?.message,
+          error: response?.error,
+          data: response?.data
+        });
         toast.warning("Unable to load calendar events. Please try again.");
         setEvents([]);
         setLeaveStats(prev => ({ ...prev, loading: false }));
       }
     } catch (error) {
       console.error("💥 [EMPLOYEE CALENDAR] Failed to fetch events:", error);
+      console.error("💥 [EMPLOYEE CALENDAR] Error details:", {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
       toast.error("Failed to load calendar events. Please check your connection and try again.");
       setEvents([]);
       setLeaveStats(prev => ({ ...prev, loading: false }));
     } finally {
       setLoading(false);
+      console.log("🏁 [EMPLOYEE CALENDAR] Fetch events completed");
     }
   }, [viewMode]);
 
@@ -275,6 +334,26 @@ const EmployeeCalendarPage = () => {
               <div>Events: {events.filter((e) => e.eventType === "event").length}</div>
               <div>Other: {events.filter((e) => e.eventType === "other").length}</div>
               <div>Total: {events.length}</div>
+            </div>
+          </div>
+        )}
+        
+        {/* Show message when no events are found */}
+        {!loading && events.length === 0 && (
+          <div className="mt-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5 text-blue-600" />
+              <div>
+                <h3 className="text-sm font-medium text-blue-900">No Events Found</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                  There are currently no holidays, leaves, birthdays, anniversaries, or company events for this period.
+                  {process.env.NODE_ENV === "development" && (
+                    <span className="block mt-1 text-xs">
+                      💡 Run the test data script: <code>node backend/test-calendar-data.js</code>
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
           </div>
         )}

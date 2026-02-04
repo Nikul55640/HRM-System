@@ -90,7 +90,6 @@ const AttendanceRecord = sequelize.define('AttendanceRecord', {
       'completed',         // ⚠️ IMPORTANT: Employee clocked out, but NOT finalized yet
                            // This is a LIVE state, NOT a final status
                            // Cron job will convert this to 'present', 'half_day', etc.
-      
       // 🔴 FINAL STATES (after shift end + buffer - cron-only)
       'present',           // Full day attendance (≥ fullDayHours)
       'half_day',          // Partial attendance (≥ halfDayHours, < fullDayHours)
@@ -695,7 +694,7 @@ AttendanceRecord.prototype.finalizeWithShift = async function(shift) {
   }
 
   // Import the calculation service for work hours calculation (ES module compatible)
-  const { default: AttendanceCalculationService } = await import('../services/core/attendanceCalculation.service.js');
+  const { default: AttendanceCalculationService } = await import('../../services/core/attendanceCalculation.service.js');
   
   // Calculate work hours using the centralized service
   const { workMinutes, breakMinutes } = AttendanceCalculationService.calculateWorkHours(
@@ -748,14 +747,14 @@ AttendanceRecord.prototype.finalizeWithShift = async function(shift) {
     // Use standard 8-hour full day, 4-hour half day
     const workHours = this.workHours;
     
-    if (workHours >= 7) {
+    if (workHours >= 6) {  // 🔥 CHANGED: From 7 to 6 hours
       this.status = 'present';
       this.halfDayType = 'full_day';
-      this.statusReason = `Worked ${workHours} hours (≥ 8 hours for full day)`;
+      this.statusReason = `Worked ${workHours} hours (≥ 6 hours for full day)`;  // 🔥 CHANGED: Message updated
     } else if (workHours >= 4) {
       this.status = 'half_day';
       this.halfDayType = workHours >= 6 ? 'first_half' : 'second_half';
-      this.statusReason = `Worked ${workHours} hours (≥ 4 hours for half day, < 8 hours for full day)`;
+      this.statusReason = `Worked ${workHours} hours (≥ 4 hours for half day, < 6 hours for full day)`;  // 🔥 CHANGED: Updated message
     } else {
       this.status = 'half_day';
       this.halfDayType = 'first_half';

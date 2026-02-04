@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import api from '../services/api';
+import { extractErrorMessage } from '../core/utils/errorMessageExtractor';
 
 const useAttendanceSessionStore = create(
   devtools(
@@ -80,9 +81,10 @@ const useAttendanceSessionStore = create(
           }
         } catch (error) {
           console.error('🔍 [STORE] Fetch error:', error);
+          const errorMessage = extractErrorMessage(error, 'Failed to fetch attendance data');
           set({ 
             isLoading: false,
-            error: error.response?.data?.message || 'Failed to fetch attendance data'
+            error: errorMessage
           });
         }
       },
@@ -125,7 +127,7 @@ const useAttendanceSessionStore = create(
           
           return {
             success: false,
-            error: error.response?.data?.message || 'Clock in failed',
+            error: extractErrorMessage(error, 'Clock in failed'),
           };
         }
       },
@@ -149,8 +151,7 @@ const useAttendanceSessionStore = create(
           set({ isLoading: false });
           return {
             success: false,
-            error:
-              error.response?.data?.message || 'Clock out failed',
+            error: extractErrorMessage(error, 'Clock out failed'),
           };
         }
       },
@@ -186,7 +187,7 @@ const useAttendanceSessionStore = create(
           set({ isLoading: false });
           return {
             success: false,
-            error: error.response?.data?.message || 'Start break failed',
+            error: extractErrorMessage(error, 'Start break failed'),
           };
         }
       },
@@ -219,7 +220,7 @@ const useAttendanceSessionStore = create(
           set({ isLoading: false });
           return {
             success: false,
-            error: error.response?.data?.message || 'End break failed',
+            error: extractErrorMessage(error, 'End break failed'),
           };
         }
       },

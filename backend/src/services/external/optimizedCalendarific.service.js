@@ -145,7 +145,7 @@ class OptimizedCalendarificService {
     // Check cache first
     const cachedData = this.getFromCache(rawCacheKey);
     if (cachedData) {
-      return cachedData;
+      return Array.isArray(cachedData) ? cachedData : [];
     }
 
     // Check API limits
@@ -158,10 +158,16 @@ class OptimizedCalendarificService {
     try {
       const result = await requestPromise;
       
-      // Cache the raw result
-      this.setCache(rawCacheKey, result);
+      // Ensure result is always an array
+      const holidays = Array.isArray(result) ? result : [];
       
-      return result;
+      // Cache the raw result
+      this.setCache(rawCacheKey, holidays);
+      
+      return holidays;
+    } catch (error) {
+      logger.error(`Error fetching raw holidays for ${rawCacheKey}:`, error);
+      return []; // Return empty array on error
     } finally {
       // Remove from queue when done
       this.requestQueue.delete(rawCacheKey);
@@ -194,12 +200,12 @@ class OptimizedCalendarificService {
         throw new Error(`Calendarific API error: ${response.data.meta.error_detail || 'Unknown error'}`);
       }
 
-      const holidays = response.data.response.holidays || [];
+      const holidays = response.data.response?.holidays || [];
       const transformedHolidays = this.transformCalendarificHolidays(holidays);
       
       logger.info(`✅ Fetched and transformed ${transformedHolidays.length} holidays`);
       
-      return transformedHolidays;
+      return Array.isArray(transformedHolidays) ? transformedHolidays : [];
       
     } catch (error) {
       this.apiCallCount++; // Count failed calls too
@@ -225,7 +231,7 @@ class OptimizedCalendarificService {
    */
   async getHolidays(country = 'IN', year = new Date().getFullYear(), type = 'national', filters = {}) {
     if (!this.apiKey) {
-      throw new Error('Calendarific API key is not configured');
+      throw new Error('Calendarific API key is not configured. Please add CALENDARIFIC_API_KEY to your environment variables.');
     }
 
     const filteredCacheKey = this.getFilteredCacheKey(country, year, type, filters);
@@ -233,16 +239,16 @@ class OptimizedCalendarificService {
     // Check filtered cache first
     const cachedFiltered = this.getFromCache(filteredCacheKey);
     if (cachedFiltered) {
-      return cachedFiltered;
+      return Array.isArray(cachedFiltered) ? cachedFiltered : [];
     }
 
     // Get raw data (this will use cache if available)
     const rawHolidays = await this.fetchRawHolidays(country, year, type);
     
     // Apply filters to raw data
-    let filteredHolidays = rawHolidays;
+    let filteredHolidays = Array.isArray(rawHolidays) ? rawHolidays : [];
     if (Object.keys(filters).length > 0) {
-      filteredHolidays = this.applyAdvancedFilters(rawHolidays, filters);
+      filteredHolidays = this.applyAdvancedFilters(filteredHolidays, filters);
     }
     
     // Cache the filtered result
@@ -257,35 +263,102 @@ class OptimizedCalendarificService {
   async batchFetchHolidays(country, year, types = ['national', 'religious']) {
     logger.info(`🔄 Batch fetching holidays for ${country}-${year}: ${types.join(', ')}`);
     
-    // Fetch all types in parallel (each will use cache if available)
-    const promises = types.map(type => this.fetchRawHolidays(country, year, type));
-    const results = await Promise.all(promises);
-    
-    // Combine all results
-    const allHolidays = [];
-    results.forEach((holidays, index) => {
-      holidays.forEach(holiday => {
-        allHolidays.push({
-          ...holiday,
-          sourceType: types[index]
-        });
+    try {
+      // Fetch all types in parallel (each will use cache if available)
+      const promises = types.map(async (type) => {
+        try {
+          const holidays = await this.fetchRawHolidays(country, year, type);
+          return {
+            type,
+            holidays: holidays || [],
+            success: true,
+            count: (holidays || []).length
+          };
+        } catch (error) {
+          logger.error(`Error fetching ${type} holidays:`, error);
+          return {
+            type,
+            holidays: [],
+            success: false,
+            count: 0,
+            error: error.message
+          };
+        }
       });
-    });
-    
-    // Remove duplicates based on name and date
-    const uniqueHolidays = this.removeDuplicateHolidays(allHolidays);
-    
-    logger.info(`✅ Batch fetch completed: ${uniqueHolidays.length} unique holidays`);
-    
-    return uniqueHolidays;
+      
+      const results = await Promise.all(promises);
+      
+      // Combine all results
+      const allHolidays = [];
+      const breakdown = [];
+      
+      results.forEach((result) => {
+        breakdown.push({
+          type: result.type,
+          count: result.count,
+          success: result.success,
+          error: result.error
+        });
+        
+        if (result.success && result.holidays) {
+          result.holidays.forEach(holiday => {
+            allHolidays.push({
+              ...holiday,
+              sourceType: result.type
+            });
+          });
+        }
+      });
+      
+      // Remove duplicates based on name and date
+      const uniqueHolidays = this.removeDuplicateHolidays(allHolidays);
+      
+      logger.info(`✅ Batch fetch completed: ${uniqueHolidays.length} unique holidays`);
+      
+      return {
+        success: true,
+        holidays: uniqueHolidays,
+        breakdown: breakdown,
+        stats: {
+          apiCallsToday: this.apiCallCount,
+          remainingCalls: this.dailyLimit - this.apiCallCount,
+          totalHolidays: uniqueHolidays.length,
+          typesProcessed: types.length
+        }
+      };
+    } catch (error) {
+      logger.error('Error in batch fetch holidays:', error);
+      return {
+        success: false,
+        holidays: [],
+        breakdown: [],
+        stats: {
+          apiCallsToday: this.apiCallCount,
+          remainingCalls: this.dailyLimit - this.apiCallCount,
+          totalHolidays: 0,
+          typesProcessed: 0
+        },
+        error: error.message
+      };
+    }
   }
 
   /**
    * Remove duplicate holidays
    */
   removeDuplicateHolidays(holidays) {
+    if (!Array.isArray(holidays)) {
+      logger.warn('removeDuplicateHolidays received non-array input:', typeof holidays);
+      return [];
+    }
+
     const seen = new Set();
     return holidays.filter(holiday => {
+      if (!holiday || !holiday.name) {
+        logger.warn('Skipping invalid holiday in deduplication:', holiday);
+        return false;
+      }
+
       const key = `${holiday.name}-${holiday.date || holiday.recurringDate}`;
       if (seen.has(key)) {
         return false;
@@ -490,37 +563,52 @@ class OptimizedCalendarificService {
    * Transform Calendarific holiday data to our Holiday model format
    */
   transformCalendarificHolidays(calendarificHolidays) {
+    if (!Array.isArray(calendarificHolidays)) {
+      logger.warn('transformCalendarificHolidays received non-array input:', typeof calendarificHolidays);
+      return [];
+    }
+
     return calendarificHolidays.map(holiday => {
-      const holidayDate = new Date(holiday.date.iso);
-      const isRecurring = this.isRecurringHoliday(holiday);
-      
-      return {
-        name: holiday.name,
-        description: holiday.description || `${holiday.name} - ${holiday.type?.join(', ') || 'Holiday'}`,
-        date: isRecurring ? null : holiday.date.iso,
-        recurringDate: isRecurring ? this.getRecurringDate(holidayDate) : null,
-        type: isRecurring ? 'RECURRING' : 'ONE_TIME',
-        category: this.mapCalendarificCategory(holiday.type),
-        isPaid: this.isPaidHoliday(holiday.type),
-        appliesEveryYear: isRecurring,
-        color: this.getHolidayColor(holiday.type),
-        locationScope: this.getLocationScope(holiday.locations),
-        hrApprovalStatus: 'approved',
-        visibleToEmployees: true,
-        includeInPayroll: this.isPaidHoliday(holiday.type),
-        isActive: true,
-        calendarificData: {
-          uuid: holiday.uuid,
-          urlid: holiday.urlid,
-          type: holiday.type,
-          locations: holiday.locations,
-          states: holiday.states
-        },
-        calendarificUuid: holiday.uuid,
-        syncedFromCalendarific: true,
-        lastSyncedAt: new Date()
-      };
-    });
+      try {
+        if (!holiday || !holiday.date || !holiday.name) {
+          logger.warn('Skipping invalid holiday:', holiday);
+          return null;
+        }
+
+        const holidayDate = new Date(holiday.date.iso);
+        const isRecurring = this.isRecurringHoliday(holiday);
+        
+        return {
+          name: holiday.name,
+          description: holiday.description || `${holiday.name} - ${holiday.type?.join(', ') || 'Holiday'}`,
+          date: isRecurring ? null : holiday.date.iso,
+          recurringDate: isRecurring ? this.getRecurringDate(holidayDate) : null,
+          type: isRecurring ? 'RECURRING' : 'ONE_TIME',
+          category: this.mapCalendarificCategory(holiday.type),
+          isPaid: this.isPaidHoliday(holiday.type),
+          appliesEveryYear: isRecurring,
+          color: this.getHolidayColor(holiday.type),
+          locationScope: this.getLocationScope(holiday.locations),
+          hrApprovalStatus: 'approved',
+          visibleToEmployees: true,
+          includeInPayroll: this.isPaidHoliday(holiday.type),
+          isActive: true,
+          calendarificData: {
+            uuid: holiday.uuid,
+            urlid: holiday.urlid,
+            type: holiday.type,
+            locations: holiday.locations,
+            states: holiday.states
+          },
+          calendarificUuid: holiday.uuid,
+          syncedFromCalendarific: true,
+          lastSyncedAt: new Date()
+        };
+      } catch (error) {
+        logger.error('Error transforming holiday:', error, holiday);
+        return null;
+      }
+    }).filter(holiday => holiday !== null); // Remove any null entries
   }
 
   /**
@@ -531,23 +619,42 @@ class OptimizedCalendarificService {
       if (!this.apiKey) {
         return {
           success: false,
-          message: 'Calendarific API key is not configured'
+          message: 'Calendarific API key is not configured. Please add CALENDARIFIC_API_KEY to your environment variables.'
         };
       }
 
-      // Test with a simple API call
-      const result = await this.getHolidays('IN', new Date().getFullYear(), 'national');
+      logger.info('Testing Calendarific API connection...');
+
+      // Test with a simple API call for current year national holidays
+      const currentYear = new Date().getFullYear();
+      const result = await this.getHolidays('IN', currentYear, 'national');
       
       return {
         success: true,
         message: 'Calendarific API connection successful',
-        holidayCount: result.length
+        holidayCount: result.length,
+        apiCallsUsed: this.apiCallCount,
+        remainingCalls: this.dailyLimit - this.apiCallCount
       };
     } catch (error) {
       logger.error('Calendarific connection test failed:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = error.message;
+      if (error.message.includes('401')) {
+        errorMessage = 'Invalid API key. Please check your CALENDARIFIC_API_KEY configuration.';
+      } else if (error.message.includes('403')) {
+        errorMessage = 'API access forbidden. Your API key may have insufficient permissions.';
+      } else if (error.message.includes('429')) {
+        errorMessage = 'API rate limit exceeded. Please try again later.';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Connection timeout. Please check your internet connection.';
+      }
+      
       return {
         success: false,
-        message: `Connection failed: ${error.message}`
+        message: `Connection failed: ${errorMessage}`,
+        error: error.message
       };
     }
   }
@@ -598,7 +705,8 @@ class OptimizedCalendarificService {
       }
 
       // Sync to database
-      let syncedCount = 0;
+      let createdCount = 0;
+      let updatedCount = 0;
       let skippedCount = 0;
 
       for (const holiday of uniqueHolidays) {
@@ -619,29 +727,42 @@ class OptimizedCalendarificService {
             await existingHoliday.update({
               description: holiday.description,
               type: holiday.type || 'public',
-              isActive: true
+              isActive: true,
+              syncedFromCalendarific: true,
+              lastSyncedAt: new Date()
             });
+            updatedCount++;
           } else {
             await Holiday.create({
               name: holiday.name,
               date: holiday.date,
               description: holiday.description,
               type: holiday.type || 'public',
-              isActive: true
+              isActive: true,
+              syncedFromCalendarific: true,
+              lastSyncedAt: new Date()
             });
+            createdCount++;
           }
-          
-          syncedCount++;
         } catch (error) {
           logger.error(`Error syncing holiday ${holiday.name}:`, error);
+          skippedCount++;
         }
       }
 
       return {
         success: true,
-        message: `Synced ${syncedCount} holidays, skipped ${skippedCount}`,
+        message: `Synced ${createdCount + updatedCount} holidays (${createdCount} created, ${updatedCount} updated), skipped ${skippedCount}`,
+        stats: {
+          created: createdCount,
+          updated: updatedCount,
+          skipped: skippedCount,
+          total: uniqueHolidays.length
+        },
         data: {
-          synced: syncedCount,
+          synced: createdCount + updatedCount,
+          created: createdCount,
+          updated: updatedCount,
           skipped: skippedCount,
           total: uniqueHolidays.length
         }
@@ -718,7 +839,8 @@ class OptimizedCalendarificService {
     try {
       const { overwriteExisting = false } = options;
       
-      let syncedCount = 0;
+      let createdCount = 0;
+      let updatedCount = 0;
       let skippedCount = 0;
 
       for (const holiday of selectedHolidays) {
@@ -739,29 +861,42 @@ class OptimizedCalendarificService {
             await existingHoliday.update({
               description: holiday.description,
               type: holiday.type || 'public',
-              isActive: true
+              isActive: true,
+              syncedFromCalendarific: true,
+              lastSyncedAt: new Date()
             });
+            updatedCount++;
           } else {
             await Holiday.create({
               name: holiday.name,
               date: holiday.date,
               description: holiday.description,
               type: holiday.type || 'public',
-              isActive: true
+              isActive: true,
+              syncedFromCalendarific: true,
+              lastSyncedAt: new Date()
             });
+            createdCount++;
           }
-          
-          syncedCount++;
         } catch (error) {
           logger.error(`Error syncing holiday ${holiday.name}:`, error);
+          skippedCount++;
         }
       }
 
       return {
         success: true,
-        message: `Synced ${syncedCount} holidays, skipped ${skippedCount}`,
+        message: `Synced ${createdCount + updatedCount} holidays (${createdCount} created, ${updatedCount} updated), skipped ${skippedCount}`,
+        stats: {
+          created: createdCount,
+          updated: updatedCount,
+          skipped: skippedCount,
+          total: selectedHolidays.length
+        },
         data: {
-          synced: syncedCount,
+          synced: createdCount + updatedCount,
+          created: createdCount,
+          updated: updatedCount,
           skipped: skippedCount,
           total: selectedHolidays.length
         }
@@ -774,6 +909,228 @@ class OptimizedCalendarificService {
         message: `Sync failed: ${error.message}`
       };
     }
+  }
+
+  /**
+   * Check if a holiday is recurring (based on lunar calendar or similar)
+   */
+  isRecurringHoliday(holiday) {
+    // Check if the holiday is based on lunar calendar or has recurring patterns
+    const recurringKeywords = ['lunar', 'movable', 'variable', 'eid', 'diwali', 'holi', 'easter'];
+    const name = holiday.name.toLowerCase();
+    return recurringKeywords.some(keyword => name.includes(keyword));
+  }
+
+  /**
+   * Get recurring date format (MM-DD)
+   */
+  getRecurringDate(date) {
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${month}-${day}`;
+  }
+
+  /**
+   * Map Calendarific category to our system
+   */
+  mapCalendarificCategory(types) {
+    if (!types || !Array.isArray(types)) return 'public';
+    
+    if (types.includes('national')) return 'national';
+    if (types.includes('religious')) return 'religious';
+    if (types.includes('local')) return 'local';
+    if (types.includes('observance')) return 'observance';
+    
+    return 'public';
+  }
+
+  /**
+   * Determine if holiday is paid
+   */
+  isPaidHoliday(types) {
+    if (!types || !Array.isArray(types)) return false;
+    
+    // National and religious holidays are typically paid
+    return types.includes('national') || types.includes('religious');
+  }
+
+  /**
+   * Get holiday color based on type
+   */
+  getHolidayColor(types) {
+    if (!types || !Array.isArray(types)) return '#3B82F6';
+    
+    if (types.includes('national')) return '#DC2626'; // Red for national
+    if (types.includes('religious')) return '#7C3AED'; // Purple for religious
+    if (types.includes('local')) return '#059669'; // Green for local
+    if (types.includes('observance')) return '#6B7280'; // Gray for observance
+    
+    return '#3B82F6'; // Blue default
+  }
+
+  /**
+   * Get location scope
+   */
+  getLocationScope(locations) {
+    if (!locations || locations === 'All') return 'national';
+    if (Array.isArray(locations) && locations.length > 5) return 'national';
+    return 'regional';
+  }
+
+  /**
+   * Generate holiday summary
+   */
+  generateHolidaySummary(holidays) {
+    const summary = {
+      total: holidays.length,
+      byType: {},
+      byMonth: {},
+      paid: 0,
+      unpaid: 0
+    };
+
+    holidays.forEach(holiday => {
+      // Count by type
+      const type = holiday.category || 'public';
+      summary.byType[type] = (summary.byType[type] || 0) + 1;
+
+      // Count by month
+      const date = new Date(holiday.date || `2024-${holiday.recurringDate}`);
+      const month = date.getMonth() + 1;
+      summary.byMonth[month] = (summary.byMonth[month] || 0) + 1;
+
+      // Count paid/unpaid
+      if (holiday.isPaid) {
+        summary.paid++;
+      } else {
+        summary.unpaid++;
+      }
+    });
+
+    return summary;
+  }
+
+  /**
+   * Filter festivals only
+   */
+  filterFestivals(holidays) {
+    return holidays.filter(holiday => {
+      const name = holiday.name.toLowerCase();
+      return FESTIVAL_KEYWORDS.some(keyword => name.includes(keyword));
+    });
+  }
+
+  /**
+   * Filter national holidays only
+   */
+  filterNationalHolidays(holidays) {
+    return holidays.filter(holiday => {
+      const name = holiday.name.toLowerCase();
+      return NATIONAL_KEYWORDS.some(keyword => name.includes(keyword)) ||
+             holiday.category === 'national';
+    });
+  }
+
+  /**
+   * Filter by categories
+   */
+  filterByCategories(holidays, categories) {
+    return holidays.filter(holiday => 
+      categories.includes(holiday.category || 'public')
+    );
+  }
+
+  /**
+   * Filter by importance level
+   */
+  filterByImportance(holidays, level) {
+    return holidays.filter(holiday => {
+      const name = holiday.name.toLowerCase();
+      const keywords = IMPORTANCE_LEVELS[level.toUpperCase()] || [];
+      return keywords.some(keyword => name.includes(keyword));
+    });
+  }
+
+  /**
+   * Filter by state
+   */
+  filterByState(holidays, state) {
+    return holidays.filter(holiday => {
+      if (!holiday.calendarificData?.states) return true;
+      return holiday.calendarificData.states.includes(state);
+    });
+  }
+
+  /**
+   * Exclude observances
+   */
+  excludeObservances(holidays) {
+    return holidays.filter(holiday => {
+      const name = holiday.name.toLowerCase();
+      return !OBSERVANCE_KEYWORDS.some(keyword => name.includes(keyword));
+    });
+  }
+
+  /**
+   * Filter by specific holidays
+   */
+  filterBySpecificHolidays(holidays, includeList) {
+    return holidays.filter(holiday => 
+      includeList.some(name => 
+        holiday.name.toLowerCase().includes(name.toLowerCase())
+      )
+    );
+  }
+
+  /**
+   * Exclude specific holidays
+   */
+  excludeSpecificHolidays(holidays, excludeList) {
+    return holidays.filter(holiday => 
+      !excludeList.some(name => 
+        holiday.name.toLowerCase().includes(name.toLowerCase())
+      )
+    );
+  }
+
+  /**
+   * Apply company policy
+   */
+  applyCompanyPolicy(holidays, policyName) {
+    const policy = COMPANY_POLICY_TEMPLATES[policyName.toUpperCase()];
+    if (!policy) return holidays;
+
+    let filtered = holidays;
+
+    // Apply max holidays limit
+    if (policy.maxHolidays) {
+      filtered = this.limitHolidays(filtered, policy.maxHolidays);
+    }
+
+    // Apply type filters
+    if (policy.includeTypes) {
+      filtered = this.filterByCategories(filtered, policy.includeTypes);
+    }
+
+    // Exclude observances if specified
+    if (policy.excludeObservances) {
+      filtered = this.excludeObservances(filtered);
+    }
+
+    return filtered;
+  }
+
+  /**
+   * Limit number of holidays
+   */
+  limitHolidays(holidays, maxCount) {
+    // Sort by importance (national first, then religious, then others)
+    const sorted = holidays.sort((a, b) => {
+      const order = { national: 0, religious: 1, local: 2, observance: 3, public: 4 };
+      return (order[a.category] || 5) - (order[b.category] || 5);
+    });
+
+    return sorted.slice(0, maxCount);
   }
 
   // ... (include all other helper methods)

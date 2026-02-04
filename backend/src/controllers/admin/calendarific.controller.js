@@ -137,22 +137,31 @@ export const batchPreviewHolidays = async (req, res) => {
     // Use optimized batch fetch
     const result = await CalendarificService.batchFetchHolidays(country, parseInt(year), typeArray);
 
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        message: 'Failed to fetch holidays from Calendarific',
+        error: result.error
+      });
+    }
+
     res.json({
       success: true,
       data: {
         country,
         year: parseInt(year),
         types: typeArray,
-        holidays: result.holidays,
-        count: result.holidays.length,
-        breakdown: result.breakdown.map(r => ({
+        holidays: result.holidays || [],
+        count: (result.holidays || []).length,
+        breakdown: (result.breakdown || []).map(r => ({
           type: r.type,
-          count: r.count,
-          success: r.success
+          count: r.count || 0,
+          success: r.success || false,
+          error: r.error
         })),
-        apiUsage: result.stats
+        apiUsage: result.stats || {}
       },
-      message: `Found ${result.holidays.length} holidays across ${typeArray.length} categories. API calls today: ${result.stats.apiCallsToday}/${result.stats.remainingCalls + result.stats.apiCallsToday}`
+      message: `Found ${(result.holidays || []).length} holidays across ${typeArray.length} categories. API calls today: ${result.stats?.apiCallsToday || 0}/${(result.stats?.remainingCalls || 0) + (result.stats?.apiCallsToday || 0)}`
     });
     
   } catch (error) {
@@ -776,7 +785,7 @@ export const syncWithTemplate = async (req, res) => {
     // Apply template selection to filter holidays
     const applyResult = await holidaySelectionTemplateService.applyTemplateToHolidays(
       templateId,
-      result.holidays
+      result.holidays || []
     );
 
     if (!applyResult.success) {

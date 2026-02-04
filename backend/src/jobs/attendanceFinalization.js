@@ -400,7 +400,8 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
     });
 
     // ⛔ IDEMPOTENT CHECK: Skip if already finalized
-    if (record && record.status !== 'incomplete') {
+    // 🔥 FIX: Also process "completed" records (they are LIVE states, not final states)
+    if (record && !['incomplete', 'completed', 'in_progress', 'on_break'].includes(record.status)) {
       logger.debug(`Employee ${employee.id}: Already finalized (status: ${record.status})`);
       stats.skipped++;
       return;
@@ -491,7 +492,6 @@ async function finalizeEmployeeAttendance(employee, dateString, stats) {
           shift,
           record.date // Use the attendance date from the record
         );
-        
         // Update late status if it changed
         if (record.lateMinutes !== lateCalculation.lateMinutes || record.isLate !== lateCalculation.isLate) {
           const oldLateMinutes = record.lateMinutes;

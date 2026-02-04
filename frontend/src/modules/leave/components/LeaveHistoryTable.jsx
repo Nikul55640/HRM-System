@@ -41,6 +41,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "react-toastify";
+import { extractErrorMessage } from "../../../core/utils/errorMessageExtractor";
 import leaveService from "../../../services/leaveService";
 
 const LeaveHistoryTable = ({ history, onRefresh }) => {
@@ -139,9 +140,8 @@ const LeaveHistoryTable = ({ history, onRefresh }) => {
       toast.success("Leave request cancelled successfully");
       onRefresh?.();
     } catch (error) {
-      toast.error(
-        error.response?.data?.message || "Failed to cancel leave request",
-      );
+      const errorMessage = extractErrorMessage(error, "Failed to cancel leave request");
+      toast.error(errorMessage);
     } finally {
       setCancellingId(null);
     }

@@ -5,6 +5,7 @@ import { Textarea } from '../../../shared/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../shared/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../../shared/ui/dialog';
 import { toast } from 'react-hot-toast';
+import { extractErrorMessage } from '../../../core/utils/errorMessageExtractor';
 import api from '../../../services/api';
 
 const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
@@ -68,7 +69,8 @@ const ActivityForm = ({ leadId, activity, onSuccess, onCancel }) => {
       toast.success(`Activity ${activity ? 'updated' : 'created'} successfully`);
       onSuccess();
     } catch (error) {
-      toast.error(error.message || `Failed to ${activity ? 'update' : 'create'} activity`);
+      const errorMessage = extractErrorMessage(error, `Failed to ${activity ? 'update' : 'create'} activity`);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

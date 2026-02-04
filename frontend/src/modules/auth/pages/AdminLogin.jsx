@@ -62,7 +62,26 @@ const AdminLogin = () => {
       toast.success("Admin login successful!");
       navigate("/dashboard");
     } catch (error) {
-      toast.error(error.message || "Invalid email or password");
+      console.log('🔑 [ADMIN LOGIN] Error caught:', error);
+      
+      // Extract user-friendly error message
+      let errorMessage = "Invalid email or password";
+      
+      if (error.message && !error.message.includes('status code')) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.error?.message) {
+        errorMessage = error.response.data.error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      }
+      
+      // Handle specific cases
+      if (error.message?.includes('Network Error') || error.message?.includes('timeout')) {
+        errorMessage = "Network error. Please check your connection.";
+      }
+      
+      console.log('🔑 [ADMIN LOGIN] Showing error toast:', errorMessage);
+      toast.error(errorMessage);
     }
   };
 

@@ -114,8 +114,9 @@ api.interceptors.response.use(
 
     // Handle 401 Unauthorized - Token expired
     if (error.response.status === 401 && !originalRequest._retry) {
-      // Skip token refresh for login and refresh endpoints
+      // Skip token refresh for login and refresh endpoints - let them handle their own errors
       if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/refresh')) {
+        // Don't transform login errors - pass them through as-is
         return Promise.reject(error);
       }
 
@@ -223,7 +224,12 @@ api.interceptors.response.use(
       }`
     );
 
-    // Transform error response
+    // Don't transform login errors - pass them through as-is for proper handling
+    if (originalRequest.url?.includes('/auth/login')) {
+      return Promise.reject(error);
+    }
+
+    // Transform error response for other endpoints
     const errorResponse = {
       message:
         error.response?.data?.error?.message ||

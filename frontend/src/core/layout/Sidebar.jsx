@@ -398,12 +398,6 @@ const Sidebar = ({ setLayoutSidebarExpanded, mobileMenuOpen, setMobileMenuOpen }
           showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
         },
         {
-          name: "System Policies",
-          path: "/admin/system-policies",
-          icon: "FileText",
-          showIf: () => can.do(MODULES.SYSTEM.MANAGE_CONFIG),
-        },
-        {
           name: "Audit Logs",
           path: "/admin/audit-logs",
           icon: "ListChecks",

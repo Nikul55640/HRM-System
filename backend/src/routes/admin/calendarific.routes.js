@@ -331,7 +331,6 @@ router.post('/apply-policy', [
     .withMessage('dryRun must be a boolean')
 ], applyCompanyPolicy);
 
-export default router;
 /**
  * @route POST /api/admin/calendarific/sync-with-template/:templateId
  * @desc Sync holidays using a holiday selection template
@@ -351,3 +350,5 @@ router.post('/sync-with-template/:templateId', [
     .isBoolean()
     .withMessage('dryRun must be a boolean')
 ], syncWithTemplate);
+
+export default router;

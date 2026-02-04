@@ -21,7 +21,16 @@ const useAuth = () => {
       return result;
     } catch (error) {
       console.error('🔑 [USE AUTH] Login failed:', error);
-      throw new Error(error.message || 'Login failed');
+      console.error('🔑 [USE AUTH] Error message:', error.message);
+      console.error('🔑 [USE AUTH] Error response:', error.response);
+      
+      // Ensure we throw an error with a proper message
+      const errorMessage = error.message || 'Login failed';
+      const loginError = new Error(errorMessage);
+      loginError.code = error.code;
+      loginError.status = error.status;
+      
+      throw loginError;
     }
   };
 

@@ -3,6 +3,7 @@ import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { toast } from 'react-toastify';
 import departmentService from '../services/departmentService';
 import configService from '../services/configService';
+import { extractErrorMessage } from '../core/utils/errorMessageExtractor';
 
 const useOrganizationStore = create(
   devtools(
@@ -142,7 +143,7 @@ const useOrganizationStore = create(
           return response.data;
           
         } catch (error) {
-          const errorMessage = error.response?.data?.message || error.message;
+          const errorMessage = extractErrorMessage(error, 'Failed to create department');
           toast.error(errorMessage);
           throw error;
         }
